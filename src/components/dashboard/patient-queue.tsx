@@ -124,7 +124,7 @@ export default function PatientQueue({ initialPatients, aipatients }: { initialP
           </TabsList>
           <div className="mt-4">
             <AnimatePresence>
-               <TabsContent value="waiting">
+               <TabsContent key="waiting" value="waiting">
                   <div className="space-y-3">
                     {waitingPatients.length > 0 ? (
                       waitingPatients.map((p) => <PatientCard key={p.id} patient={p} />)
@@ -133,7 +133,7 @@ export default function PatientQueue({ initialPatients, aipatients }: { initialP
                     )}
                   </div>
                </TabsContent>
-               <TabsContent value="completed">
+               <TabsContent key="completed" value="completed">
                   <div className="space-y-3">
                     {completedPatients.length > 0 ? (
                       completedPatients.map((p) => <PatientCard key={p.id} patient={p} />)
@@ -142,7 +142,7 @@ export default function PatientQueue({ initialPatients, aipatients }: { initialP
                     )}
                   </div>
                </TabsContent>
-               <TabsContent value="all">
+               <TabsContent key="all" value="all">
                   <div className="space-y-3">
                     {allPatients.length > 0 ? (
                       allPatients.map((p) => <PatientCard key={p.id} patient={p} />)
