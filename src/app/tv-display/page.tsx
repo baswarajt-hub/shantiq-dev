@@ -1,7 +1,10 @@
+'use client';
 import { getPatients } from '@/lib/data';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { Hourglass, User } from 'lucide-react';
+import type { Patient } from '@/lib/types';
+import { useEffect, useState } from 'react';
 
 const anonymizeName = (name: string) => {
   const parts = name.split(' ');
@@ -11,8 +14,32 @@ const anonymizeName = (name: string) => {
   return parts[0];
 };
 
-export default async function TVDisplayPage() {
-  const patients = await getPatients();
+export default function TVDisplayPage() {
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [time, setTime] = useState('');
+
+  useEffect(() => {
+    const fetchPatients = async () => {
+      const patientData = await getPatients();
+      setPatients(patientData);
+    };
+
+    const updateClock = () => {
+      setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    };
+
+    fetchPatients();
+    updateClock();
+
+    const patientIntervalId = setInterval(fetchPatients, 15000);
+    const clockIntervalId = setInterval(updateClock, 1000); // Update time every second
+
+    return () => {
+      clearInterval(patientIntervalId);
+      clearInterval(clockIntervalId);
+    };
+  }, []);
+
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   const waitingList = patients
     .filter((p) => p.status === 'Waiting' || p.status === 'Late')
@@ -27,7 +54,7 @@ export default async function TVDisplayPage() {
           <h1 className="text-5xl font-bold">QueueWise Clinic</h1>
         </div>
         <div className="text-5xl font-semibold">
-          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {time}
         </div>
       </header>
 
@@ -92,6 +119,3 @@ export default async function TVDisplayPage() {
     </div>
   );
 }
-
-// Add a meta tag to refresh the page every 15 seconds
-export const revalidate = 15;

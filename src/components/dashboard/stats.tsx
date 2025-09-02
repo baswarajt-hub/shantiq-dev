@@ -1,14 +1,29 @@
+'use client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Patient } from "@/lib/types";
 import { Users, Clock, UserCheck } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type StatsProps = {
   patients: Patient[];
 };
 
 export default function Stats({ patients }: StatsProps) {
-  const waitingPatients = patients.filter(p => p.status === 'Waiting' || p.status === 'Late');
+  const [formattedTime, setFormattedTime] = useState('');
   const nowServing = patients.find(p => p.status === 'In-Consultation');
+
+  useEffect(() => {
+    if (nowServing) {
+      setFormattedTime(
+        new Date(nowServing.checkInTime).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
+    }
+  }, [nowServing]);
+
+  const waitingPatients = patients.filter(p => p.status === 'Waiting' || p.status === 'Late');
   
   const totalWaitTime = waitingPatients.reduce((acc, p) => acc + p.estimatedWaitTime, 0);
   const avgWaitTime = waitingPatients.length > 0 ? Math.round(totalWaitTime / waitingPatients.length) : 0;
@@ -42,7 +57,7 @@ export default function Stats({ patients }: StatsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold truncate">{nowServing?.name ?? 'None'}</div>
-          <p className="text-xs text-muted-foreground">{nowServing ? `Checked in at ${new Date(nowServing.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Ready for next patient'}</p>
+          <p className="text-xs text-muted-foreground">{nowServing ? `Checked in at ${formattedTime}` : 'Ready for next patient'}</p>
         </CardContent>
       </Card>
     </div>

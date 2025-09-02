@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AIPatientData, Patient } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +20,17 @@ import { Badge } from '../ui/badge';
 import { PatientCardActions } from './patient-card-actions';
 
 function PatientCard({ patient }: { patient: Patient }) {
+  const [formattedTime, setFormattedTime] = useState('');
+
+  useEffect(() => {
+    setFormattedTime(
+      new Date(patient.appointmentTime).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    );
+  }, [patient.appointmentTime]);
+
   const statusConfig = {
     Waiting: {
       icon: Clock,
@@ -64,10 +75,7 @@ function PatientCard({ patient }: { patient: Patient }) {
               </span>
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
-                {new Date(patient.appointmentTime).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                {formattedTime}
               </span>
             </div>
           </div>
@@ -91,7 +99,7 @@ function PatientCard({ patient }: { patient: Patient }) {
 }
 
 export default function PatientQueue({ initialPatients, aipatients }: { initialPatients: Patient[], aipatients: AIPatientData }) {
-  const [patients, setPatients] = useState<Patient[]>(initialPatients);
+  const [patients] = useState<Patient[]>(initialPatients);
 
   const filterAndSortPatients = (status?: Patient['status']) => {
     let filtered = status ? patients.filter((p) => p.status === status) : patients;
