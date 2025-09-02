@@ -2,10 +2,10 @@
 
 import Header from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getPatients } from '@/lib/data';
-import type { Patient } from '@/lib/types';
+import { getDoctorStatus, getPatients } from '@/lib/data';
+import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, Hourglass, User } from 'lucide-react';
+import { CheckCircle, Clock, Hourglass, User, WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const anonymizeName = (name: string) => {
@@ -40,7 +40,7 @@ function QueueStatusCard({ patient, title, subtitle, highlight = false }: { pati
   )
 }
 
-function NowServingCard({ patient }: { patient: Patient | undefined }) {
+function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null }) {
   const [formattedTime, setFormattedTime] = useState('');
   
   useEffect(() => {
@@ -48,6 +48,25 @@ function NowServingCard({ patient }: { patient: Patient | undefined }) {
       setFormattedTime(new Date(patient.appointmentTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }
   }, [patient]);
+
+  if (!doctorStatus?.isOnline) {
+    return (
+       <Card className="bg-orange-100/50 border-orange-300">
+          <CardHeader>
+            <CardTitle className="text-lg">Doctor Offline</CardTitle>
+            <p className="text-sm text-muted-foreground">The doctor is currently unavailable.</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-4">
+             <div className="p-3 rounded-full bg-orange-200 text-orange-800">
+               <WifiOff className="h-6 w-6" />
+             </div>
+              <p className="text-2xl font-bold">Please check back later.</p>
+            </div>
+          </CardContent>
+        </Card>
+    )
+  }
 
   if (!patient) {
     return (
@@ -93,19 +112,22 @@ function NowServingCard({ patient }: { patient: Patient | undefined }) {
 
 export default function QueueStatusPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [lastUpdated, setLastUpdated] = useState('');
 
   useEffect(() => {
-    const fetchPatients = async () => {
+    const fetchData = async () => {
       const patientData = await getPatients();
+      const statusData = await getDoctorStatus();
       setPatients(patientData);
+      setDoctorStatus(statusData);
     };
 
-    fetchPatients();
+    fetchData();
     setLastUpdated(new Date().toLocaleTimeString());
 
     const intervalId = setInterval(() => {
-        fetchPatients();
+        fetchData();
         setLastUpdated(new Date().toLocaleTimeString());
     }, 30000);
 
@@ -132,23 +154,23 @@ export default function QueueStatusPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          <NowServingCard patient={nowServing} />
+          <NowServingCard patient={nowServing} doctorStatus={doctorStatus} />
 
-          {upNext ? (
+          {upNext && doctorStatus?.isOnline ? (
             <QueueStatusCard patient={upNext} title="You're Up Next!" subtitle="Please proceed to the waiting area" highlight />
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Queue is Empty</CardTitle>
+                <CardTitle className="text-lg">{doctorStatus?.isOnline ? 'Queue is Empty' : 'Doctor is Offline'}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p>There are no patients currently waiting.</p>
+                <p>{doctorStatus?.isOnline ? 'There are no patients currently waiting.' : 'Please check back later.'}</p>
               </CardContent>
             </Card>
           )}
         </div>
 
-        {nextInLine.length > 0 && (
+        {nextInLine.length > 0 && doctorStatus?.isOnline && (
           <div className="mt-12 max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-6">Next in Line</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -1,4 +1,4 @@
-import type { Patient } from './types';
+import type { DoctorStatus, Patient } from './types';
 
 let patients: Patient[] = [
   {
@@ -56,6 +56,12 @@ let patients: Patient[] = [
 
 let nextId = patients.length + 1;
 
+let doctorStatus: DoctorStatus = {
+  isOnline: true,
+  onlineTime: new Date(new Date().setHours(8, 30, 0, 0)).toISOString(),
+};
+
+
 // This is a mock database. In a real app, you'd use a proper database.
 export async function getPatients() {
   return patients;
@@ -82,4 +88,13 @@ export async function findPatientById(id: number) {
 
 export async function updateAllPatients(newPatients: Patient[]) {
   patients = newPatients;
+}
+
+export async function getDoctorStatus() {
+  return doctorStatus;
+}
+
+export async function updateDoctorStatus(status: DoctorStatus) {
+  doctorStatus = status;
+  return doctorStatus;
 }

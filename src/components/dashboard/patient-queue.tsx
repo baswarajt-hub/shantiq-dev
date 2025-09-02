@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { AIPatientData, Patient } from '@/lib/types';
+import type { AIPatientData, DoctorStatus, Patient } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QueueControls } from './queue-controls';
@@ -23,6 +23,8 @@ function PatientCard({ patient }: { patient: Patient }) {
   const [formattedTime, setFormattedTime] = useState('');
 
   useEffect(() => {
+    // This will only run on the client, after initial hydration
+    // thus avoiding a mismatch with the server-rendered time.
     setFormattedTime(
       new Date(patient.appointmentTime).toLocaleTimeString([], {
         hour: '2-digit',
@@ -98,7 +100,7 @@ function PatientCard({ patient }: { patient: Patient }) {
   );
 }
 
-export default function PatientQueue({ initialPatients, aipatients }: { initialPatients: Patient[], aipatients: AIPatientData }) {
+export default function PatientQueue({ initialPatients, aipatients, initialDoctorStatus }: { initialPatients: Patient[], aipatients: AIPatientData, initialDoctorStatus: DoctorStatus }) {
   const [patients] = useState<Patient[]>(initialPatients);
 
   const filterAndSortPatients = (status?: Patient['status']) => {
@@ -120,7 +122,7 @@ export default function PatientQueue({ initialPatients, aipatients }: { initialP
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <CardTitle>Patient Queue</CardTitle>
-          <QueueControls aipatients={aipatients} />
+          <QueueControls aipatients={aipatients} initialDoctorStatus={initialDoctorStatus} />
         </div>
       </CardHeader>
       <CardContent>

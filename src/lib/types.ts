@@ -15,3 +15,8 @@ export type AIPatientData = {
   lateArrivals: string;
   doctorDelays: string;
 }
+
+export type DoctorStatus = {
+  isOnline: boolean;
+  onlineTime?: string; // ISO string format
+};

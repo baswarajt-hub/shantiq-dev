@@ -1,10 +1,11 @@
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import PatientQueue from '@/components/dashboard/patient-queue';
-import { getPatients } from '@/lib/data';
+import { getDoctorStatus, getPatients } from '@/lib/data';
 
 export default async function DashboardPage() {
   const patients = await getPatients();
+  const doctorStatus = await getDoctorStatus();
   const aipatients = {
     patientFlowData: 'Average consultation time is 15 minutes. Peak hours are 10 AM to 1 PM.',
     lateArrivals: '3 patients arrived late today, with an average delay of 10 minutes.',
@@ -18,7 +19,7 @@ export default async function DashboardPage() {
         <div className="space-y-6">
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <Stats patients={patients} />
-          <PatientQueue initialPatients={patients} aipatients={aipatients} />
+          <PatientQueue initialPatients={patients} aipatients={aipatients} initialDoctorStatus={doctorStatus} />
         </div>
       </main>
     </div>

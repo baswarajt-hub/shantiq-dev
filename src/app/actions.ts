@@ -1,8 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient } from '@/lib/data';
-import type { AIPatientData, Patient } from '@/lib/types';
+import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus } from '@/lib/data';
+import type { AIPatientData, DoctorStatus, Patient } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 
@@ -145,4 +145,19 @@ export async function emergencyCancelAction() {
   revalidatePath('/tv-display');
   revalidatePath('/queue-status');
   return { success: 'All appointments have been cancelled due to an emergency.' };
+}
+
+export async function toggleDoctorStatusAction() {
+  const currentStatus = await getDoctorStatus();
+  const newStatus: DoctorStatus = {
+    isOnline: !currentStatus.isOnline,
+    onlineTime: !currentStatus.isOnline ? new Date().toISOString() : undefined,
+  };
+  await updateDoctorStatus(newStatus);
+
+  revalidatePath('/');
+  revalidatePath('/tv-display');
+  revalidatePath('/queue-status');
+
+  return { success: `Doctor is now ${newStatus.isOnline ? 'online' : 'offline'}.` };
 }

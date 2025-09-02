@@ -1,9 +1,9 @@
 'use client';
-import { getPatients } from '@/lib/data';
+import { getDoctorStatus, getPatients } from '@/lib/data';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { Hourglass, User } from 'lucide-react';
-import type { Patient } from '@/lib/types';
+import { Hourglass, LogIn, LogOut, User } from 'lucide-react';
+import type { DoctorStatus, Patient } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 const anonymizeName = (name: string) => {
@@ -16,26 +16,33 @@ const anonymizeName = (name: string) => {
 
 export default function TVDisplayPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [time, setTime] = useState('');
+  const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
 
   useEffect(() => {
-    const fetchPatients = async () => {
+    const fetchData = async () => {
       const patientData = await getPatients();
+      const statusData = await getDoctorStatus();
       setPatients(patientData);
+      setDoctorStatus(statusData);
+      if (statusData?.isOnline && statusData.onlineTime) {
+        setDoctorOnlineTime(new Date(statusData.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      }
     };
 
     const updateClock = () => {
       setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     };
 
-    fetchPatients();
+    fetchData();
     updateClock();
 
-    const patientIntervalId = setInterval(fetchPatients, 15000);
-    const clockIntervalId = setInterval(updateClock, 1000); // Update time every second
+    const dataIntervalId = setInterval(fetchData, 15000);
+    const clockIntervalId = setInterval(updateClock, 1000); 
 
     return () => {
-      clearInterval(patientIntervalId);
+      clearInterval(dataIntervalId);
       clearInterval(clockIntervalId);
     };
   }, []);
@@ -53,8 +60,14 @@ export default function TVDisplayPage() {
           <StethoscopeIcon className="h-12 w-12 text-sky-400" />
           <h1 className="text-5xl font-bold">QueueWise Clinic</h1>
         </div>
-        <div className="text-5xl font-semibold">
-          {time}
+        <div className="text-right">
+            <div className="text-5xl font-semibold">{time}</div>
+            {doctorStatus && (
+                <div className={cn("flex items-center justify-end text-2xl mt-2", doctorStatus.isOnline ? 'text-green-400' : 'text-red-400')}>
+                {doctorStatus.isOnline ? <LogIn className="h-6 w-6 mr-2" /> : <LogOut className="h-6 w-6 mr-2" />}
+                Doctor is {doctorStatus.isOnline ? `Online (since ${doctorOnlineTime})` : 'Offline'}
+                </div>
+            )}
         </div>
       </header>
 
@@ -62,7 +75,7 @@ export default function TVDisplayPage() {
         <div className="bg-slate-800 rounded-2xl p-8 flex flex-col justify-center items-center shadow-2xl">
           <h2 className="text-4xl text-sky-300 font-semibold mb-6">NOW SERVING</h2>
           <div className="text-center">
-            {nowServing ? (
+            {nowServing && doctorStatus?.isOnline ? (
               <>
                 <Hourglass className="h-24 w-24 text-sky-400 mx-auto animate-pulse mb-4" />
                 <p className="text-8xl font-bold tracking-wider">
@@ -74,7 +87,7 @@ export default function TVDisplayPage() {
               </>
             ) : (
               <p className="text-6xl font-semibold text-slate-400">
-                Ready for next patient
+                {doctorStatus?.isOnline ? 'Ready for next patient' : 'Doctor is Offline'}
               </p>
             )}
           </div>
@@ -82,7 +95,7 @@ export default function TVDisplayPage() {
         <div className="bg-slate-800 rounded-2xl p-8 shadow-2xl">
           <h2 className="text-4xl text-amber-300 font-semibold mb-6 text-center">UP NEXT</h2>
           <div className="space-y-5">
-            {waitingList.length > 0 ? (
+            {waitingList.length > 0 && doctorStatus?.isOnline ? (
               waitingList.map((patient, index) => (
                 <div
                   key={patient.id}
@@ -106,7 +119,7 @@ export default function TVDisplayPage() {
               ))
             ) : (
               <p className="text-3xl text-center text-slate-400 pt-16">
-                The waiting queue is empty.
+                {doctorStatus?.isOnline ? 'The waiting queue is empty.' : 'Doctor is Offline'}
               </p>
             )}
           </div>
