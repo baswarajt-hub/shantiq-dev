@@ -12,23 +12,23 @@ export default function Header() {
           <span className="font-bold sm:inline-block text-lg">QueueWise</span>
         </Link>
         <nav className="flex flex-1 items-center space-x-4">
-          <Link href="/appointment" legacyBehavior passHref>
-            <Button variant="ghost">Book Appointment</Button>
-          </Link>
+          <Button variant="ghost" asChild>
+            <Link href="/appointment">Book Appointment</Link>
+          </Button>
         </nav>
         <div className="flex items-center justify-end space-x-2">
-          <Link href="/queue-status" legacyBehavior passHref>
-            <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2" asChild>
+            <Link href="/queue-status">
               <Eye className="h-4 w-4" />
               Queue Status
-            </Button>
-          </Link>
-          <Link href="/tv-display" legacyBehavior passHref>
-            <Button variant="outline" size="sm" className="gap-2">
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" asChild>
+            <Link href="/tv-display">
               <Tv className="h-4 w-4" />
               TV Display
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     </header>
