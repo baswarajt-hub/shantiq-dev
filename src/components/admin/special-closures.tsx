@@ -5,8 +5,6 @@ import type { SpecialClosure, DoctorSchedule } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { type DayContentProps } from 'react-day-picker';
 import { format } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
-import { updateSpecialClosuresAction } from '@/app/actions';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -14,6 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WeekView } from './week-view';
 
 const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+type SpecialClosuresProps = {
+  schedule: DoctorSchedule;
+  onSave: (closures: SpecialClosure[]) => Promise<void>;
+}
 
 function CustomDayContent(props: DayContentProps) {
     const { onSessionToggle, closures, schedule } = (props.customProps || {}) as { onSessionToggle: Function, closures: SpecialClosure[], schedule: DoctorSchedule };
@@ -99,10 +102,20 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }:
 }
 
 
-export function SpecialClosures({ initialSchedule }: { initialSchedule: DoctorSchedule }) {
-  const [closures, setClosures] = useState<SpecialClosure[]>(initialSchedule.specialClosures || []);
+export function SpecialClosures({ schedule, onSave }: SpecialClosuresProps) {
+  const [closures, setClosures] = useState<SpecialClosure[]>(schedule.specialClosures || []);
   const [, startTransition] = useTransition();
-  const { toast } = useToast();
+
+  useEffect(() => {
+    setClosures(schedule.specialClosures || []);
+  }, [schedule.specialClosures]);
+
+  const handleSave = (currentClosures: SpecialClosure[]) => {
+    setClosures(currentClosures);
+    startTransition(async () => {
+        await onSave(currentClosures);
+    });
+  }
 
   const handleSessionToggle = (date: Date, session: 'morning' | 'evening') => {
     if (!date) return;
@@ -129,20 +142,8 @@ export function SpecialClosures({ initialSchedule }: { initialSchedule: DoctorSc
             isEveningClosed: session === 'evening',
         });
     }
-    setClosures(newClosures);
     handleSave(newClosures);
   };
-  
-  const handleSave = (currentClosures: SpecialClosure[]) => {
-    startTransition(async () => {
-        const result = await updateSpecialClosuresAction(currentClosures);
-        if (result.error) {
-            toast({ title: 'Error', description: result.error, variant: 'destructive' });
-        } else {
-            toast({ title: 'Success', description: 'Closure updated successfully.' });
-        }
-    });
-  }
   
   const handleOverrideSave = (override: SpecialClosure) => {
     const newClosures = [...closures];
@@ -152,7 +153,6 @@ export function SpecialClosures({ initialSchedule }: { initialSchedule: DoctorSc
     } else {
         newClosures.push(override);
     }
-    setClosures(newClosures);
     handleSave(newClosures);
   };
 
@@ -178,12 +178,12 @@ export function SpecialClosures({ initialSchedule }: { initialSchedule: DoctorSc
                     closures={closures}
                     onDayClick={() => {}}
                     onSessionToggle={handleSessionToggle}
-                    schedule={initialSchedule}
+                    schedule={schedule}
                 />
             </TabsContent>
             <TabsContent value="week" className="pt-6">
                 <WeekView 
-                    schedule={initialSchedule} 
+                    schedule={schedule} 
                     closures={closures}
                     onOverrideSave={handleOverrideSave}
                 />

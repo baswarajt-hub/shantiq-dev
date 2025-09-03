@@ -8,11 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { updateDoctorScheduleAction } from '@/app/actions';
 import { Copy } from 'lucide-react';
 
 const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const allDays = [...weekdays, 'Saturday', 'Sunday'];
+
+type ScheduleFormProps = {
+  initialSchedule: Omit<DoctorSchedule, 'specialClosures'>;
+  onSave: (schedule: Omit<DoctorSchedule, 'specialClosures'>) => Promise<void>;
+};
 
 function SessionControl({ day, sessionName, session, handleInputChange, handleSwitchChange }: { day: string, sessionName: 'morning' | 'evening', session: Session, handleInputChange: any, handleSwitchChange: any }) {
   return (
@@ -46,7 +50,7 @@ function DayScheduleRow({ day, schedule, handleInputChange, handleSwitchChange }
   )
 }
 
-export function ScheduleForm({ initialSchedule }: { initialSchedule: DoctorSchedule }) {
+export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
   const [schedule, setSchedule] = useState(initialSchedule);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -104,12 +108,7 @@ export function ScheduleForm({ initialSchedule }: { initialSchedule: DoctorSched
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const result = await updateDoctorScheduleAction(schedule);
-      if (result.error) {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
-      } else {
-        toast({ title: 'Success', description: result.success });
-      }
+      await onSave(schedule);
     });
   };
 
