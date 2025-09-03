@@ -104,8 +104,7 @@ export function ScheduleForm({ initialSchedule }: { initialSchedule: DoctorSched
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const { specialClosures, ...scheduleData } = schedule;
-      const result = await updateDoctorScheduleAction(scheduleData);
+      const result = await updateDoctorScheduleAction(schedule);
       if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
       } else {
@@ -118,12 +117,11 @@ export function ScheduleForm({ initialSchedule }: { initialSchedule: DoctorSched
     <Card>
       <CardHeader>
         <CardTitle>Doctor Schedule</CardTitle>
-        <CardDescription>Set up the clinic hours and appointment slot duration.</CardDescription>
+        <CardDescription>Set up the clinic's recurring weekly hours and appointment slot duration.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Weekly Schedule</h3>
              <div className="hidden md:grid grid-cols-[100px_1fr_1fr] gap-x-6 items-center text-sm text-muted-foreground px-2">
                 <span>Day</span>
                 <span>Morning Session</span>

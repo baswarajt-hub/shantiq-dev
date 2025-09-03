@@ -34,8 +34,10 @@ export type DaySchedule = {
 
 export type SpecialClosure = {
   date: string; // YYYY-MM-DD
-  isMorningClosed: boolean;
-  isEveningClosed: boolean;
+  isMorningClosed?: boolean;
+  isEveningClosed?: boolean;
+  morningOverride?: Session;
+  eveningOverride?: Session;
 };
 
 export type DoctorSchedule = {

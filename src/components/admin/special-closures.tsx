@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -11,6 +10,8 @@ import { updateSpecialClosuresAction } from '@/app/actions';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { WeekView } from './week-view';
 
 const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -72,7 +73,7 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }:
     }, []);
 
     if (!isClient) {
-        return <Skeleton className="h-[350px] w-full max-w-2xl mx-auto rounded-md" />;
+        return <Skeleton className="h-[450px] w-full max-w-3xl mx-auto rounded-md" />;
     }
 
     const disabledDays = Object.entries(schedule.days)
@@ -85,11 +86,12 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }:
         <Calendar
             mode="single"
             onDayClick={onDayClick}
-            className="rounded-md border w-full max-w-2xl"
+            className="rounded-md border w-full max-w-3xl"
             components={{ DayContent: (props) => <CustomDayContent {...props} customProps={{ onSessionToggle, closures, schedule }} /> }}
             classNames={{
-              day: "h-16 w-16",
-              cell: "h-16 w-16 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+              day: "h-20 w-20",
+              cell: "h-20 w-20 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+              head_cell: "text-amber-800 font-bold rounded-md w-20 text-center text-sm",
             }}
             disabled={disabledDays}
         />
@@ -115,7 +117,7 @@ export function SpecialClosures({ initialSchedule }: { initialSchedule: DoctorSc
         if (session === 'morning') updatedClosure.isMorningClosed = !updatedClosure.isMorningClosed;
         if (session === 'evening') updatedClosure.isEveningClosed = !updatedClosure.isEveningClosed;
 
-        if (!updatedClosure.isMorningClosed && !updatedClosure.isEveningClosed) {
+        if (!updatedClosure.isMorningClosed && !updatedClosure.isEveningClosed && !updatedClosure.morningOverride && !updatedClosure.eveningOverride) {
             newClosures.splice(existingClosureIndex, 1);
         } else {
             newClosures[existingClosureIndex] = updatedClosure;
@@ -137,26 +139,56 @@ export function SpecialClosures({ initialSchedule }: { initialSchedule: DoctorSc
         if (result.error) {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
         } else {
-            toast({ title: 'Success', description: result.success });
+            toast({ title: 'Success', description: 'Closure updated successfully.' });
         }
     });
   }
+  
+  const handleOverrideSave = (override: SpecialClosure) => {
+    const newClosures = [...closures];
+    const index = newClosures.findIndex(c => c.date === override.date);
+    if (index !== -1) {
+        newClosures[index] = override;
+    } else {
+        newClosures.push(override);
+    }
+    setClosures(newClosures);
+    handleSave(newClosures);
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Special Closures</CardTitle>
+        <CardTitle>Closures & Overrides</CardTitle>
         <CardDescription>
-          Click "M" for morning or "E" for evening under any date to toggle its closure. Red indicates the session is closed. Regularly closed sessions are grayed out.
+          Manage one-off closures or override standard hours for specific dates.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center">
-        <ClientOnlyCalendar
-            closures={closures}
-            onDayClick={() => {}}
-            onSessionToggle={handleSessionToggle}
-            schedule={initialSchedule}
-        />
+        <Tabs defaultValue="month" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="month">Month View</TabsTrigger>
+                <TabsTrigger value="week">Week View</TabsTrigger>
+            </TabsList>
+            <TabsContent value="month" className="pt-6">
+                 <p className="text-sm text-center text-muted-foreground mb-4">
+                    Click "M" for morning or "E" for evening under any date to toggle its closure. Red indicates the session is closed. Regularly closed sessions are grayed out.
+                </p>
+                <ClientOnlyCalendar
+                    closures={closures}
+                    onDayClick={() => {}}
+                    onSessionToggle={handleSessionToggle}
+                    schedule={initialSchedule}
+                />
+            </TabsContent>
+            <TabsContent value="week" className="pt-6">
+                <WeekView 
+                    schedule={initialSchedule} 
+                    closures={closures}
+                    onOverrideSave={handleOverrideSave}
+                />
+            </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
