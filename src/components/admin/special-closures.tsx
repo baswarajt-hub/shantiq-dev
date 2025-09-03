@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { updateSpecialClosuresAction } from '@/app/actions';
 import { Skeleton } from '../ui/skeleton';
 
-function ClientOnlyCalendar({ selected, onDayClick, modifiers, modifiersStyles }: { selected: Date | undefined, onDayClick: (day: Date) => void, modifiers: any, modifiersStyles: any }) {
+function ClientOnlyCalendar({ selected, onDayClick, modifiers, modifiersClassNames }: { selected: Date | undefined, onDayClick: (day: Date) => void, modifiers: any, modifiersClassNames: any }) {
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -32,12 +32,7 @@ function ClientOnlyCalendar({ selected, onDayClick, modifiers, modifiersStyles }
             onDayClick={onDayClick}
             className="rounded-md border"
             modifiers={modifiers}
-            modifiersStyles={modifiersStyles}
-            modifiersClassNames={{
-                morningClosed: 'day-morning-closed',
-                eveningClosed: 'day-evening-closed',
-                fullyClosed: 'day-fully-closed',
-            }}
+            modifiersClassNames={modifiersClassNames}
         />
     );
 }
@@ -109,6 +104,12 @@ export function SpecialClosures({ initialClosures }: { initialClosures: SpecialC
       .map(c => parseISO(c.date)),
   };
 
+  const modifiersClassNames = {
+    morningClosed: 'day-morning-closed',
+    eveningClosed: 'day-evening-closed',
+    fullyClosed: 'day-fully-closed',
+  };
+
 
   return (
     <Card>
@@ -126,7 +127,7 @@ export function SpecialClosures({ initialClosures }: { initialClosures: SpecialC
                         selected={selectedDate}
                         onDayClick={handleDayClick}
                         modifiers={modifiers}
-                        modifiersStyles={{}}
+                        modifiersClassNames={modifiersClassNames}
                     />
                 </div>
             </PopoverTrigger>
