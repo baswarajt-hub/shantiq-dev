@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures } from '@/lib/data';
+import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -165,7 +165,8 @@ export async function toggleDoctorStatusAction() {
 export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 'specialClosures'>) {
     try {
         const currentSchedule = await getDoctorSchedule();
-        await updateDoctorSchedule({...currentSchedule, ...schedule});
+        const newSchedule = { ...currentSchedule, ...schedule };
+        await updateDoctorSchedule(newSchedule);
         revalidatePath('/admin');
         return { success: 'Schedule updated successfully.' };
     } catch (error) {
