@@ -1,4 +1,4 @@
-import type { DoctorSchedule, DoctorStatus, Patient } from './types';
+import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure } from './types';
 
 let patients: Patient[] = [
   {
@@ -93,6 +93,7 @@ let doctorSchedule: DoctorSchedule = {
       evening: { start: '', end: '', isOpen: false },
     },
   },
+  specialClosures: [],
 };
 
 
@@ -140,4 +141,9 @@ export async function getDoctorSchedule() {
 export async function updateDoctorSchedule(schedule: DoctorSchedule) {
   doctorSchedule = schedule;
   return doctorSchedule;
+}
+
+export async function updateSpecialClosures(closures: SpecialClosure[]) {
+    doctorSchedule.specialClosures = closures;
+    return doctorSchedule;
 }

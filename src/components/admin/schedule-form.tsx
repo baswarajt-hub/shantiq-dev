@@ -16,15 +16,15 @@ const allDays = [...weekdays, 'Saturday', 'Sunday'];
 
 function SessionControl({ day, sessionName, session, handleInputChange, handleSwitchChange }: { day: string, sessionName: 'morning' | 'evening', session: Session, handleInputChange: any, handleSwitchChange: any }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-1 gap-2">
+    <div className="grid grid-cols-[1fr_auto] sm:grid-cols-1 gap-2">
       <div className="flex items-center gap-2">
         <Input type="time" name={`${day}-${sessionName}-start`} value={session.start} onChange={handleInputChange} disabled={!session.isOpen} />
         <span className="text-muted-foreground">-</span>
         <Input type="time" name={`${day}-${sessionName}-end`} value={session.end} onChange={handleInputChange} disabled={!session.isOpen} />
       </div>
-      <div className="flex items-center justify-end sm:justify-start space-x-2">
-        <Label htmlFor={`${day}-${sessionName}-isOpen`} className="text-sm">{session.isOpen ? "Open" : "Closed"}</Label>
+      <div className="flex items-center justify-end sm:justify-start space-x-2 pt-2 sm:pt-0">
         <Switch id={`${day}-${sessionName}-isOpen`} name={`${day}-${sessionName}-isOpen`} checked={session.isOpen} onCheckedChange={(checked) => handleSwitchChange(day, sessionName, checked)} />
+        <Label htmlFor={`${day}-${sessionName}-isOpen`} className="text-sm">{session.isOpen ? "Open" : "Closed"}</Label>
       </div>
     </div>
   )
@@ -104,7 +104,8 @@ export function ScheduleForm({ initialSchedule }: { initialSchedule: DoctorSched
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const result = await updateDoctorScheduleAction(schedule);
+      const { specialClosures, ...scheduleData } = schedule;
+      const result = await updateDoctorScheduleAction(scheduleData);
       if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
       } else {

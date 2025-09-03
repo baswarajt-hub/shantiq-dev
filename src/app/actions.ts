@@ -1,8 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule } from '@/lib/data';
-import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient } from '@/lib/types';
+import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures } from '@/lib/data';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 
@@ -162,12 +162,23 @@ export async function toggleDoctorStatusAction() {
   return { success: `Doctor is now ${newStatus.isOnline ? 'online' : 'offline'}.` };
 }
 
-export async function updateDoctorScheduleAction(schedule: DoctorSchedule) {
+export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 'specialClosures'>) {
     try {
-        await updateDoctorSchedule(schedule);
+        const currentSchedule = await getDoctorSchedule();
+        await updateDoctorSchedule({...currentSchedule, ...schedule});
         revalidatePath('/admin');
         return { success: 'Schedule updated successfully.' };
     } catch (error) {
         return { error: 'Failed to update schedule.' };
+    }
+}
+
+export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
+    try {
+        await updateSpecialClosures(closures);
+        revalidatePath('/admin');
+        return { success: 'Special closures updated successfully.' };
+    } catch (error) {
+        return { error: 'Failed to update special closures.' };
     }
 }

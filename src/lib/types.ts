@@ -32,6 +32,12 @@ export type DaySchedule = {
   evening: Session;
 };
 
+export type SpecialClosure = {
+  date: string; // YYYY-MM-DD
+  isMorningClosed: boolean;
+  isEveningClosed: boolean;
+};
+
 export type DoctorSchedule = {
   slotDuration: number;
   days: {
@@ -43,4 +49,5 @@ export type DoctorSchedule = {
     Saturday: DaySchedule;
     Sunday: DaySchedule;
   };
+  specialClosures: SpecialClosure[];
 };
