@@ -60,3 +60,17 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .day-fully-closed > .rdp-button {
+    @apply bg-destructive text-destructive-foreground rounded-full;
+  }
+  .day-morning-closed > .rdp-button {
+    background: linear-gradient(to bottom, hsl(var(--destructive)) 50%, transparent 50%);
+    @apply text-destructive-foreground rounded-full;
+  }
+  .day-evening-closed > .rdp-button {
+    background: linear-gradient(to top, hsl(var(--destructive)) 50%, transparent 50%);
+    @apply text-destructive-foreground rounded-full;
+  }
+}

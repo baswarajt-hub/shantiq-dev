@@ -2,17 +2,20 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import { DayPicker, type DayPickerDefaultProps } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  modifiersClassNames?: DayPickerDefaultProps['modifiersClassNames']
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  modifiersClassNames,
   ...props
 }: CalendarProps) {
   return (
@@ -53,6 +56,7 @@ function Calendar({
         day_hidden: "invisible",
         ...classNames,
       }}
+      modifiersClassNames={modifiersClassNames}
       components={{
         IconLeft: ({ className, ...props }) => (
           <ChevronLeft className={cn("h-4 w-4", className)} {...props} />

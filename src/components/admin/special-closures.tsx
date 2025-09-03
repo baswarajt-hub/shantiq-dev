@@ -5,7 +5,7 @@ import { useState, useTransition, useEffect } from 'react';
 import type { SpecialClosure } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Calendar } from '../ui/calendar';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
@@ -33,6 +33,11 @@ function ClientOnlyCalendar({ selected, onDayClick, modifiers, modifiersStyles }
             className="rounded-md border"
             modifiers={modifiers}
             modifiersStyles={modifiersStyles}
+            modifiersClassNames={{
+                morningClosed: 'day-morning-closed',
+                eveningClosed: 'day-evening-closed',
+                fullyClosed: 'day-fully-closed',
+            }}
         />
     );
 }
@@ -61,13 +66,12 @@ export function SpecialClosures({ initialClosures }: { initialClosures: SpecialC
       if (session === 'morning') updatedClosure.isMorningClosed = !isOpen;
       if (session === 'evening') updatedClosure.isEveningClosed = !isOpen;
       
-      // If both sessions are open, remove the closure entry
       if (!updatedClosure.isMorningClosed && !updatedClosure.isEveningClosed) {
         newClosures.splice(existingClosureIndex, 1);
       } else {
         newClosures[existingClosureIndex] = updatedClosure;
       }
-    } else {
+    } else if (!isOpen) {
       newClosures.push({
         date: dateStr,
         isMorningClosed: session === 'morning' ? !isOpen : false,
@@ -93,9 +97,18 @@ export function SpecialClosures({ initialClosures }: { initialClosures: SpecialC
   const isMorningOpen = !(selectedClosure?.isMorningClosed ?? false);
   const isEveningOpen = !(selectedClosure?.isEveningClosed ?? false);
   
-  const closedDays = closures
-    .filter(c => c.isMorningClosed && c.isEveningClosed)
-    .map(c => new Date(c.date));
+  const modifiers = {
+    fullyClosed: closures
+      .filter(c => c.isMorningClosed && c.isEveningClosed)
+      .map(c => parseISO(c.date)),
+    morningClosed: closures
+      .filter(c => c.isMorningClosed && !c.isEveningClosed)
+      .map(c => parseISO(c.date)),
+    eveningClosed: closures
+      .filter(c => !c.isMorningClosed && c.isEveningClosed)
+      .map(c => parseISO(c.date)),
+  };
+
 
   return (
     <Card>
@@ -112,14 +125,8 @@ export function SpecialClosures({ initialClosures }: { initialClosures: SpecialC
                     <ClientOnlyCalendar
                         selected={selectedDate}
                         onDayClick={handleDayClick}
-                        modifiers={{ closed: closedDays }}
-                        modifiersStyles={{
-                            closed: { 
-                                color: 'hsl(var(--destructive-foreground))', 
-                                backgroundColor: 'hsl(var(--destructive))',
-                                borderRadius: '50%' 
-                            },
-                        }}
+                        modifiers={modifiers}
+                        modifiersStyles={{}}
                     />
                 </div>
             </PopoverTrigger>
