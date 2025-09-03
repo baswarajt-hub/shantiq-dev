@@ -16,14 +16,14 @@ const allDays = [...weekdays, 'Saturday', 'Sunday'];
 
 function SessionControl({ day, sessionName, session, handleInputChange, handleSwitchChange }: { day: string, sessionName: 'morning' | 'evening', session: Session, handleInputChange: any, handleSwitchChange: any }) {
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-2 flex-1">
+    <div className="grid grid-cols-2 sm:grid-cols-1 gap-2">
+      <div className="flex items-center gap-2">
         <Input type="time" name={`${day}-${sessionName}-start`} value={session.start} onChange={handleInputChange} disabled={!session.isOpen} />
         <span className="text-muted-foreground">-</span>
         <Input type="time" name={`${day}-${sessionName}-end`} value={session.end} onChange={handleInputChange} disabled={!session.isOpen} />
       </div>
-      <div className="flex items-center space-x-2">
-        <Label htmlFor={`${day}-${sessionName}-isOpen`}>{session.isOpen ? "Open" : "Closed"}</Label>
+      <div className="flex items-center justify-end sm:justify-start space-x-2">
+        <Label htmlFor={`${day}-${sessionName}-isOpen`} className="text-sm">{session.isOpen ? "Open" : "Closed"}</Label>
         <Switch id={`${day}-${sessionName}-isOpen`} name={`${day}-${sessionName}-isOpen`} checked={session.isOpen} onCheckedChange={(checked) => handleSwitchChange(day, sessionName, checked)} />
       </div>
     </div>
@@ -32,10 +32,16 @@ function SessionControl({ day, sessionName, session, handleInputChange, handleSw
 
 function DayScheduleRow({ day, schedule, handleInputChange, handleSwitchChange }: { day: string, schedule: DaySchedule, handleInputChange: any, handleSwitchChange: any }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center border-t pt-4">
-      <Label className="font-semibold">{day}</Label>
-      <SessionControl day={day} sessionName="morning" session={schedule.morning} handleInputChange={handleInputChange} handleSwitchChange={handleSwitchChange} />
-      <SessionControl day={day} sessionName="evening" session={schedule.evening} handleInputChange={handleInputChange} handleSwitchChange={handleSwitchChange} />
+    <div className="grid grid-cols-1 md:grid-cols-[100px_1fr_1fr] gap-x-6 gap-y-4 items-start border-t pt-4">
+      <Label className="font-semibold pt-2">{day}</Label>
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground md:hidden">Morning Session</p>
+        <SessionControl day={day} sessionName="morning" session={schedule.morning} handleInputChange={handleInputChange} handleSwitchChange={handleSwitchChange} />
+      </div>
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground md:hidden">Evening Session</p>
+        <SessionControl day={day} sessionName="evening" session={schedule.evening} handleInputChange={handleInputChange} handleSwitchChange={handleSwitchChange} />
+      </div>
     </div>
   )
 }
@@ -117,7 +123,7 @@ export function ScheduleForm({ initialSchedule }: { initialSchedule: DoctorSched
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Weekly Schedule</h3>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-sm text-muted-foreground px-2">
+             <div className="hidden md:grid grid-cols-[100px_1fr_1fr] gap-x-6 items-center text-sm text-muted-foreground px-2">
                 <span>Day</span>
                 <span>Morning Session</span>
                 <span>Evening Session</span>
