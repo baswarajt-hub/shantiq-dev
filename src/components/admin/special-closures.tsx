@@ -4,13 +4,13 @@
 import { useState, useTransition, useEffect } from 'react';
 import type { SpecialClosure } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Calendar, DayContentProps } from 'react-day-picker';
-import { format, parseISO } from 'date-fns';
-import { Button } from '../ui/button';
+import { type DayContentProps } from 'react-day-picker';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { updateSpecialClosuresAction } from '@/app/actions';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
 
 function CustomDayContent(props: DayContentProps) {
     const { onSessionToggle, closures } = (props.customProps || {}) as { onSessionToggle: Function, closures: SpecialClosure[] };
