@@ -1,12 +1,11 @@
 'use client';
 
 import { useTransition, useState } from 'react';
-import type { DoctorSchedule, DaySchedule } from '@/lib/types';
+import type { DoctorSchedule, DaySchedule, Session } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { updateDoctorScheduleAction } from '@/app/actions';
@@ -15,24 +14,28 @@ import { Copy } from 'lucide-react';
 const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const allDays = [...weekdays, 'Saturday', 'Sunday'];
 
+function SessionControl({ day, sessionName, session, handleInputChange, handleSwitchChange }: { day: string, sessionName: 'morning' | 'evening', session: Session, handleInputChange: any, handleSwitchChange: any }) {
+  return (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 flex-1">
+        <Input type="time" name={`${day}-${sessionName}-start`} value={session.start} onChange={handleInputChange} disabled={!session.isOpen} />
+        <span className="text-muted-foreground">-</span>
+        <Input type="time" name={`${day}-${sessionName}-end`} value={session.end} onChange={handleInputChange} disabled={!session.isOpen} />
+      </div>
+      <div className="flex items-center space-x-2">
+        <Label htmlFor={`${day}-${sessionName}-isOpen`}>{session.isOpen ? "Open" : "Closed"}</Label>
+        <Switch id={`${day}-${sessionName}-isOpen`} name={`${day}-${sessionName}-isOpen`} checked={session.isOpen} onCheckedChange={(checked) => handleSwitchChange(day, sessionName, checked)} />
+      </div>
+    </div>
+  )
+}
+
 function DayScheduleRow({ day, schedule, handleInputChange, handleSwitchChange }: { day: string, schedule: DaySchedule, handleInputChange: any, handleSwitchChange: any }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center border-t pt-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center border-t pt-4">
       <Label className="font-semibold">{day}</Label>
-      <div className="flex items-center gap-2">
-        <Input type="time" name={`${day}-morning-start`} value={schedule.morning.start} onChange={handleInputChange} disabled={schedule.isClosed} />
-        <span className="text-muted-foreground">-</span>
-        <Input type="time" name={`${day}-morning-end`} value={schedule.morning.end} onChange={handleInputChange} disabled={schedule.isClosed} />
-      </div>
-      <div className="flex items-center gap-2">
-        <Input type="time" name={`${day}-evening-start`} value={schedule.evening.start} onChange={handleInputChange} disabled={schedule.isClosed} />
-        <span className="text-muted-foreground">-</span>
-        <Input type="time" name={`${day}-evening-end`} value={schedule.evening.end} onChange={handleInputChange} disabled={schedule.isClosed} />
-      </div>
-      <div className="flex items-center justify-self-end space-x-2">
-        <Label htmlFor={`${day}-closed`}>{schedule.isClosed ? "Closed" : "Open"}</Label>
-        <Switch id={`${day}-closed`} name={`${day}-closed`} checked={!schedule.isClosed} onCheckedChange={(checked) => handleSwitchChange(day, !checked)} />
-      </div>
+      <SessionControl day={day} sessionName="morning" session={schedule.morning} handleInputChange={handleInputChange} handleSwitchChange={handleSwitchChange} />
+      <SessionControl day={day} sessionName="evening" session={schedule.evening} handleInputChange={handleInputChange} handleSwitchChange={handleSwitchChange} />
     </div>
   )
 }
@@ -61,21 +64,25 @@ export function ScheduleForm({ initialSchedule }: { initialSchedule: DoctorSched
     }));
   };
 
-  const handleSwitchChange = (day: string, isClosed: boolean) => {
+  const handleSwitchChange = (day: string, session: 'morning' | 'evening', isOpen: boolean) => {
      setSchedule(prev => ({
       ...prev,
       days: {
         ...prev.days,
         [day as keyof DoctorSchedule['days']]: {
           ...prev.days[day as keyof DoctorSchedule['days']],
-          isClosed
+          [session]: {
+            ...prev.days[day as keyof DoctorSchedule['days']][session],
+            isOpen
+          }
         }
       }
     }));
   }
 
-  const handleSlotDurationChange = (value: string) => {
-    setSchedule(prev => ({...prev, slotDuration: parseInt(value)}));
+  const handleSlotDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSchedule(prev => ({...prev, slotDuration: parseInt(value, 10) || 0 }));
   };
   
   const copyToWeekdays = () => {
@@ -110,11 +117,10 @@ export function ScheduleForm({ initialSchedule }: { initialSchedule: DoctorSched
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Weekly Schedule</h3>
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center text-sm text-muted-foreground px-2">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-sm text-muted-foreground px-2">
                 <span>Day</span>
                 <span>Morning Session</span>
                 <span>Evening Session</span>
-                <span className="justify-self-end">Status</span>
             </div>
             {allDays.map(day => (
               <DayScheduleRow 
@@ -133,17 +139,14 @@ export function ScheduleForm({ initialSchedule }: { initialSchedule: DoctorSched
           
           <div className="space-y-2">
             <Label htmlFor="slotDuration">Token Slot Duration (minutes)</Label>
-            <Select onValueChange={handleSlotDurationChange} defaultValue={String(schedule.slotDuration)}>
-              <SelectTrigger id="slotDuration" className="w-[180px]">
-                <SelectValue placeholder="Select duration" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5 minutes</SelectItem>
-                <SelectItem value="10">10 minutes</SelectItem>
-                <SelectItem value="15">15 minutes</SelectItem>
-                <SelectItem value="20">20 minutes</SelectItem>
-              </SelectContent>
-            </Select>
+             <Input 
+                id="slotDuration"
+                type="number" 
+                value={schedule.slotDuration}
+                onChange={handleSlotDurationChange}
+                className="w-[180px]"
+                placeholder="e.g. 10"
+              />
           </div>
 
           <Button type="submit" disabled={isPending}>

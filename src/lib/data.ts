@@ -65,39 +65,32 @@ let doctorSchedule: DoctorSchedule = {
   slotDuration: 10,
   days: {
     Monday: {
-      morning: { start: '09:00', end: '13:00' },
-      evening: { start: '16:00', end: '19:00' },
-      isClosed: false,
+      morning: { start: '09:00', end: '13:00', isOpen: true },
+      evening: { start: '16:00', end: '19:00', isOpen: true },
     },
     Tuesday: {
-      morning: { start: '09:00', end: '13:00' },
-      evening: { start: '16:00', end: '19:00' },
-      isClosed: false,
+      morning: { start: '09:00', end: '13:00', isOpen: true },
+      evening: { start: '16:00', end: '19:00', isOpen: true },
     },
     Wednesday: {
-      morning: { start: '09:00', end: '13:00' },
-      evening: { start: '16:00', end: '19:00' },
-      isClosed: false,
+      morning: { start: '09:00', end: '13:00', isOpen: true },
+      evening: { start: '16:00', end: '19:00', isOpen: true },
     },
     Thursday: {
-      morning: { start: '09:00', end: '13:00' },
-      evening: { start: '16:00', end: '19:00' },
-      isClosed: false,
+      morning: { start: '09:00', end: '13:00', isOpen: true },
+      evening: { start: '16:00', end: '19:00', isOpen: true },
     },
     Friday: {
-      morning: { start: '09:00', end: '13:00' },
-      evening: { start: '16:00', end: '19:00' },
-      isClosed: false,
+      morning: { start: '09:00', end: '13:00', isOpen: true },
+      evening: { start: '16:00', end: '19:00', isOpen: true },
     },
     Saturday: {
-      morning: { start: '10:00', end: '14:00' },
-      evening: { start: '', end: '' },
-      isClosed: false,
+      morning: { start: '10:00', end: '14:00', isOpen: true },
+      evening: { start: '', end: '', isOpen: false },
     },
     Sunday: {
-      morning: { start: '', end: '' },
-      evening: { start: '', end: '' },
-      isClosed: true,
+      morning: { start: '', end: '', isOpen: false },
+      evening: { start: '', end: '', isOpen: false },
     },
   },
 };

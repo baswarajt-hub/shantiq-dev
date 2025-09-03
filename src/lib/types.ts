@@ -21,10 +21,15 @@ export type DoctorStatus = {
   onlineTime?: string; // ISO string format
 };
 
+export type Session = {
+  start: string;
+  end: string;
+  isOpen: boolean;
+};
+
 export type DaySchedule = {
-  morning: { start: string; end: string };
-  evening: { start: string; end: string };
-  isClosed: boolean;
+  morning: Session;
+  evening: Session;
 };
 
 export type DoctorSchedule = {
