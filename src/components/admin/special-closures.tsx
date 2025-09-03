@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import type { SpecialClosure } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Calendar } from '../ui/calendar';
@@ -12,6 +12,31 @@ import { Switch } from '../ui/switch';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { updateSpecialClosuresAction } from '@/app/actions';
+import { Skeleton } from '../ui/skeleton';
+
+function ClientOnlyCalendar({ selected, onDayClick, modifiers, modifiersStyles }: { selected: Date | undefined, onDayClick: (day: Date) => void, modifiers: any, modifiersStyles: any }) {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    if (!isClient) {
+        return <Skeleton className="h-[298px] w-[350px] rounded-md" />;
+    }
+
+    return (
+        <Calendar
+            mode="single"
+            selected={selected}
+            onDayClick={onDayClick}
+            className="rounded-md border"
+            modifiers={modifiers}
+            modifiersStyles={modifiersStyles}
+        />
+    );
+}
+
 
 export function SpecialClosures({ initialClosures }: { initialClosures: SpecialClosure[] }) {
   const [closures, setClosures] = useState<SpecialClosure[]>(initialClosures);
@@ -84,11 +109,9 @@ export function SpecialClosures({ initialClosures }: { initialClosures: SpecialC
         <Popover open={!!selectedDate} onOpenChange={(open) => !open && setSelectedDate(undefined)}>
             <PopoverTrigger asChild>
                 <div>
-                    <Calendar
-                        mode="single"
+                    <ClientOnlyCalendar
                         selected={selectedDate}
                         onDayClick={handleDayClick}
-                        className="rounded-md border"
                         modifiers={{ closed: closedDays }}
                         modifiersStyles={{
                             closed: { 
