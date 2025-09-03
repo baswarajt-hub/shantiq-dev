@@ -22,13 +22,13 @@ function CustomDayContent(props: DayContentProps) {
 
     return (
         <div className="relative w-full h-full flex flex-col items-center justify-center">
-            <div>{props.date.getDate()}</div>
-            <div className="flex gap-0.5 absolute bottom-0">
+            <div className="text-lg">{props.date.getDate()}</div>
+            <div className="flex gap-1 absolute bottom-1">
                 <div 
                     onClick={(e) => { e.stopPropagation(); onSessionToggle(props.date, 'morning'); }}
                     className={cn(
-                        "h-3 w-3 text-[8px] leading-3 text-center font-bold rounded-sm cursor-pointer",
-                        isMorningClosed ? 'bg-destructive text-destructive-foreground' : 'bg-muted/50'
+                        "h-5 w-5 text-xs flex items-center justify-center font-bold rounded-sm cursor-pointer",
+                        isMorningClosed ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20'
                     )}
                 >
                     M
@@ -36,8 +36,8 @@ function CustomDayContent(props: DayContentProps) {
                 <div 
                     onClick={(e) => { e.stopPropagation(); onSessionToggle(props.date, 'evening'); }}
                     className={cn(
-                        "h-3 w-3 text-[8px] leading-3 text-center font-bold rounded-sm cursor-pointer",
-                        isEveningClosed ? 'bg-destructive text-destructive-foreground' : 'bg-muted/50'
+                        "h-5 w-5 text-xs flex items-center justify-center font-bold rounded-sm cursor-pointer",
+                        isEveningClosed ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20'
                     )}
                 >
                     E
@@ -55,18 +55,18 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle }: { onDayCl
     }, []);
 
     if (!isClient) {
-        return <Skeleton className="h-[298px] w-full rounded-md" />;
+        return <Skeleton className="h-[350px] w-full max-w-2xl mx-auto rounded-md" />;
     }
 
     return (
         <Calendar
             mode="single"
             onDayClick={onDayClick}
-            className="rounded-md border w-full"
+            className="rounded-md border w-full max-w-2xl"
             components={{ DayContent: (props) => <CustomDayContent {...props} customProps={{ onSessionToggle, closures }} /> }}
             classNames={{
-              day: "h-12 w-12",
-              cell: "h-12 w-12 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+              day: "h-16 w-16",
+              cell: "h-16 w-16 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
             }}
         />
     );
