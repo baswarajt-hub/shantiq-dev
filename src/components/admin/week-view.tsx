@@ -44,14 +44,14 @@ export function WeekView({ schedule, closures, onOverrideSave }: WeekViewProps) 
     ];
 
     for (const { name, session, override } of sessions) {
-        const isClosed = closure?.[name === 'morning' ? 'isMorningClosed' : 'isEveningClosed'];
+        const isClosedBySpecial = closure?.[name === 'morning' ? 'isMorningClosed' : 'isEveningClosed'];
         const effectiveSession = override || session;
 
-        if (effectiveSession.isOpen && !isClosed) {
+        if (effectiveSession.isOpen) {
             const startHour = parseInt(effectiveSession.start.split(':')[0], 10);
             const endHour = parseInt(effectiveSession.end.split(':')[0], 10);
             if (hour >= startHour && hour < endHour) {
-                return { session: effectiveSession, sessionName: name, date };
+                return { session: effectiveSession, sessionName: name, date, isClosed: isClosedBySpecial };
             }
         }
     }
@@ -98,11 +98,13 @@ export function WeekView({ schedule, closures, onOverrideSave }: WeekViewProps) 
                     <div
                       className={cn(
                         "h-12 border-t cursor-pointer",
-                        sessionInfo ? "bg-primary/20 hover:bg-primary/30" : "hover:bg-muted/50"
+                        sessionInfo?.isClosed && "bg-destructive/20 hover:bg-destructive/30",
+                        sessionInfo && !sessionInfo.isClosed && "bg-primary/20 hover:bg-primary/30",
+                        !sessionInfo && "hover:bg-muted/50"
                       )}
                     >
                         {isTopCell && (
-                            <div className="text-xs p-1 text-primary-foreground bg-primary rounded-t-sm">
+                            <div className={cn("text-xs p-1 text-primary-foreground rounded-t-sm", sessionInfo?.isClosed ? 'bg-destructive' : 'bg-primary')}>
                                 {sessionInfo.session.start} - {sessionInfo.session.end}
                             </div>
                         )}
