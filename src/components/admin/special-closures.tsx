@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import type { SpecialClosure } from '@/lib/types';
+import type { SpecialClosure, DoctorSchedule } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { type DayContentProps } from 'react-day-picker';
 import { format } from 'date-fns';
@@ -12,32 +12,49 @@ import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
 
-function CustomDayContent(props: DayContentProps) {
-    const { onSessionToggle, closures } = (props.customProps || {}) as { onSessionToggle: Function, closures: SpecialClosure[] };
+const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+function CustomDayContent(props: DayContentProps) {
+    const { onSessionToggle, closures, schedule } = (props.customProps || {}) as { onSessionToggle: Function, closures: SpecialClosure[], schedule: DoctorSchedule };
     const dateStr = format(props.date, 'yyyy-MM-dd');
     const closure = closures.find(c => c.date === dateStr);
-    const isMorningClosed = closure?.isMorningClosed ?? false;
-    const isEveningClosed = closure?.isEveningClosed ?? false;
+    const dayName = dayOfWeek[props.date.getDay()] as keyof DoctorSchedule['days'];
+    const daySchedule = schedule.days[dayName];
+
+    const isMorningClosedBySpecial = closure?.isMorningClosed ?? false;
+    const isEveningClosedBySpecial = closure?.isEveningClosed ?? false;
+
+    const isMorningClosedByWeekly = !daySchedule.morning.isOpen;
+    const isEveningClosedByWeekly = !daySchedule.evening.isOpen;
 
     return (
         <div className="relative w-full h-full flex flex-col items-center justify-center">
             <div className="text-lg">{props.date.getDate()}</div>
             <div className="flex gap-1 absolute bottom-1">
                 <div 
-                    onClick={(e) => { e.stopPropagation(); onSessionToggle(props.date, 'morning'); }}
+                    onClick={(e) => { 
+                        if (isMorningClosedByWeekly) return;
+                        e.stopPropagation(); 
+                        onSessionToggle(props.date, 'morning'); 
+                    }}
                     className={cn(
-                        "h-5 w-5 text-xs flex items-center justify-center font-bold rounded-sm cursor-pointer",
-                        isMorningClosed ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20'
+                        "h-5 w-5 text-xs flex items-center justify-center font-bold rounded-sm",
+                        isMorningClosedByWeekly ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'cursor-pointer',
+                        !isMorningClosedByWeekly && (isMorningClosedBySpecial ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20')
                     )}
                 >
                     M
                 </div>
                 <div 
-                    onClick={(e) => { e.stopPropagation(); onSessionToggle(props.date, 'evening'); }}
-                    className={cn(
-                        "h-5 w-5 text-xs flex items-center justify-center font-bold rounded-sm cursor-pointer",
-                        isEveningClosed ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20'
+                    onClick={(e) => { 
+                        if (isEveningClosedByWeekly) return;
+                        e.stopPropagation(); 
+                        onSessionToggle(props.date, 'evening'); 
+                    }}
+                     className={cn(
+                        "h-5 w-5 text-xs flex items-center justify-center font-bold rounded-sm",
+                        isEveningClosedByWeekly ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'cursor-pointer',
+                        !isEveningClosedByWeekly && (isEveningClosedBySpecial ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20')
                     )}
                 >
                     E
@@ -47,7 +64,7 @@ function CustomDayContent(props: DayContentProps) {
     );
 }
 
-function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle }: { onDayClick: (day: Date) => void, closures: SpecialClosure[], onSessionToggle: Function }) {
+function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }: { onDayClick: (day: Date) => void, closures: SpecialClosure[], onSessionToggle: Function, schedule: DoctorSchedule }) {
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -58,24 +75,31 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle }: { onDayCl
         return <Skeleton className="h-[350px] w-full max-w-2xl mx-auto rounded-md" />;
     }
 
+    const disabledDays = Object.entries(schedule.days)
+      .filter(([, daySchedule]) => !daySchedule.morning.isOpen && !daySchedule.evening.isOpen)
+      .map(([dayName]) => dayOfWeek.indexOf(dayName))
+      .map(dayIndex => ({ dayOfWeek: [dayIndex] }));
+
+
     return (
         <Calendar
             mode="single"
             onDayClick={onDayClick}
             className="rounded-md border w-full max-w-2xl"
-            components={{ DayContent: (props) => <CustomDayContent {...props} customProps={{ onSessionToggle, closures }} /> }}
+            components={{ DayContent: (props) => <CustomDayContent {...props} customProps={{ onSessionToggle, closures, schedule }} /> }}
             classNames={{
               day: "h-16 w-16",
               cell: "h-16 w-16 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
             }}
+            disabled={disabledDays}
         />
     );
 }
 
 
-export function SpecialClosures({ initialClosures }: { initialClosures: SpecialClosure[] }) {
-  const [closures, setClosures] = useState<SpecialClosure[]>(initialClosures);
-  const [isPending, startTransition] = useTransition();
+export function SpecialClosures({ initialSchedule }: { initialSchedule: DoctorSchedule }) {
+  const [closures, setClosures] = useState<SpecialClosure[]>(initialSchedule.specialClosures || []);
+  const [, startTransition] = useTransition();
   const { toast } = useToast();
 
   const handleSessionToggle = (date: Date, session: 'morning' | 'evening') => {
@@ -123,7 +147,7 @@ export function SpecialClosures({ initialClosures }: { initialClosures: SpecialC
       <CardHeader>
         <CardTitle>Special Closures</CardTitle>
         <CardDescription>
-          Click "M" for morning or "E" for evening under any date to toggle its closure. Red indicates the session is closed.
+          Click "M" for morning or "E" for evening under any date to toggle its closure. Red indicates the session is closed. Regularly closed sessions are grayed out.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center">
@@ -131,6 +155,7 @@ export function SpecialClosures({ initialClosures }: { initialClosures: SpecialC
             closures={closures}
             onDayClick={() => {}}
             onSessionToggle={handleSessionToggle}
+            schedule={initialSchedule}
         />
       </CardContent>
     </Card>

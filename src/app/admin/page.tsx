@@ -18,7 +18,7 @@ export default async function AdminPage() {
           </div>
           <ScheduleForm initialSchedule={schedule} />
           <Separator />
-          <SpecialClosures initialClosures={schedule.specialClosures || []} />
+          <SpecialClosures initialSchedule={schedule} />
         </div>
       </main>
     </div>
