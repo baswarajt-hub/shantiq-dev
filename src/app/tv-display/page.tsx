@@ -26,9 +26,6 @@ export default function TVDisplayPage() {
       const statusData = await getDoctorStatus();
       setPatients(patientData);
       setDoctorStatus(statusData);
-      if (statusData?.isOnline && statusData.onlineTime) {
-        setDoctorOnlineTime(new Date(statusData.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      }
     };
 
     const updateClock = () => {
@@ -46,6 +43,14 @@ export default function TVDisplayPage() {
       clearInterval(clockIntervalId);
     };
   }, []);
+
+  useEffect(() => {
+    if (doctorStatus?.isOnline && doctorStatus.onlineTime) {
+      setDoctorOnlineTime(new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } else {
+      setDoctorOnlineTime('');
+    }
+  }, [doctorStatus]);
 
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   const waitingList = patients
