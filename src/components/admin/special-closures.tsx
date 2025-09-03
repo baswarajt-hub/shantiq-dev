@@ -148,7 +148,7 @@ export function SpecialClosures({ initialSchedule }: { initialSchedule: DoctorSc
     const newClosures = [...closures];
     const index = newClosures.findIndex(c => c.date === override.date);
     if (index !== -1) {
-        newClosures[index] = override;
+        newClosures[index] = { ...newClosures[index], ...override };
     } else {
         newClosures.push(override);
     }
