@@ -1,8 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus } from '@/lib/data';
-import type { AIPatientData, DoctorStatus, Patient } from '@/lib/types';
+import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule } from '@/lib/data';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 
@@ -160,4 +160,14 @@ export async function toggleDoctorStatusAction() {
   revalidatePath('/queue-status');
 
   return { success: `Doctor is now ${newStatus.isOnline ? 'online' : 'offline'}.` };
+}
+
+export async function updateDoctorScheduleAction(schedule: DoctorSchedule) {
+    try {
+        await updateDoctorSchedule(schedule);
+        revalidatePath('/admin');
+        return { success: 'Schedule updated successfully.' };
+    } catch (error) {
+        return { error: 'Failed to update schedule.' };
+    }
 }

@@ -20,3 +20,22 @@ export type DoctorStatus = {
   isOnline: boolean;
   onlineTime?: string; // ISO string format
 };
+
+export type DaySchedule = {
+  morning: { start: string; end: string };
+  evening: { start: string; end: string };
+  isClosed: boolean;
+};
+
+export type DoctorSchedule = {
+  slotDuration: number;
+  days: {
+    Monday: DaySchedule;
+    Tuesday: DaySchedule;
+    Wednesday: DaySchedule;
+    Thursday: DaySchedule;
+    Friday: DaySchedule;
+    Saturday: DaySchedule;
+    Sunday: DaySchedule;
+  };
+};

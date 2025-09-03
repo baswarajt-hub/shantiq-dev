@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Eye, Tv } from "lucide-react";
+import { Eye, Tv, Shield } from "lucide-react";
 
 export default function Header() {
   return (
@@ -17,6 +17,12 @@ export default function Header() {
           </Button>
         </nav>
         <div className="flex items-center justify-end space-x-2">
+           <Button variant="ghost" size="sm" className="gap-2" asChild>
+            <Link href="/admin">
+              <Shield className="h-4 w-4" />
+              Admin
+            </Link>
+          </Button>
           <Button variant="outline" size="sm" className="gap-2" asChild>
             <Link href="/queue-status">
               <Eye className="h-4 w-4" />

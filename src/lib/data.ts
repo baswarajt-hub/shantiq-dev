@@ -1,4 +1,4 @@
-import type { DoctorStatus, Patient } from './types';
+import type { DoctorSchedule, DoctorStatus, Patient } from './types';
 
 let patients: Patient[] = [
   {
@@ -61,6 +61,47 @@ let doctorStatus: DoctorStatus = {
   onlineTime: new Date(new Date().setHours(8, 30, 0, 0)).toISOString(),
 };
 
+let doctorSchedule: DoctorSchedule = {
+  slotDuration: 10,
+  days: {
+    Monday: {
+      morning: { start: '09:00', end: '13:00' },
+      evening: { start: '16:00', end: '19:00' },
+      isClosed: false,
+    },
+    Tuesday: {
+      morning: { start: '09:00', end: '13:00' },
+      evening: { start: '16:00', end: '19:00' },
+      isClosed: false,
+    },
+    Wednesday: {
+      morning: { start: '09:00', end: '13:00' },
+      evening: { start: '16:00', end: '19:00' },
+      isClosed: false,
+    },
+    Thursday: {
+      morning: { start: '09:00', end: '13:00' },
+      evening: { start: '16:00', end: '19:00' },
+      isClosed: false,
+    },
+    Friday: {
+      morning: { start: '09:00', end: '13:00' },
+      evening: { start: '16:00', end: '19:00' },
+      isClosed: false,
+    },
+    Saturday: {
+      morning: { start: '10:00', end: '14:00' },
+      evening: { start: '', end: '' },
+      isClosed: false,
+    },
+    Sunday: {
+      morning: { start: '', end: '' },
+      evening: { start: '', end: '' },
+      isClosed: true,
+    },
+  },
+};
+
 
 // This is a mock database. In a real app, you'd use a proper database.
 export async function getPatients() {
@@ -97,4 +138,13 @@ export async function getDoctorStatus() {
 export async function updateDoctorStatus(status: DoctorStatus) {
   doctorStatus = status;
   return doctorStatus;
+}
+
+export async function getDoctorSchedule() {
+  return doctorSchedule;
+}
+
+export async function updateDoctorSchedule(schedule: DoctorSchedule) {
+  doctorSchedule = schedule;
+  return doctorSchedule;
 }
