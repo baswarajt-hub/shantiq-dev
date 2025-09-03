@@ -62,15 +62,15 @@ body {
 }
 
 @layer utilities {
-  .day-fully-closed > .rdp-button {
+  .day-fully-closed:not([aria-selected]) > .rdp-button:not(.rdp-day_today):not(:hover) {
     @apply bg-destructive text-destructive-foreground rounded-full;
   }
-  .day-morning-closed > .rdp-button {
+  .day-morning-closed:not([aria-selected]) > .rdp-button:not(.rdp-day_today):not(:hover) {
     background: linear-gradient(to bottom, hsl(var(--destructive)) 50%, transparent 50%);
-    @apply text-destructive-foreground rounded-full;
+    @apply text-primary-foreground rounded-full;
   }
-  .day-evening-closed > .rdp-button {
+  .day-evening-closed:not([aria-selected]) > .rdp-button:not(.rdp-day_today):not(:hover) {
     background: linear-gradient(to top, hsl(var(--destructive)) 50%, transparent 50%);
-    @apply text-destructive-foreground rounded-full;
+    @apply text-primary-foreground rounded-full;
   }
 }
