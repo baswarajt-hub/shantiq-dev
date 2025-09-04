@@ -45,31 +45,58 @@ type DaySchedule = {
 
 const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointment: Appointment, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
   const [isQueueButtonActive, setQueueButtonActive] = useState(false);
+  const [tooltipMessage, setTooltipMessage] = useState("Activates 1 hour before the session starts.");
 
   useEffect(() => {
     if (appointment.status === 'Confirmed') {
-      const appointmentDateTime = new Date(`${appointment.date.split('T')[0]}T${appointment.time.replace(' AM', ':00').replace(' PM', ':00')}`);
-      if (appointment.time.includes('PM')) {
-        const hours = parseInt(appointment.time.split(':')[0], 10);
-        if (hours < 12) {
-            appointmentDateTime.setHours(appointmentDateTime.getHours() + 12);
-        }
-      }
-      
-      const oneHourBefore = new Date(appointmentDateTime.getTime() - 60 * 60 * 1000);
-      const now = new Date();
+        const appointmentDate = new Date(appointment.date.split('T')[0]);
+        const dayOfWeek = appointmentDate.toLocaleString('en-us', { weekday: 'long' }) as keyof typeof weeklySchedule;
+        const daySchedule = weeklySchedule[dayOfWeek];
 
-      const checkTime = () => {
-        if (now >= oneHourBefore && now < appointmentDateTime) {
-          setQueueButtonActive(true);
-        } else {
-          setQueueButtonActive(false);
-        }
-      };
+        let sessionStartTimeStr: string | null = null;
+        const appointmentHour = parseInt(appointment.time.split(':')[0], 10) + (appointment.time.includes('PM') && parseInt(appointment.time.split(':')[0], 10) < 12 ? 12 : 0);
 
-      checkTime();
-      const interval = setInterval(checkTime, 60000); // Check every minute
-      return () => clearInterval(interval);
+        const morningStartHour = daySchedule.morning !== 'Closed' ? parseInt(daySchedule.morning.split(':')[0], 10) : null;
+        
+        if (morningStartHour !== null && appointmentHour < 13) {
+            sessionStartTimeStr = daySchedule.morning.split(' ')[0];
+        } else if (daySchedule.evening !== 'Closed') {
+            sessionStartTimeStr = daySchedule.evening.split(' ')[0];
+        }
+
+        if (sessionStartTimeStr) {
+            const [hours, minutes] = sessionStartTimeStr.split(':');
+            const sessionStartDate = new Date(appointmentDate);
+            sessionStartDate.setHours(parseInt(hours, 10) + (daySchedule.evening.includes('PM') && parseInt(hours,10) < 12 ? 12: 0) , parseInt(minutes, 10), 0, 0);
+
+            const oneHourBeforeSession = new Date(sessionStartDate.getTime() - 60 * 60 * 1000);
+            
+            const appointmentDateTime = new Date(`${appointment.date.split('T')[0]}T${appointment.time.replace(' AM', ':00').replace(' PM', ':00')}`);
+             if (appointment.time.includes('PM')) {
+                const hours = parseInt(appointment.time.split(':')[0], 10);
+                if (hours < 12) {
+                    appointmentDateTime.setHours(appointmentDateTime.getHours() + 12);
+                }
+            }
+
+            const checkTime = () => {
+                const now = new Date();
+                if (now >= oneHourBeforeSession && now < appointmentDateTime) {
+                    setQueueButtonActive(true);
+                } else {
+                    setQueueButtonActive(false);
+                    if (now < oneHourBeforeSession) {
+                        setTooltipMessage(`Activates at ${oneHourBeforeSession.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+                    } else {
+                        setTooltipMessage("Queue is no longer active for this appointment.");
+                    }
+                }
+            };
+
+            checkTime();
+            const interval = setInterval(checkTime, 60000);
+            return () => clearInterval(interval);
+        }
     }
   }, [appointment]);
   
@@ -93,7 +120,7 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
           </TooltipTrigger>
           {!isQueueButtonActive && (
             <TooltipContent>
-              <p>Activates 1 hour before your appointment</p>
+              <p>{tooltipMessage}</p>
             </TooltipContent>
           )}
         </Tooltip>
@@ -307,5 +334,8 @@ export default function BookingPage() {
       </main>
     </div>
   );
+
+    
+
 
     
