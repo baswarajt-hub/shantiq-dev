@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -35,12 +35,26 @@ const weeklySchedule = {
   Sunday: { morning: 'Closed', evening: 'Closed' },
 };
 
+type DaySchedule = {
+    morning: string;
+    evening: string;
+};
+
 export default function BookingPage() {
   const [family, setFamily] = useState<FamilyMember[]>(mockFamily);
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
   const [isBookingOpen, setBookingOpen] = useState(false);
+  const [todaySchedule, setTodaySchedule] = useState<DaySchedule | null>(null);
+  const [currentDate, setCurrentDate] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const today = new Date();
+    const dayOfWeek = today.toLocaleString('en-us', { weekday: 'long' }) as keyof typeof weeklySchedule;
+    setTodaySchedule(weeklySchedule[dayOfWeek]);
+    setCurrentDate(today.toDateString());
+  }, []);
 
   const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar'>) => {
     const newMember = { ...member, id: Date.now(), avatar: `https://picsum.photos/seed/${Date.now()}/200/200` };
@@ -59,11 +73,6 @@ export default function BookingPage() {
     setAppointments(prev => prev.map(appt => appt.id === appointmentId ? { ...appt, status: 'Cancelled' } : appt));
     toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
   }
-  
-  const today = new Date();
-  const dayOfWeek = today.toLocaleString('en-us', { weekday: 'long' }) as keyof typeof weeklySchedule;
-  const todaySchedule = weeklySchedule[dayOfWeek];
-
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -75,19 +84,23 @@ export default function BookingPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Today's Schedule</CardTitle>
-                <CardDescription>{new Date().toDateString()}</CardDescription>
+                <CardDescription>{currentDate || 'Loading...'}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4 text-sm">
-                   <div className="flex justify-between">
-                     <span className="text-muted-foreground">Morning:</span>
-                     <span className="font-semibold">{todaySchedule.morning}</span>
-                   </div>
-                   <div className="flex justify-between">
-                     <span className="text-muted-foreground">Evening:</span>
-                     <span className="font-semibold">{todaySchedule.evening}</span>
-                   </div>
-                </div>
+                {todaySchedule ? (
+                  <div className="space-y-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Morning:</span>
+                      <span className="font-semibold">{todaySchedule.morning}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Evening:</span>
+                      <span className="font-semibold">{todaySchedule.evening}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p>Loading schedule...</p>
+                )}
               </CardContent>
             </Card>
 
