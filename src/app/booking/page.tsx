@@ -10,7 +10,9 @@ import { Calendar, Clock, Edit, PlusCircle, Trash2, User as UserIcon } from 'luc
 import type { FamilyMember, Appointment } from '@/lib/types';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
-import { Separator } from '@/components/ui/separator';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+
 
 const mockFamily: FamilyMember[] = [
   { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200' },
@@ -38,6 +40,7 @@ export default function BookingPage() {
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
   const [isBookingOpen, setBookingOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar'>) => {
     const newMember = { ...member, id: Date.now(), avatar: `https://picsum.photos/seed/${Date.now()}/200/200` };
@@ -48,9 +51,14 @@ export default function BookingPage() {
     const familyMember = family.find(f => f.id === appointment.familyMemberId);
     if (familyMember) {
       const newAppointment = { ...appointment, id: Date.now(), status: 'Confirmed' as const, familyMemberName: familyMember.name };
-      setAppointments(prev => [...prev, newAppointment]);
+      setAppointments(prev => [...prev, newAppointment].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
     }
   };
+
+  const handleCancelAppointment = (appointmentId: number) => {
+    setAppointments(prev => prev.map(appt => appt.id === appointmentId ? { ...appt, status: 'Cancelled' } : appt));
+    toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
+  }
   
   const today = new Date();
   const dayOfWeek = today.toLocaleString('en-us', { weekday: 'long' }) as keyof typeof weeklySchedule;
@@ -131,7 +139,7 @@ export default function BookingPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {appointments.length > 0 ? appointments.map(appt => (
-                  <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex items-center gap-4">
                        <Avatar>
                           <AvatarImage src={family.find(f=>f.id === appt.familyMemberId)?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />
@@ -139,12 +147,36 @@ export default function BookingPage() {
                         </Avatar>
                       <div>
                          <p className="font-bold text-lg">{appt.familyMemberName}</p>
-                         <p className="text-sm text-muted-foreground">Token for {new Date(appt.date).toDateString()}</p>
+                         <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                            <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {new Date(appt.date).toDateString()}</span>
+                            <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
+                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                       <p className="font-semibold text-lg">{appt.time}</p>
-                       <p className="text-sm text-primary font-medium">{appt.status}</p>
+                    <div className="flex flex-col items-end gap-2 self-stretch justify-between">
+                       <p className={`font-semibold text-sm px-2 py-1 rounded-full ${appt.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{appt.status}</p>
+                       {appt.status === 'Confirmed' && (
+                         <div className="flex items-center gap-2">
+                           <Button variant="outline" size="sm" className="h-8"><Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule</Button>
+                           <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                 <Button variant="destructive" size="sm" className="h-8"><Trash2 className="h-3.5 w-3.5 mr-1.5" />Cancel</Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action is permanent and you will not receive a refund. Are you sure you want to cancel?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Go Back</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleCancelAppointment(appt.id)}>Confirm Cancellation</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                           </AlertDialog>
+                         </div>
+                       )}
                     </div>
                   </div>
                 )) : (
