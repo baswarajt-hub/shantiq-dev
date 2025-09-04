@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Eye, Tv, Shield } from "lucide-react";
+import { Eye, Tv, Shield, Users } from "lucide-react";
 
 export default function Header() {
   return (
@@ -13,10 +13,16 @@ export default function Header() {
         </Link>
         <nav className="flex flex-1 items-center space-x-4">
           <Button variant="ghost" asChild>
-            <Link href="/appointment">Book Appointment</Link>
+            <Link href="/booking">Book Appointment</Link>
           </Button>
         </nav>
         <div className="flex items-center justify-end space-x-2">
+           <Button variant="ghost" size="sm" className="gap-2" asChild>
+            <Link href="/booking">
+              <Users className="h-4 w-4" />
+              Patient Portal
+            </Link>
+          </Button>
            <Button variant="ghost" size="sm" className="gap-2" asChild>
             <Link href="/admin">
               <Shield className="h-4 w-4" />
