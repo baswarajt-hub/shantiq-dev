@@ -1,3 +1,4 @@
+
 'use client';
 
 import Header from '@/components/header';
@@ -6,10 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, DollarSign, User } from 'lucide-react';
+import { DollarSign, User } from 'lucide-react';
 import { useTransition, useRef } from 'react';
 import { addAppointmentAction } from '../actions';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function AppointmentPage() {
   const { toast } = useToast();
@@ -44,43 +46,15 @@ export default function AppointmentPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl">Book an Appointment</CardTitle>
-            <CardDescription>
-              Fill out the form below to schedule your visit. A nominal fee is required to confirm your booking.
+        <div className="text-center max-w-2xl">
+            <CardTitle className="text-4xl mb-4">Patient Portal is now Live!</CardTitle>
+            <CardDescription className="text-lg mb-8 text-muted-foreground">
+                Our new patient portal offers a more streamlined way to book and manage appointments for your entire family. Please use the new portal for all future bookings.
             </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" name="name" placeholder="John Doe" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" name="phone" type="tel" placeholder="555-123-4567" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="appointmentTime">Preferred Time</Label>
-                <Input id="appointmentTime" name="appointmentTime" type="time" required />
-              </div>
-              <div className="space-y-2">
-                <Label>Payment</Label>
-                <div className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-2">
-                    <span className="text-muted-foreground">Consultation Fee</span>
-                    <span className="font-semibold">$25.00</span>
-                </div>
-                 <p className="text-xs text-muted-foreground">Payment will be processed upon submission.</p>
-              </div>
-              
-              <Button type="submit" className="w-full" disabled={isPending}>
-                <DollarSign className="mr-2 h-4 w-4" />
-                {isPending ? 'Processing...' : 'Pay & Book Now'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            <Button asChild size="lg">
+                <Link href="/booking">Go to Patient Portal</Link>
+            </Button>
+        </div>
       </main>
     </div>
   );

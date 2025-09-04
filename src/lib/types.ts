@@ -1,3 +1,4 @@
+
 export type Patient = {
   id: number;
   name: string;
@@ -52,4 +53,21 @@ export type DoctorSchedule = {
     Sunday: DaySchedule;
   };
   specialClosures: SpecialClosure[];
+};
+
+export type FamilyMember = {
+  id: number;
+  name: string;
+  dob: string; // YYYY-MM-DD
+  gender: 'Male' | 'Female' | 'Other';
+  avatar?: string; // URL to avatar image
+};
+
+export type Appointment = {
+  id: number;
+  familyMemberId: number;
+  familyMemberName: string;
+  date: string; // ISO string format
+  time: string;
+  status: 'Confirmed' | 'Cancelled';
 };
