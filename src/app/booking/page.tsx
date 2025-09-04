@@ -6,13 +6,14 @@ import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Edit, PlusCircle, Trash2, User as UserIcon } from 'lucide-react';
+import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, User as UserIcon } from 'lucide-react';
 import type { FamilyMember, Appointment } from '@/lib/types';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-appointment-dialog';
+import Link from 'next/link';
 
 
 const mockFamily: FamilyMember[] = [
@@ -40,6 +41,67 @@ type DaySchedule = {
     morning: string;
     evening: string;
 };
+
+const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointment: Appointment, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
+  const [showQueueButton, setShowQueueButton] = useState(false);
+
+  useEffect(() => {
+    if (appointment.status === 'Confirmed') {
+      const appointmentDateTime = new Date(`${appointment.date.split('T')[0]}T${appointment.time.replace(' AM', ':00').replace(' PM', ':00')}`);
+      if (appointment.time.includes('PM')) {
+        const hours = parseInt(appointment.time.split(':')[0], 10);
+        if (hours < 12) {
+            appointmentDateTime.setHours(appointmentDateTime.getHours() + 12);
+        }
+      }
+      
+      const oneHourBefore = new Date(appointmentDateTime.getTime() - 60 * 60 * 1000);
+      const now = new Date();
+
+      const checkTime = () => {
+        if (now >= oneHourBefore && now < appointmentDateTime) {
+          setShowQueueButton(true);
+        } else {
+          setShowQueueButton(false);
+        }
+      };
+
+      checkTime();
+      const interval = setInterval(checkTime, 60000); // Check every minute
+      return () => clearInterval(interval);
+    }
+  }, [appointment]);
+  
+  if (appointment.status !== 'Confirmed') {
+    return null;
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {showQueueButton && (
+        <Button asChild variant="default" size="sm" className="h-8"><Link href="/queue-status"><Eye className="h-3.5 w-3.5 mr-1.5" />View Queue</Link></Button>
+      )}
+      <Button variant="outline" size="sm" className="h-8" onClick={() => onReschedule(appointment)}><Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule</Button>
+      <AlertDialog>
+          <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="h-8"><Trash2 className="h-3.5 w-3.5 mr-1.5" />Cancel</Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action is permanent and you will not receive a refund. Are you sure you want to cancel?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Go Back</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onCancel(appointment.id)}>Confirm Cancellation</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}
 
 export default function BookingPage() {
   const [family, setFamily] = useState<FamilyMember[]>(mockFamily);
@@ -189,28 +251,11 @@ export default function BookingPage() {
                     </div>
                     <div className="flex flex-col items-end gap-2 self-stretch justify-between">
                        <p className={`font-semibold text-sm px-2 py-1 rounded-full ${appt.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{appt.status}</p>
-                       {appt.status === 'Confirmed' && (
-                         <div className="flex items-center gap-2">
-                           <Button variant="outline" size="sm" className="h-8" onClick={() => handleOpenReschedule(appt)}><Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule</Button>
-                           <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                 <Button variant="destructive" size="sm" className="h-8"><Trash2 className="h-3.5 w-3.5 mr-1.5" />Cancel</Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This action is permanent and you will not receive a refund. Are you sure you want to cancel?
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Go Back</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleCancelAppointment(appt.id)}>Confirm Cancellation</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                           </AlertDialog>
-                         </div>
-                       )}
+                       <AppointmentActions 
+                          appointment={appt} 
+                          onReschedule={handleOpenReschedule}
+                          onCancel={handleCancelAppointment}
+                        />
                     </div>
                   </div>
                 )) : (
@@ -244,4 +289,5 @@ export default function BookingPage() {
       </main>
     </div>
   );
-}
+
+    
