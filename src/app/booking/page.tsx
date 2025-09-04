@@ -12,6 +12,7 @@ import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-di
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-appointment-dialog';
 
 
 const mockFamily: FamilyMember[] = [
@@ -45,6 +46,8 @@ export default function BookingPage() {
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
   const [isBookingOpen, setBookingOpen] = useState(false);
+  const [isRescheduleOpen, setRescheduleOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [todaySchedule, setTodaySchedule] = useState<DaySchedule | null>(null);
   const [currentDate, setCurrentDate] = useState('');
   const { toast } = useToast();
@@ -74,6 +77,24 @@ export default function BookingPage() {
     toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
   }
 
+  const handleOpenReschedule = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setRescheduleOpen(true);
+  }
+
+  const handleRescheduleAppointment = (newDate: Date, newTime: string) => {
+    if (selectedAppointment) {
+      setAppointments(prev => 
+        prev.map(appt => 
+          appt.id === selectedAppointment.id 
+            ? { ...appt, date: newDate.toISOString(), time: newTime } 
+            : appt
+        )
+      );
+      toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
       <Header />
@@ -84,7 +105,7 @@ export default function BookingPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Today's Schedule</CardTitle>
-                <CardDescription>{currentDate || 'Loading...'}</CardDescription>
+                <CardDescription>{currentDate}</CardDescription>
               </CardHeader>
               <CardContent>
                 {todaySchedule ? (
@@ -170,7 +191,7 @@ export default function BookingPage() {
                        <p className={`font-semibold text-sm px-2 py-1 rounded-full ${appt.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{appt.status}</p>
                        {appt.status === 'Confirmed' && (
                          <div className="flex items-center gap-2">
-                           <Button variant="outline" size="sm" className="h-8"><Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule</Button>
+                           <Button variant="outline" size="sm" className="h-8" onClick={() => handleOpenReschedule(appt)}><Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule</Button>
                            <AlertDialog>
                               <AlertDialogTrigger asChild>
                                  <Button variant="destructive" size="sm" className="h-8"><Trash2 className="h-3.5 w-3.5 mr-1.5" />Cancel</Button>
@@ -211,6 +232,14 @@ export default function BookingPage() {
           familyMembers={family}
           onSave={handleBookAppointment}
         />
+        {selectedAppointment && (
+          <RescheduleAppointmentDialog
+            isOpen={isRescheduleOpen}
+            onOpenChange={setRescheduleOpen}
+            appointment={selectedAppointment}
+            onSave={handleRescheduleAppointment}
+          />
+        )}
 
       </main>
     </div>
