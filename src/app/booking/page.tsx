@@ -24,13 +24,13 @@ const mockAppointments: Appointment[] = [
 ];
 
 const weeklySchedule = {
-  Monday: '09:00 AM - 01:00 PM, 04:00 PM - 07:00 PM',
-  Tuesday: '09:00 AM - 01:00 PM, 04:00 PM - 07:00 PM',
-  Wednesday: '09:00 AM - 01:00 PM, 04:00 PM - 07:00 PM',
-  Thursday: '09:00 AM - 01:00 PM, 04:00 PM - 07:00 PM',
-  Friday: '09:00 AM - 01:00 PM, 04:00 PM - 07:00 PM',
-  Saturday: '10:00 AM - 02:00 PM',
-  Sunday: 'Closed',
+  Monday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
+  Tuesday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
+  Wednesday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
+  Thursday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
+  Friday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
+  Saturday: { morning: '10:00 AM - 02:00 PM', evening: 'Closed' },
+  Sunday: { morning: 'Closed', evening: 'Closed' },
 };
 
 export default function BookingPage() {
@@ -51,6 +51,11 @@ export default function BookingPage() {
       setAppointments(prev => [...prev, newAppointment]);
     }
   };
+  
+  const today = new Date();
+  const dayOfWeek = today.toLocaleString('en-us', { weekday: 'long' }) as keyof typeof weeklySchedule;
+  const todaySchedule = weeklySchedule[dayOfWeek];
+
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -61,17 +66,20 @@ export default function BookingPage() {
           <div className="md:col-span-1 space-y-8">
             <Card>
               <CardHeader>
-                <CardTitle>Doctor's Schedule</CardTitle>
+                <CardTitle>Today's Schedule</CardTitle>
+                <CardDescription>{new Date().toDateString()}</CardDescription>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {Object.entries(weeklySchedule).map(([day, hours]) => (
-                    <li key={day} className="flex justify-between">
-                      <span className="font-medium">{day}</span>
-                      <span>{hours}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-4 text-sm">
+                   <div className="flex justify-between">
+                     <span className="text-muted-foreground">Morning:</span>
+                     <span className="font-semibold">{todaySchedule.morning}</span>
+                   </div>
+                   <div className="flex justify-between">
+                     <span className="text-muted-foreground">Evening:</span>
+                     <span className="font-semibold">{todaySchedule.evening}</span>
+                   </div>
+                </div>
               </CardContent>
             </Card>
 
