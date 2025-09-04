@@ -1,4 +1,5 @@
 
+
 export type Patient = {
   id: number;
   name: string;
@@ -69,5 +70,5 @@ export type Appointment = {
   familyMemberName: string;
   date: string; // ISO string format
   time: string;
-  status: 'Confirmed' | 'Cancelled';
+  status: 'Confirmed' | 'Cancelled' | 'Completed' | 'Missed';
 };

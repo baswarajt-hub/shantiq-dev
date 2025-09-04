@@ -26,6 +26,9 @@ const mockFamily: FamilyMember[] = [
 const mockAppointments: Appointment[] = [
   { id: 1, familyMemberId: 3, familyMemberName: 'Jimmy Doe', date: '2024-08-15', time: '10:30 AM', status: 'Confirmed' },
   { id: 2, familyMemberId: 1, familyMemberName: 'John Doe', date: '2024-08-20', time: '04:00 PM', status: 'Confirmed' },
+  { id: 3, familyMemberId: 2, familyMemberName: 'Jane Doe', date: '2024-07-10', time: '11:00 AM', status: 'Completed' },
+  { id: 4, familyMemberId: 1, familyMemberName: 'John Doe', date: '2024-06-05', time: '09:00 AM', status: 'Cancelled' },
+  { id: 5, familyMemberId: 3, familyMemberName: 'Jimmy Doe', date: '2024-07-25', time: '05:00 PM', status: 'Confirmed' },
 ];
 
 const weeklySchedule = {
@@ -148,6 +151,17 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
   )
 }
 
+const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+        case 'Confirmed': return 'bg-blue-100 text-blue-800';
+        case 'Completed': return 'bg-green-100 text-green-800';
+        case 'Cancelled': return 'bg-red-100 text-red-800';
+        case 'Missed': return 'bg-yellow-100 text-yellow-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
+
 export default function BookingPage() {
   const [family, setFamily] = useState<FamilyMember[]>(mockFamily);
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
@@ -201,6 +215,9 @@ export default function BookingPage() {
       toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
     }
   };
+  
+  const upcomingAppointments = appointments.filter(appt => appt.status === 'Confirmed' && new Date(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
+  const pastAppointments = appointments.filter(appt => appt.status !== 'Confirmed' || new Date(appt.date) < new Date(new Date().setHours(0,0,0,0)));
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -279,7 +296,7 @@ export default function BookingPage() {
                 <CardTitle>Upcoming Appointments</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {appointments.length > 0 ? appointments.map(appt => (
+                {upcomingAppointments.length > 0 ? upcomingAppointments.map(appt => (
                   <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex items-center gap-4">
                        <Avatar>
@@ -295,7 +312,7 @@ export default function BookingPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2 self-stretch justify-between">
-                       <p className={`font-semibold text-sm px-2 py-1 rounded-full ${appt.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{appt.status}</p>
+                       <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status)}`}>{appt.status}</p>
                        <AppointmentActions 
                           appointment={appt} 
                           onReschedule={handleOpenReschedule}
@@ -305,6 +322,41 @@ export default function BookingPage() {
                   </div>
                 )) : (
                   <p className="text-muted-foreground text-center py-8">No upcoming appointments.</p>
+                )}
+              </CardContent>
+            </Card>
+
+             <Card>
+              <CardHeader>
+                <CardTitle>Past Appointments</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {pastAppointments.length > 0 ? pastAppointments.map(appt => {
+                    let finalStatus = appt.status;
+                    if (finalStatus === 'Confirmed' && new Date(appt.date) < new Date(new Date().setHours(0,0,0,0))) {
+                        finalStatus = 'Missed';
+                    }
+
+                    return (
+                        <div key={appt.id} className="p-4 rounded-lg border bg-background/50 flex items-start justify-between gap-4 opacity-70">
+                            <div className="flex items-center gap-4">
+                                <Avatar>
+                                    <AvatarImage src={family.find(f=>f.id === appt.familyMemberId)?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />
+                                    <AvatarFallback>{appt.familyMemberName.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-bold text-lg">{appt.familyMemberName}</p>
+                                    <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                                        <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {new Date(appt.date).toDateString()}</span>
+                                        <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
+                                    </div>
+                                </div>
+                            </div>
+                             <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(finalStatus)}`}>{finalStatus}</p>
+                        </div>
+                    );
+                }) : (
+                  <p className="text-muted-foreground text-center py-8">No past appointments.</p>
                 )}
               </CardContent>
             </Card>
@@ -334,8 +386,4 @@ export default function BookingPage() {
       </main>
     </div>
   );
-
-    
-
-
-    
+}
