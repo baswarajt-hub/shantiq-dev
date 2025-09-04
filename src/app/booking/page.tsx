@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-appointment-dialog';
 import Link from 'next/link';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const mockFamily: FamilyMember[] = [
@@ -43,7 +44,7 @@ type DaySchedule = {
 };
 
 const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointment: Appointment, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
-  const [showQueueButton, setShowQueueButton] = useState(false);
+  const [isQueueButtonActive, setQueueButtonActive] = useState(false);
 
   useEffect(() => {
     if (appointment.status === 'Confirmed') {
@@ -60,9 +61,9 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
 
       const checkTime = () => {
         if (now >= oneHourBefore && now < appointmentDateTime) {
-          setShowQueueButton(true);
+          setQueueButtonActive(true);
         } else {
-          setShowQueueButton(false);
+          setQueueButtonActive(false);
         }
       };
 
@@ -78,9 +79,26 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
 
   return (
     <div className="flex items-center gap-2">
-      {showQueueButton && (
-        <Button asChild variant="default" size="sm" className="h-8"><Link href="/queue-status"><Eye className="h-3.5 w-3.5 mr-1.5" />View Queue</Link></Button>
-      )}
+      <TooltipProvider>
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <span tabIndex={0}> 
+              <Button asChild variant="default" size="sm" className="h-8" disabled={!isQueueButtonActive}>
+                <Link href="/queue-status" aria-disabled={!isQueueButtonActive} tabIndex={isQueueButtonActive ? 0 : -1} style={{ pointerEvents: isQueueButtonActive ? 'auto' : 'none' }}>
+                  <Eye className="h-3.5 w-3.5 mr-1.5" />
+                  View Queue
+                </Link>
+              </Button>
+            </span>
+          </TooltipTrigger>
+          {!isQueueButtonActive && (
+            <TooltipContent>
+              <p>Activates 1 hour before your appointment</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
+
       <Button variant="outline" size="sm" className="h-8" onClick={() => onReschedule(appointment)}><Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule</Button>
       <AlertDialog>
           <AlertDialogTrigger asChild>
