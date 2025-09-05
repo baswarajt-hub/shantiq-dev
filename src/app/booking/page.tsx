@@ -15,10 +15,11 @@ import { useToast } from '@/hooks/use-toast';
 import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-appointment-dialog';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
 
 
 const mockFamily: FamilyMember[] = [
-  { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200' },
+  { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101' },
   { id: 2, name: 'Jane Doe', dob: '1988-10-15', gender: 'Female', avatar: 'https://picsum.photos/id/238/200/200' },
   { id: 3, name: 'Jimmy Doe', dob: '2015-02-25', gender: 'Male', avatar: 'https://picsum.photos/id/239/200/200' },
 ];
@@ -57,7 +58,7 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
   
     const checkTime = () => {
       const now = new Date();
-      const appointmentDate = new Date(appointment.date.split('T')[0]);
+      const appointmentDate = new Date(appointment.date);
       const dayOfWeek = appointmentDate.toLocaleString('en-us', { weekday: 'long' }) as keyof typeof weeklySchedule;
       const daySchedule = weeklySchedule[dayOfWeek];
   
@@ -185,8 +186,10 @@ export default function BookingPage() {
   const [family, setFamily] = useState<FamilyMember[]>(mockFamily);
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
+  const [isEditMemberOpen, setEditMemberOpen] = useState(false);
   const [isBookingOpen, setBookingOpen] = useState(false);
   const [isRescheduleOpen, setRescheduleOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [todaySchedule, setTodaySchedule] = useState<DaySchedule | null>(null);
   const [currentDate, setCurrentDate] = useState('');
@@ -203,6 +206,11 @@ export default function BookingPage() {
     const newMember = { ...member, id: Date.now(), avatar: `https://picsum.photos/seed/${Date.now()}/200/200` };
     setFamily(prev => [...prev, newMember]);
   };
+  
+  const handleEditFamilyMember = (updatedMember: FamilyMember) => {
+    setFamily(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
+    toast({ title: "Success", description: "Family member details updated."});
+  }
 
   const handleBookAppointment = (appointment: Omit<Appointment, 'id' | 'status' | 'familyMemberName'>) => {
     const familyMember = family.find(f => f.id === appointment.familyMemberId);
@@ -220,6 +228,11 @@ export default function BookingPage() {
   const handleOpenReschedule = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setRescheduleOpen(true);
+  }
+  
+  const handleOpenEditMember = (member: FamilyMember) => {
+    setSelectedMember(member);
+    setEditMemberOpen(true);
   }
 
   const handleRescheduleAppointment = (newDate: Date, newTime: string) => {
@@ -289,7 +302,7 @@ export default function BookingPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                       <Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button>
+                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditMember(member)}><Edit className="h-4 w-4" /></Button>
                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
@@ -387,6 +400,14 @@ export default function BookingPage() {
           onOpenChange={setAddMemberOpen}
           onSave={handleAddFamilyMember} 
         />
+        {selectedMember && (
+            <EditFamilyMemberDialog
+                isOpen={isEditMemberOpen}
+                onOpenChange={setEditMemberOpen}
+                member={selectedMember}
+                onSave={handleEditFamilyMember}
+            />
+        )}
         <BookAppointmentDialog
           isOpen={isBookingOpen}
           onOpenChange={setBookingOpen}

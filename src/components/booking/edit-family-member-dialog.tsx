@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,27 +16,38 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FamilyMember } from '@/lib/types';
 
-type AddFamilyMemberDialogProps = {
+type EditFamilyMemberDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (member: Omit<FamilyMember, 'id' | 'avatar'>) => void;
+  member: FamilyMember;
+  onSave: (member: FamilyMember) => void;
 };
 
-export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamilyMemberDialogProps) {
+export function EditFamilyMemberDialog({ isOpen, onOpenChange, member, onSave }: EditFamilyMemberDialogProps) {
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState('');
   const [clinicId, setClinicId] = useState('');
 
+  useEffect(() => {
+    if (member) {
+        setName(member.name);
+        setDob(member.dob);
+        setGender(member.gender);
+        setClinicId(member.clinicId || '');
+    }
+  }, [member, isOpen]);
+
   const handleSave = () => {
     if (name && dob && gender) {
-      onSave({ name, dob, gender, clinicId });
+      onSave({ 
+        ...member, 
+        name, 
+        dob, 
+        gender, 
+        clinicId: clinicId || undefined 
+    });
       onOpenChange(false);
-      // Reset form
-      setName('');
-      setDob('');
-      setGender('');
-      setClinicId('');
     }
   };
 
@@ -44,8 +55,8 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Family Member</DialogTitle>
-          <DialogDescription>Enter the details for the new family member.</DialogDescription>
+          <DialogTitle>Edit Family Member</DialogTitle>
+          <DialogDescription>Update the details for the family member.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -76,7 +87,7 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save Member</Button>
+          <Button onClick={handleSave}>Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

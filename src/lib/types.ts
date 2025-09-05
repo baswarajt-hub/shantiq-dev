@@ -62,6 +62,7 @@ export type FamilyMember = {
   dob: string; // YYYY-MM-DD
   gender: 'Male' | 'Female' | 'Other';
   avatar?: string; // URL to avatar image
+  clinicId?: string;
 };
 
 export type Appointment = {
