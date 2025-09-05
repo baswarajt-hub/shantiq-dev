@@ -1,5 +1,6 @@
 
-import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from './types';
+import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session } from './types';
+import { format } from 'date-fns';
 
 let patients: Patient[] = [
   {
@@ -70,7 +71,7 @@ let doctorStatus: DoctorStatus = {
 };
 
 let doctorSchedule: DoctorSchedule = {
-  slotDuration: 10,
+  slotDuration: 15,
   days: {
     Monday: {
       morning: { start: '09:00', end: '13:00', isOpen: true },
@@ -146,8 +147,8 @@ export async function getDoctorSchedule() {
   return doctorSchedule;
 }
 
-export async function updateDoctorSchedule(schedule: DoctorSchedule) {
-  doctorSchedule = schedule;
+export async function updateDoctorSchedule(schedule: Omit<DoctorSchedule, 'specialClosures'>) {
+  doctorSchedule = { ...doctorSchedule, ...schedule };
   return doctorSchedule;
 }
 
@@ -155,6 +156,20 @@ export async function updateSpecialClosures(closures: SpecialClosure[]) {
     doctorSchedule.specialClosures = closures;
     return doctorSchedule;
 }
+
+export async function updateTodayScheduleOverride(override: SpecialClosure) {
+    const existingClosureIndex = doctorSchedule.specialClosures.findIndex(c => c.date === override.date);
+    if (existingClosureIndex > -1) {
+        doctorSchedule.specialClosures[existingClosureIndex] = {
+            ...doctorSchedule.specialClosures[existingClosureIndex],
+            ...override
+        }
+    } else {
+        doctorSchedule.specialClosures.push(override);
+    }
+    return doctorSchedule;
+}
+
 
 // Family / Member specific functions
 export async function getFamilyByPhone(phone: string) {

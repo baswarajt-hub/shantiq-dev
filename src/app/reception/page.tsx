@@ -4,42 +4,19 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import type { Appointment, DoctorSchedule, FamilyMember } from '@/lib/types';
+import type { Appointment, DoctorSchedule, FamilyMember, Session, SpecialClosure } from '@/lib/types';
 import { format, set } from 'date-fns';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar, Trash2 } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar, Trash2, Clock } from 'lucide-react';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
-
-// Mock data, in a real app this would come from an API
-const mockFamily: FamilyMember[] = [
-  { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101', phone: '5551112222' },
-  { id: 2, name: 'Jane Doe', dob: '1988-10-15', gender: 'Female', avatar: 'https://picsum.photos/id/238/200/200', phone: '5551112222' },
-  { id: 3, name: 'Jimmy Doe', dob: '2015-02-25', gender: 'Male', avatar: 'https://picsum.photos/id/239/200/200', clinicId: 'C101', phone: '5551112222' },
-];
-
-const mockAppointments: Appointment[] = [
-  { id: 1, familyMemberId: 3, familyMemberName: 'Jimmy Doe', date: new Date().toISOString(), time: '10:30 AM', status: 'Confirmed' },
-  { id: 2, familyMemberId: 1, familyMemberName: 'John Doe', date: new Date().toISOString(), time: '04:00 PM', status: 'Confirmed' },
-];
-
-const mockSchedule: DoctorSchedule = {
-    slotDuration: 15,
-    days: {
-      Monday: { morning: { start: '09:00', end: '13:00', isOpen: true }, evening: { start: '16:00', end: '19:00', isOpen: true } },
-      Tuesday: { morning: { start: '09:00', end: '13:00', isOpen: true }, evening: { start: '16:00', end: '19:00', isOpen: true } },
-      Wednesday: { morning: { start: '09:00', end: '13:00', isOpen: true }, evening: { start: '16:00', end: '19:00', isOpen: true } },
-      Thursday: { morning: { start: '09:00', end: '13:00', isOpen: true }, evening: { start: '16:00', end: '19:00', isOpen: true } },
-      Friday: { morning: { start: '09:00', end: '13:00', isOpen: true }, evening: { start: '16:00', end: '19:00', isOpen: true } },
-      Saturday: { morning: { start: '10:00', end: '14:00', isOpen: true }, evening: { start: '', end: '', isOpen: false } },
-      Sunday: { morning: { start: '', end: '', isOpen: false }, evening: { start: '', end: '', isOpen: false } },
-    },
-    specialClosures: [],
-};
-
+import { getDoctorSchedule } from '@/lib/data';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
+import { updateTodayScheduleOverrideAction } from '../actions';
 
 type TimeSlot = {
   time: string;
@@ -48,15 +25,16 @@ type TimeSlot = {
 }
 
 export default function ReceptionPage() {
-    const [schedule, setSchedule] = useState<DoctorSchedule | null>(mockSchedule);
-    const [family, setFamily] = useState<FamilyMember[]>(mockFamily);
-    const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+    const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
+    const [family, setFamily] = useState<FamilyMember[]>([]);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
     const [isNewPatientOpen, setNewPatientOpen] = useState(false);
     const [isRescheduleOpen, setRescheduleOpen] = useState(false);
+    const [isAdjustTimingOpen, setAdjustTimingOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
     const [currentDate, setCurrentDate] = useState('');
     const { toast } = useToast();
@@ -66,6 +44,16 @@ export default function ReceptionPage() {
         if (currentHour >= 14) { // 2 PM
             setSelectedSession('evening');
         }
+        
+        async function loadData() {
+            const scheduleData = await getDoctorSchedule();
+            setSchedule(scheduleData);
+            // Here you would normally fetch family and appointments
+            // setFamily(await getFamily());
+            // setAppointments(await getAppointmentsForToday());
+        }
+        loadData();
+
     }, []);
     
     useEffect(() => {
@@ -77,10 +65,20 @@ export default function ReceptionPage() {
 
         const today = new Date();
         const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
-        const daySchedule = schedule.days[dayOfWeek];
+        let daySchedule = schedule.days[dayOfWeek];
         const generatedSlots: TimeSlot[] = [];
 
-        const generateSessionSlots = (session: {start: string, end: string, isOpen: boolean}) => {
+        const todayStr = format(today, 'yyyy-MM-dd');
+        const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+
+        if (todayOverride) {
+            daySchedule = {
+                morning: todayOverride.morningOverride ?? daySchedule.morning,
+                evening: todayOverride.eveningOverride ?? daySchedule.evening
+            }
+        }
+
+        const generateSessionSlots = (session: Session) => {
             if (!session.isOpen || !session.start || !session.end) return;
 
             const [startHour, startMinute] = session.start.split(':').map(Number);
@@ -156,6 +154,38 @@ export default function ReceptionPage() {
         toast({ title: 'Success', description: 'Appointment has been cancelled.' });
     };
 
+    const handleAdjustTiming = async (override: SpecialClosure) => {
+        const result = await updateTodayScheduleOverrideAction(override);
+        if (result.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: result.success });
+            // Re-fetch schedule to reflect changes
+            const scheduleData = await getDoctorSchedule();
+            setSchedule(scheduleData);
+        }
+    };
+    
+  if (!schedule) {
+    return (
+        <div className="flex flex-col min-h-screen bg-muted/40">
+            <Header />
+            <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-8 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                            {Array.from({ length: 18 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+                        </div>
+                    </CardContent>
+                </Card>
+            </main>
+        </div>
+    )
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -168,6 +198,10 @@ export default function ReceptionPage() {
                     <CardDescription>{currentDate}</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
+                     <Button variant="outline" onClick={() => setAdjustTimingOpen(true)}>
+                        <Clock className="mr-2 h-4 w-4" />
+                        Adjust Timing
+                    </Button>
                     <Button variant="outline" onClick={() => setNewPatientOpen(true)}>
                         <UserPlus className="mr-2 h-4 w-4" />
                         New Patient
@@ -279,6 +313,14 @@ export default function ReceptionPage() {
                 appointment={selectedAppointment}
                 onSave={handleReschedule}
                 bookedSlots={appointments.filter(a => a.status === 'Confirmed' && a.id !== selectedAppointment.id).map(a => a.time)}
+            />
+        )}
+        {schedule && (
+            <AdjustTimingDialog
+                isOpen={isAdjustTimingOpen}
+                onOpenChange={setAdjustTimingOpen}
+                schedule={schedule}
+                onSave={handleAdjustTiming}
             />
         )}
       </main>

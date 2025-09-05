@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule, getFamilyByPhone, addFamilyMember } from '@/lib/data';
+import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule, getFamilyByPhone, addFamilyMember, updateTodayScheduleOverride } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -193,4 +193,14 @@ export async function addNewPatientAction(patientData: Omit<FamilyMember, 'id' |
     const newPatient = await addFamilyMember(patientData);
     revalidatePath('/reception');
     return { success: 'New patient added successfully.', patient: newPatient };
+}
+
+export async function updateTodayScheduleOverrideAction(override: SpecialClosure) {
+    try {
+        await updateTodayScheduleOverride(override);
+        revalidatePath('/reception');
+        return { success: 'Today\'s schedule has been adjusted.' };
+    } catch (error) {
+        return { error: 'Failed to adjust schedule.' };
+    }
 }
