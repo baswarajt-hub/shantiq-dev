@@ -8,7 +8,7 @@ import type { Appointment, DoctorSchedule, FamilyMember, Session, SpecialClosure
 import { format, set } from 'date-fns';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar, Trash2, Clock } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar, Trash2, Clock, Search } from 'lucide-react';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ import { getDoctorSchedule } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { updateTodayScheduleOverrideAction } from '../actions';
+import { Input } from '@/components/ui/input';
 
 type TimeSlot = {
   time: string;
@@ -37,6 +38,7 @@ export default function ReceptionPage() {
     const [isAdjustTimingOpen, setAdjustTimingOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
     const [currentDate, setCurrentDate] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const { toast } = useToast();
 
     useEffect(() => {
@@ -165,6 +167,16 @@ export default function ReceptionPage() {
             setSchedule(scheduleData);
         }
     };
+
+    const filteredTimeSlots = timeSlots.filter(slot => {
+        if (!searchTerm) {
+            return true;
+        }
+        if (!slot.isBooked || !slot.appointment) {
+            return true; // Always show available slots
+        }
+        return slot.appointment.familyMemberName.toLowerCase().includes(searchTerm.toLowerCase());
+    });
     
   if (!schedule) {
     return (
@@ -192,12 +204,22 @@ export default function ReceptionPage() {
       <Header />
       <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
         <Card>
-            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <div>
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex-1">
                     <CardTitle className="text-2xl">Reception Desk - Today's Schedule</CardTitle>
                     <CardDescription>{currentDate}</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Search patient..."
+                            className="pl-8 sm:w-[200px] md:w-[250px]"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                      <Button variant="outline" onClick={() => setAdjustTimingOpen(true)}>
                         <Clock className="mr-2 h-4 w-4" />
                         Adjust Timing
@@ -228,9 +250,9 @@ export default function ReceptionPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                {timeSlots.length > 0 ? (
+                {filteredTimeSlots.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {timeSlots.map(slot => (
+                        {filteredTimeSlots.map(slot => (
                             <div key={slot.time}>
                                 {slot.isBooked && slot.appointment ? (
                                     <DropdownMenu>
@@ -286,7 +308,7 @@ export default function ReceptionPage() {
                     </div>
                 ) : (
                     <div className="text-center py-16 text-muted-foreground">
-                        <p>This session is closed or has no available slots.</p>
+                        <p>{searchTerm ? "No matching appointments found for the current session." : "This session is closed or has no available slots."}</p>
                     </div>
                 )}
             </CardContent>
@@ -327,3 +349,5 @@ export default function ReceptionPage() {
     </div>
   );
 }
+
+    
