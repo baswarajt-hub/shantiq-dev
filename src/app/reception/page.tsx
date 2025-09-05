@@ -5,8 +5,10 @@ import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { Appointment, DoctorSchedule, FamilyMember } from '@/lib/types';
-import { addDays, format, set } from 'date-fns';
+import { format, set } from 'date-fns';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ChevronDown, Sun, Moon } from 'lucide-react';
 
 // Mock data, in a real app this would come from an API
 const mockFamily: FamilyMember[] = [
@@ -47,6 +49,14 @@ export default function ReceptionPage() {
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
+    const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
+
+    useEffect(() => {
+        const currentHour = new Date().getHours();
+        if (currentHour >= 14) { // 2 PM
+            setSelectedSession('evening');
+        }
+    }, []);
 
     useEffect(() => {
         if (!schedule) return;
@@ -78,15 +88,21 @@ export default function ReceptionPage() {
             }
         }
         
-        generateSessionSlots(daySchedule.morning);
-        generateSessionSlots(daySchedule.evening);
+        if (selectedSession === 'morning') {
+            generateSessionSlots(daySchedule.morning);
+        } else {
+            generateSessionSlots(daySchedule.evening);
+        }
         setTimeSlots(generatedSlots);
 
-    }, [schedule, appointments]);
+    }, [schedule, appointments, selectedSession]);
     
     const handleSlotClick = (time: string) => {
-        setSelectedSlot(time);
-        setBookWalkInOpen(true);
+        const slot = timeSlots.find(s => s.time === time);
+        if (slot && !slot.isBooked) {
+          setSelectedSlot(time);
+          setBookWalkInOpen(true);
+        }
     };
 
     const handleBookAppointment = (familyMember: FamilyMember, time: string) => {
@@ -106,29 +122,56 @@ export default function ReceptionPage() {
       <Header />
       <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
         <Card>
-            <CardHeader>
-                <CardTitle className="text-2xl">Reception Desk - Today's Schedule</CardTitle>
-                <CardDescription>{format(new Date(), 'EEEE, MMMM d, yyyy')}</CardDescription>
+            <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                    <CardTitle className="text-2xl">Reception Desk - Today's Schedule</CardTitle>
+                    <CardDescription>{format(new Date(), 'EEEE, MMMM d, yyyy')}</CardDescription>
+                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline">
+                            {selectedSession === 'morning' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                            {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)} Session
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setSelectedSession('morning')}>
+                            <Sun className="mr-2 h-4 w-4" />
+                            Morning
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSelectedSession('evening')}>
+                            <Moon className="mr-2 h-4 w-4" />
+                            Evening
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {timeSlots.map(slot => (
-                        <Button 
-                            key={slot.time}
-                            variant={slot.isBooked ? 'secondary' : 'outline'}
-                            className="h-auto py-3 flex flex-col items-center justify-center relative"
-                            disabled={slot.isBooked}
-                            onClick={() => handleSlotClick(slot.time)}
-                        >
-                            <span className="text-lg font-semibold">{slot.time}</span>
-                            {slot.isBooked ? (
-                                <span className="text-xs text-muted-foreground">{slot.patientName}</span>
-                            ) : (
-                                <span className="text-xs text-primary/80">Available</span>
-                            )}
-                        </Button>
-                    ))}
-                </div>
+                {timeSlots.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {timeSlots.map(slot => (
+                            <Button 
+                                key={slot.time}
+                                variant={slot.isBooked ? 'secondary' : 'outline'}
+                                className="h-auto py-3 flex flex-col items-center justify-center relative"
+                                disabled={slot.isBooked}
+                                onClick={() => handleSlotClick(slot.time)}
+                            >
+                                <span className="text-lg font-semibold">{slot.time}</span>
+                                {slot.isBooked ? (
+                                    <span className="text-xs text-muted-foreground">{slot.patientName}</span>
+                                ) : (
+                                    <span className="text-xs text-primary/80">Available</span>
+                                )}
+                            </Button>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-16 text-muted-foreground">
+                        <p>This session is closed or has no available slots.</p>
+                    </div>
+                )}
             </CardContent>
         </Card>
         {selectedSlot && (
