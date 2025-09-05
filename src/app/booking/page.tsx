@@ -48,7 +48,7 @@ type DaySchedule = {
 
 const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointment: Appointment, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
   const [isQueueButtonActive, setQueueButtonActive] = useState(false);
-  const [tooltipMessage, setTooltipMessage] = useState("Activates 1 hour before the session starts.");
+  const [tooltipMessage, setTooltipMessage] = useState("You can view live queue status an hour before the doctor's session starts.");
 
   useEffect(() => {
     if (appointment.status === 'Confirmed') {
@@ -57,35 +57,39 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
         const daySchedule = weeklySchedule[dayOfWeek];
 
         let sessionStartTimeStr: string | null = null;
-        const appointmentHour = parseInt(appointment.time.split(':')[0], 10) + (appointment.time.includes('PM') && parseInt(appointment.time.split(':')[0], 10) < 12 ? 12 : 0);
-
-        const morningStartHour = daySchedule.morning !== 'Closed' ? parseInt(daySchedule.morning.split(':')[0], 10) : null;
         
-        if (morningStartHour !== null && appointmentHour < 13) {
-            sessionStartTimeStr = daySchedule.morning.split(' ')[0];
+        const appointmentHour24 = parseInt(appointment.time.split(':')[0], 10) + (appointment.time.includes('PM') && parseInt(appointment.time.split(':')[0], 10) < 12 ? 12 : 0);
+        const morningSessionStartHour = daySchedule.morning !== 'Closed' ? parseInt(daySchedule.morning.split(':')[0]) : null;
+        
+        if (morningSessionStartHour !== null && appointmentHour24 < 13) {
+            sessionStartTimeStr = daySchedule.morning.split(' - ')[0];
         } else if (daySchedule.evening !== 'Closed') {
-            sessionStartTimeStr = daySchedule.evening.split(' ')[0];
+            sessionStartTimeStr = daySchedule.evening.split(' - ')[0];
         }
 
         if (sessionStartTimeStr) {
-            const [hours, minutes] = sessionStartTimeStr.split(':');
+            const [hoursStr, minutesStr] = sessionStartTimeStr.split(':');
+            const [hours, minutes] = [parseInt(hoursStr, 10), parseInt(minutesStr, 10)];
+            
             const sessionStartDate = new Date(appointmentDate);
-            sessionStartDate.setHours(parseInt(hours, 10) + (daySchedule.evening.includes('PM') && parseInt(hours,10) < 12 ? 12: 0) , parseInt(minutes, 10), 0, 0);
+            let sessionStartHour24 = hours;
+            if (sessionStartTimeStr.includes('PM') && hours < 12) {
+                sessionStartHour24 += 12;
+            }
+            sessionStartDate.setHours(sessionStartHour24, minutes, 0, 0);
 
             const oneHourBeforeSession = new Date(sessionStartDate.getTime() - 60 * 60 * 1000);
             
             const appointmentDateTime = new Date(`${appointment.date.split('T')[0]}T${appointment.time.replace(' AM', ':00').replace(' PM', ':00')}`);
-             if (appointment.time.includes('PM')) {
-                const hours = parseInt(appointment.time.split(':')[0], 10);
-                if (hours < 12) {
-                    appointmentDateTime.setHours(appointmentDateTime.getHours() + 12);
-                }
+             if (appointment.time.includes('PM') && parseInt(appointment.time.split(':')[0], 10) < 12) {
+                appointmentDateTime.setHours(appointmentDateTime.getHours() + 12);
             }
 
             const checkTime = () => {
                 const now = new Date();
                 if (now >= oneHourBeforeSession && now < appointmentDateTime) {
                     setQueueButtonActive(true);
+                    setTooltipMessage("View the live queue now.");
                 } else {
                     setQueueButtonActive(false);
                     if (now < oneHourBeforeSession) {
@@ -97,7 +101,7 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
             };
 
             checkTime();
-            const interval = setInterval(checkTime, 60000);
+            const interval = setInterval(checkTime, 60000); // Check every minute
             return () => clearInterval(interval);
         }
     }
@@ -121,11 +125,9 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
               </Button>
             </span>
           </TooltipTrigger>
-          {!isQueueButtonActive && (
-            <TooltipContent>
-              <p>{tooltipMessage}</p>
-            </TooltipContent>
-          )}
+          <TooltipContent>
+            <p>{tooltipMessage}</p>
+          </TooltipContent>
         </Tooltip>
       </TooltipProvider>
 
