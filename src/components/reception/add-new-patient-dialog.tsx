@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,6 +21,53 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Info } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
+
+type PatientFormProps = {
+    phone: string;
+    name: string;
+    setName: (value: string) => void;
+    dob: string;
+    setDob: (value: string) => void;
+    gender: string;
+    setGender: (value: string) => void;
+    clinicId: string;
+    setClinicId: (value: string) => void;
+};
+
+// Moved PatientForm outside of AddNewPatientDialog to prevent re-renders on state change
+const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, clinicId, setClinicId }: PatientFormProps) => (
+    <div className="space-y-4">
+        <div className="space-y-2">
+            <Label htmlFor="phone-display">Phone Number</Label>
+            <Input id="phone-display" value={phone} disabled />
+        </div>
+        <div className="space-y-2">
+            <Label htmlFor="name">Child's Name</Label>
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Doe" required/>
+        </div>
+        <div className="space-y-2">
+            <Label htmlFor="dob">Date of Birth</Label>
+            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required max={format(new Date(), 'yyyy-MM-dd')}/>
+        </div>
+        <div className="space-y-2">
+            <Label htmlFor="gender">Gender</Label>
+            <Select value={gender} onValueChange={setGender}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+        <div className="space-y-2">
+            <Label htmlFor="clinicId">Clinic ID (Optional)</Label>
+            <Input id="clinicId" value={clinicId} onChange={(e) => setClinicId(e.target.value)} placeholder="e.g. C12345" />
+        </div>
+    </div>
+  );
 
 type AddNewPatientDialogProps = {
   isOpen: boolean;
@@ -90,40 +137,6 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFami
     });
   };
   
-  const PatientForm = () => (
-    <div className="space-y-4">
-        <div className="space-y-2">
-            <Label htmlFor="phone-display">Phone Number</Label>
-            <Input id="phone-display" value={phone} disabled />
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="name">Child's Name</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Doe" required/>
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="dob">Date of Birth</Label>
-            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required max={format(new Date(), 'yyyy-MM-dd')}/>
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="gender">Gender</Label>
-            <Select value={gender} onValueChange={setGender}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-            </Select>
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="clinicId">Clinic ID (Optional)</Label>
-            <Input id="clinicId" value={clinicId} onChange={(e) => setClinicId(e.target.value)} placeholder="e.g. C12345" />
-        </div>
-    </div>
-  );
-
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
@@ -169,7 +182,17 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFami
                         </div>
                     </Alert>
                 )}
-                <PatientForm />
+                <PatientForm 
+                    phone={phone}
+                    name={name}
+                    setName={setName}
+                    dob={dob}
+                    setDob={setDob}
+                    gender={gender}
+                    setGender={setGender}
+                    clinicId={clinicId}
+                    setClinicId={setClinicId}
+                />
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
                     <Button onClick={handleSave} disabled={isPending}>
