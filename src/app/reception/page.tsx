@@ -7,9 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import type { Appointment, DoctorSchedule, FamilyMember } from '@/lib/types';
 import { format, set } from 'date-fns';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Sun, Moon, UserPlus } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar, Trash2 } from 'lucide-react';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 
 // Mock data, in a real app this would come from an API
 const mockFamily: FamilyMember[] = [
@@ -41,7 +44,7 @@ const mockSchedule: DoctorSchedule = {
 type TimeSlot = {
   time: string;
   isBooked: boolean;
-  patientName?: string;
+  appointment?: Appointment;
 }
 
 export default function ReceptionPage() {
@@ -50,10 +53,13 @@ export default function ReceptionPage() {
     const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
     const [isNewPatientOpen, setNewPatientOpen] = useState(false);
+    const [isRescheduleOpen, setRescheduleOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
     const [currentDate, setCurrentDate] = useState('');
+    const { toast } = useToast();
 
     useEffect(() => {
         const currentHour = new Date().getHours();
@@ -85,12 +91,12 @@ export default function ReceptionPage() {
 
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
-                const existingAppointment = appointments.find(a => a.time === timeString && new Date(a.date).toDateString() === today.toDateString());
+                const existingAppointment = appointments.find(a => a.time === timeString && new Date(a.date).toDateString() === today.toDateString() && a.status === 'Confirmed');
                 
                 generatedSlots.push({
                     time: timeString,
                     isBooked: !!existingAppointment,
-                    patientName: existingAppointment?.familyMemberName,
+                    appointment: existingAppointment,
                 });
                 currentTime.setMinutes(currentTime.getMinutes() + schedule.slotDuration);
             }
@@ -128,6 +134,28 @@ export default function ReceptionPage() {
     const handleAddNewPatient = (newPatient: FamilyMember) => {
         setFamily(prev => [...prev, newPatient]);
     }
+
+    const handleOpenReschedule = (appointment: Appointment) => {
+        setSelectedAppointment(appointment);
+        setRescheduleOpen(true);
+    };
+
+    const handleReschedule = (newDate: string, newTime: string) => {
+        if (selectedAppointment) {
+            setAppointments(prev => prev.map(a => 
+                a.id === selectedAppointment.id ? { ...a, date: newDate, time: newTime } : a
+            ));
+            toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
+        }
+    };
+
+    const handleCancelAppointment = (appointmentId: number) => {
+        setAppointments(prev => prev.map(a => 
+            a.id === appointmentId ? { ...a, status: 'Cancelled' } : a
+        ));
+        toast({ title: 'Success', description: 'Appointment has been cancelled.' });
+    };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -169,20 +197,57 @@ export default function ReceptionPage() {
                 {timeSlots.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                         {timeSlots.map(slot => (
-                            <Button 
-                                key={slot.time}
-                                variant={slot.isBooked ? 'secondary' : 'outline'}
-                                className="h-auto py-3 flex flex-col items-center justify-center relative"
-                                disabled={slot.isBooked}
-                                onClick={() => handleSlotClick(slot.time)}
-                            >
-                                <span className="text-lg font-semibold">{slot.time}</span>
-                                {slot.isBooked ? (
-                                    <span className="text-xs text-muted-foreground">{slot.patientName}</span>
+                            <div key={slot.time}>
+                                {slot.isBooked && slot.appointment ? (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button 
+                                                variant="secondary"
+                                                className="h-auto w-full py-3 flex flex-col items-center justify-center relative cursor-pointer"
+                                            >
+                                                <span className="text-lg font-semibold">{slot.time}</span>
+                                                <span className="text-xs text-muted-foreground">{slot.appointment.familyMemberName}</span>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start">
+                                            <DropdownMenuItem onClick={() => handleOpenReschedule(slot.appointment!)}>
+                                                <Calendar className="mr-2 h-4 w-4" />
+                                                Reschedule
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                             <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Cancel Appointment
+                                                    </div>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently cancel the appointment.
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>Go Back</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleCancelAppointment(slot.appointment!.id)}>Confirm Cancellation</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 ) : (
-                                    <span className="text-xs text-primary/80">Available</span>
+                                    <Button 
+                                        variant='outline'
+                                        className="h-auto w-full py-3 flex flex-col items-center justify-center relative"
+                                        onClick={() => handleSlotClick(slot.time)}
+                                    >
+                                        <span className="text-lg font-semibold">{slot.time}</span>
+                                        <span className="text-xs text-primary/80">Available</span>
+                                    </Button>
                                 )}
-                            </Button>
+                            </div>
                         ))}
                     </div>
                 ) : (
@@ -207,6 +272,15 @@ export default function ReceptionPage() {
             onSave={handleAddNewPatient}
             existingFamily={family}
         />
+        {selectedAppointment && (
+            <RescheduleDialog
+                isOpen={isRescheduleOpen}
+                onOpenChange={setRescheduleOpen}
+                appointment={selectedAppointment}
+                onSave={handleReschedule}
+                bookedSlots={appointments.filter(a => a.status === 'Confirmed' && a.id !== selectedAppointment.id).map(a => a.time)}
+            />
+        )}
       </main>
     </div>
   );
