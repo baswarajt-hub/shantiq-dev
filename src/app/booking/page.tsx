@@ -93,7 +93,7 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
                 } else {
                     setQueueButtonActive(false);
                     if (now < oneHourBeforeSession) {
-                        setTooltipMessage(`Activates at ${oneHourBeforeSession.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+                        setTooltipMessage(`You can view live queue status from ${oneHourBeforeSession.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} onwards.`);
                     } else {
                         setTooltipMessage("Queue is no longer active for this appointment.");
                     }
