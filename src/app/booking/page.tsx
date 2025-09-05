@@ -62,6 +62,7 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
       const daySchedule = weeklySchedule[dayOfWeek];
   
       let sessionStartTimeStr: string | null = null;
+      let sessionEndTimeStr: string | null = null;
       
       const appointmentHour12 = parseInt(appointment.time.split(':')[0], 10);
       const isPM = appointment.time.includes('PM');
@@ -74,35 +75,44 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
       
       if (appointmentHour24 < 13 && daySchedule.morning !== 'Closed') {
           sessionStartTimeStr = daySchedule.morning.split(' - ')[0];
+          sessionEndTimeStr = daySchedule.morning.split(' - ')[1];
       } else if (daySchedule.evening !== 'Closed') {
           sessionStartTimeStr = daySchedule.evening.split(' - ')[0];
+          sessionEndTimeStr = daySchedule.evening.split(' - ')[1];
       }
   
-      if (sessionStartTimeStr) {
-          const [hoursStr, minutesStr] = sessionStartTimeStr.split(':');
-          const [hours, minutes] = [parseInt(hoursStr, 10), parseInt(minutesStr.split(' ')[0], 10)];
-          
-          const sessionStartDate = new Date(appointmentDate);
-          let sessionStartHour24 = hours;
-          if (sessionStartTimeStr.includes('PM') && hours < 12) {
+      if (sessionStartTimeStr && sessionEndTimeStr) {
+          const [startHoursStr, startMinutesStr] = sessionStartTimeStr.split(':');
+          const [startHours, startMinutes] = [parseInt(startHoursStr, 10), parseInt(startMinutesStr.split(' ')[0], 10)];
+          let sessionStartHour24 = startHours;
+          if (sessionStartTimeStr.includes('PM') && startHours < 12) {
               sessionStartHour24 += 12;
           }
-          sessionStartDate.setHours(sessionStartHour24, minutes, 0, 0);
+
+          const [endHoursStr, endMinutesStr] = sessionEndTimeStr.split(':');
+          const [endHours, endMinutes] = [parseInt(endHoursStr, 10), parseInt(endMinutesStr.split(' ')[0], 10)];
+          let sessionEndHour24 = endHours;
+          if (sessionEndTimeStr.includes('PM') && endHours < 12) {
+              sessionEndHour24 += 12;
+          }
+          
+          const sessionStartDate = new Date(appointmentDate);
+          sessionStartDate.setHours(sessionStartHour24, startMinutes, 0, 0);
+
+          const sessionEndDate = new Date(appointmentDate);
+          sessionEndDate.setHours(sessionEndHour24, endMinutes, 0, 0);
 
           const oneHourBeforeSession = new Date(sessionStartDate.getTime() - 60 * 60 * 1000);
-          
-          const appointmentDateTime = new Date(appointmentDate);
-          appointmentDateTime.setHours(appointmentHour24, parseInt(appointment.time.split(':')[1].split(' ')[0], 10), 0, 0);
-          
-          if (now >= oneHourBeforeSession && now < appointmentDateTime) {
+                    
+          if (now >= oneHourBeforeSession && now < sessionEndDate) {
             setQueueButtonActive(true);
             setTooltipMessage("View the live queue now.");
           } else {
             setQueueButtonActive(false);
             if (now < oneHourBeforeSession) {
               setTooltipMessage("You can view live queue status an hour before the doctor's session starts.");
-            } else { // now >= appointmentDateTime
-              setTooltipMessage("Queue is no longer active for this appointment.");
+            } else { // now >= sessionEndDate
+              setTooltipMessage("The doctor's session is over for today.");
             }
           }
       }
