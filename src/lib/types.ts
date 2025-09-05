@@ -63,6 +63,7 @@ export type FamilyMember = {
   gender: 'Male' | 'Female' | 'Other';
   avatar?: string; // URL to avatar image
   clinicId?: string;
+  phone: string;
 };
 
 export type Appointment = {

@@ -1,8 +1,9 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule } from '@/lib/data';
-import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure } from '@/lib/types';
+import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule, getFamilyByPhone, addFamilyMember } from '@/lib/data';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 
@@ -182,4 +183,14 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     } catch (error) {
         return { error: 'Failed to update special closures.' };
     }
+}
+
+export async function getFamilyByPhoneAction(phone: string) {
+    return await getFamilyByPhone(phone);
+}
+
+export async function addNewPatientAction(patientData: Omit<FamilyMember, 'id' | 'avatar'>) {
+    const newPatient = await addFamilyMember(patientData);
+    revalidatePath('/reception');
+    return { success: 'New patient added successfully.', patient: newPatient };
 }

@@ -8,13 +8,14 @@ import type { Appointment, DoctorSchedule, FamilyMember } from '@/lib/types';
 import { format, set } from 'date-fns';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Sun, Moon } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus } from 'lucide-react';
+import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 
 // Mock data, in a real app this would come from an API
 const mockFamily: FamilyMember[] = [
-  { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101' },
-  { id: 2, name: 'Jane Doe', dob: '1988-10-15', gender: 'Female', avatar: 'https://picsum.photos/id/238/200/200' },
-  { id: 3, name: 'Jimmy Doe', dob: '2015-02-25', gender: 'Male', avatar: 'https://picsum.photos/id/239/200/200', clinicId: 'C101' },
+  { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101', phone: '5551112222' },
+  { id: 2, name: 'Jane Doe', dob: '1988-10-15', gender: 'Female', avatar: 'https://picsum.photos/id/238/200/200', phone: '5551112222' },
+  { id: 3, name: 'Jimmy Doe', dob: '2015-02-25', gender: 'Male', avatar: 'https://picsum.photos/id/239/200/200', clinicId: 'C101', phone: '5551112222' },
 ];
 
 const mockAppointments: Appointment[] = [
@@ -45,10 +46,12 @@ type TimeSlot = {
 
 export default function ReceptionPage() {
     const [schedule, setSchedule] = useState<DoctorSchedule | null>(mockSchedule);
+    const [family, setFamily] = useState<FamilyMember[]>(mockFamily);
     const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
+    const [isNewPatientOpen, setNewPatientOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
     const [currentDate, setCurrentDate] = useState('');
 
@@ -57,8 +60,11 @@ export default function ReceptionPage() {
         if (currentHour >= 14) { // 2 PM
             setSelectedSession('evening');
         }
-        setCurrentDate(format(new Date(), 'EEEE, MMMM d, yyyy'));
     }, []);
+    
+    useEffect(() => {
+        setCurrentDate(format(new Date(), 'EEEE, MMMM d, yyyy'));
+    }, [])
 
     useEffect(() => {
         if (!schedule) return;
@@ -118,36 +124,46 @@ export default function ReceptionPage() {
         };
         setAppointments(prev => [...prev, newAppointment]);
     };
+    
+    const handleAddNewPatient = (newPatient: FamilyMember) => {
+        setFamily(prev => [...prev, newPatient]);
+    }
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
       <Header />
       <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
         <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div>
                     <CardTitle className="text-2xl">Reception Desk - Today's Schedule</CardTitle>
                     <CardDescription>{currentDate}</CardDescription>
                 </div>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline">
-                            {selectedSession === 'morning' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                            {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)} Session
-                            <ChevronDown className="ml-2 h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setSelectedSession('morning')}>
-                            <Sun className="mr-2 h-4 w-4" />
-                            Morning
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setSelectedSession('evening')}>
-                            <Moon className="mr-2 h-4 w-4" />
-                            Evening
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => setNewPatientOpen(true)}>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        New Patient
+                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline">
+                                {selectedSession === 'morning' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                                {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)} Session
+                                <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedSession('morning')}>
+                                <Sun className="mr-2 h-4 w-4" />
+                                Morning
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setSelectedSession('evening')}>
+                                <Moon className="mr-2 h-4 w-4" />
+                                Evening
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </CardHeader>
             <CardContent>
                 {timeSlots.length > 0 ? (
@@ -182,9 +198,15 @@ export default function ReceptionPage() {
                 onOpenChange={setBookWalkInOpen}
                 timeSlot={selectedSlot}
                 onSave={handleBookAppointment}
-                mockFamily={mockFamily}
+                mockFamily={family}
             />
         )}
+        <AddNewPatientDialog
+            isOpen={isNewPatientOpen}
+            onOpenChange={setNewPatientOpen}
+            onSave={handleAddNewPatient}
+            existingFamily={family}
+        />
       </main>
     </div>
   );

@@ -1,4 +1,5 @@
-import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure } from './types';
+
+import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from './types';
 
 let patients: Patient[] = [
   {
@@ -54,7 +55,14 @@ let patients: Patient[] = [
   },
 ];
 
-let nextId = patients.length + 1;
+let family: FamilyMember[] = [
+    { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101', phone: '5551112222' },
+    { id: 2, name: 'Jane Doe', dob: '1988-10-15', gender: 'Female', avatar: 'https://picsum.photos/id/238/200/200', phone: '5551112222' },
+    { id: 3, name: 'Jimmy Doe', dob: '2015-02-25', gender: 'Male', avatar: 'https://picsum.photos/id/239/200/200', clinicId: 'C101', phone: '5551112222' },
+];
+
+let nextPatientId = patients.length + 1;
+let nextFamilyId = family.length + 1;
 
 let doctorStatus: DoctorStatus = {
   isOnline: true,
@@ -105,7 +113,7 @@ export async function getPatients() {
 export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime'>) {
   const newPatient: Patient = {
     ...patient,
-    id: nextId++,
+    id: nextPatientId++,
     estimatedWaitTime: patients.filter(p => p.status === 'Waiting').length * 15, // Simple estimation
   };
   patients.push(newPatient);
@@ -146,4 +154,19 @@ export async function updateDoctorSchedule(schedule: DoctorSchedule) {
 export async function updateSpecialClosures(closures: SpecialClosure[]) {
     doctorSchedule.specialClosures = closures;
     return doctorSchedule;
+}
+
+// Family / Member specific functions
+export async function getFamilyByPhone(phone: string) {
+    return family.filter(member => member.phone === phone);
+}
+
+export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember> {
+    const newMember: FamilyMember = {
+        ...memberData,
+        id: nextFamilyId++,
+        avatar: `https://picsum.photos/seed/${Date.now()}/200/200`,
+    };
+    family.push(newMember);
+    return newMember;
 }
