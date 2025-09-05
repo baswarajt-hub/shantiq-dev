@@ -58,7 +58,15 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
 
         let sessionStartTimeStr: string | null = null;
         
-        const appointmentHour24 = parseInt(appointment.time.split(':')[0], 10) + (appointment.time.includes('PM') && parseInt(appointment.time.split(':')[0], 10) < 12 ? 12 : 0);
+        const appointmentHour12 = parseInt(appointment.time.split(':')[0], 10);
+        const isPM = appointment.time.includes('PM');
+        let appointmentHour24 = appointmentHour12;
+        if (isPM && appointmentHour12 < 12) {
+            appointmentHour24 += 12;
+        } else if (!isPM && appointmentHour12 === 12) { // Midnight case
+            appointmentHour24 = 0;
+        }
+        
         const morningSessionStartHour = daySchedule.morning !== 'Closed' ? parseInt(daySchedule.morning.split(':')[0]) : null;
         
         if (morningSessionStartHour !== null && appointmentHour24 < 13) {
@@ -69,7 +77,7 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
 
         if (sessionStartTimeStr) {
             const [hoursStr, minutesStr] = sessionStartTimeStr.split(':');
-            const [hours, minutes] = [parseInt(hoursStr, 10), parseInt(minutesStr, 10)];
+            const [hours, minutes] = [parseInt(hoursStr, 10), parseInt(minutesStr.split(' ')[0], 10)];
             
             const sessionStartDate = new Date(appointmentDate);
             let sessionStartHour24 = hours;
@@ -80,10 +88,9 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
 
             const oneHourBeforeSession = new Date(sessionStartDate.getTime() - 60 * 60 * 1000);
             
-            const appointmentDateTime = new Date(`${appointment.date.split('T')[0]}T${appointment.time.replace(' AM', ':00').replace(' PM', ':00')}`);
-             if (appointment.time.includes('PM') && parseInt(appointment.time.split(':')[0], 10) < 12) {
-                appointmentDateTime.setHours(appointmentDateTime.getHours() + 12);
-            }
+            const appointmentDateTime = new Date(appointmentDate);
+            appointmentDateTime.setHours(appointmentHour24, parseInt(appointment.time.split(':')[1].split(' ')[0], 10), 0, 0);
+
 
             const checkTime = () => {
                 const now = new Date();
@@ -94,7 +101,7 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
                     setQueueButtonActive(false);
                     if (now < oneHourBeforeSession) {
                         setTooltipMessage(`You can view live queue status from ${oneHourBeforeSession.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} onwards.`);
-                    } else {
+                    } else { // now >= appointmentDateTime
                         setTooltipMessage("Queue is no longer active for this appointment.");
                     }
                 }
