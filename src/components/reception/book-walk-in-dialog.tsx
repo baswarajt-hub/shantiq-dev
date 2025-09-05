@@ -1,6 +1,6 @@
 
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,21 +29,24 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockF
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
 
-  const handleSearch = () => {
-    // In a real app, this would be an API call
-    const results = mockFamily.filter(m => m.clinicId?.toLowerCase() === searchTerm.toLowerCase() || m.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    setFoundMembers(results);
-    if(results.length > 0) {
-        setStep(2);
-    } else {
-        // Handle no results found
-        console.log("No members found");
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFoundMembers([]);
+      return;
     }
-  };
+    // In a real app, this would be an API call with debouncing
+    const results = mockFamily.filter(m => 
+        m.clinicId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.phone.includes(searchTerm)
+    );
+    setFoundMembers(results);
+  }, [searchTerm, mockFamily]);
+
 
   const handleSelectMember = (member: FamilyMember) => {
     setSelectedMember(member);
-    setStep(3);
+    setStep(2);
   }
 
   const handleConfirmBooking = () => {
@@ -67,61 +70,70 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockF
     onOpenChange(open);
   };
 
+  const goBackToSearch = () => {
+    setStep(1);
+    setSelectedMember(null);
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Book Walk-in for {timeSlot}</DialogTitle>
           <DialogDescription>
-            {step === 1 && "Find patient by Clinic ID or name."}
-            {step === 2 && "Select the family member for the appointment."}
-            {step === 3 && "Confirm the appointment details."}
+            {step === 1 && "Find patient by Clinic ID, name, or phone number."}
+            {step === 2 && "Confirm the appointment details."}
           </DialogDescription>
         </DialogHeader>
 
         {step === 1 && (
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="search">Clinic ID or Patient Name</Label>
-                    <Input id="search" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="e.g. C101 or John Doe"/>
+                    <Label htmlFor="search">Search Patient</Label>
+                    <Input id="search" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="e.g. C101, John Doe, or 5551112222"/>
                 </div>
-                <Button onClick={handleSearch} className="w-full">Search Patient</Button>
+                
+                {searchTerm && (
+                     <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {foundMembers.length > 0 ? (
+                            foundMembers.map(member => (
+                                <div key={member.id} className="p-2 border rounded-md flex items-center justify-between cursor-pointer hover:bg-muted" onClick={() => handleSelectMember(member)}>
+                                    <div className="flex items-center gap-3">
+                                        <Avatar>
+                                            <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
+                                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-semibold">{member.name}</p>
+                                            <p className="text-xs text-muted-foreground">{member.phone} &bull; Born {member.dob}</p>
+                                        </div>
+                                    </div>
+                                    <Button variant="outline" size="sm">Select</Button>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center text-sm text-muted-foreground py-4">No patients found.</p>
+                        )}
+                    </div>
+                )}
             </div>
         )}
         
-        {step === 2 && (
-            <div className="py-4 space-y-4">
-                <Label>Select Family Member</Label>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                {foundMembers.map(member => (
-                    <div key={member.id} className="p-2 border rounded-md flex items-center justify-between cursor-pointer hover:bg-muted" onClick={() => handleSelectMember(member)}>
-                        <div className="flex items-center gap-3">
-                            <Avatar>
-                                <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
-                                <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-semibold">{member.name}</p>
-                                <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob}</p>
-                            </div>
-                        </div>
-                        <Button variant="outline" size="sm">Select</Button>
-                    </div>
-                ))}
-                </div>
-                 <Button variant="outline" onClick={() => setStep(1)} className="w-full">Back to Search</Button>
-            </div>
-        )}
-
-        {step === 3 && selectedMember && (
+        {step === 2 && selectedMember && (
             <div className="py-4 space-y-4">
                 <p>You are booking an appointment for:</p>
-                <div className="p-3 border rounded-md bg-muted">
-                    <p className="font-bold text-lg">{selectedMember.name}</p>
-                    <p>at <span className="font-semibold">{timeSlot}</span></p>
+                <div className="p-3 border rounded-md bg-muted flex items-center gap-3">
+                     <Avatar>
+                        <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} data-ai-hint="person" />
+                        <AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="font-bold text-lg">{selectedMember.name}</p>
+                        <p>at <span className="font-semibold">{timeSlot}</span></p>
+                    </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+                    <Button variant="outline" onClick={goBackToSearch}>Back to Search</Button>
                     <Button onClick={handleConfirmBooking}>Confirm Appointment</Button>
                 </DialogFooter>
             </div>
