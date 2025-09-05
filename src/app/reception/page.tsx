@@ -169,11 +169,11 @@ export default function ReceptionPage() {
     };
 
     const filteredTimeSlots = timeSlots.filter(slot => {
-        if (!searchTerm) {
+        if (!searchTerm.trim()) {
             return true;
         }
         if (!slot.isBooked || !slot.appointment) {
-            return true; // Always show available slots
+            return true; // Always show available slots when searching
         }
         return slot.appointment.familyMemberName.toLowerCase().includes(searchTerm.toLowerCase());
     });
@@ -273,7 +273,7 @@ export default function ReceptionPage() {
                                             <DropdownMenuSeparator />
                                              <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
+                                                    <div className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
                                                         <Trash2 className="mr-2 h-4 w-4" />
                                                         Cancel Appointment
                                                     </div>
@@ -283,7 +283,7 @@ export default function ReceptionPage() {
                                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                                     <AlertDialogDescription>
                                                         This action cannot be undone. This will permanently cancel the appointment.
-                                                    </AlertDialogDescription>
+                                                    </Description>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
                                                     <AlertDialogCancel>Go Back</AlertDialogCancel>
@@ -349,5 +349,3 @@ export default function ReceptionPage() {
     </div>
   );
 }
-
-    
