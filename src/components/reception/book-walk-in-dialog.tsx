@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FamilyMember } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { UserPlus } from 'lucide-react';
 
 type BookWalkInDialogProps = {
   isOpen: boolean;
@@ -38,7 +39,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockF
     const results = mockFamily.filter(m => 
         m.clinicId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
         m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.phone.includes(searchTerm)
+        (m.phone && m.phone.includes(searchTerm))
     );
     setFoundMembers(results);
   }, [searchTerm, mockFamily]);
@@ -112,7 +113,13 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockF
                                 </div>
                             ))
                         ) : (
-                            <p className="text-center text-sm text-muted-foreground py-4">No patients found.</p>
+                            <div className="text-center text-sm text-muted-foreground py-4 space-y-3">
+                                <p>No patients found with this search term.</p>
+                                <Button variant="secondary">
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    Add New Patient
+                                </Button>
+                            </div>
                         )}
                     </div>
                 )}
