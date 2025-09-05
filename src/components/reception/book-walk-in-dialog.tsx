@@ -22,9 +22,10 @@ type BookWalkInDialogProps = {
   timeSlot: string;
   onSave: (familyMember: FamilyMember, time: string) => void;
   mockFamily: FamilyMember[]; // In a real app, you'd fetch this
+  onAddNewPatient: () => void;
 };
 
-export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockFamily }: BookWalkInDialogProps) {
+export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockFamily, onAddNewPatient }: BookWalkInDialogProps) {
   const [step, setStep] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
@@ -115,7 +116,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockF
                         ) : (
                             <div className="text-center text-sm text-muted-foreground py-4 space-y-3">
                                 <p>No patients found with this search term.</p>
-                                <Button variant="secondary">
+                                <Button variant="secondary" onClick={onAddNewPatient}>
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Add New Patient
                                 </Button>

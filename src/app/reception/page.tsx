@@ -173,10 +173,15 @@ export default function ReceptionPage() {
             return true;
         }
         if (!slot.isBooked || !slot.appointment) {
-            return false; 
+            return false;
         }
         return slot.appointment.familyMemberName.toLowerCase().includes(searchTerm.toLowerCase());
     });
+
+    const handleOpenNewPatientDialogFromWalkIn = () => {
+        setBookWalkInOpen(false);
+        setNewPatientOpen(true);
+    };
     
   if (!schedule) {
     return (
@@ -320,6 +325,7 @@ export default function ReceptionPage() {
                 timeSlot={selectedSlot}
                 onSave={handleBookAppointment}
                 mockFamily={family}
+                onAddNewPatient={handleOpenNewPatientDialogFromWalkIn}
             />
         )}
         <AddNewPatientDialog
