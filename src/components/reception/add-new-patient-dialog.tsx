@@ -20,12 +20,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Info } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { format } from 'date-fns';
 
 type AddNewPatientDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSave: (member: FamilyMember) => void;
-  existingFamily: FamilyMember[];
+  existingFamily: FamilyMember[]; // This can be removed if we only rely on server actions
 };
 
 export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFamily }: AddNewPatientDialogProps) {
@@ -62,13 +63,8 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFami
         return;
     }
     startTransition(async () => {
-        // In a real app, this would be an API call
-        const family = existingFamily.filter(m => m.phone === phone);
-        if (family.length > 0) {
-            setFoundFamily(family);
-        } else {
-            setFoundFamily([]); // Explicitly set to empty array for new family
-        }
+        const family = await getFamilyByPhoneAction(phone);
+        setFoundFamily(family);
         setStep(2);
     });
   };
@@ -86,7 +82,9 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFami
             toast({ title: 'Error', description: result.error, variant: 'destructive'});
         } else {
             toast({ title: 'Success', description: result.success});
-            onSave(result.patient);
+            if (result.patient) {
+              onSave(result.patient);
+            }
             handleClose(false);
         }
     });
@@ -104,7 +102,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFami
         </div>
         <div className="space-y-2">
             <Label htmlFor="dob">Date of Birth</Label>
-            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required/>
+            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required max={format(new Date(), 'yyyy-MM-dd')}/>
         </div>
         <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>
