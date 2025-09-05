@@ -173,7 +173,7 @@ export default function ReceptionPage() {
             return true;
         }
         if (!slot.isBooked || !slot.appointment) {
-            return true; // Always show available slots when searching
+            return false; 
         }
         return slot.appointment.familyMemberName.toLowerCase().includes(searchTerm.toLowerCase());
     });
@@ -350,3 +350,4 @@ export default function ReceptionPage() {
   );
 }
  
+    
