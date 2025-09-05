@@ -39,6 +39,7 @@ export default function ReceptionPage() {
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
     const [currentDate, setCurrentDate] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const { toast } = useToast();
 
     useEffect(() => {
@@ -178,8 +179,12 @@ export default function ReceptionPage() {
         return slot.appointment.familyMemberName.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
-    const handleOpenNewPatientDialogFromWalkIn = () => {
+    const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
+        // A simple regex to check if it's likely a phone number
+        if (/^\d+$/.test(searchTerm)) {
+            setPhoneToPreFill(searchTerm);
+        }
         setNewPatientOpen(true);
     };
     
@@ -333,6 +338,8 @@ export default function ReceptionPage() {
             onOpenChange={setNewPatientOpen}
             onSave={handleAddNewPatient}
             existingFamily={family}
+            phoneToPreFill={phoneToPreFill}
+            onClose={() => setPhoneToPreFill('')}
         />
         {selectedAppointment && (
             <RescheduleDialog
@@ -355,5 +362,3 @@ export default function ReceptionPage() {
     </div>
   );
 }
- 
-    

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useCallback } from 'react';
+import { useState, useTransition, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -74,9 +74,11 @@ type AddNewPatientDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   onSave: (member: FamilyMember) => void;
   existingFamily: FamilyMember[]; // This can be removed if we only rely on server actions
+  phoneToPreFill?: string;
+  onClose?: () => void;
 };
 
-export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFamily }: AddNewPatientDialogProps) {
+export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFamily, phoneToPreFill, onClose }: AddNewPatientDialogProps) {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
@@ -87,6 +89,13 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFami
   const [foundFamily, setFoundFamily] = useState<FamilyMember[] | null>(null);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (isOpen && phoneToPreFill) {
+      setPhone(phoneToPreFill);
+      handlePhoneCheck(phoneToPreFill);
+    }
+  }, [isOpen, phoneToPreFill]);
+
   const resetState = () => {
     setStep(1);
     setPhone('');
@@ -95,6 +104,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFami
     setGender('');
     setClinicId('');
     setFoundFamily(null);
+    if(onClose) onClose();
   };
 
   const handleClose = (open: boolean) => {
@@ -104,13 +114,13 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFami
     onOpenChange(open);
   }
 
-  const handlePhoneCheck = async () => {
-    if (!phone) {
+  const handlePhoneCheck = async (phoneNumber: string) => {
+    if (!phoneNumber) {
         toast({ title: "Error", description: "Phone number is required.", variant: 'destructive'});
         return;
     }
     startTransition(async () => {
-        const family = await getFamilyByPhoneAction(phone);
+        const family = await getFamilyByPhoneAction(phoneNumber);
         setFoundFamily(family);
         setStep(2);
     });
@@ -154,7 +164,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, existingFami
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Enter 10-digit phone number"/>
                 </div>
-                <Button onClick={handlePhoneCheck} disabled={isPending} className="w-full">
+                <Button onClick={() => handlePhoneCheck(phone)} disabled={isPending} className="w-full">
                     {isPending ? "Checking..." : "Check Phone Number"}
                 </Button>
             </div>
