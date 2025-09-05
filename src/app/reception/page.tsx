@@ -196,7 +196,7 @@ export default function ReceptionPage() {
                 </Card>
             </main>
         </div>
-    )
+    );
   }
 
   return (
@@ -252,7 +252,7 @@ export default function ReceptionPage() {
             <CardContent>
                 {filteredTimeSlots.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {filteredTimeSlots.map(slot => (
+                        {filteredTimeSlots.map((slot) => (
                             <div key={slot.time}>
                                 {slot.isBooked && slot.appointment ? (
                                     <DropdownMenu>
@@ -283,7 +283,7 @@ export default function ReceptionPage() {
                                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                                     <AlertDialogDescription>
                                                         This action cannot be undone. This will permanently cancel the appointment.
-                                                    </Description>
+                                                    </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
                                                     <AlertDialogCancel>Go Back</AlertDialogCancel>
@@ -349,3 +349,4 @@ export default function ReceptionPage() {
     </div>
   );
 }
+ 
