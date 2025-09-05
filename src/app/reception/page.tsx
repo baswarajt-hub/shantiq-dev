@@ -50,12 +50,14 @@ export default function ReceptionPage() {
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
+    const [currentDate, setCurrentDate] = useState('');
 
     useEffect(() => {
         const currentHour = new Date().getHours();
         if (currentHour >= 14) { // 2 PM
             setSelectedSession('evening');
         }
+        setCurrentDate(format(new Date(), 'EEEE, MMMM d, yyyy'));
     }, []);
 
     useEffect(() => {
@@ -125,7 +127,7 @@ export default function ReceptionPage() {
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle className="text-2xl">Reception Desk - Today's Schedule</CardTitle>
-                    <CardDescription>{format(new Date(), 'EEEE, MMMM d, yyyy')}</CardDescription>
+                    <CardDescription>{currentDate}</CardDescription>
                 </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
