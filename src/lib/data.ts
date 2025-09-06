@@ -190,4 +190,7 @@ export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'ava
     return newMember;
 }
 
+export async function getFamily() {
+    return family;
+}
     

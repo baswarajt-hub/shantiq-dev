@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FamilyMember } from '@/lib/types';
-import { addNewPatientAction, getFamilyByPhoneAction } from '@/app/actions';
+import { getFamilyByPhoneAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Info } from 'lucide-react';
@@ -72,7 +72,7 @@ const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, cli
 type AddNewPatientDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (member: FamilyMember) => void;
+  onSave: (member: Omit<FamilyMember, 'id' | 'avatar'>) => Promise<void>;
   phoneToPreFill?: string;
   onClose?: () => void;
 };
@@ -132,17 +132,8 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     }
     startTransition(async () => {
         const newPatientData: Omit<FamilyMember, 'id' | 'avatar'> = { name, dob, gender, clinicId, phone };
-        const result = await addNewPatientAction(newPatientData);
-
-        if (result.error) {
-            toast({ title: 'Error', description: result.error, variant: 'destructive'});
-        } else {
-            toast({ title: 'Success', description: result.success});
-            if (result.patient) {
-              onSave(result.patient);
-            }
-            handleClose(false);
-        }
+        await onSave(newPatientData);
+        handleClose(false);
     });
   };
   

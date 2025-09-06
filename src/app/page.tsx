@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, FamilyMember, Appointment, Patient, SpecialClosure, Session } from '@/lib/types';
-import { getDoctorSchedule, getPatients, getFamilyByPhone } from '@/lib/data';
+import { getDoctorSchedule, getPatients, getFamilyByPhone, addPatient, addFamilyMember } from '@/lib/data';
 import { format, set, parse } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -61,41 +61,39 @@ export default function DashboardPage() {
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const { toast } = useToast();
 
+    const loadData = async () => {
+        const scheduleData = await getDoctorSchedule();
+        setSchedule(scheduleData);
+        const patientData = await getPatients();
+        setPatients(patientData);
+        
+        const familyFromPatients = await Promise.all(patientData.map(p => getFamilyByPhone(p.phone)));
+        const uniqueFamily = Array.from(new Set(familyFromPatients.flat().map(f => f.id))).map(id => familyFromPatients.flat().find(f => f.id === id)!);
+        setFamily(uniqueFamily);
+
+        const appointmentsFromPatients = patientData
+            .filter(p => p.type === 'Appointment')
+            .map(p => ({
+            id: p.id,
+            familyMemberId: uniqueFamily.find(f => f.phone === p.phone)?.id || 0,
+            familyMemberName: p.name,
+            date: p.appointmentTime,
+            time: format(new Date(p.appointmentTime), 'hh:mm a'),
+            status: p.status === 'Cancelled' ? 'Cancelled' : p.status === 'Completed' ? 'Completed' : 'Confirmed' as any,
+            type: 'Appointment'
+            }));
+        setAppointments(appointmentsFromPatients);
+    }
+
     useEffect(() => {
         const currentHour = new Date().getHours();
         if (currentHour >= 14) {
             setSelectedSession('evening');
         }
-        
-        async function loadData() {
-            const scheduleData = await getDoctorSchedule();
-            setSchedule(scheduleData);
-            const patientData = await getPatients();
-            setPatients(patientData);
-            // This is a temporary solution to populate family data from patients
-            const familyFromPatients = await Promise.all(patientData.map(p => getFamilyByPhone(p.phone)));
-            const uniqueFamily = Array.from(new Set(familyFromPatients.flat().map(f => f.id))).map(id => familyFromPatients.flat().find(f => f.id === id)!);
-            setFamily(uniqueFamily);
-
-            const appointmentsFromPatients = patientData
-              .filter(p => p.type === 'Appointment')
-              .map(p => ({
-                id: p.id,
-                familyMemberId: uniqueFamily.find(f => f.phone === p.phone)?.id || 0,
-                familyMemberName: p.name,
-                date: p.appointmentTime,
-                time: format(new Date(p.appointmentTime), 'hh:mm a'),
-                status: p.status === 'Cancelled' ? 'Cancelled' : p.status === 'Completed' ? 'Completed' : 'Confirmed' as any,
-                type: 'Appointment'
-              }));
-            setAppointments(appointmentsFromPatients);
-        }
         loadData();
-        
     }, []);
 
      useEffect(() => {
-        // Set the date string only on the client side
         setCurrentDate(format(new Date(), 'EEEE, MMMM d, yyyy'));
     }, []);
 
@@ -195,34 +193,40 @@ export default function DashboardPage() {
         }
     };
 
-    const handleBookAppointment = (familyMember: FamilyMember, time: string) => {
-        const newAppointment: Appointment = {
-            id: Date.now(),
-            familyMemberId: familyMember.id,
-            familyMemberName: familyMember.name,
-            date: new Date().toISOString(),
-            time: time,
-            status: 'Confirmed',
-            type: 'Walk-in'
-        };
-        setAppointments(prev => [...prev, newAppointment]);
-        const newPatientEntry: Patient = {
-            id: patients.length + 1,
+    const handleBookAppointment = async (familyMember: FamilyMember, time: string) => {
+        const appointmentTime = new Date();
+        const [hours, minutesPart] = time.split(':');
+        const minutes = minutesPart.split(' ')[0];
+        const ampm = minutesPart.split(' ')[1];
+        let hourNumber = parseInt(hours, 10);
+        if (ampm === 'PM' && hourNumber < 12) {
+            hourNumber += 12;
+        }
+        if (ampm === 'AM' && hourNumber === 12) {
+            hourNumber = 0;
+        }
+        appointmentTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
+
+        await addPatient({
             name: familyMember.name,
+            phone: familyMember.phone,
             type: 'Walk-in',
-            appointmentTime: set(new Date(), { hours: parseInt(time.split(':')[0]), minutes: parseInt(time.split(':')[1].split(' ')[0])}).toISOString(),
+            appointmentTime: appointmentTime.toISOString(),
             checkInTime: new Date().toISOString(),
             status: 'Waiting',
-            phone: familyMember.phone,
-            estimatedWaitTime: 0
-        };
-        setPatients(prev => [...prev, newPatientEntry]);
+        });
+        
+        await loadData();
         toast({ title: "Success", description: "Walk-in patient added to queue."});
     };
     
-    const handleAddNewPatient = (newPatient: FamilyMember) => {
-        setFamily(prev => [...prev, newPatient]);
-    }
+    const handleAddNewPatient = async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>) => {
+        const newPatient = await addFamilyMember(newPatientData);
+        if (newPatient) {
+            setFamily(prev => [...prev, newPatient]);
+            toast({ title: "Success", description: "New patient added successfully."});
+        }
+    };
 
     const handleOpenReschedule = (appointment: Appointment) => {
         setSelectedAppointment(appointment);
