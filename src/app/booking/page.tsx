@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, User as UserIcon } from 'lucide-react';
-import type { FamilyMember, Appointment } from '@/lib/types';
+import type { FamilyMember, Appointment, DoctorSchedule } from '@/lib/types';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -16,51 +16,24 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
+import { getDoctorSchedule, getFamily, getPatients } from '@/lib/data';
+import { format } from 'date-fns';
 
 
-const mockFamily: FamilyMember[] = [
-  { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101' },
-  { id: 2, name: 'Jane Doe', dob: '1988-10-15', gender: 'Female', avatar: 'https://picsum.photos/id/238/200/200' },
-  { id: 3, name: 'Jimmy Doe', dob: '2015-02-25', gender: 'Male', avatar: 'https://picsum.photos/id/239/200/200' },
-];
-
-const mockAppointments: Appointment[] = [
-  { id: 1, familyMemberId: 3, familyMemberName: 'Jimmy Doe', date: '2024-08-15', time: '10:30 AM', status: 'Confirmed' },
-  { id: 2, familyMemberId: 1, familyMemberName: 'John Doe', date: '2024-08-20', time: '04:00 PM', status: 'Confirmed' },
-  { id: 3, familyMemberId: 2, familyMemberName: 'Jane Doe', date: '2024-07-10', time: '11:00 AM', status: 'Completed' },
-  { id: 4, familyMemberId: 1, familyMemberName: 'John Doe', date: '2024-06-05', time: '09:00 AM', status: 'Cancelled' },
-  { id: 5, familyMemberId: 3, familyMemberName: 'Jimmy Doe', date: '2024-07-25', time: '05:00 PM', status: 'Confirmed' },
-];
-
-const weeklySchedule = {
-  Monday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
-  Tuesday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
-  Wednesday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
-  Thursday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
-  Friday: { morning: '09:00 AM - 01:00 PM', evening: '04:00 PM - 07:00 PM' },
-  Saturday: { morning: '10:00 AM - 02:00 PM', evening: 'Closed' },
-  Sunday: { morning: 'Closed', evening: 'Closed' },
-};
-
-type DaySchedule = {
-    morning: string;
-    evening: string;
-};
-
-const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointment: Appointment, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
+const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
   const [isQueueButtonActive, setQueueButtonActive] = useState(false);
   const [tooltipMessage, setTooltipMessage] = useState("You can view live queue status an hour before the doctor's session starts.");
 
   useEffect(() => {
-    if (appointment.status !== 'Confirmed') {
+    if (appointment.status !== 'Confirmed' || !schedule) {
       return;
     }
   
     const checkTime = () => {
       const now = new Date();
       const appointmentDate = new Date(appointment.date);
-      const dayOfWeek = appointmentDate.toLocaleString('en-us', { weekday: 'long' }) as keyof typeof weeklySchedule;
-      const daySchedule = weeklySchedule[dayOfWeek];
+      const dayOfWeek = format(appointmentDate, 'EEEE') as keyof DoctorSchedule['days'];
+      const daySchedule = schedule.days[dayOfWeek];
   
       let sessionStartTimeStr: string | null = null;
       let sessionEndTimeStr: string | null = null;
@@ -74,34 +47,25 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
           appointmentHour24 = 0;
       }
       
-      if (appointmentHour24 < 13 && daySchedule.morning !== 'Closed') {
-          sessionStartTimeStr = daySchedule.morning.split(' - ')[0];
-          sessionEndTimeStr = daySchedule.morning.split(' - ')[1];
-      } else if (daySchedule.evening !== 'Closed') {
-          sessionStartTimeStr = daySchedule.evening.split(' - ')[0];
-          sessionEndTimeStr = daySchedule.evening.split(' - ')[1];
+      const morningEndHour = daySchedule.morning.isOpen ? parseInt(daySchedule.morning.end.split(':')[0], 10) : 0;
+      
+      if (appointmentHour24 < morningEndHour && daySchedule.morning.isOpen) {
+          sessionStartTimeStr = daySchedule.morning.start;
+          sessionEndTimeStr = daySchedule.morning.end;
+      } else if (daySchedule.evening.isOpen) {
+          sessionStartTimeStr = daySchedule.evening.start;
+          sessionEndTimeStr = daySchedule.evening.end;
       }
   
       if (sessionStartTimeStr && sessionEndTimeStr) {
-          const [startHoursStr, startMinutesStr] = sessionStartTimeStr.split(':');
-          const [startHours, startMinutes] = [parseInt(startHoursStr, 10), parseInt(startMinutesStr.split(' ')[0], 10)];
-          let sessionStartHour24 = startHours;
-          if (sessionStartTimeStr.includes('PM') && startHours < 12) {
-              sessionStartHour24 += 12;
-          }
-
-          const [endHoursStr, endMinutesStr] = sessionEndTimeStr.split(':');
-          const [endHours, endMinutes] = [parseInt(endHoursStr, 10), parseInt(endMinutesStr.split(' ')[0], 10)];
-          let sessionEndHour24 = endHours;
-          if (sessionEndTimeStr.includes('PM') && endHours < 12) {
-              sessionEndHour24 += 12;
-          }
+          const [startHours, startMinutes] = sessionStartTimeStr.split(':').map(Number);
+          const [endHours, endMinutes] = sessionEndTimeStr.split(':').map(Number);
           
           const sessionStartDate = new Date(appointmentDate);
-          sessionStartDate.setHours(sessionStartHour24, startMinutes, 0, 0);
+          sessionStartDate.setHours(startHours, startMinutes, 0, 0);
 
           const sessionEndDate = new Date(appointmentDate);
-          sessionEndDate.setHours(sessionEndHour24, endMinutes, 0, 0);
+          sessionEndDate.setHours(endHours, endMinutes, 0, 0);
 
           const oneHourBeforeSession = new Date(sessionStartDate.getTime() - 60 * 60 * 1000);
                     
@@ -123,7 +87,7 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
     const interval = setInterval(checkTime, 60000); // Check every minute
     return () => clearInterval(interval);
   
-  }, [appointment]);
+  }, [appointment, schedule]);
   
   if (appointment.status !== 'Confirmed') {
     return null;
@@ -159,7 +123,7 @@ const AppointmentActions = ({ appointment, onReschedule, onCancel }: { appointme
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action is permanent and you will not receive a refund. Are you sure you want to cancel?
-              </AlertDialogDescription>
+              </d'AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Go Back</AlertDialogCancel>
@@ -183,44 +147,98 @@ const getStatusBadgeClass = (status: string) => {
 
 
 export default function BookingPage() {
-  const [family, setFamily] = useState<FamilyMember[]>(mockFamily);
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const [family, setFamily] = useState<FamilyMember[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
   const [isEditMemberOpen, setEditMemberOpen] = useState(false);
   const [isBookingOpen, setBookingOpen] = useState(false);
   const [isRescheduleOpen, setRescheduleOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [todaySchedule, setTodaySchedule] = useState<DaySchedule | null>(null);
   const [currentDate, setCurrentDate] = useState('');
   const { toast } = useToast();
 
+  const loadData = async () => {
+    const familyData = await getFamily();
+    const patientData = await getPatients(); // Appointments are stored as patients
+    const scheduleData = await getDoctorSchedule();
+    
+    setFamily(familyData);
+    setSchedule(scheduleData);
+
+    const appointmentsFromPatients = patientData
+        .filter(p => p.type === 'Appointment') // Only show appointments, not walk-ins
+        .map(p => {
+            const famMember = familyData.find(f => f.phone === p.phone && f.name === p.name);
+            return {
+                id: p.id,
+                familyMemberId: famMember?.id || 0,
+                familyMemberName: p.name,
+                date: p.appointmentTime,
+                time: format(new Date(p.appointmentTime), 'hh:mm a'),
+                status: p.status, // We can use the patient status directly
+                type: p.type as 'Appointment' | 'Walk-in'
+            }
+        });
+    setAppointments(appointmentsFromPatients as Appointment[]);
+  };
+
   useEffect(() => {
+    loadData();
     const today = new Date();
-    const dayOfWeek = today.toLocaleString('en-us', { weekday: 'long' }) as keyof typeof weeklySchedule;
-    setTodaySchedule(weeklySchedule[dayOfWeek]);
     setCurrentDate(today.toDateString());
   }, []);
+  
+  const todaySchedule = () => {
+    if (!schedule) return null;
+    const today = new Date();
+    const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
+    const todaySch = schedule.days[dayOfWeek];
+
+    const formatSession = (session: {start: string, end: string, isOpen: boolean}) => {
+        if (!session.isOpen) return 'Closed';
+        const formatTime = (time: string) => {
+            const [h, m] = time.split(':');
+            const d = new Date();
+            d.setHours(parseInt(h, 10), parseInt(m, 10));
+            return format(d, 'hh:mm a');
+        }
+        return `${formatTime(session.start)} - ${formatTime(session.end)}`;
+    }
+
+    return {
+        morning: formatSession(todaySch.morning),
+        evening: formatSession(todaySch.evening),
+    }
+  }
+
 
   const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar'>) => {
+    // In a real app, this would be a server action
     const newMember = { ...member, id: Date.now(), avatar: `https://picsum.photos/seed/${Date.now()}/200/200` };
     setFamily(prev => [...prev, newMember]);
+    toast({ title: "Success", description: "Family member added."});
   };
   
   const handleEditFamilyMember = (updatedMember: FamilyMember) => {
+    // In a real app, this would be a server action
     setFamily(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
     toast({ title: "Success", description: "Family member details updated."});
   }
 
   const handleBookAppointment = (appointment: Omit<Appointment, 'id' | 'status' | 'familyMemberName'>) => {
+     // In a real app, this would be a server action to create a patient
     const familyMember = family.find(f => f.id === appointment.familyMemberId);
     if (familyMember) {
       const newAppointment = { ...appointment, id: Date.now(), status: 'Confirmed' as const, familyMemberName: familyMember.name };
       setAppointments(prev => [...prev, newAppointment].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+      toast({ title: "Success", description: "Appointment booked."});
     }
   };
 
   const handleCancelAppointment = (appointmentId: number) => {
+    // In a real app, this would be a server action
     setAppointments(prev => prev.map(appt => appt.id === appointmentId ? { ...appt, status: 'Cancelled' } : appt));
     toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
   }
@@ -236,11 +254,12 @@ export default function BookingPage() {
   }
 
   const handleRescheduleAppointment = (newDate: Date, newTime: string) => {
+     // In a real app, this would be a server action
     if (selectedAppointment) {
       setAppointments(prev => 
         prev.map(appt => 
           appt.id === selectedAppointment.id 
-            ? { ...appt, date: newDate.toISOString(), time: newTime } 
+            ? { ...appt, date: newDate.toISOString(), time: newTime, status: 'Confirmed' } 
             : appt
         )
       );
@@ -250,6 +269,7 @@ export default function BookingPage() {
   
   const upcomingAppointments = appointments.filter(appt => appt.status === 'Confirmed' && new Date(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
   const pastAppointments = appointments.filter(appt => appt.status !== 'Confirmed' || new Date(appt.date) < new Date(new Date().setHours(0,0,0,0)));
+  const currentDaySchedule = todaySchedule();
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -264,15 +284,15 @@ export default function BookingPage() {
                 <CardDescription>{currentDate}</CardDescription>
               </CardHeader>
               <CardContent>
-                {todaySchedule ? (
+                {currentDaySchedule ? (
                   <div className="space-y-4 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Morning:</span>
-                      <span className="font-semibold">{todaySchedule.morning}</span>
+                      <span className="font-semibold">{currentDaySchedule.morning}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Evening:</span>
-                      <span className="font-semibold">{todaySchedule.evening}</span>
+                      <span className="font-semibold">{currentDaySchedule.evening}</span>
                     </div>
                   </div>
                 ) : (
@@ -344,9 +364,10 @@ export default function BookingPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2 self-stretch justify-between">
-                       <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status)}`}>{appt.status}</p>
+                       <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status as string)}`}>{appt.status}</p>
                        <AppointmentActions 
-                          appointment={appt} 
+                          appointment={appt}
+                          schedule={schedule}
                           onReschedule={handleOpenReschedule}
                           onCancel={handleCancelAppointment}
                         />
@@ -384,7 +405,7 @@ export default function BookingPage() {
                                     </div>
                                 </div>
                             </div>
-                             <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(finalStatus)}`}>{finalStatus}</p>
+                             <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(finalStatus as string)}`}>{finalStatus}</p>
                         </div>
                     );
                 }) : (
@@ -412,13 +433,15 @@ export default function BookingPage() {
           isOpen={isBookingOpen}
           onOpenChange={setBookingOpen}
           familyMembers={family}
+          schedule={schedule}
           onSave={handleBookAppointment}
         />
-        {selectedAppointment && (
+        {selectedAppointment && schedule && (
           <RescheduleAppointmentDialog
             isOpen={isRescheduleOpen}
             onOpenChange={setRescheduleOpen}
             appointment={selectedAppointment}
+            schedule={schedule}
             onSave={handleRescheduleAppointment}
           />
         )}

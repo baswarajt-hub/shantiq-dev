@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,25 +11,49 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
-import type { FamilyMember, Appointment } from '@/lib/types';
+import type { FamilyMember, Appointment, DoctorSchedule } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
-
-const availableSlots = [ '10:00 AM', '10:15 AM', '10:30 AM', '10:45 AM', '11:00 AM', '11:30 AM', '04:00 PM', '04:15 PM', '04:45 PM' ];
+import { format, set, addMinutes } from 'date-fns';
 
 type BookAppointmentDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   familyMembers: FamilyMember[];
+  schedule: DoctorSchedule | null;
   onSave: (appointment: Omit<Appointment, 'id' | 'status' | 'familyMemberName'>) => void;
 };
 
-export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, onSave }: BookAppointmentDialogProps) {
+export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, schedule, onSave }: BookAppointmentDialogProps) {
   const [step, setStep] = useState(1);
   const [selectedMember, setSelectedMember] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (schedule && selectedDate) {
+      const generatedSlots: string[] = [];
+      const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
+      const daySchedule = schedule.days[dayOfWeek];
+      const sessionSchedule = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
+
+      if (sessionSchedule.isOpen) {
+        const [startHour, startMinute] = sessionSchedule.start.split(':').map(Number);
+        const [endHour, endMinute] = sessionSchedule.end.split(':').map(Number);
+        
+        let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute });
+        const endTime = set(selectedDate, { hours: endHour, minutes: endMinute });
+
+        while (currentTime < endTime) {
+          generatedSlots.push(format(currentTime, 'hh:mm a'));
+          currentTime = addMinutes(currentTime, schedule.slotDuration);
+        }
+      }
+      setAvailableSlots(generatedSlots);
+    }
+  }, [schedule, selectedDate, selectedSession]);
 
   const resetState = () => {
     setStep(1);
@@ -48,7 +72,6 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, onS
 
   const handleSave = () => {
     if (selectedMember && selectedDate && selectedSlot) {
-      // Simulate payment
       console.log('Simulating payment processing...');
       onSave({ 
         familyMemberId: parseInt(selectedMember, 10), 
@@ -93,7 +116,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, onS
                 disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))}
               />
             </div>
-            <RadioGroup defaultValue="morning" onValueChange={setSelectedSession} className="flex justify-center gap-4">
+            <RadioGroup defaultValue="morning" onValueChange={(value) => { setSelectedSession(value); setSelectedSlot(''); }} className="flex justify-center gap-4">
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="morning" id="r1" />
                     <Label htmlFor="r1">Morning</Label>
@@ -113,17 +136,21 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, onS
         {step === 3 && (
             <div className="space-y-4 py-4">
                 <Label>Select an available time slot</Label>
-                <div className="grid grid-cols-3 gap-2">
-                    {availableSlots.map(slot => (
-                        <Button 
-                            key={slot} 
-                            variant={selectedSlot === slot ? 'default' : 'outline'}
-                            onClick={() => setSelectedSlot(slot)}
-                        >
-                            {slot}
-                        </Button>
-                    ))}
-                </div>
+                {availableSlots.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                      {availableSlots.map(slot => (
+                          <Button 
+                              key={slot} 
+                              variant={selectedSlot === slot ? 'default' : 'outline'}
+                              onClick={() => setSelectedSlot(slot)}
+                          >
+                              {slot}
+                          </Button>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground">No slots available for this session.</p>
+                )}
                  <Label className="text-sm text-muted-foreground pt-4 block">A nominal fee will be charged upon confirmation.</Label>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>

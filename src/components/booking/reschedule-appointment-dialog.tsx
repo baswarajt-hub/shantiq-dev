@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,26 +11,50 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import type { Appointment } from '@/lib/types';
+import type { Appointment, DoctorSchedule } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertTriangle } from 'lucide-react';
-
-const availableSlots = [ '10:00 AM', '10:15 AM', '10:30 AM', '10:45 AM', '11:00 AM', '11:30 AM', '04:00 PM', '04:15 PM', '04:45 PM' ];
+import { addMinutes, format, set } from 'date-fns';
 
 type RescheduleAppointmentDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   appointment: Appointment;
+  schedule: DoctorSchedule;
   onSave: (newDate: Date, newTime: string) => void;
 };
 
-export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment, onSave }: RescheduleAppointmentDialogProps) {
+export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment, schedule, onSave }: RescheduleAppointmentDialogProps) {
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date(appointment.date));
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (schedule && selectedDate) {
+      const generatedSlots: string[] = [];
+      const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
+      const daySchedule = schedule.days[dayOfWeek];
+      const sessionSchedule = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
+
+      if (sessionSchedule.isOpen) {
+        const [startHour, startMinute] = sessionSchedule.start.split(':').map(Number);
+        const [endHour, endMinute] = sessionSchedule.end.split(':').map(Number);
+        
+        let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute });
+        const endTime = set(selectedDate, { hours: endHour, minutes: endMinute });
+
+        while (currentTime < endTime) {
+          generatedSlots.push(format(currentTime, 'hh:mm a'));
+          currentTime = addMinutes(currentTime, schedule.slotDuration);
+        }
+      }
+      setAvailableSlots(generatedSlots);
+    }
+  }, [schedule, selectedDate, selectedSession]);
 
   const resetState = () => {
     setStep(1);
@@ -89,7 +113,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
                 disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))}
               />
             </div>
-            <RadioGroup defaultValue="morning" onValueChange={setSelectedSession} className="flex justify-center gap-4">
+            <RadioGroup defaultValue="morning" onValueChange={(v) => {setSelectedSession(v); setSelectedSlot('')}} className="flex justify-center gap-4">
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="morning" id="r1" />
                     <Label htmlFor="r1">Morning</Label>
@@ -109,17 +133,21 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
         {step === 3 && (
             <div className="space-y-4 py-4">
                 <Label>Select a new available time slot</Label>
-                <div className="grid grid-cols-3 gap-2">
-                    {availableSlots.map(slot => (
-                        <Button 
-                            key={slot} 
-                            variant={selectedSlot === slot ? 'default' : 'outline'}
-                            onClick={() => setSelectedSlot(slot)}
-                        >
-                            {slot}
-                        </Button>
-                    ))}
-                </div>
+                {availableSlots.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                      {availableSlots.map(slot => (
+                          <Button 
+                              key={slot} 
+                              variant={selectedSlot === slot ? 'default' : 'outline'}
+                              onClick={() => setSelectedSlot(slot)}
+                          >
+                              {slot}
+                          </Button>
+                      ))}
+                  </div>
+                 ) : (
+                  <p className="text-center text-muted-foreground">No slots available for this session.</p>
+                )}
                 <div className="flex gap-2 pt-4">
                     <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>
                     <Button onClick={handleSave} disabled={!selectedSlot} className="w-full">Confirm Reschedule</Button>
