@@ -102,7 +102,7 @@ export default function TVDisplayPage() {
         <div className="bg-slate-800 rounded-2xl p-8 shadow-2xl">
           <h2 className="text-4xl text-amber-300 font-semibold mb-6 text-center">UP NEXT</h2>
           <div className="space-y-5">
-            {waitingList.length > 0 && doctorStatus?.isOnline ? (
+            {waitingList.length > 0 ? (
               waitingList.map((patient, index) => (
                 <div
                   key={patient.id}
@@ -126,7 +126,7 @@ export default function TVDisplayPage() {
               ))
             ) : (
               <p className="text-3xl text-center text-slate-400 pt-16">
-                {doctorStatus?.isOnline ? 'The waiting queue is empty.' : 'Doctor is Offline'}
+                The waiting queue is empty.
               </p>
             )}
           </div>
