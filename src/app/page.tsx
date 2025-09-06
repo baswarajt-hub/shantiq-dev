@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, FamilyMember, Appointment, Patient, SpecialClosure, Session } from '@/lib/types';
@@ -11,13 +11,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { updateTodayScheduleOverrideAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction } from '@/app/actions';
+import { updateTodayScheduleOverrideAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +60,7 @@ export default function DashboardPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const { toast } = useToast();
+    const [isPending, startTransition] = useTransition();
 
     const loadData = async () => {
         const scheduleData = await getDoctorSchedule();
@@ -241,14 +242,32 @@ export default function DashboardPage() {
         }
     };
 
+    const handleUpdateStatus = (patientId: number, status: Patient['status']) => {
+        startTransition(async () => {
+            const result = await updatePatientStatusAction(patientId, status);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.success });
+                await loadData();
+            }
+        });
+    };
+
+    const handleSendReminder = (patientId: number) => {
+        startTransition(async () => {
+            const result = await sendReminderAction(patientId);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.success });
+            }
+        });
+    };
+
+
     const handleCancelAppointment = (appointmentId: number) => {
-        setAppointments(prev => prev.map(a => 
-            a.id === appointmentId ? { ...a, status: 'Cancelled' } : a
-        ));
-         setPatients(prev => prev.map(p => 
-            p.id === appointmentId ? { ...p, status: 'Cancelled' } : p
-        ));
-        toast({ title: 'Success', description: 'Appointment has been cancelled.' });
+        handleUpdateStatus(appointmentId, 'Cancelled');
     };
 
     const handleAdjustTiming = async (override: SpecialClosure) => {
@@ -392,9 +411,31 @@ export default function DashboardPage() {
                                             </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start">
+                                            {(slot.status === 'Waiting' || slot.status === 'Late') && (
+                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.appointment!.id, 'In-Consultation')} disabled={isPending}>
+                                                    <ChevronsRight className="mr-2 h-4 w-4" />
+                                                    Start Consultation
+                                                </DropdownMenuItem>
+                                            )}
+                                            {slot.status === 'In-Consultation' && (
+                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.appointment!.id, 'Completed')} disabled={isPending}>
+                                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                                    Mark as Completed
+                                                </DropdownMenuItem>
+                                            )}
+                                             {slot.status === 'Waiting' && (
+                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.appointment!.id, 'Late')} disabled={isPending}>
+                                                    <Hourglass className="mr-2 h-4 w-4" />
+                                                    Mark as Late
+                                                </DropdownMenuItem>
+                                            )}
                                             <DropdownMenuItem onClick={() => handleOpenReschedule(slot.appointment!)}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 Reschedule
+                                            </DropdownMenuItem>
+                                             <DropdownMenuItem onClick={() => handleSendReminder(slot.appointment!.id)} disabled={isPending}>
+                                                <Send className="mr-2 h-4 w-4" />
+                                                Send Reminder
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <AlertDialog>
