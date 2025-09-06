@@ -46,6 +46,7 @@ export type SpecialClosure = {
 
 export type DoctorSchedule = {
   slotDuration: number;
+  walkInReservation: 'none' | 'alternateOne' | 'alternateTwo';
   days: {
     Monday: DaySchedule;
     Tuesday: DaySchedule;

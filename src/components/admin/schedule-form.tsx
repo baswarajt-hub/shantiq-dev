@@ -1,14 +1,17 @@
+
 'use client';
 
 import { useTransition, useState } from 'react';
 import type { DoctorSchedule, DaySchedule, Session } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Copy } from 'lucide-react';
+import { Copy, Clock, Users } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Separator } from '../ui/separator';
 
 const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const allDays = [...weekdays, 'Saturday', 'Sunday'];
@@ -95,6 +98,10 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
     setSchedule(prev => ({...prev, slotDuration: parseInt(value, 10) || 0 }));
   };
   
+  const handleWalkInStrategyChange = (value: 'none' | 'alternateOne' | 'alternateTwo') => {
+    setSchedule(prev => ({ ...prev, walkInReservation: value }));
+  }
+
   const copyToWeekdays = () => {
     const mondaySchedule = schedule.days.Monday;
     const newDays = {...schedule.days};
@@ -114,12 +121,12 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Doctor Schedule</CardTitle>
-        <CardDescription>Set up the clinic's recurring weekly hours and appointment slot duration.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit}>
+        <CardHeader>
+          <CardTitle>Doctor Schedule</CardTitle>
+          <CardDescription>Set up the clinic's recurring weekly hours and appointment slot duration.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
           <div className="space-y-4">
              <div className="hidden md:grid grid-cols-[100px_1fr_1fr] gap-x-6 items-center text-sm text-muted-foreground px-2">
                 <span>Day</span>
@@ -141,23 +148,50 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
              </Button>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="slotDuration">Token Slot Duration (minutes)</Label>
-             <Input 
-                id="slotDuration"
-                type="number" 
-                value={schedule.slotDuration}
-                onChange={handleSlotDurationChange}
-                className="w-[180px]"
-                placeholder="e.g. 10"
-              />
-          </div>
+          <Separator />
 
-          <Button type="submit" disabled={isPending}>
-            {isPending ? 'Saving...' : 'Save Schedule'}
-          </Button>
-        </form>
-      </CardContent>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-2">
+                <Label htmlFor="slotDuration" className="flex items-center gap-2"><Clock />Token Slot Duration (minutes)</Label>
+                <Input 
+                    id="slotDuration"
+                    type="number" 
+                    value={schedule.slotDuration}
+                    onChange={handleSlotDurationChange}
+                    className="w-[180px]"
+                    placeholder="e.g. 10"
+                />
+            </div>
+
+            <div className="space-y-4">
+                <Label className="flex items-center gap-2"><Users />Walk-in Patient Strategy</Label>
+                <RadioGroup 
+                    onValueChange={handleWalkInStrategyChange} 
+                    defaultValue={schedule.walkInReservation || 'none'}
+                    className="space-y-2"
+                >
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="none" id="r1" />
+                        <Label htmlFor="r1">No reserved slots</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="alternateOne" id="r2" />
+                        <Label htmlFor="r2">Reserve alternate slots for walk-ins</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="alternateTwo" id="r3" />
+                        <Label htmlFor="r3">Reserve alternate two consecutive slots for walk-ins</Label>
+                    </div>
+                </RadioGroup>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+            <Button type="submit" disabled={isPending}>
+                {isPending ? 'Saving...' : 'Save Schedule'}
+            </Button>
+        </CardFooter>
+      </form>
     </Card>
   );
 }

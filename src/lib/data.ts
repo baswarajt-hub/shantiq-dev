@@ -53,6 +53,7 @@ let patients: Patient[] = [
     phone: '555-0105',
     estimatedWaitTime: 0,
     consultationTime: 12,
+    consultationEndTime: new Date(new Date().setHours(8, 57, 0, 0)).toISOString(),
   },
 ];
 
@@ -76,6 +77,7 @@ let doctorStatus: DoctorStatus = {
 
 let doctorSchedule: DoctorSchedule = {
   slotDuration: 15,
+  walkInReservation: 'none',
   days: {
     Monday: {
       morning: { start: '10:30', end: '13:00', isOpen: true },
@@ -99,7 +101,7 @@ let doctorSchedule: DoctorSchedule = {
     },
     Saturday: {
       morning: { start: '10:30', end: '13:00', isOpen: true },
-      evening: { start: '18:30', end: '21:30', isOpen: true },
+      evening: { start: '16:00', end: '19:00', isOpen: true },
     },
     Sunday: {
       morning: { start: '', end: '', isOpen: false },

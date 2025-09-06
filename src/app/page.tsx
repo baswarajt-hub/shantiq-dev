@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 type TimeSlot = {
   time: string;
   isBooked: boolean;
+  isReservedForWalkIn?: boolean;
   appointment?: Appointment;
   patientDetails?: FamilyMember;
   estimatedConsultationTime?: number;
@@ -128,7 +129,8 @@ export default function DashboardPage() {
             
             let currentTime = set(today, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
             const endTime = set(today, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
-
+            
+            let slotIndex = 0;
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
                 const patientInQueue = patients.find(p => format(new Date(p.appointmentTime), 'hh:mm a') === timeString && new Date(p.appointmentTime).toDateString() === today.toDateString());
@@ -150,15 +152,24 @@ export default function DashboardPage() {
                      }
                 }
                 
+                let isReservedForWalkIn = false;
+                if (schedule.walkInReservation === 'alternateOne') {
+                    if (slotIndex % 2 !== 0) isReservedForWalkIn = true;
+                } else if (schedule.walkInReservation === 'alternateTwo') {
+                    if (slotIndex % 4 === 2 || slotIndex % 4 === 3) isReservedForWalkIn = true;
+                }
+
                 generatedSlots.push({
                     time: timeString,
                     isBooked: !!patientInQueue || !!appointmentForSlot,
+                    isReservedForWalkIn: isReservedForWalkIn && !patientInQueue,
                     appointment: appointmentForSlot,
                     patientDetails,
                     status: status,
                     patient: patientInQueue,
                 });
                 currentTime.setMinutes(currentTime.getMinutes() + schedule.slotDuration);
+                slotIndex++;
             }
         }
         
@@ -195,7 +206,7 @@ export default function DashboardPage() {
 
     const handleSlotClick = (time: string) => {
         const slot = timeSlots.find(s => s.time === time);
-        if (slot && !slot.isBooked) {
+        if (slot && (!slot.isBooked || slot.isReservedForWalkIn)) {
           setSelectedSlot(time);
           setBookWalkInOpen(true);
         }
@@ -400,7 +411,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent className="p-4">
                             <div className="space-y-3">
-                            {filteredTimeSlots.length > 0 ? filteredTimeSlots.map((slot) => {
+                            {filteredTimeSlots.length > 0 ? filteredTimeSlots.map((slot, index) => {
                                 const isBooked = slot.isBooked;
                                 const isActionable = slot.status && slot.status !== 'Completed' && slot.status !== 'Cancelled';
                                 if (searchTerm && !isBooked) return null;
@@ -499,10 +510,21 @@ export default function DashboardPage() {
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 ) : (
-                                    <div className="p-3 flex items-center rounded-lg border border-dashed bg-muted/30 hover:bg-muted/60 cursor-pointer" onClick={() => handleSlotClick(slot.time)}>
+                                    <div 
+                                      className={cn(
+                                          "p-3 flex items-center rounded-lg border border-dashed", 
+                                          slot.isReservedForWalkIn ? "bg-amber-50" : "bg-muted/30",
+                                          "hover:bg-muted/60 cursor-pointer"
+                                      )} 
+                                      onClick={() => handleSlotClick(slot.time)}
+                                    >
                                          <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
                                          <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
-                                         <div className="flex-1 text-green-600 font-semibold">Available</div>
+                                         <div className={cn("flex-1 font-semibold", slot.isReservedForWalkIn ? "text-amber-600" : "text-green-600")}>
+                                           {slot.isReservedForWalkIn ? (
+                                             <span className="flex items-center gap-2"><Footprints /> Reserved for Walk-in</span>
+                                           ) : "Available"}
+                                         </div>
                                     </div>
                                 )}
                                 </div>
