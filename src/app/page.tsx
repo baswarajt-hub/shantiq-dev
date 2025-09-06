@@ -252,7 +252,7 @@ export default function DashboardPage() {
 
     const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean) => {
         startTransition(async () => {
-            await addPatientAction({
+            const result = await addPatientAction({
                 name: familyMember.name,
                 phone: familyMember.phone,
                 type: isWalkIn ? 'Walk-in' : 'Appointment',
@@ -261,8 +261,12 @@ export default function DashboardPage() {
                 checkInTime: isWalkIn ? new Date().toISOString() : undefined,
             });
             
-            await loadData();
-            toast({ title: "Success", description: "Appointment booked successfully."});
+            if (result.patient) {
+                await loadData();
+                toast({ title: "Success", description: "Appointment booked successfully."});
+            } else {
+                toast({ title: "Error", description: "Could not book appointment.", variant: 'destructive'});
+            }
         });
     };
     
@@ -353,7 +357,7 @@ export default function DashboardPage() {
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
-        if (/^\\d{5,}$/.test(searchTerm.replace(/\\D/g, ''))) {
+        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
@@ -697,6 +701,11 @@ export default function DashboardPage() {
                     onSave={handleAddNewPatient}
                     phoneToPreFill={phoneToPreFill}
                     onClose={() => setPhoneToPreFill('')}
+                    afterSave={(newPatient) => {
+                        if (selectedSlot) {
+                            handleBookAppointment(newPatient, parse(`${format(selectedDate, 'yyyy-MM-dd')} ${selectedSlot}`, 'yyyy-MM-dd hh:mm a', new Date()).toISOString(), true);
+                        }
+                    }}
                 />
                 {selectedPatient && (
                     <RescheduleDialog
@@ -719,7 +728,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
-
-    
