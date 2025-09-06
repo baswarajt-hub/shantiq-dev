@@ -10,6 +10,8 @@ export type Patient = {
   phone: string;
   estimatedWaitTime: number; // in minutes
   consultationTime?: number; // actual time taken in minutes
+  consultationStartTime?: string; // ISO string
+  consultationEndTime?: string; // ISO string
 };
 
 export type AIPatientData = {
@@ -72,7 +74,7 @@ export type Appointment = {
   familyMemberName: string;
   date: string; // ISO string format
   time: string;
-  status: 'Confirmed' | 'Cancelled' | 'Completed' | 'Missed';
+  status: Patient['status'] | 'Confirmed' | 'Missed' | 'Yet to Arrive';
   type?: 'Appointment' | 'Walk-in';
 };
 

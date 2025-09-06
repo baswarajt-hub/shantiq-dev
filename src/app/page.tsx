@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -30,6 +30,7 @@ type TimeSlot = {
   patientDetails?: FamilyMember;
   estimatedConsultationTime?: number;
   status?: 'Waiting' | 'Yet to Arrive' | 'In-Consultation' | 'Completed' | 'Cancelled' | 'Late';
+  patient?: Patient;
 }
 
 const statusConfig = {
@@ -59,6 +60,7 @@ export default function DashboardPage() {
     const [currentDate, setCurrentDate] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
+    const [showCompleted, setShowCompleted] = useState(false);
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
 
@@ -72,17 +74,16 @@ export default function DashboardPage() {
         setFamily(familyData);
 
         const appointmentsFromPatients = patientData
-            .filter(p => p.type === 'Appointment' || p.type === 'Walk-in') // Include walk-ins
             .map(p => ({
                 id: p.id,
                 familyMemberId: familyData.find(f => f.phone === p.phone)?.id || 0,
                 familyMemberName: p.name,
                 date: p.appointmentTime,
                 time: format(new Date(p.appointmentTime), 'hh:mm a'),
-                status: p.status === 'Cancelled' ? 'Cancelled' : p.status === 'Completed' ? 'Completed' : 'Confirmed' as any,
+                status: p.status,
                 type: p.type as 'Appointment' | 'Walk-in'
             }));
-        setAppointments(appointmentsFromPatients);
+        setAppointments(appointmentsFromPatients as Appointment[]);
     }
 
     useEffect(() => {
@@ -126,7 +127,7 @@ export default function DashboardPage() {
 
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
-                const patientInQueue = patients.find(p => format(new Date(p.appointmentTime), 'hh:mm a') === timeString);
+                const patientInQueue = patients.find(p => format(new Date(p.appointmentTime), 'hh:mm a') === timeString && new Date(p.appointmentTime).toDateString() === today.toDateString());
                 
                 let status: TimeSlot['status'] | undefined;
                 let patientDetails: FamilyMember | undefined;
@@ -151,6 +152,7 @@ export default function DashboardPage() {
                     appointment: appointmentForSlot,
                     patientDetails,
                     status: status,
+                    patient: patientInQueue,
                 });
                 currentTime.setMinutes(currentTime.getMinutes() + schedule.slotDuration);
             }
@@ -181,7 +183,9 @@ export default function DashboardPage() {
         }
 
         setTimeSlots(generatedSlots);
-        runEstimations(generatedSlots);
+        if(patients.length > 0) {
+            runEstimations(generatedSlots);
+        }
 
     }, [schedule, appointments, selectedSession, patients, family]);
 
@@ -235,6 +239,8 @@ export default function DashboardPage() {
 
     const handleReschedule = (newDate: string, newTime: string) => {
         if (selectedAppointment) {
+            // This needs to be backed by a server action to persist
+            // For now, it just updates local state
             setAppointments(prev => prev.map(a => 
                 a.id === selectedAppointment.id ? { ...a, date: newDate, time: newTime } : a
             ));
@@ -293,11 +299,21 @@ export default function DashboardPage() {
 
     const nowServingPatient = patients.find(p => p.status === 'In-Consultation');
     
-    const filteredTimeSlots = timeSlots.filter(slot => {
-        if (!searchTerm.trim()) return true;
-        if (!slot.isBooked || !slot.patientDetails) return false;
-        return slot.patientDetails.name.toLowerCase().includes(searchTerm.toLowerCase());
-    });
+    let filteredTimeSlots = timeSlots;
+
+    if (searchTerm.trim()) {
+        filteredTimeSlots = timeSlots.filter(slot => {
+            if (!slot.isBooked || !slot.patientDetails) return false;
+            return slot.patientDetails.name.toLowerCase().includes(searchTerm.toLowerCase());
+        });
+    }
+
+    if (!showCompleted) {
+        filteredTimeSlots = filteredTimeSlots.filter(slot => {
+            return !slot.status || (slot.status !== 'Completed' && slot.status !== 'Cancelled');
+        });
+    }
+
 
     const confirmedAppointments = timeSlots.filter(s => s.isBooked && s.status !== 'Cancelled');
 
@@ -345,6 +361,10 @@ export default function DashboardPage() {
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
                                 </div>
+                                 <Button variant="outline" onClick={() => setShowCompleted(prev => !prev)}>
+                                    {showCompleted ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                                    {showCompleted ? 'Hide' : 'Show'} Completed
+                                </Button>
                                 <Button variant="outline" onClick={() => setAdjustTimingOpen(true)}>
                                     <Clock className="mr-2 h-4 w-4" />
                                     Adjust Timing
@@ -377,7 +397,8 @@ export default function DashboardPage() {
                         <CardContent className="p-4">
                             <div className="space-y-3">
                             {filteredTimeSlots.length > 0 ? filteredTimeSlots.map((slot) => {
-                                const isBooked = slot.isBooked && slot.status && slot.status !== 'Cancelled';
+                                const isBooked = slot.isBooked;
+                                const isActionable = slot.status && slot.status !== 'Completed' && slot.status !== 'Cancelled';
                                 if (searchTerm && !isBooked) return null;
 
                                 const StatusIcon = isBooked && slot.status ? statusConfig[slot.status]?.icon : null;
@@ -385,10 +406,10 @@ export default function DashboardPage() {
                                 
                                 return (
                                 <div key={slot.time}>
-                                {isBooked && slot.appointment && slot.patientDetails ? (
+                                {isBooked && slot.appointment && slot.patientDetails && slot.patient ? (
                                     <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <div className="p-3 flex items-center rounded-lg border bg-card shadow-sm cursor-pointer hover:bg-muted/50">
+                                        <DropdownMenuTrigger asChild disabled={!isActionable}>
+                                            <div className={cn("p-3 flex items-center rounded-lg border bg-card shadow-sm", isActionable ? "cursor-pointer hover:bg-muted/50" : "opacity-60")}>
                                                 <div className="w-12 text-center font-bold text-lg text-primary">{confirmedAppointments.findIndex(a => a.time === slot.time) + 1}</div>
                                                 <div className="w-24 font-semibold">{slot.time}</div>
                                                 <div className="flex-1 flex items-center gap-2 font-semibold">
@@ -401,12 +422,18 @@ export default function DashboardPage() {
                                                 <div className="w-40 flex items-center gap-2">
                                                    {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
                                                    <span className={cn("font-medium", statusColor)}>{slot.status}</span>
-                                                    {slot.status === 'Waiting' && patients.find(p=>p.id === slot.appointment?.id)?.estimatedWaitTime && (
-                                                      <span className="text-xs text-muted-foreground">(~{patients.find(p=>p.id === slot.appointment?.id)?.estimatedWaitTime} min)</span>
+                                                    {slot.status === 'Waiting' && slot.patient?.estimatedWaitTime && (
+                                                      <span className="text-xs text-muted-foreground">(~{slot.patient?.estimatedWaitTime} min)</span>
                                                    )}
                                                 </div>
                                                  <div className="w-48 text-sm text-muted-foreground">
-                                                    {slot.estimatedConsultationTime ? `Est. Consult: ~${slot.estimatedConsultationTime} min` : (nowServingPatient ? `After ${nowServingPatient.name}`: 'Next in line')}
+                                                     {slot.status === 'Completed' && slot.patient.consultationEndTime ? (
+                                                        `Finished at ${format(new Date(slot.patient.consultationEndTime), 'hh:mm a')}`
+                                                     ) : slot.estimatedConsultationTime ? (
+                                                        `Est. Consult: ~${slot.estimatedConsultationTime} min`
+                                                     ) : nowServingPatient ? (
+                                                        `After ${nowServingPatient.name}`
+                                                     ) : 'Next in line'}
                                                 </div>
                                             </div>
                                         </DropdownMenuTrigger>
@@ -429,6 +456,7 @@ export default function DashboardPage() {
                                                     Mark as Late
                                                 </DropdownMenuItem>
                                             )}
+                                            {isActionable && <DropdownMenuSeparator />}
                                             <DropdownMenuItem onClick={() => handleOpenReschedule(slot.appointment!)}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 Reschedule

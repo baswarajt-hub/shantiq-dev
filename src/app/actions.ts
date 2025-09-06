@@ -64,18 +64,18 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     return { error: 'Patient not found' };
   }
 
-  // Auto-reschedule late comers
-  if (status === 'Late') {
-    let patients = await getPatients();
-    const latePatient = patients.find(p => p.id === patientId);
-    if (latePatient) {
-      patients = patients.filter(p => p.id !== patientId);
-      patients.push({ ...latePatient, status: 'Late' });
-      await updateAllPatients(patients);
-    }
-  } else {
-    await updatePatient(patientId, { status });
+  let updates: Partial<Patient> = { status };
+
+  if (status === 'In-Consultation') {
+    updates.consultationStartTime = new Date().toISOString();
+  } else if (status === 'Completed' && patient.consultationStartTime) {
+    const startTime = new Date(patient.consultationStartTime);
+    const endTime = new Date();
+    updates.consultationEndTime = endTime.toISOString();
+    updates.consultationTime = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // in minutes
   }
+
+  await updatePatient(patientId, updates);
 
   revalidatePath('/');
   revalidatePath('/tv-display');
@@ -212,3 +212,4 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
 // Re-exporting for use in the new dashboard
 export { estimateConsultationTime };
 export { getFamily, getPatients, addPatient };
+
