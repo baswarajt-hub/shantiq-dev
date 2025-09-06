@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, FamilyMember, Patient, SpecialClosure } from '@/lib/types';
-import { format, set, addMinutes, parseISO } from 'date-fns';
+import { format, set, addMinutes, parseISO, add } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -114,22 +114,14 @@ export default function DashboardPage() {
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
                 
+                const slotStartTimeUTC = new Date(currentTime.getTime() - (5.5 * 60 * 60 * 1000));
+                const slotEndTimeUTC = addMinutes(slotStartTimeUTC, schedule.slotDuration);
+                
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
 
-                    const apptTimeInIST = new Date(p.appointmentTime).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true,
-                        timeZone: 'Asia/Kolkata',
-                    });
-                    
-                    const slotTime = format(currentTime, 'hh:mm a');
-
-                    const apptDateStr = new Date(p.appointmentTime).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-                    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-
-                    return apptDateStr === selectedDateStr && apptTimeInIST.replace(/\s/g, '') === slotTime.replace(/\s/g, '');
+                    const patientApptTime = parseISO(p.appointmentTime);
+                    return patientApptTime >= slotStartTimeUTC && patientApptTime < slotEndTimeUTC;
                 });
                 
                 let isBooked = !!patientForSlot;
@@ -601,3 +593,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
