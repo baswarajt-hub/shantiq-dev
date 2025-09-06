@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -29,7 +29,7 @@ type TimeSlot = {
   appointment?: Appointment;
   patientDetails?: FamilyMember;
   estimatedConsultationTime?: number;
-  status?: 'Waiting' | 'Yet to Arrive' | 'In-Consultation' | 'Completed' | 'Cancelled' | 'Late';
+  status?: 'Waiting' | 'Yet to Arrive' | 'In-Consultation' | 'Completed' | 'Cancelled' | 'Late' | 'Waiting for Reports';
   patient?: Patient;
 }
 
@@ -40,6 +40,7 @@ const statusConfig = {
     Completed: { icon: CheckCircle, color: 'text-green-600' },
     Late: { icon: UserX, color: 'text-orange-600' },
     Cancelled: { icon: XCircle, color: 'text-red-600' },
+    'Waiting for Reports': { icon: FileClock, color: 'text-purple-600' },
 };
 
 
@@ -74,15 +75,18 @@ export default function DashboardPage() {
         setFamily(familyData);
 
         const appointmentsFromPatients = patientData
-            .map(p => ({
-                id: p.id,
-                familyMemberId: familyData.find(f => f.phone === p.phone)?.id || 0,
-                familyMemberName: p.name,
-                date: p.appointmentTime,
-                time: format(new Date(p.appointmentTime), 'hh:mm a'),
-                status: p.status,
-                type: p.type as 'Appointment' | 'Walk-in'
-            }));
+            .map(p => {
+                const famMember = familyData.find(f => f.phone === p.phone && f.name === p.name);
+                return {
+                    id: p.id,
+                    familyMemberId: famMember?.id || 0,
+                    familyMemberName: p.name,
+                    date: p.appointmentTime,
+                    time: format(new Date(p.appointmentTime), 'hh:mm a'),
+                    status: p.status,
+                    type: p.type as 'Appointment' | 'Walk-in'
+                }
+            });
         setAppointments(appointmentsFromPatients as Appointment[]);
     }
 
@@ -135,7 +139,7 @@ export default function DashboardPage() {
 
                 if (patientInQueue) {
                     status = patientInQueue.status;
-                    patientDetails = family.find(f => f.phone === patientInQueue.phone);
+                    patientDetails = family.find(f => f.phone === patientInQueue.phone && f.name === patientInQueue.name);
                     appointmentForSlot = appointments.find(a => a.id === patientInQueue.id);
                 } else {
                      const confirmedAppointment = appointments.find(a => a.time === timeString && new Date(a.date).toDateString() === today.toDateString() && a.status === 'Confirmed');
@@ -445,10 +449,16 @@ export default function DashboardPage() {
                                                 </DropdownMenuItem>
                                             )}
                                             {slot.status === 'In-Consultation' && (
-                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.appointment!.id, 'Completed')} disabled={isPending}>
-                                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                                    Mark as Completed
-                                                </DropdownMenuItem>
+                                                <>
+                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(slot.appointment!.id, 'Completed')} disabled={isPending}>
+                                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                                        Mark as Completed
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(slot.appointment!.id, 'Waiting for Reports')} disabled={isPending}>
+                                                        <FileClock className="mr-2 h-4 w-4" />
+                                                        Waiting for Reports
+                                                    </DropdownMenuItem>
+                                                </>
                                             )}
                                              {slot.status === 'Waiting' && (
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.appointment!.id, 'Late')} disabled={isPending}>

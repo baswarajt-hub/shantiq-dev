@@ -1,8 +1,9 @@
+
 'use client';
 import { getDoctorStatus, getPatients } from '@/lib/data';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { Hourglass, LogIn, LogOut, User } from 'lucide-react';
+import { FileClock, Hourglass, LogIn, LogOut, User } from 'lucide-react';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
@@ -57,6 +58,7 @@ export default function TVDisplayPage() {
     .filter((p) => p.status === 'Waiting' || p.status === 'Late')
     .sort((a, b) => new Date(a.appointmentTime).getTime() - new Date(b.appointmentTime).getTime())
     .slice(0, 5);
+  const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
 
   return (
     <div className="bg-slate-900 text-white min-h-screen flex flex-col p-8 font-body">
@@ -131,9 +133,24 @@ export default function TVDisplayPage() {
         </div>
       </main>
 
-       <footer className="text-center text-slate-500 text-xl pt-4">
-        Thank you for your patience.
-      </footer>
+      {waitingForReports.length > 0 && (
+         <footer className="pt-8 mt-8 border-t-2 border-slate-700">
+            <h2 className="text-4xl text-purple-300 font-semibold mb-6 text-center">WAITING FOR REPORTS</h2>
+             <div className="grid grid-cols-3 gap-6">
+                {waitingForReports.map(patient => (
+                     <div key={patient.id} className="bg-purple-500/20 border-2 border-purple-400 p-5 rounded-lg flex items-center space-x-6 transition-all duration-300">
+                        <FileClock className="h-10 w-10 flex-shrink-0 text-purple-300" />
+                        <div>
+                             <p className="text-4xl font-medium text-white">
+                                {anonymizeName(patient.name)}
+                            </p>
+                        </div>
+                     </div>
+                ))}
+            </div>
+         </footer>
+      )}
+
     </div>
   );
 }
