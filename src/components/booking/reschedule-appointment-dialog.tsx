@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
+import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import type { Appointment, DoctorSchedule, Patient } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -136,16 +136,6 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
     }
   };
   
-  const disabledDays = [{ before: new Date(new Date().setDate(new Date().getDate())) }];
-  if (schedule) {
-    Object.entries(schedule.days)
-      .filter(([, daySchedule]) => !daySchedule.morning.isOpen && !daySchedule.evening.isOpen)
-      .forEach(([dayName]) => {
-        const dayIndex = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(dayName);
-        disabledDays.push({ dayOfWeek: [dayIndex] });
-      });
-  }
-
   const getTooltipMessage = (state: SlotState) => {
     switch (state) {
         case 'booked': return "Already booked";
@@ -184,11 +174,11 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
         {step === 2 && (
           <div className="space-y-4 py-4">
             <div className="flex justify-center">
-              <Calendar
+              <ScheduleCalendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={disabledDays}
+                schedule={schedule}
               />
             </div>
             <RadioGroup defaultValue="morning" onValueChange={(v) => {setSelectedSession(v); setSelectedSlot('')}} className="flex justify-center gap-4">

@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 
 
 type TimeSlot = {
@@ -295,7 +295,7 @@ export default function DashboardPage() {
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
-        if (/^\\d{5,}$/.test(searchTerm.replace(/\\D/g, ''))) {
+        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
@@ -361,11 +361,12 @@ export default function DashboardPage() {
                                           </Button>
                                       </PopoverTrigger>
                                       <PopoverContent className="w-auto p-0">
-                                          <Calendar
+                                          <ScheduleCalendar
                                               mode="single"
                                               selected={selectedDate}
                                               onSelect={(day) => day && setSelectedDate(day)}
                                               initialFocus
+                                              schedule={schedule}
                                           />
                                       </PopoverContent>
                                   </Popover>
