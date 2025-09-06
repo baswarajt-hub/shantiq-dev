@@ -16,7 +16,7 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { getDoctorSchedule, getFamily, getPatients, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction } from '@/app/actions';
+import { getDoctorSchedule, getFamily, getPatients, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
 import { format } from 'date-fns';
 
 
