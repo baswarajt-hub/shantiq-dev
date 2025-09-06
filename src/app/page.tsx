@@ -153,16 +153,26 @@ export default function DashboardPage() {
                 }
                 
                 let isReservedForWalkIn = false;
-                if (schedule.walkInReservation === 'alternateOne') {
-                    if (slotIndex % 2 !== 0) isReservedForWalkIn = true;
-                } else if (schedule.walkInReservation === 'alternateTwo') {
-                    if (slotIndex % 4 === 2 || slotIndex % 4 === 3) isReservedForWalkIn = true;
+                const reservationStrategy = schedule.walkInReservation;
+                const startIndexForAlternate = reservationStrategy === 'firstFive' ? 5 : 0;
+                
+                if (reservationStrategy === 'firstFive' && slotIndex < 5) {
+                    isReservedForWalkIn = true;
+                }
+                
+                if (slotIndex >= startIndexForAlternate) {
+                    const relativeIndex = slotIndex - startIndexForAlternate;
+                    if (reservationStrategy === 'alternateOne') {
+                        if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+                    } else if (reservationStrategy === 'alternateTwo') {
+                        if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
+                    }
                 }
 
                 generatedSlots.push({
                     time: timeString,
                     isBooked: !!patientInQueue || !!appointmentForSlot,
-                    isReservedForWalkIn: isReservedForWalkIn && !patientInQueue,
+                    isReservedForWalkIn: isReservedForWalkIn && !patientInQueue && !appointmentForSlot,
                     appointment: appointmentForSlot,
                     patientDetails,
                     status: status,

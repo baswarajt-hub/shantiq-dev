@@ -98,7 +98,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
     setSchedule(prev => ({...prev, slotDuration: parseInt(value, 10) || 0 }));
   };
   
-  const handleWalkInStrategyChange = (value: 'none' | 'alternateOne' | 'alternateTwo') => {
+  const handleWalkInStrategyChange = (value: 'none' | 'alternateOne' | 'alternateTwo' | 'firstFive') => {
     setSchedule(prev => ({ ...prev, walkInReservation: value }));
   }
 
@@ -175,12 +175,16 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
                         <Label htmlFor="r1">No reserved slots</Label>
                     </div>
                     <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="firstFive" id="r4" />
+                        <Label htmlFor="r4">Reserve first 5 slots for walk-ins</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
                         <RadioGroupItem value="alternateOne" id="r2" />
-                        <Label htmlFor="r2">Reserve alternate slots for walk-ins</Label>
+                        <Label htmlFor="r2">Reserve alternate slots for walk-ins (after first 5 if enabled)</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                         <RadioGroupItem value="alternateTwo" id="r3" />
-                        <Label htmlFor="r3">Reserve alternate two consecutive slots for walk-ins</Label>
+                        <Label htmlFor="r3">Reserve alternate two consecutive slots for walk-ins (after first 5 if enabled)</Label>
                     </div>
                 </RadioGroup>
             </div>
