@@ -103,8 +103,8 @@ let doctorSchedule: DoctorSchedule = {
       evening: { start: '18:30', end: '21:30', isOpen: true },
     },
     Sunday: {
-      morning: { start: '', end: '', isOpen: false },
-      evening: { start: '', end: '', isOpen: false },
+      morning: { start: '10:30', end: '13:00', isOpen: true },
+      evening: { start: '18:30', end: '21:30', isOpen: true },
     },
   },
   specialClosures: [],
