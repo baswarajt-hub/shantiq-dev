@@ -63,23 +63,23 @@ export default function DashboardPage() {
 
     const loadData = async () => {
         const scheduleData = await getDoctorSchedule();
-        setSchedule(scheduleData);
         const patientData = await getPatients();
-        setPatients(patientData);
-        
         const familyData = await getFamily();
+
+        setSchedule(scheduleData);
+        setPatients(patientData);
         setFamily(familyData);
 
         const appointmentsFromPatients = patientData
-            .filter(p => p.type === 'Appointment')
+            .filter(p => p.type === 'Appointment' || p.type === 'Walk-in') // Include walk-ins
             .map(p => ({
-            id: p.id,
-            familyMemberId: familyData.find(f => f.phone === p.phone)?.id || 0,
-            familyMemberName: p.name,
-            date: p.appointmentTime,
-            time: format(new Date(p.appointmentTime), 'hh:mm a'),
-            status: p.status === 'Cancelled' ? 'Cancelled' : p.status === 'Completed' ? 'Completed' : 'Confirmed' as any,
-            type: 'Appointment'
+                id: p.id,
+                familyMemberId: familyData.find(f => f.phone === p.phone)?.id || 0,
+                familyMemberName: p.name,
+                date: p.appointmentTime,
+                time: format(new Date(p.appointmentTime), 'hh:mm a'),
+                status: p.status === 'Cancelled' ? 'Cancelled' : p.status === 'Completed' ? 'Completed' : 'Confirmed' as any,
+                type: p.type as 'Appointment' | 'Walk-in'
             }));
         setAppointments(appointmentsFromPatients);
     }
