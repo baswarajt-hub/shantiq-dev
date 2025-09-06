@@ -16,8 +16,9 @@ import { Calendar } from '@/components/ui/calendar';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
-import { format, set, addMinutes } from 'date-fns';
+import { format, set, addMinutes, parse } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 type BookAppointmentDialogProps = {
   isOpen: boolean;
@@ -28,18 +29,26 @@ type BookAppointmentDialogProps = {
   bookedPatients: Patient[];
 };
 
+type SlotState = 'available' | 'booked' | 'reserved' | 'past';
+
+type AvailableSlot = {
+    time: string;
+    state: SlotState;
+};
+
+
 export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, schedule, onSave, bookedPatients }: BookAppointmentDialogProps) {
   const [step, setStep] = useState(1);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
-  const [availableSlots, setAvailableSlots] = useState<{time: string, isReserved: boolean, isBooked: boolean}[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     if (schedule && selectedDate) {
-      const generatedSlots: {time: string, isReserved: boolean, isBooked: boolean}[] = [];
+      const generatedSlots: AvailableSlot[] = [];
       const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       
@@ -68,12 +77,20 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         const endTime = set(selectedDate, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
         
         let slotIndex = 0;
+        const now = new Date();
+
         while (currentTime < endTime) {
           const timeString = format(currentTime, 'hh:mm a');
+          let slotState: SlotState = 'available';
+
           const isBooked = bookedSlotsForDay.includes(timeString);
           let isReservedForWalkIn = false;
           
-          if (!isBooked) {
+          if (currentTime < now) {
+            slotState = 'past';
+          } else if (isBooked) {
+            slotState = 'booked';
+          } else {
             // Rule 1: Reserve first 5 slots
             if (schedule.reserveFirstFive && slotIndex < 5) {
               isReservedForWalkIn = true;
@@ -91,16 +108,20 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                 if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
               }
             }
+
+            if (isReservedForWalkIn) {
+              slotState = 'reserved';
+            }
           }
 
-          generatedSlots.push({ time: timeString, isReserved: isReservedForWalkIn, isBooked });
+          generatedSlots.push({ time: timeString, state: slotState });
           currentTime = addMinutes(currentTime, schedule.slotDuration);
           slotIndex++;
         }
       }
       setAvailableSlots(generatedSlots);
     }
-  }, [schedule, selectedDate, selectedSession, bookedPatients]);
+  }, [schedule, selectedDate, selectedSession, bookedPatients, isOpen]);
 
   const resetState = () => {
     setStep(1);
@@ -138,6 +159,14 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
       });
   }
 
+  const getTooltipMessage = (state: SlotState) => {
+    switch (state) {
+        case 'booked': return "Already booked";
+        case 'reserved': return "Reserved for walk-ins";
+        case 'past': return "Time has passed";
+        default: return "";
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -195,19 +224,31 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
             <div className="space-y-4 py-4">
                 <Label>Select an available time slot</Label>
                 {availableSlots.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
-                      {availableSlots.map(slot => (
-                          <Button 
-                              key={slot.time} 
-                              variant={selectedSlot === slot.time ? 'default' : 'outline'}
-                              onClick={() => setSelectedSlot(slot.time)}
-                              disabled={slot.isReserved || slot.isBooked}
-                              title={slot.isReserved ? "Reserved for Walk-in" : slot.isBooked ? "Already Booked" : ""}
-                          >
-                              {slot.time}
-                          </Button>
-                      ))}
-                  </div>
+                  <TooltipProvider>
+                    <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
+                        {availableSlots.map(slot => (
+                            <Tooltip key={slot.time} delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <span tabIndex={0}>
+                                        <Button 
+                                            variant={selectedSlot === slot.time ? 'default' : 'outline'}
+                                            onClick={() => setSelectedSlot(slot.time)}
+                                            disabled={slot.state !== 'available'}
+                                            className="w-full"
+                                        >
+                                            {slot.time}
+                                        </Button>
+                                    </span>
+                                </TooltipTrigger>
+                                {slot.state !== 'available' && (
+                                    <TooltipContent>
+                                        <p>{getTooltipMessage(slot.state)}</p>
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        ))}
+                    </div>
+                  </TooltipProvider>
                 ) : (
                   <p className="text-center text-muted-foreground">No slots available for this session.</p>
                 )}
