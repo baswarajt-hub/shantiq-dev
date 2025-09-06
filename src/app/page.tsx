@@ -3,25 +3,28 @@
 import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
-import type { DoctorSchedule, FamilyMember, Patient, SpecialClosure } from '@/lib/types';
-import { format, set, addMinutes, parseISO, add } from 'date-fns';
+import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure } from '@/lib/types';
+import { format, set, addMinutes, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { updateTodayScheduleOverrideAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction } from '@/app/actions';
+import { getDoctorStatus } from '@/lib/data';
+import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 type TimeSlot = {
@@ -48,6 +51,8 @@ export default function DashboardPage() {
     const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
     const [family, setFamily] = useState<FamilyMember[]>([]);
     const [patients, setPatients] = useState<Patient[]>([]);
+    const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
+    const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -69,10 +74,12 @@ export default function DashboardPage() {
             const scheduleData = await getDoctorSchedule();
             const patientData = await getPatients();
             const familyData = await getFamily();
+            const statusData = await getDoctorStatus();
             
             setSchedule(scheduleData);
             setPatients(patientData);
             setFamily(familyData);
+            setDoctorStatus(statusData);
         });
     }
 
@@ -83,6 +90,14 @@ export default function DashboardPage() {
         }
         loadData();
     }, []);
+
+    useEffect(() => {
+        if (doctorStatus?.isOnline && doctorStatus.onlineTime) {
+            setDoctorOnlineTime(new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        } else {
+            setDoctorOnlineTime('');
+        }
+    }, [doctorStatus]);
 
     useEffect(() => {
         if (!schedule) return;
@@ -114,7 +129,7 @@ export default function DashboardPage() {
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
                 
-                const slotStartTimeUTC = new Date(currentTime);
+                const slotStartTimeUTC = addMinutes(currentTime, currentTime.getTimezoneOffset() * -1);
                 const slotEndTimeUTC = addMinutes(slotStartTimeUTC, schedule.slotDuration);
 
                 const patientForSlot = patients.find(p => {
@@ -192,7 +207,7 @@ export default function DashboardPage() {
 
     const handleSlotClick = (time: string) => {
         const slot = timeSlots.find(s => s.time === time);
-        if (slot && !slot.isBooked) {
+        if (slot) {
           setSelectedSlot(time);
           setBookWalkInOpen(true);
         }
@@ -307,6 +322,42 @@ export default function DashboardPage() {
         setNewPatientOpen(true);
     };
 
+    const handleToggleDoctorStatus = () => {
+        startTransition(async () => {
+            const result = await toggleDoctorStatusAction();
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive'});
+            } else {
+                toast({ title: 'Success', description: result.success});
+                await loadData();
+            }
+        });
+    }
+    const handleRunEstimation = () => {
+        startTransition(async () => {
+            const result = await runTimeEstimationAction({
+                patientFlowData: 'Average consultation time is 15 minutes.',
+                lateArrivals: 'No major late arrivals reported.',
+                doctorDelays: 'Doctor is generally on time.',
+            });
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.success });
+            }
+        });
+    };
+    const handleEmergencyCancel = () => {
+        startTransition(async () => {
+            const result = await emergencyCancelAction();
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.success });
+            }
+        });
+    };
+
 
     const nowServingPatient = patients.find(p => p.status === 'In-Consultation');
     
@@ -330,7 +381,7 @@ export default function DashboardPage() {
     const todaysPatients = patients.filter(p => new Date(p.appointmentTime).toDateString() === selectedDate.toDateString());
 
 
-    if (!schedule) {
+    if (!schedule || !doctorStatus) {
         return (
             <div className="flex flex-col min-h-screen bg-background">
                 <Header />
@@ -382,33 +433,18 @@ export default function DashboardPage() {
                                 <CardDescription>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardDescription>
                             </div>
                              <div className="flex items-center gap-2 flex-wrap">
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        type="search"
-                                        placeholder="Search patient..."
-                                        className="pl-8 sm:w-[200px] md:w-[250px]"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
+                                 <div className="flex items-center space-x-2">
+                                    <Switch id="doctor-status" checked={doctorStatus.isOnline} onCheckedChange={handleToggleDoctorStatus} disabled={isPending}/>
+                                    <Label htmlFor="doctor-status" className='flex items-center text-sm'>
+                                        {doctorStatus.isOnline ? <LogIn className="mr-2 h-4 w-4 text-green-500" /> : <LogOut className="mr-2 h-4 w-4 text-red-500" />}
+                                        {doctorStatus.isOnline ? `Online (since ${doctorOnlineTime})` : 'Offline'}
+                                    </Label>
                                 </div>
-                                 <Button variant="outline" onClick={() => setShowCompleted(prev => !prev)}>
-                                    {showCompleted ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-                                    {showCompleted ? 'Hide' : 'Show'} Completed
-                                </Button>
-                                <Button variant="outline" onClick={() => setAdjustTimingOpen(true)}>
-                                    <Clock className="mr-2 h-4 w-4" />
-                                    Adjust Timing
-                                </Button>
-                                <Button variant="outline" onClick={() => setNewPatientOpen(true)}>
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    New Patient
-                                </Button>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline">
                                             {selectedSession === 'morning' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                                            {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)} Session
+                                            {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)}
                                             <ChevronDown className="ml-2 h-4 w-4" />
                                         </Button>
                                     </DropdownMenuTrigger>
@@ -423,6 +459,58 @@ export default function DashboardPage() {
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
+                                <Button variant="outline" onClick={() => setAdjustTimingOpen(true)}>
+                                    <Clock className="mr-2 h-4 w-4" />
+                                    Adjust Timing
+                                </Button>
+                                <Button variant="outline" onClick={() => setNewPatientOpen(true)}>
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    New Patient
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    type="search"
+                                    placeholder="Search patient..."
+                                    className="pl-8 sm:w-[200px] md:w-[300px]"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Button variant="outline" onClick={() => setShowCompleted(prev => !prev)}>
+                                    {showCompleted ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                                    {showCompleted ? 'Hide' : 'Show'} Completed
+                                </Button>
+                                <Button variant="outline" onClick={handleRunEstimation} disabled={isPending}>
+                                    <Sparkles className="mr-2 h-4 w-4" />
+                                    {isPending ? 'Estimating...' : 'Re-Estimate'}
+                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        <AlertTriangle className="mr-2 h-4 w-4" />
+                                        Emergency
+                                    </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        This action will cancel all active appointments and notify patients of an emergency. This cannot be undone.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleEmergencyCancel} disabled={isPending}>
+                                        {isPending ? 'Cancelling...' : 'Confirm Emergency'}
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         </CardHeader>
                         <CardContent className="p-4">
@@ -530,7 +618,7 @@ export default function DashboardPage() {
                                     <div 
                                       className={cn(
                                           "p-3 flex items-center rounded-lg border border-dashed hover:bg-muted/60 cursor-pointer",
-                                          slot.isReservedForWalkIn ? "bg-amber-50" : "bg-muted/30"
+                                           slot.isReservedForWalkIn ? "bg-amber-50" : "bg-muted/30"
                                       )} 
                                       onClick={() => handleSlotClick(slot.time)}
                                     >

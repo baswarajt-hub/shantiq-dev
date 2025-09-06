@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import type { AIPatientData, DoctorStatus, Patient } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { QueueControls } from './queue-controls';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Calendar,
@@ -101,7 +100,7 @@ function PatientCard({ patient }: { patient: Patient }) {
   );
 }
 
-export default function PatientQueue({ initialPatients, aipatients, initialDoctorStatus }: { initialPatients: Patient[], aipatients: AIPatientData, initialDoctorStatus: DoctorStatus }) {
+export default function PatientQueue({ initialPatients }: { initialPatients: Patient[] }) {
   const [patients] = useState<Patient[]>(initialPatients);
 
   const filterAndSortPatients = (status?: Patient['status']) => {
@@ -123,7 +122,6 @@ export default function PatientQueue({ initialPatients, aipatients, initialDocto
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <CardTitle>Patient Queue</CardTitle>
-          <QueueControls aipatients={aipatients} initialDoctorStatus={initialDoctorStatus} />
         </div>
       </CardHeader>
       <CardContent>
@@ -169,5 +167,3 @@ export default function PatientQueue({ initialPatients, aipatients, initialDocto
     </Card>
   );
 }
-
-    

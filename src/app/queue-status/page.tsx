@@ -44,12 +44,22 @@ function QueueStatusCard({ patient, title, subtitle, highlight = false }: { pati
 
 function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null }) {
   const [formattedTime, setFormattedTime] = useState('');
+  const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
   
   useEffect(() => {
     if (patient) {
       setFormattedTime(format(parseISO(patient.appointmentTime), 'hh:mm a'));
     }
   }, [patient]);
+
+  useEffect(() => {
+    if (doctorStatus?.isOnline && doctorStatus.onlineTime) {
+      setDoctorOnlineTime(new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } else {
+      setDoctorOnlineTime('');
+    }
+  }, [doctorStatus]);
+
 
   if (!doctorStatus?.isOnline) {
     return (
@@ -75,7 +85,7 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
        <Card className="bg-green-100/50 border-green-300">
           <CardHeader>
           <CardTitle className="text-lg">Ready for Next</CardTitle>
-            <p className="text-sm text-muted-foreground">The doctor is available.</p>
+            <p className="text-sm text-muted-foreground">The doctor is available (since {doctorOnlineTime}).</p>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-4">
@@ -93,7 +103,7 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
        <Card className="bg-green-100/50 border-green-300">
        <CardHeader>
          <CardTitle className="text-lg">Now Serving</CardTitle>
-         <p className="text-sm text-muted-foreground">Currently in consultation</p>
+         <p className="text-sm text-muted-foreground">Currently in consultation (since {doctorOnlineTime})</p>
        </CardHeader>
        <CardContent>
          <div className="flex items-center space-x-4">
