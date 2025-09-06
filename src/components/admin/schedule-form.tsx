@@ -98,8 +98,12 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
     setSchedule(prev => ({...prev, slotDuration: parseInt(value, 10) || 0 }));
   };
   
-  const handleWalkInStrategyChange = (value: 'none' | 'alternateOne' | 'alternateTwo' | 'firstFive') => {
+  const handleWalkInStrategyChange = (value: 'none' | 'alternateOne' | 'alternateTwo') => {
     setSchedule(prev => ({ ...prev, walkInReservation: value }));
+  }
+
+  const handleReserveFirstFiveChange = (checked: boolean) => {
+    setSchedule(prev => ({ ...prev, reserveFirstFive: checked }));
   }
 
   const copyToWeekdays = () => {
@@ -165,28 +169,32 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
 
             <div className="space-y-4">
                 <Label className="flex items-center gap-2"><Users />Walk-in Patient Strategy</Label>
-                <RadioGroup 
-                    onValueChange={handleWalkInStrategyChange} 
-                    defaultValue={schedule.walkInReservation || 'none'}
-                    className="space-y-2"
-                >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="none" id="r1" />
-                        <Label htmlFor="r1">No reserved slots</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="firstFive" id="r4" />
-                        <Label htmlFor="r4">Reserve first 5 slots for walk-ins</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="alternateOne" id="r2" />
-                        <Label htmlFor="r2">Reserve alternate slots for walk-ins (after first 5 if enabled)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="alternateTwo" id="r3" />
-                        <Label htmlFor="r3">Reserve alternate two consecutive slots for walk-ins (after first 5 if enabled)</Label>
-                    </div>
-                </RadioGroup>
+                <div className="space-y-3">
+                   <div className="flex items-center space-x-2">
+                      <Switch id="reserveFirstFive" checked={schedule.reserveFirstFive} onCheckedChange={handleReserveFirstFiveChange} />
+                      <Label htmlFor="reserveFirstFive">Reserve first 5 slots of a session for walk-ins</Label>
+                   </div>
+                   
+                   <RadioGroup 
+                      onValueChange={handleWalkInStrategyChange} 
+                      defaultValue={schedule.walkInReservation || 'none'}
+                      className="space-y-2 border-l-2 pl-4 ml-2"
+                   >
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="none" id="r1" />
+                          <Label htmlFor="r1">No alternate slots</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="alternateOne" id="r2" />
+                          <Label htmlFor="r2">Reserve alternate slots for walk-ins</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="alternateTwo" id="r3" />
+                          <Label htmlFor="r3">Reserve alternate two consecutive slots for walk-ins</Label>
+                      </div>
+                  </RadioGroup>
+                </div>
+
             </div>
           </div>
         </CardContent>

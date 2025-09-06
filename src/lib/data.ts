@@ -77,6 +77,7 @@ let doctorStatus: DoctorStatus = {
 
 let doctorSchedule: DoctorSchedule = {
   slotDuration: 15,
+  reserveFirstFive: false,
   walkInReservation: 'none',
   days: {
     Monday: {

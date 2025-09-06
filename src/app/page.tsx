@@ -153,21 +153,21 @@ export default function DashboardPage() {
                 }
                 
                 let isReservedForWalkIn = false;
-                const reservationStrategy = schedule.walkInReservation;
-                const startIndexForAlternate = reservationStrategy === 'firstFive' ? 5 : 0;
-                
-                if (reservationStrategy === 'firstFive' && slotIndex < 5) {
+                if (schedule.reserveFirstFive && slotIndex < 5) {
                     isReservedForWalkIn = true;
-                }
-                
-                if (slotIndex >= startIndexForAlternate) {
-                    const relativeIndex = slotIndex - startIndexForAlternate;
-                    if (reservationStrategy === 'alternateOne') {
-                        if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-                    } else if (reservationStrategy === 'alternateTwo') {
-                        if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
+                } else {
+                    const reservationStrategy = schedule.walkInReservation;
+                    const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+                    if (slotIndex >= startIndexForAlternate) {
+                        const relativeIndex = slotIndex - startIndexForAlternate;
+                        if (reservationStrategy === 'alternateOne') {
+                            if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+                        } else if (reservationStrategy === 'alternateTwo') {
+                            if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
+                        }
                     }
                 }
+
 
                 generatedSlots.push({
                     time: timeString,
