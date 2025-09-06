@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule, getFamilyByPhone, addFamilyMember, updateTodayScheduleOverride, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment } from '@/lib/data';
+import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorSchedule, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -35,7 +35,6 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     phone: familyMember.phone,
     type: 'Appointment',
     appointmentTime: appointmentTime,
-    checkInTime: appointmentTime, // For appointments, check-in is appointment time until they arrive
     status: 'Confirmed', // A new status for appointments that are booked but not yet checked in
   });
 
@@ -243,6 +242,22 @@ export async function rescheduleAppointmentAction(appointmentId: number, appoint
     revalidatePath('/booking');
     revalidatePath('/');
     return { success: 'Appointment rescheduled.', patient: result };
+}
+
+export async function checkInPatientAction(patientId: number) {
+  const patient = await findPatientById(patientId);
+
+  if (!patient) {
+    return { error: 'Patient not found' };
+  }
+
+  await updatePatient(patientId, {
+    status: 'Waiting',
+    checkInTime: new Date().toISOString(),
+  });
+  
+  revalidatePath('/');
+  return { success: `${patient.name} has been checked in.` };
 }
 
 

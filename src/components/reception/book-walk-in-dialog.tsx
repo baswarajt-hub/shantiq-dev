@@ -22,7 +22,7 @@ type BookWalkInDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   timeSlot: string;
-  onSave: (familyMember: FamilyMember, time: string) => void;
+  onSave: (familyMember: FamilyMember, time: string, isWalkIn: boolean) => void;
   onAddNewPatient: (searchTerm: string) => void;
 };
 
@@ -56,7 +56,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
 
   const handleConfirmBooking = () => {
     if (selectedMember) {
-        onSave(selectedMember, timeSlot);
+        onSave(selectedMember, timeSlot, true);
         handleClose(false);
     }
   };
@@ -136,7 +136,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
         
         {step === 2 && selectedMember && (
             <div className="py-4 space-y-4">
-                <p>You are booking an appointment for:</p>
+                <p>You are booking a walk-in appointment for:</p>
                 <div className="p-3 border rounded-md bg-muted flex items-center gap-3">
                      <Avatar>
                         <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} data-ai-hint="person" />
@@ -149,7 +149,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={goBackToSearch}>Back to Search</Button>
-                    <Button onClick={handleConfirmBooking}>Confirm Appointment</Button>
+                    <Button onClick={handleConfirmBooking}>Confirm & Check-in</Button>
                 </DialogFooter>
             </div>
         )}

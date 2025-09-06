@@ -10,13 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { updateTodayScheduleOverrideAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction } from '@/app/actions';
+import { updateTodayScheduleOverrideAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -189,7 +189,7 @@ export default function DashboardPage() {
         }
     };
 
-    const handleBookAppointment = async (familyMember: FamilyMember, time: string) => {
+    const handleBookAppointment = async (familyMember: FamilyMember, time: string, isWalkIn: boolean) => {
         startTransition(async () => {
             const appointmentTime = new Date(selectedDate);
             const [hours, minutesPart] = time.split(':');
@@ -203,20 +203,18 @@ export default function DashboardPage() {
                 hourNumber = 0;
             }
             appointmentTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
-            
-            const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
 
             await addPatient({
                 name: familyMember.name,
                 phone: familyMember.phone,
-                type: 'Walk-in',
+                type: isWalkIn ? 'Walk-in' : 'Appointment',
                 appointmentTime: appointmentTime.toISOString(),
-                checkInTime: new Date().toISOString(),
-                status: isToday ? 'Waiting' : 'Confirmed',
+                status: isWalkIn ? 'Waiting' : 'Confirmed',
+                checkInTime: isWalkIn ? new Date().toISOString() : undefined,
             });
             
             await loadData();
-            toast({ title: "Success", description: "Walk-in patient added to queue."});
+            toast({ title: "Success", description: "Appointment booked successfully."});
         });
     };
     
@@ -282,6 +280,18 @@ export default function DashboardPage() {
         });
     };
 
+    const handleCheckIn = (patientId: number) => {
+        startTransition(async () => {
+            const result = await checkInPatientAction(patientId);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.success });
+                await loadData();
+            }
+        });
+    };
+
     const handleAdjustTiming = async (override: SpecialClosure) => {
         const result = await updateTodayScheduleOverrideAction(override);
         if (result.error) {
@@ -321,6 +331,8 @@ export default function DashboardPage() {
 
 
     const confirmedPatients = timeSlots.filter(s => s.isBooked && s.patient?.status !== 'Cancelled');
+    const todaysPatients = patients.filter(p => new Date(p.appointmentTime).toDateString() === selectedDate.toDateString());
+
 
     if (!schedule) {
         return (
@@ -347,7 +359,7 @@ export default function DashboardPage() {
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
                     <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-                    <Stats patients={patients} />
+                    <Stats patients={todaysPatients} />
                     
                     <Card>
                         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
@@ -449,18 +461,20 @@ export default function DashboardPage() {
                                                    )}
                                                 </div>
                                                  <div className="w-48 text-sm text-muted-foreground">
-                                                     {slot.patient.status === 'Completed' && slot.patient.consultationEndTime ? (
-                                                        `Finished at ${format(new Date(slot.patient.consultationEndTime), 'hh:mm a')}`
-                                                     ) : slot.estimatedConsultationTime ? (
-                                                        `Est. Consult: ~${slot.estimatedConsultationTime} min`
-                                                     ) : nowServingPatient ? (
-                                                        `After ${nowServingPatient.name}`
-                                                     ) : 'Next in line'}
+                                                     {slot.patient.checkInTime ? `Checked in: ${format(new Date(slot.patient.checkInTime), 'hh:mm a')}`
+                                                     : slot.patient.status === 'Completed' && slot.patient.consultationEndTime ? `Finished at ${format(new Date(slot.patient.consultationEndTime), 'hh:mm a')}`
+                                                     : 'Awaiting Check-in' }
                                                 </div>
                                             </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start">
-                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late' || slot.patient.status === 'Confirmed') && (
+                                            {slot.patient.status === 'Confirmed' && (
+                                                <DropdownMenuItem onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending}>
+                                                    <LogIn className="mr-2 h-4 w-4" />
+                                                    Check-in Patient
+                                                </DropdownMenuItem>
+                                            )}
+                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late') && (
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending}>
                                                     <ChevronsRight className="mr-2 h-4 w-4" />
                                                     Start Consultation
