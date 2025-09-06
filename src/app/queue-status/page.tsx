@@ -1,3 +1,4 @@
+
 'use client';
 
 import Header from '@/components/header';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDoctorStatus, getPatients } from '@/lib/data';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, Hourglass, User, WifiOff } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, User, WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const anonymizeName = (name: string) => {
@@ -141,6 +142,7 @@ export default function QueueStatusPage() {
   const nowServing = patients.find(p => p.status === 'In-Consultation');
   const upNext = waitingPatients[0];
   const nextInLine = waitingPatients.slice(1, 4);
+  const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -186,6 +188,25 @@ export default function QueueStatusPage() {
                 </Card>
               ))}
             </div>
+          </div>
+        )}
+
+        {waitingForReports.length > 0 && doctorStatus?.isOnline && (
+          <div className="mt-12 max-w-4xl mx-auto">
+             <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+               {waitingForReports.map((patient) => (
+                 <Card key={patient.id} className="bg-purple-100/50 border-purple-300">
+                   <CardContent className="p-4 flex items-center space-x-4">
+                     <div className="flex-shrink-0 text-purple-700"><FileClock className="h-5 w-5" /></div>
+                     <div>
+                       <p className="font-semibold">{anonymizeName(patient.name)}</p>
+                       <p className="text-sm text-muted-foreground">Please wait to be called</p>
+                     </div>
+                   </CardContent>
+                 </Card>
+               ))}
+             </div>
           </div>
         )}
       </main>
