@@ -59,7 +59,9 @@ export async function addAppointmentAction(formData: FormData) {
 
 
 export async function updatePatientStatusAction(patientId: number, status: Patient['status']) {
-  const patient = await findPatientById(patientId);
+  const patients = await getPatients();
+  const patient = patients.find(p => p.id === patientId);
+
   if (!patient) {
     return { error: 'Patient not found' };
   }
@@ -67,7 +69,22 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
   let updates: Partial<Patient> = { status };
 
   if (status === 'In-Consultation') {
+    // If we are starting a new consultation, find and complete any existing one.
+    const currentlyServing = patients.find(p => p.status === 'In-Consultation');
+    if (currentlyServing && currentlyServing.id !== patientId) {
+      const startTime = new Date(currentlyServing.consultationStartTime!);
+      const endTime = new Date();
+      const completedUpdates: Partial<Patient> = {
+        status: 'Completed',
+        consultationEndTime: endTime.toISOString(),
+        consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)), // in minutes
+      };
+      await updatePatient(currentlyServing.id, completedUpdates);
+    }
+    
+    // Now, set the new patient to "In-Consultation"
     updates.consultationStartTime = new Date().toISOString();
+
   } else if (status === 'Completed' && patient.consultationStartTime) {
     const startTime = new Date(patient.consultationStartTime);
     const endTime = new Date();
@@ -212,4 +229,5 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
 // Re-exporting for use in the new dashboard
 export { estimateConsultationTime };
 export { getFamily, getPatients, addPatient };
+
 
