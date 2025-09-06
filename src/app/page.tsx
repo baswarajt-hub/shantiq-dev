@@ -16,7 +16,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatus } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatus as fetchDoctorStatus } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +73,7 @@ export default function DashboardPage() {
             const scheduleData = await getDoctorSchedule();
             const patientData = await getPatients();
             const familyData = await getFamily();
-            const statusData = await getDoctorStatus();
+            const statusData = await fetchDoctorStatus();
             
             setSchedule(scheduleData);
             setPatients(patientData);
@@ -134,13 +134,13 @@ export default function DashboardPage() {
       const interval = setInterval(autoCheckout, 60000); // Check every minute
       return () => clearInterval(interval);
 
-  }, [schedule, patients, doctorStatus]);
+  }, [schedule, patients, doctorStatus, selectedDate]);
 
 
     useEffect(() => {
         if (!schedule) return;
 
-        const familyMap = new Map(family.map(f => `${f.phone}-${f.name}`, f));
+        const familyMap = new Map(family.map(f => [`${f.phone}-${f.name}`, f]));
         
         const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
@@ -205,7 +205,7 @@ export default function DashboardPage() {
                     isBooked: isBooked,
                     isReservedForWalkIn: isReservedForWalkIn,
                     patient: patientForSlot,
-                    patientDetails: patientForSlot ? family.find(f => f.phone === patientForSlot.phone && f.name === patientForSlot.name) : undefined,
+                    patientDetails: patientForSlot ? familyMap.get(`${patientForSlot.phone}-${patientForSlot.name}`) : undefined,
                 });
 
                 currentTime = addMinutes(currentTime, schedule.slotDuration);
@@ -655,14 +655,14 @@ export default function DashboardPage() {
                                     <div 
                                       className={cn(
                                           "p-3 flex items-center rounded-lg border border-dashed hover:bg-muted/60 cursor-pointer",
-                                           (slot.isReservedForWalkIn && !slot.isBooked) ? "bg-amber-50" : "bg-muted/30"
+                                           "bg-muted/30"
                                       )} 
                                       onClick={() => handleSlotClick(slot.time)}
                                     >
                                          <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
                                          <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
-                                         <div className={cn("flex-1 font-semibold flex items-center justify-center gap-2", (slot.isReservedForWalkIn && !slot.isBooked) ? "text-amber-600" : "text-green-600")}>
-                                           {(slot.isReservedForWalkIn && !slot.isBooked) ? (
+                                         <div className={cn("flex-1 font-semibold flex items-center justify-center gap-2", (slot.isReservedForWalkIn) ? "text-amber-600" : "text-green-600")}>
+                                           {(slot.isReservedForWalkIn) ? (
                                              <Footprints className="h-4 w-4"/>
                                            ) : (
                                              <PlusCircle className="h-4 w-4"/>
@@ -719,3 +719,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
