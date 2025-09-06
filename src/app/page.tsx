@@ -223,7 +223,7 @@ export default function DashboardPage() {
     const handleAddNewPatient = async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>) => {
         const newPatient = await addFamilyMember(newPatientData);
         if (newPatient) {
-            setFamily(prev => [...prev, newPatient]);
+            await loadData();
             toast({ title: "Success", description: "New patient added successfully."});
         }
     };
@@ -265,7 +265,7 @@ export default function DashboardPage() {
     
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
-        if (/^\d+$/.test(searchTerm)) {
+        if (/^\\d+$/.test(searchTerm)) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
