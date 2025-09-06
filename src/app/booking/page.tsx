@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
 import { getDoctorSchedule, getFamily, getPatients, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 
 const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
@@ -31,7 +31,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
   
     const checkTime = () => {
       const now = new Date();
-      const appointmentDate = new Date(appointment.date);
+      const appointmentDate = parseISO(appointment.date);
       const dayOfWeek = format(appointmentDate, 'EEEE') as keyof DoctorSchedule['days'];
       const daySchedule = schedule.days[dayOfWeek];
   
@@ -184,12 +184,13 @@ export default function BookingPage() {
         .filter(p => p.type === 'Appointment' || p.status === 'Confirmed') 
         .map(p => {
             const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
+            const appointmentDate = parseISO(p.appointmentTime);
             return {
                 id: p.id,
                 familyMemberId: famMember?.id || 0,
                 familyMemberName: p.name,
                 date: p.appointmentTime,
-                time: format(new Date(p.appointmentTime), 'hh:mm a'),
+                time: format(appointmentDate, 'hh:mm a'),
                 status: p.status, 
                 type: p.type
             }
@@ -306,8 +307,8 @@ export default function BookingPage() {
     }
   };
   
-  const upcomingAppointments = appointments.filter(appt => appt.status === 'Confirmed' && new Date(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
-  const pastAppointments = appointments.filter(appt => appt.status !== 'Confirmed' || new Date(appt.date) < new Date(new Date().setHours(0,0,0,0)));
+  const upcomingAppointments = appointments.filter(appt => appt.status === 'Confirmed' && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
+  const pastAppointments = appointments.filter(appt => appt.status !== 'Confirmed' || parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0)));
   const currentDaySchedule = todaySchedule();
 
   return (
@@ -399,7 +400,7 @@ export default function BookingPage() {
                       <div>
                          <p className="font-bold text-lg">{appt.familyMemberName}</p>
                          <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-                            <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {new Date(appt.date).toDateString()}</span>
+                            <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
                             <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
                          </div>
                       </div>
@@ -427,7 +428,7 @@ export default function BookingPage() {
               <CardContent className="space-y-4">
                 {pastAppointments.length > 0 ? pastAppointments.map(appt => {
                     let finalStatus = appt.status;
-                    if (finalStatus === 'Confirmed' && new Date(appt.date) < new Date(new Date().setHours(0,0,0,0))) {
+                    if (finalStatus === 'Confirmed' && parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0))) {
                         finalStatus = 'Missed';
                     }
 
@@ -441,7 +442,7 @@ export default function BookingPage() {
                                 <div>
                                     <p className="font-bold text-lg">{appt.familyMemberName}</p>
                                     <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-                                        <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {new Date(appt.date).toDateString()}</span>
+                                        <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
                                         <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
                                     </div>
                                 </div>
@@ -493,3 +494,5 @@ export default function BookingPage() {
     </div>
   );
 }
+
+    

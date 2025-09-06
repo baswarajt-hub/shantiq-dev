@@ -74,8 +74,10 @@ export type Appointment = {
   id: number;
   familyMemberId: number;
   familyMemberName: string;
-  date: string; // ISO string format
+  date: string; // ISO string format from Patient.appointmentTime
   time: string;
   status: Patient['status'] | 'Missed' | 'Yet to Arrive';
   type?: 'Appointment' | 'Walk-in';
 };
+
+    
