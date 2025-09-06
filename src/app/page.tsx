@@ -114,9 +114,9 @@ export default function DashboardPage() {
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
                 
-                const slotStartTimeUTC = new Date(currentTime.getTime() - (5.5 * 60 * 60 * 1000));
+                const slotStartTimeUTC = new Date(currentTime);
                 const slotEndTimeUTC = addMinutes(slotStartTimeUTC, schedule.slotDuration);
-                
+
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
 
@@ -593,5 +593,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
