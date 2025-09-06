@@ -3,7 +3,7 @@
 
 import Header from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getDoctorStatus, getPatients } from '@/lib/data';
+import { getDoctorStatusAction, getPatientsAction } from '@/app/actions';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Clock, FileClock, Hourglass, User, WifiOff } from 'lucide-react';
@@ -129,8 +129,8 @@ export default function QueueStatusPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const patientData: Patient[] = await getPatients();
-      const statusData = await getDoctorStatus();
+      const patientData: Patient[] = await getPatientsAction();
+      const statusData = await getDoctorStatusAction();
       const todayString = new Date().toDateString();
       const todaysPatients = patientData.filter(p => new Date(p.appointmentTime).toDateString() === todayString);
       setPatients(todaysPatients);
@@ -174,20 +174,19 @@ export default function QueueStatusPage() {
           {upNext ? (
             <QueueStatusCard patient={upNext} title="You're Up Next!" subtitle="Please proceed to the waiting area" highlight />
           ) : (
-            <Card>
+             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{doctorStatus?.isOnline ? 'Queue is Empty' : 'Doctor is Offline'}</CardTitle>
+                <CardTitle className="text-lg">{!doctorStatus?.isOnline ? 'Doctor is Offline' : 'Queue is Empty'}</CardTitle>
+                <p className="text-sm text-muted-foreground">Please check back later.</p>
               </CardHeader>
               <CardContent>
-                 <p>{!doctorStatus?.isOnline ? "The doctor is currently offline. You can still see your position in the queue." : "There are no patients currently waiting."}</p>
-                 {!upNext && patients.length > 0 && <p className="mt-2">No patients are currently waiting.</p>}
-                 {!upNext && patients.length === 0 && <p className="mt-2">There are no patients in the queue for today.</p>}
+                 <p>{doctorStatus?.isOnline ? "There are no patients currently waiting." : "The waiting queue will be displayed once the doctor is online."}</p>
               </CardContent>
             </Card>
           )}
         </div>
 
-        {nextInLine.length > 0 && (
+        {(doctorStatus?.isOnline || waitingPatients.length > 0) && nextInLine.length > 0 && (
           <div className="mt-12 max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-6">Next in Line</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -205,8 +204,8 @@ export default function QueueStatusPage() {
             </div>
           </div>
         )}
-
-        {waitingForReports.length > 0 && (
+        
+        {(doctorStatus?.isOnline || waitingForReports.length > 0) && waitingForReports.length > 0 && (
           <div className="mt-12 max-w-4xl mx-auto">
              <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -223,6 +222,12 @@ export default function QueueStatusPage() {
                ))}
              </div>
           </div>
+        )}
+
+        {!doctorStatus?.isOnline && waitingPatients.length === 0 && (
+            <div className="mt-12 max-w-4xl mx-auto text-center">
+                 <p className="text-muted-foreground">The doctor is currently offline. You can still see your position in the queue once patients have checked in.</p>
+            </div>
         )}
       </main>
     </div>

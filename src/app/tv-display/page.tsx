@@ -1,6 +1,6 @@
 
 'use client';
-import { getDoctorStatus, getPatients } from '@/lib/data';
+import { getDoctorStatusAction, getPatientsAction } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User } from 'lucide-react';
@@ -23,8 +23,8 @@ export default function TVDisplayPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const patientData: Patient[] = await getPatients();
-      const statusData = await getDoctorStatus();
+      const patientData: Patient[] = await getPatientsAction();
+      const statusData = await getDoctorStatusAction();
       const todayString = new Date().toDateString();
       const todaysPatients = patientData.filter(p => new Date(p.appointmentTime).toDateString() === todayString);
       setPatients(todaysPatients);
@@ -135,7 +135,7 @@ export default function TVDisplayPage() {
         </div>
       </main>
 
-      {waitingForReports.length > 0 && doctorStatus?.isOnline && (
+      {(doctorStatus?.isOnline || waitingForReports.length > 0) && waitingForReports.length > 0 && (
          <footer className="pt-8 mt-8 border-t-2 border-slate-700">
             <h2 className="text-4xl text-purple-300 font-semibold mb-6 text-center">WAITING FOR REPORTS</h2>
              <div className="grid grid-cols-3 gap-6">

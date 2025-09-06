@@ -16,7 +16,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatus as fetchDoctorStatus } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatientsAction, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction as fetchDoctorStatus } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -71,7 +71,7 @@ export default function DashboardPage() {
     const loadData = async () => {
         startTransition(async () => {
             const scheduleData = await getDoctorSchedule();
-            const patientData = await getPatients();
+            const patientData = await getPatientsAction();
             const familyData = await getFamily();
             const statusData = await fetchDoctorStatus();
             
@@ -719,5 +719,7 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
 
     

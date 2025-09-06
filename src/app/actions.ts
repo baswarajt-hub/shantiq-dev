@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, getDoctorStatus, updateDoctorStatus, getDoctorSchedule, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment } from '@/lib/data';
+import { addPatient, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -46,7 +46,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
 
 
 export async function updatePatientStatusAction(patientId: number, status: Patient['status']) {
-  const patients = await getPatients();
+  const patients = await getPatientsData();
   const patient = patients.find(p => p.id === patientId);
 
   if (!patient) {
@@ -90,7 +90,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
 
 export async function runTimeEstimationAction(aiPatientData: AIPatientData) {
   try {
-    const patients = await getPatients();
+    const patients = await getPatientsData();
     const waitingPatients = patients.filter(p => p.status === 'Waiting');
 
     for (const patient of waitingPatients) {
@@ -138,7 +138,7 @@ export async function sendReminderAction(patientId: number) {
 }
 
 export async function emergencyCancelAction() {
-  let patients = await getPatients();
+  let patients = await getPatientsData();
   patients = patients.map(p => 
     p.status === 'Waiting' || p.status === 'In-Consultation' || p.status === 'Late'
       ? { ...p, status: 'Cancelled' } 
@@ -153,7 +153,7 @@ export async function emergencyCancelAction() {
 }
 
 export async function toggleDoctorStatusAction() {
-  const currentStatus = await getDoctorStatus();
+  const currentStatus = await getDoctorStatusData();
   const newStatus: DoctorStatus = {
     isOnline: !currentStatus.isOnline,
     onlineTime: !currentStatus.isOnline ? new Date().toISOString() : undefined,
@@ -263,4 +263,13 @@ export async function checkInPatientAction(patientId: number) {
 
 // Re-exporting for use in the new dashboard
 export { estimateConsultationTime };
-export { getFamily, getPatients, addPatient, getDoctorSchedule, getDoctorStatus };
+export { getFamily, addPatient, getDoctorSchedule };
+
+// Actions for live data fetching
+export async function getPatientsAction() {
+    return getPatientsData();
+}
+
+export async function getDoctorStatusAction() {
+    return getDoctorStatusData();
+}
