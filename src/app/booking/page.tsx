@@ -317,8 +317,10 @@ export default function BookingPage() {
     }
   };
   
-  const upcomingAppointments = appointments.filter(appt => appt.status === 'Confirmed' && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
-  const pastAppointments = appointments.filter(appt => appt.status !== 'Confirmed' || parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0)));
+  const now = new Date();
+  const upcomingAppointments = appointments.filter(appt => appt.status === 'Confirmed' && parseISO(appt.date) >= now);
+  const pastAppointments = appointments.filter(appt => appt.status !== 'Confirmed' || parseISO(appt.date) < now);
+
   const currentDaySchedule = todaySchedule();
 
   return (
