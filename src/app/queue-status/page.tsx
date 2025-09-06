@@ -129,9 +129,11 @@ export default function QueueStatusPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const patientData = await getPatients();
+      const patientData: Patient[] = await getPatients();
       const statusData = await getDoctorStatus();
-      setPatients(patientData);
+      const todayString = new Date().toDateString();
+      const todaysPatients = patientData.filter(p => new Date(p.appointmentTime).toDateString() === todayString);
+      setPatients(todaysPatients);
       setDoctorStatus(statusData);
     };
 
@@ -178,7 +180,8 @@ export default function QueueStatusPage() {
               </CardHeader>
               <CardContent>
                  <p>{!doctorStatus?.isOnline ? "The doctor is currently offline. You can still see your position in the queue." : "There are no patients currently waiting."}</p>
-                 {!upNext && <p className="mt-2">There are no patients in the queue.</p>}
+                 {!upNext && patients.length > 0 && <p className="mt-2">No patients are currently waiting.</p>}
+                 {!upNext && patients.length === 0 && <p className="mt-2">There are no patients in the queue for today.</p>}
               </CardContent>
             </Card>
           )}

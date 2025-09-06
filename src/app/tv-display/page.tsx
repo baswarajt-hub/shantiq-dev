@@ -23,9 +23,11 @@ export default function TVDisplayPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const patientData = await getPatients();
+      const patientData: Patient[] = await getPatients();
       const statusData = await getDoctorStatus();
-      setPatients(patientData);
+      const todayString = new Date().toDateString();
+      const todaysPatients = patientData.filter(p => new Date(p.appointmentTime).toDateString() === todayString);
+      setPatients(todaysPatients);
       setDoctorStatus(statusData);
     };
 
