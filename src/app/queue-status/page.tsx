@@ -8,6 +8,7 @@ import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Clock, FileClock, Hourglass, User, WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { format, parseISO } from 'date-fns';
 
 const anonymizeName = (name: string) => {
   const parts = name.split(' ');
@@ -46,7 +47,7 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
   
   useEffect(() => {
     if (patient) {
-      setFormattedTime(new Date(patient.appointmentTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setFormattedTime(format(parseISO(patient.appointmentTime), 'hh:mm a'));
     }
   }, [patient]);
 

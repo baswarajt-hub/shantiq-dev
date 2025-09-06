@@ -40,7 +40,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, date: str
   let hourNumber = parseInt(hours, 10);
     if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
         hourNumber += 12;
-    } else if (ampm.toLowerCase() === 'am' && hourNumber === 12) { // Midnight case
+    } else if (ampm.toLowerCase() === 'am' && hourNumber === 12) { // Midnight case for 12 AM
         hourNumber = 0;
     }
   
@@ -264,7 +264,7 @@ export async function rescheduleAppointmentAction(appointmentId: number, newDate
     let hourNumber = parseInt(hours, 10);
     if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
         hourNumber += 12;
-    } else if (ampm.toLowerCase() === 'am' && hourNumber === 12) { // Midnight case
+    } else if (ampm.toLowerCase() === 'am' && hourNumber === 12) { // Midnight case for 12 AM
         hourNumber = 0;
     }
 
