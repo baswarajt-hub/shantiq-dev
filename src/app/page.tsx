@@ -168,12 +168,11 @@ export default function DashboardPage() {
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
                 
-                const slotStartTimeUTC = addMinutes(currentTime, currentTime.getTimezoneOffset() * -1);
+                const slotStartTimeUTC = new Date(currentTime.getTime() - (currentTime.getTimezoneOffset() * 60000));
                 const slotEndTimeUTC = addMinutes(slotStartTimeUTC, schedule.slotDuration);
 
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
-
                     const patientApptTime = parseISO(p.appointmentTime);
                     return patientApptTime >= slotStartTimeUTC && patientApptTime < slotEndTimeUTC;
                 });
@@ -657,14 +656,14 @@ export default function DashboardPage() {
                                     <div 
                                       className={cn(
                                           "p-3 flex items-center rounded-lg border border-dashed hover:bg-muted/60 cursor-pointer",
-                                           slot.isReservedForWalkIn ? "bg-amber-50" : "bg-muted/30"
+                                           (slot.isReservedForWalkIn && !slot.isBooked) ? "bg-amber-50" : "bg-muted/30"
                                       )} 
                                       onClick={() => handleSlotClick(slot.time)}
                                     >
                                          <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
                                          <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
-                                         <div className={cn("flex-1 font-semibold flex items-center gap-2", slot.isReservedForWalkIn ? "text-amber-600" : "text-green-600")}>
-                                           {slot.isReservedForWalkIn ? (
+                                         <div className={cn("flex-1 font-semibold flex items-center gap-2", (slot.isReservedForWalkIn && !slot.isBooked) ? "text-amber-600" : "text-green-600")}>
+                                           {(slot.isReservedForWalkIn && !slot.isBooked) ? (
                                              <Footprints className="h-4 w-4"/>
                                            ) : (
                                              <PlusCircle className="h-4 w-4"/>
@@ -721,3 +720,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
