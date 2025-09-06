@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure } from '@/lib/types';
-import { format, set, addMinutes, parseISO } from 'date-fns';
+import { format, set, addMinutes, parseISO, parse } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { getDoctorStatus } from '@/lib/data';
-import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatus } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -141,6 +140,8 @@ export default function DashboardPage() {
     useEffect(() => {
         if (!schedule) return;
 
+        const familyMap = new Map(family.map(f => `${f.phone}-${f.name}`, f));
+        
         const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
         const generatedSlots: TimeSlot[] = [];
@@ -168,25 +169,23 @@ export default function DashboardPage() {
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
                 
-                const slotStartTimeUTC = new Date(currentTime.getTime() - (currentTime.getTimezoneOffset() * 60000));
-                const slotEndTimeUTC = addMinutes(slotStartTimeUTC, schedule.slotDuration);
+                const slotStartTime = currentTime;
+                const slotEndTime = addMinutes(currentTime, schedule.slotDuration);
 
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
                     const patientApptTime = parseISO(p.appointmentTime);
-                    return patientApptTime >= slotStartTimeUTC && patientApptTime < slotEndTimeUTC;
+                    return patientApptTime >= slotStartTime && patientApptTime < slotEndTime;
                 });
                 
                 let isBooked = !!patientForSlot;
                 
                 let isReservedForWalkIn = false;
                 if (!isBooked) {
-                    // Rule 1: Reserve first 5 slots
                     if (schedule.reserveFirstFive && slotIndex < 5) {
                         isReservedForWalkIn = true;
                     }
 
-                    // Rule 2: Alternate reservation strategies (applies after the first 5 if that rule is active)
                     const reservationStrategy = schedule.walkInReservation;
                     const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
 
@@ -662,7 +661,7 @@ export default function DashboardPage() {
                                     >
                                          <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
                                          <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
-                                         <div className={cn("flex-1 font-semibold flex items-center gap-2", (slot.isReservedForWalkIn && !slot.isBooked) ? "text-amber-600" : "text-green-600")}>
+                                         <div className={cn("flex-1 font-semibold flex items-center justify-center gap-2", (slot.isReservedForWalkIn && !slot.isBooked) ? "text-amber-600" : "text-green-600")}>
                                            {(slot.isReservedForWalkIn && !slot.isBooked) ? (
                                              <Footprints className="h-4 w-4"/>
                                            ) : (
@@ -720,5 +719,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    

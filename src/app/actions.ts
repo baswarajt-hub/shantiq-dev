@@ -263,4 +263,4 @@ export async function checkInPatientAction(patientId: number) {
 
 // Re-exporting for use in the new dashboard
 export { estimateConsultationTime };
-export { getFamily, getPatients, addPatient, getDoctorSchedule };
+export { getFamily, getPatients, addPatient, getDoctorSchedule, getDoctorStatus };
