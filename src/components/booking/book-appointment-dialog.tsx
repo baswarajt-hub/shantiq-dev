@@ -41,10 +41,10 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     if (schedule && selectedDate) {
       const generatedSlots: {time: string, isReserved: boolean, isBooked: boolean}[] = [];
       const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
-      const todayStr = format(selectedDate, 'yyyy-MM-dd');
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       
       let daySchedule = schedule.days[dayOfWeek];
-      const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+      const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
 
       if (todayOverride) {
           daySchedule = {
@@ -72,22 +72,27 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
           const timeString = format(currentTime, 'hh:mm a');
           const isBooked = bookedSlotsForDay.includes(timeString);
           let isReservedForWalkIn = false;
+          
           if (!isBooked) {
-              if (schedule.reserveFirstFive && slotIndex < 5) {
-                  isReservedForWalkIn = true;
-              } else {
-                  const reservationStrategy = schedule.walkInReservation;
-                  const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
-                  if (slotIndex >= startIndexForAlternate) {
-                      const relativeIndex = slotIndex - startIndexForAlternate;
-                      if (reservationStrategy === 'alternateOne') {
-                          if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-                      } else if (reservationStrategy === 'alternateTwo') {
-                          if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
-                      }
-                  }
+            // Rule 1: Reserve first 5 slots
+            if (schedule.reserveFirstFive && slotIndex < 5) {
+              isReservedForWalkIn = true;
+            }
+
+            // Rule 2: Alternate reservation strategies (applies after the first 5 if that rule is active)
+            const reservationStrategy = schedule.walkInReservation;
+            const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+
+            if (slotIndex >= startIndexForAlternate) {
+              const relativeIndex = slotIndex - startIndexForAlternate;
+              if (reservationStrategy === 'alternateOne') {
+                if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+              } else if (reservationStrategy === 'alternateTwo') {
+                if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
               }
+            }
           }
+
           generatedSlots.push({ time: timeString, isReserved: isReservedForWalkIn, isBooked });
           currentTime = addMinutes(currentTime, schedule.slotDuration);
           slotIndex++;
