@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule, getFamilyByPhone, addFamilyMember, updateTodayScheduleOverride, getFamily } from '@/lib/data';
+import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule, getFamilyByPhone, addFamilyMember, updateTodayScheduleOverride, getFamily, searchFamilyMembers } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -189,6 +189,10 @@ export async function getFamilyByPhoneAction(phone: string): Promise<FamilyMembe
     return await getFamilyByPhone(phone);
 }
 
+export async function searchFamilyMembersAction(searchTerm: string): Promise<FamilyMember[]> {
+    return await searchFamilyMembers(searchTerm);
+}
+
 export async function addNewPatientAction(patientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<{ success: string; patient: FamilyMember }> {
     const newPatient = await addFamilyMember(patientData);
     revalidatePath('/');
@@ -208,4 +212,3 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
 // Re-exporting for use in the new dashboard
 export { estimateConsultationTime };
 export { getFamily, getPatients, addPatient };
-    

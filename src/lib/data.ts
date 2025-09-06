@@ -180,6 +180,18 @@ export async function getFamilyByPhone(phone: string) {
     return family.filter(member => member.phone === phone);
 }
 
+export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMember[]> {
+    if (!searchTerm.trim()) {
+        return [];
+    }
+    const lowercasedTerm = searchTerm.toLowerCase();
+    return family.filter(member =>
+        member.name.toLowerCase().includes(lowercasedTerm) ||
+        member.phone.includes(searchTerm) ||
+        (member.clinicId && member.clinicId.toLowerCase().includes(lowercasedTerm))
+    );
+}
+
 export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember> {
     const newMember: FamilyMember = {
         ...memberData,
@@ -193,4 +205,3 @@ export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'ava
 export async function getFamily() {
     return family;
 }
-    

@@ -15,8 +15,7 @@ import { Label } from '@/components/ui/label';
 import type { FamilyMember } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { UserPlus } from 'lucide-react';
-import { getFamilyByPhoneAction } from '@/app/actions';
-import { useToast } from '@/hooks/use-toast';
+import { searchFamilyMembersAction } from '@/app/actions';
 
 type BookWalkInDialogProps = {
   isOpen: boolean;
@@ -32,7 +31,6 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -41,11 +39,10 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
         return;
       }
       startTransition(async () => {
-        // In a real app, you would also search by name and clinic ID
-        const results = await getFamilyByPhoneAction(searchTerm);
+        const results = await searchFamilyMembersAction(searchTerm);
         setFoundMembers(results);
       });
-    }, 500); // Debounce search
+    }, 300); // Debounce search
 
     return () => clearTimeout(handler);
   }, [searchTerm]);
@@ -156,5 +153,3 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
     </Dialog>
   );
 }
-
-    
