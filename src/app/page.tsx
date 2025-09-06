@@ -295,7 +295,7 @@ export default function DashboardPage() {
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
-        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
+        if (/^\\d{5,}$/.test(searchTerm.replace(/\\D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
@@ -351,27 +351,26 @@ export default function DashboardPage() {
                     
                     <Card>
                         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
-                            <div className="flex items-center gap-4">
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant={"outline"} className={cn("w-[280px] justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <Calendar
-                                            mode="single"
-                                            selected={selectedDate}
-                                            onSelect={(day) => day && setSelectedDate(day)}
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                                <div>
-                                    <CardTitle className="text-2xl">Schedule</CardTitle>
-                                    <CardDescription>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardDescription>
-                                </div>
+                            <div>
+                               <div className="flex items-center gap-2">
+                                  <CardTitle className="text-2xl">Schedule</CardTitle>
+                                  <Popover>
+                                      <PopoverTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                                             <CalendarIcon className="h-4 w-4" />
+                                          </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0">
+                                          <Calendar
+                                              mode="single"
+                                              selected={selectedDate}
+                                              onSelect={(day) => day && setSelectedDate(day)}
+                                              initialFocus
+                                          />
+                                      </PopoverContent>
+                                  </Popover>
+                               </div>
+                                <CardDescription>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardDescription>
                             </div>
                              <div className="flex items-center gap-2 flex-wrap">
                                 <div className="relative">
