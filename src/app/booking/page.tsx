@@ -123,7 +123,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action is permanent and you will not receive a refund. Are you sure you want to cancel?
-              </d'AlertDialogDescription>
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Go Back</AlertDialogCancel>
