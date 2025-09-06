@@ -16,7 +16,7 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { getDoctorSchedule, getFamily, getPatients, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
+import { getDoctorSchedule, getFamily, getPatientsAction, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
 import { format, parseISO, parse as parseDate } from 'date-fns';
 
 
@@ -164,7 +164,7 @@ export default function BookingPage() {
   const loadData = async () => {
     startTransition(async () => {
         const familyData = await getFamily();
-        const patientData = await getPatients();
+        const patientData = await getPatientsAction();
         const scheduleData = await getDoctorSchedule();
         
         setFamily(familyData);
