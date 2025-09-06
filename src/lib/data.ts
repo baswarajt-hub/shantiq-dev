@@ -99,7 +99,7 @@ let doctorSchedule: DoctorSchedule = {
     },
     Saturday: {
       morning: { start: '10:00', end: '14:00', isOpen: true },
-      evening: { start: '', end: '', isOpen: false },
+      evening: { start: '16:00', end: '19:00', isOpen: true },
     },
     Sunday: {
       morning: { start: '', end: '', isOpen: false },
