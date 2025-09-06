@@ -25,7 +25,7 @@ type RescheduleAppointmentDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   appointment: Appointment;
   schedule: DoctorSchedule;
-  onSave: (newDate: Date, newTime: string) => void;
+  onSave: (newDate: string, newTime: string) => void;
   bookedPatients: Patient[];
 };
 
@@ -131,7 +131,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
 
   const handleSave = () => {
     if (selectedDate && selectedSlot) {
-      onSave(selectedDate, selectedSlot);
+      onSave(format(selectedDate, 'yyyy-MM-dd'), selectedSlot);
       handleClose(false);
     }
   };

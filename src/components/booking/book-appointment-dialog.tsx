@@ -143,7 +143,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     if (selectedMember && selectedDate && selectedSlot) {
       toast({ title: 'Processing Payment...', description: 'Please wait.' });
       setTimeout(() => {
-          onSave(selectedMember, selectedDate.toISOString(), selectedSlot);
+          onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot);
           handleClose(false);
       }, 1500)
     }

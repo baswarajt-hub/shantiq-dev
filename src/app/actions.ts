@@ -30,8 +30,8 @@ export async function addWalkInPatientAction(formData: FormData) {
 
 export async function addAppointmentAction(familyMember: FamilyMember, date: string, time: string) {
 
-  // Manually parse date to avoid timezone issues. date is in ISO string format (e.g., "2025-09-08T00:00:00.000Z") but we only care about the date part.
-  const [year, month, day] = date.split('T')[0].split('-').map(Number);
+  // Manually parse date to avoid timezone issues. date is in YYYY-MM-DD format.
+  const [year, month, day] = date.split('-').map(Number);
 
   const [hours, minutesPart] = time.split(':');
   const minutes = minutesPart.split(' ')[0];
@@ -252,8 +252,8 @@ export async function cancelAppointmentAction(appointmentId: number) {
 }
 
 export async function rescheduleAppointmentAction(appointmentId: number, newDate: string, newTime: string) {
-    // Manually parse date to avoid timezone issues. newDate is in ISO string format.
-    const [year, month, day] = newDate.split('T')[0].split('-').map(Number);
+    // Manually parse date to avoid timezone issues. newDate is in YYYY-MM-DD format.
+    const [year, month, day] = newDate.split('-').map(Number);
     
     const [hours, minutesPart] = newTime.split(':');
     const minutes = minutesPart.split(' ')[0];

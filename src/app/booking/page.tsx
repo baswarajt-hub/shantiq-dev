@@ -292,10 +292,10 @@ export default function BookingPage() {
     setEditMemberOpen(true);
   }
 
-  const handleRescheduleAppointment = (newDate: Date, newTime: string) => {
+  const handleRescheduleAppointment = (newDate: string, newTime: string) => {
     if (selectedAppointment) {
       startTransition(async () => {
-        const result = await rescheduleAppointmentAction(selectedAppointment.id, newDate.toISOString(), newTime);
+        const result = await rescheduleAppointmentAction(selectedAppointment.id, newDate, newTime);
         if(result.success) {
           toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
           await loadData();
