@@ -22,11 +22,12 @@ type BookWalkInDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   timeSlot: string;
-  onSave: (familyMember: FamilyMember, time: string, isWalkIn: boolean) => void;
+  selectedDate: Date;
+  onSave: (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean) => void;
   onAddNewPatient: (searchTerm: string) => void;
 };
 
-export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAddNewPatient }: BookWalkInDialogProps) {
+export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate, onSave, onAddNewPatient }: BookWalkInDialogProps) {
   const [step, setStep] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
@@ -56,7 +57,19 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
 
   const handleConfirmBooking = () => {
     if (selectedMember) {
-        onSave(selectedMember, timeSlot, true);
+        const [time, ampm] = timeSlot.split(' ');
+        const [hours, minutes] = time.split(':');
+        let hourNumber = parseInt(hours, 10);
+        if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
+            hourNumber += 12;
+        }
+        if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
+            hourNumber = 0;
+        }
+        const appointmentDate = new Date(selectedDate);
+        appointmentDate.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
+
+        onSave(selectedMember, appointmentDate.toISOString(), true);
         handleClose(false);
     }
   };

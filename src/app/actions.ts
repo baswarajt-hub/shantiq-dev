@@ -35,7 +35,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     phone: familyMember.phone,
     type: 'Appointment',
     appointmentTime: appointmentTime,
-    status: 'Confirmed', // A new status for appointments that are booked but not yet checked in
+    status: 'Confirmed',
   });
 
   revalidatePath('/booking');
@@ -216,7 +216,7 @@ export async function updateFamilyMemberAction(member: FamilyMember) {
 
 export async function updateTodayScheduleOverrideAction(override: SpecialClosure) {
     try {
-        await updateTodayScheduleOverride(override);
+        await updateDoctorSchedule(override);
         revalidatePath('/');
         revalidatePath('/booking');
         return { success: 'Today\'s schedule has been adjusted.' };

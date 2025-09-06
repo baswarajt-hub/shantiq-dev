@@ -116,15 +116,20 @@ export default function DashboardPage() {
                 
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
-                    const apptTime = parseISO(p.appointmentTime);
+
+                    const apptTimeInIST = new Date(p.appointmentTime).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: 'Asia/Kolkata',
+                    });
                     
-                    const localTime = new Date(currentTime);
-                    
-                    return apptTime.getFullYear() === localTime.getFullYear() &&
-                           apptTime.getMonth() === localTime.getMonth() &&
-                           apptTime.getDate() === localTime.getDate() &&
-                           apptTime.getHours() === localTime.getHours() &&
-                           apptTime.getMinutes() === localTime.getMinutes();
+                    const slotTime = format(currentTime, 'hh:mm a');
+
+                    const apptDateStr = new Date(p.appointmentTime).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+
+                    return apptDateStr === selectedDateStr && apptTimeInIST.replace(/\s/g, '') === slotTime.replace(/\s/g, '');
                 });
                 
                 let isBooked = !!patientForSlot;
@@ -201,26 +206,13 @@ export default function DashboardPage() {
         }
     };
 
-    const handleBookAppointment = async (familyMember: FamilyMember, time: string, isWalkIn: boolean) => {
+    const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean) => {
         startTransition(async () => {
-            const appointmentTime = new Date(selectedDate);
-            const [hours, minutesPart] = time.split(':');
-            const minutes = minutesPart.split(' ')[0];
-            const ampm = minutesPart.split(' ')[1];
-            let hourNumber = parseInt(hours, 10);
-            if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
-                hourNumber += 12;
-            }
-            if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
-                hourNumber = 0;
-            }
-            appointmentTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
-
             await addPatient({
                 name: familyMember.name,
                 phone: familyMember.phone,
                 type: isWalkIn ? 'Walk-in' : 'Appointment',
-                appointmentTime: appointmentTime.toISOString(),
+                appointmentTime: appointmentIsoString,
                 status: isWalkIn ? 'Waiting' : 'Confirmed',
                 checkInTime: isWalkIn ? new Date().toISOString() : undefined,
             });
@@ -473,8 +465,8 @@ export default function DashboardPage() {
                                                    )}
                                                 </div>
                                                  <div className="w-48 text-sm text-muted-foreground">
-                                                     {slot.patient.checkInTime ? `Checked in: ${format(parseISO(slot.patient.checkInTime), 'hh:mm a')}`
-                                                     : slot.patient.status === 'Completed' && slot.patient.consultationEndTime ? `Finished at ${format(parseISO(slot.patient.consultationEndTime), 'hh:mm a')}`
+                                                     {slot.patient.checkInTime ? `Checked in: ${new Date(slot.patient.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
+                                                     : slot.patient.status === 'Completed' && slot.patient.consultationEndTime ? `Finished at ${new Date(slot.patient.consultationEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
                                                      : 'Awaiting Check-in' }
                                                 </div>
                                             </div>
@@ -576,6 +568,7 @@ export default function DashboardPage() {
                         isOpen={isBookWalkInOpen}
                         onOpenChange={setBookWalkInOpen}
                         timeSlot={selectedSlot}
+                        selectedDate={selectedDate}
                         onSave={handleBookAppointment}
                         onAddNewPatient={handleOpenNewPatientDialogFromWalkIn}
                     />
@@ -608,5 +601,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
