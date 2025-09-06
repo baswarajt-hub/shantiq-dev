@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, FamilyMember, Appointment, Patient, SpecialClosure, Session } from '@/lib/types';
-import { getDoctorSchedule, getPatients, getFamilyByPhone, addPatient, addFamilyMember } from '@/lib/data';
-import { format, set, parse } from 'date-fns';
+import { getDoctorSchedule } from '@/lib/data';
+import { format, set } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { updateTodayScheduleOverrideAction, estimateConsultationTime } from '@/app/actions';
+import { updateTodayScheduleOverrideAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -67,15 +67,14 @@ export default function DashboardPage() {
         const patientData = await getPatients();
         setPatients(patientData);
         
-        const familyFromPatients = await Promise.all(patientData.map(p => getFamilyByPhone(p.phone)));
-        const uniqueFamily = Array.from(new Set(familyFromPatients.flat().map(f => f.id))).map(id => familyFromPatients.flat().find(f => f.id === id)!);
-        setFamily(uniqueFamily);
+        const familyData = await getFamily();
+        setFamily(familyData);
 
         const appointmentsFromPatients = patientData
             .filter(p => p.type === 'Appointment')
             .map(p => ({
             id: p.id,
-            familyMemberId: uniqueFamily.find(f => f.phone === p.phone)?.id || 0,
+            familyMemberId: familyData.find(f => f.phone === p.phone)?.id || 0,
             familyMemberName: p.name,
             date: p.appointmentTime,
             time: format(new Date(p.appointmentTime), 'hh:mm a'),
@@ -221,10 +220,10 @@ export default function DashboardPage() {
     };
     
     const handleAddNewPatient = async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>) => {
-        const newPatient = await addFamilyMember(newPatientData);
-        if (newPatient) {
+        const result = await addNewPatientAction(newPatientData);
+        if (result.patient) {
             await loadData();
-            toast({ title: "Success", description: "New patient added successfully."});
+            toast({ title: "Success", description: result.success});
         }
     };
 
@@ -265,11 +264,13 @@ export default function DashboardPage() {
     
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
-        if (/^\\d+$/.test(searchTerm)) {
+        // Basic check if the search term could be a phone number
+        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
     };
+
 
     const nowServingPatient = patients.find(p => p.status === 'In-Consultation');
     
@@ -473,5 +474,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    

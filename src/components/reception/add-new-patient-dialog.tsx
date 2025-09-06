@@ -34,7 +34,6 @@ type PatientFormProps = {
     setClinicId: (value: string) => void;
 };
 
-// Moved PatientForm outside of AddNewPatientDialog to prevent re-renders on state change
 const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, clinicId, setClinicId }: PatientFormProps) => (
     <div className="space-y-4">
         <div className="space-y-2">
@@ -42,7 +41,7 @@ const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, cli
             <Input id="phone-display" value={phone} disabled />
         </div>
         <div className="space-y-2">
-            <Label htmlFor="name">Child's Name</Label>
+            <Label htmlFor="name">Patient's Name</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Doe" required/>
         </div>
         <div className="space-y-2">
@@ -67,7 +66,7 @@ const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, cli
             <Input id="clinicId" value={clinicId} onChange={(e) => setClinicId(e.target.value)} placeholder="e.g. C12345" />
         </div>
     </div>
-  );
+);
 
 type AddNewPatientDialogProps = {
   isOpen: boolean;
@@ -144,7 +143,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
           <DialogTitle>Add New Patient</DialogTitle>
            <DialogDescription>
             {step === 1 && "Enter patient's phone number to begin."}
-            {step === 2 && (foundFamily && foundFamily.length > 0 ? "This family is already registered. Add a new sibling." : "This is a new family. Please enter patient details.")}
+            {step === 2 && (foundFamily && foundFamily.length > 0 ? "This family is already registered. Add a new member." : "This is a new family. Please enter patient details.")}
           </DialogDescription>
         </DialogHeader>
         
@@ -160,14 +159,14 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
             </div>
         )}
 
-        {step === 2 && foundFamily && (
+        {step === 2 && foundFamily !== null && (
              <div className="py-4 space-y-4">
                 {foundFamily.length > 0 && (
                     <Alert>
                         <Info className="h-4 w-4" />
                         <AlertTitle>Existing Family Found</AlertTitle>
                         <AlertDescription>
-                            The following members are registered with this phone number. Fill the form below to add a new sibling.
+                            The following members are registered with this phone number. Fill the form below to add a new family member.
                         </AlertDescription>
                          <div className="flex flex-wrap gap-2 mt-2">
                             {foundFamily.map(member => (
@@ -196,7 +195,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
                 <DialogFooter>
                     <Button variant="outline" onClick={() => { setStep(1); setFoundFamily(null); }}>Back</Button>
                     <Button onClick={handleSave} disabled={isPending}>
-                        {isPending ? "Saving..." : (foundFamily.length > 0 ? "Save Sibling" : "Save Patient")}
+                        {isPending ? "Saving..." : (foundFamily.length > 0 ? "Save Member" : "Save Patient")}
                     </Button>
                 </DialogFooter>
              </div>
@@ -206,5 +205,3 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     </Dialog>
   );
 }
-
-    
