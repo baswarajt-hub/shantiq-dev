@@ -77,8 +77,8 @@ let doctorStatus: DoctorStatus = {
 
 let doctorSchedule: DoctorSchedule = {
   slotDuration: 5,
-  reserveFirstFive: false,
-  walkInReservation: 'none',
+  reserveFirstFive: true,
+  walkInReservation: 'alternateTwo',
   days: {
     Monday: {
       morning: { start: '10:30', end: '13:00', isOpen: true },
