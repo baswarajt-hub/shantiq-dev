@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
     const handleSlotClick = (time: string) => {
         const slot = timeSlots.find(s => s.time === time);
-        if (slot && !slot.isBooked && !slot.isReservedForWalkIn) {
+        if (slot && !slot.isBooked) {
           setSelectedSlot(time);
           setBookWalkInOpen(true);
         }
@@ -529,18 +529,19 @@ export default function DashboardPage() {
                                 ) : (
                                     <div 
                                       className={cn(
-                                          "p-3 flex items-center rounded-lg border border-dashed", 
-                                          slot.isReservedForWalkIn ? "bg-amber-50" : "bg-muted/30",
-                                          !slot.isReservedForWalkIn && "hover:bg-muted/60 cursor-pointer"
+                                          "p-3 flex items-center rounded-lg border border-dashed hover:bg-muted/60 cursor-pointer",
+                                          slot.isReservedForWalkIn ? "bg-amber-50" : "bg-muted/30"
                                       )} 
                                       onClick={() => handleSlotClick(slot.time)}
                                     >
                                          <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
                                          <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
-                                         <div className={cn("flex-1 font-semibold", slot.isReservedForWalkIn ? "text-amber-600" : "text-green-600")}>
+                                         <div className={cn("flex-1 font-semibold flex items-center gap-2", slot.isReservedForWalkIn ? "text-amber-600" : "text-green-600")}>
                                            {slot.isReservedForWalkIn ? (
-                                             <span className="flex items-center gap-2"><Footprints /> Reserved for Walk-in</span>
-                                           ) : "Available"}
+                                             <Footprints className="h-4 w-4"/>
+                                           ) : (
+                                             <PlusCircle className="h-4 w-4"/>
+                                           )}
                                          </div>
                                     </div>
                                 )}
