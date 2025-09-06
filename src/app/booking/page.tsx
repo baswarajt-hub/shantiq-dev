@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, User as UserIcon } from 'lucide-react';
-import type { FamilyMember, Appointment, DoctorSchedule } from '@/lib/types';
+import type { FamilyMember, Appointment, DoctorSchedule, Patient } from '@/lib/types';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -16,7 +16,7 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { getDoctorSchedule, getFamily, getPatients } from '@/lib/data';
+import { getDoctorSchedule, getFamily, getPatients, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction } from '@/app/actions';
 import { format } from 'date-fns';
 
 
@@ -49,7 +49,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
       
       const morningEndHour = daySchedule.morning.isOpen ? parseInt(daySchedule.morning.end.split(':')[0], 10) : 0;
       
-      if (appointmentHour24 < morningEndHour && daySchedule.morning.isOpen) {
+      if (daySchedule.morning.isOpen && appointmentHour24 < morningEndHour) {
           sessionStartTimeStr = daySchedule.morning.start;
           sessionEndTimeStr = daySchedule.morning.end;
       } else if (daySchedule.evening.isOpen) {
@@ -122,7 +122,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action is permanent and you will not receive a refund. Are you sure you want to cancel?
+                This action is permanent and you will not receive a refund. Are you sure you want to cancel this appointment?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -148,6 +148,7 @@ const getStatusBadgeClass = (status: string) => {
 
 export default function BookingPage() {
   const [family, setFamily] = useState<FamilyMember[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
@@ -158,30 +159,18 @@ export default function BookingPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [currentDate, setCurrentDate] = useState('');
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
   const loadData = async () => {
-    const familyData = await getFamily();
-    const patientData = await getPatients(); // Appointments are stored as patients
-    const scheduleData = await getDoctorSchedule();
-    
-    setFamily(familyData);
-    setSchedule(scheduleData);
-
-    const appointmentsFromPatients = patientData
-        .filter(p => p.type === 'Appointment') // Only show appointments, not walk-ins
-        .map(p => {
-            const famMember = familyData.find(f => f.phone === p.phone && f.name === p.name);
-            return {
-                id: p.id,
-                familyMemberId: famMember?.id || 0,
-                familyMemberName: p.name,
-                date: p.appointmentTime,
-                time: format(new Date(p.appointmentTime), 'hh:mm a'),
-                status: p.status, // We can use the patient status directly
-                type: p.type as 'Appointment' | 'Walk-in'
-            }
-        });
-    setAppointments(appointmentsFromPatients as Appointment[]);
+    startTransition(async () => {
+        const familyData = await getFamily();
+        const patientData = await getPatients();
+        const scheduleData = await getDoctorSchedule();
+        
+        setFamily(familyData);
+        setPatients(patientData);
+        setSchedule(scheduleData);
+    });
   };
 
   useEffect(() => {
@@ -189,6 +178,24 @@ export default function BookingPage() {
     const today = new Date();
     setCurrentDate(today.toDateString());
   }, []);
+
+  useEffect(() => {
+    const appointmentsFromPatients = patients
+        .filter(p => p.type === 'Appointment' || p.status === 'Confirmed') 
+        .map(p => {
+            const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
+            return {
+                id: p.id,
+                familyMemberId: famMember?.id || 0,
+                familyMemberName: p.name,
+                date: p.appointmentTime,
+                time: format(new Date(p.appointmentTime), 'hh:mm a'),
+                status: p.status, 
+                type: p.type
+            }
+        });
+    setAppointments(appointmentsFromPatients as Appointment[]);
+  }, [patients, family]);
   
   const todaySchedule = () => {
     if (!schedule) return null;
@@ -214,33 +221,55 @@ export default function BookingPage() {
   }
 
 
-  const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar'>) => {
-    // In a real app, this would be a server action
-    const newMember = { ...member, id: Date.now(), avatar: `https://picsum.photos/seed/${Date.now()}/200/200` };
-    setFamily(prev => [...prev, newMember]);
-    toast({ title: "Success", description: "Family member added."});
+  const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
+    startTransition(async () => {
+        // This is a simplified version, in a real app you'd associate the new member
+        // with the logged-in user's family via their phone number.
+        const phone = family.length > 0 ? family[0].phone : '5551112222';
+        const result = await addNewPatientAction({...member, phone });
+        if(result.success){
+            toast({ title: "Success", description: "Family member added."});
+            await loadData();
+        } else {
+            toast({ title: "Error", description: "Could not add member", variant: 'destructive'});
+        }
+    });
   };
   
   const handleEditFamilyMember = (updatedMember: FamilyMember) => {
-    // In a real app, this would be a server action
-    setFamily(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
-    toast({ title: "Success", description: "Family member details updated."});
+     startTransition(async () => {
+        const result = await updateFamilyMemberAction(updatedMember);
+         if(result.success){
+            toast({ title: "Success", description: "Family member details updated."});
+            await loadData();
+        } else {
+            toast({ title: "Error", description: "Could not update member", variant: 'destructive'});
+        }
+    });
   }
 
-  const handleBookAppointment = (appointment: Omit<Appointment, 'id' | 'status' | 'familyMemberName'>) => {
-     // In a real app, this would be a server action to create a patient
-    const familyMember = family.find(f => f.id === appointment.familyMemberId);
-    if (familyMember) {
-      const newAppointment = { ...appointment, id: Date.now(), status: 'Confirmed' as const, familyMemberName: familyMember.name };
-      setAppointments(prev => [...prev, newAppointment].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
-      toast({ title: "Success", description: "Appointment booked."});
-    }
+  const handleBookAppointment = (familyMember: FamilyMember, date: string, time: string) => {
+     startTransition(async () => {
+        const result = await addAppointmentAction(familyMember, date, time);
+        if (result.success) {
+            toast({ title: "Success", description: "Appointment booked."});
+            await loadData();
+        } else {
+            toast({ title: "Error", description: result.error, variant: 'destructive'});
+        }
+    });
   };
 
   const handleCancelAppointment = (appointmentId: number) => {
-    // In a real app, this would be a server action
-    setAppointments(prev => prev.map(appt => appt.id === appointmentId ? { ...appt, status: 'Cancelled' } : appt));
-    toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
+    startTransition(async () => {
+        const result = await cancelAppointmentAction(appointmentId);
+        if (result.success) {
+            toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
+            await loadData();
+        } else {
+            toast({ title: 'Error', description: "Could not cancel appointment", variant: 'destructive' });
+        }
+    });
   }
 
   const handleOpenReschedule = (appointment: Appointment) => {
@@ -254,16 +283,16 @@ export default function BookingPage() {
   }
 
   const handleRescheduleAppointment = (newDate: Date, newTime: string) => {
-     // In a real app, this would be a server action
     if (selectedAppointment) {
-      setAppointments(prev => 
-        prev.map(appt => 
-          appt.id === selectedAppointment.id 
-            ? { ...appt, date: newDate.toISOString(), time: newTime, status: 'Confirmed' } 
-            : appt
-        )
-      );
-      toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
+      startTransition(async () => {
+        const result = await rescheduleAppointmentAction(selectedAppointment.id, newDate.toISOString(), newTime);
+        if(result.success) {
+          toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
+          await loadData();
+        } else {
+          toast({ title: 'Error', description: "Could not reschedule", variant: 'destructive' });
+        }
+      });
     }
   };
   
@@ -339,7 +368,9 @@ export default function BookingPage() {
                   <CardDescription>Select a family member and find a time that works for you.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button size="lg" onClick={() => setBookingOpen(true)}>Book an Appointment</Button>
+                  <Button size="lg" onClick={() => setBookingOpen(true)} disabled={family.length === 0}>
+                    {family.length === 0 ? "Add a family member to book" : "Book an Appointment"}
+                    </Button>
                 </CardContent>
               </Card>
 
@@ -435,6 +466,7 @@ export default function BookingPage() {
           familyMembers={family}
           schedule={schedule}
           onSave={handleBookAppointment}
+          bookedPatients={patients}
         />
         {selectedAppointment && schedule && (
           <RescheduleAppointmentDialog
@@ -443,6 +475,7 @@ export default function BookingPage() {
             appointment={selectedAppointment}
             schedule={schedule}
             onSave={handleRescheduleAppointment}
+            bookedPatients={patients}
           />
         )}
 

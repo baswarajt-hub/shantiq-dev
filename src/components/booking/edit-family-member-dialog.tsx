@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FamilyMember } from '@/lib/types';
+import { format } from 'date-fns';
 
 type EditFamilyMemberDialogProps = {
   isOpen: boolean;
@@ -56,7 +57,7 @@ export function EditFamilyMemberDialog({ isOpen, onOpenChange, member, onSave }:
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Family Member</DialogTitle>
-          <DialogDescription>Update the details for the family member.</DialogDescription>
+          <DialogDescription>Update the details for this family member.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -65,7 +66,7 @@ export function EditFamilyMemberDialog({ isOpen, onOpenChange, member, onSave }:
           </div>
           <div className="space-y-2">
             <Label htmlFor="dob">Date of Birth</Label>
-            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>

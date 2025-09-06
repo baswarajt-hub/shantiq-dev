@@ -6,7 +6,7 @@ export type Patient = {
   type: 'Appointment' | 'Walk-in';
   appointmentTime: string; // ISO string format
   checkInTime: string; // ISO string format
-  status: 'Waiting' | 'In-Consultation' | 'Completed' | 'Late' | 'Cancelled' | 'Waiting for Reports';
+  status: 'Waiting' | 'In-Consultation' | 'Completed' | 'Late' | 'Cancelled' | 'Waiting for Reports' | 'Confirmed';
   phone: string;
   estimatedWaitTime: number; // in minutes
   consultationTime?: number; // actual time taken in minutes
@@ -76,8 +76,6 @@ export type Appointment = {
   familyMemberName: string;
   date: string; // ISO string format
   time: string;
-  status: Patient['status'] | 'Confirmed' | 'Missed' | 'Yet to Arrive';
+  status: Patient['status'] | 'Missed' | 'Yet to Arrive';
   type?: 'Appointment' | 'Walk-in';
 };
-
-    

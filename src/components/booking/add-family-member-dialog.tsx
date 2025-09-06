@@ -15,11 +15,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FamilyMember } from '@/lib/types';
+import { format } from 'date-fns';
 
 type AddFamilyMemberDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (member: Omit<FamilyMember, 'id' | 'avatar'>) => void;
+  onSave: (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => void;
 };
 
 export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamilyMemberDialogProps) {
@@ -45,7 +46,7 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add New Family Member</DialogTitle>
-          <DialogDescription>Enter the details for the new family member.</DialogDescription>
+          <DialogDescription>Enter the details for the new family member. This will be associated with your primary phone number.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -54,7 +55,7 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
           </div>
           <div className="space-y-2">
             <Label htmlFor="dob">Date of Birth</Label>
-            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>

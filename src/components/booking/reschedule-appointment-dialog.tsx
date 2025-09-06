@@ -9,9 +9,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import type { Appointment, DoctorSchedule } from '@/lib/types';
+import type { Appointment, DoctorSchedule, Patient } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -24,37 +25,75 @@ type RescheduleAppointmentDialogProps = {
   appointment: Appointment;
   schedule: DoctorSchedule;
   onSave: (newDate: Date, newTime: string) => void;
+  bookedPatients: Patient[];
 };
 
-export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment, schedule, onSave }: RescheduleAppointmentDialogProps) {
+export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment, schedule, onSave, bookedPatients }: RescheduleAppointmentDialogProps) {
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date(appointment.date));
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<{time: string, isReserved: boolean, isBooked: boolean}[]>([]);
 
   useEffect(() => {
-    if (schedule && selectedDate) {
-      const generatedSlots: string[] = [];
+     if (schedule && selectedDate) {
+      const generatedSlots: {time: string, isReserved: boolean, isBooked: boolean}[] = [];
       const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
-      const daySchedule = schedule.days[dayOfWeek];
+      const todayStr = format(selectedDate, 'yyyy-MM-dd');
+      
+      let daySchedule = schedule.days[dayOfWeek];
+      const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+
+      if (todayOverride) {
+          daySchedule = {
+              morning: todayOverride.morningOverride ?? daySchedule.morning,
+              evening: todayOverride.eveningOverride ?? daySchedule.evening
+          }
+      }
+
       const sessionSchedule = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
+
+      const bookedSlotsForDay = bookedPatients
+        .filter(p => new Date(p.appointmentTime).toDateString() === selectedDate.toDateString() && p.id !== appointment.id)
+        .map(p => format(new Date(p.appointmentTime), 'hh:mm a'));
+
 
       if (sessionSchedule.isOpen) {
         const [startHour, startMinute] = sessionSchedule.start.split(':').map(Number);
         const [endHour, endMinute] = sessionSchedule.end.split(':').map(Number);
         
-        let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute });
-        const endTime = set(selectedDate, { hours: endHour, minutes: endMinute });
-
+        let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
+        const endTime = set(selectedDate, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
+        
+        let slotIndex = 0;
         while (currentTime < endTime) {
-          generatedSlots.push(format(currentTime, 'hh:mm a'));
+          const timeString = format(currentTime, 'hh:mm a');
+          const isBooked = bookedSlotsForDay.includes(timeString);
+          let isReservedForWalkIn = false;
+          if (!isBooked) {
+              if (schedule.reserveFirstFive && slotIndex < 5) {
+                  isReservedForWalkIn = true;
+              } else {
+                  const reservationStrategy = schedule.walkInReservation;
+                  const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+                  if (slotIndex >= startIndexForAlternate) {
+                      const relativeIndex = slotIndex - startIndexForAlternate;
+                      if (reservationStrategy === 'alternateOne') {
+                          if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+                      } else if (reservationStrategy === 'alternateTwo') {
+                          if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
+                      }
+                  }
+              }
+          }
+          generatedSlots.push({ time: timeString, isReserved: isReservedForWalkIn, isBooked });
           currentTime = addMinutes(currentTime, schedule.slotDuration);
+          slotIndex++;
         }
       }
       setAvailableSlots(generatedSlots);
     }
-  }, [schedule, selectedDate, selectedSession]);
+  }, [schedule, selectedDate, selectedSession, bookedPatients, appointment.id]);
 
   const resetState = () => {
     setStep(1);
@@ -76,6 +115,16 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
       handleClose(false);
     }
   };
+  
+  const disabledDays = [{ before: new Date(new Date().setDate(new Date().getDate())) }];
+  if (schedule) {
+    Object.entries(schedule.days)
+      .filter(([, daySchedule]) => !daySchedule.morning.isOpen && !daySchedule.evening.isOpen)
+      .forEach(([dayName]) => {
+        const dayIndex = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(dayName);
+        disabledDays.push({ dayOfWeek: [dayIndex] });
+      });
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -110,7 +159,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))}
+                disabled={disabledDays}
               />
             </div>
             <RadioGroup defaultValue="morning" onValueChange={(v) => {setSelectedSession(v); setSelectedSlot('')}} className="flex justify-center gap-4">
@@ -125,7 +174,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
             </RadioGroup>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep(1)} className="w-full">Back</Button>
-              <Button onClick={() => setStep(3)} disabled={!selectedDate} className="w-full">Next</Button>
+              <Button onClick={() => setStep(3)} disabled={!selectedDate}>Next</Button>
             </div>
           </div>
         )}
@@ -133,25 +182,27 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
         {step === 3 && (
             <div className="space-y-4 py-4">
                 <Label>Select a new available time slot</Label>
-                {availableSlots.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
+                 {availableSlots.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
                       {availableSlots.map(slot => (
                           <Button 
-                              key={slot} 
-                              variant={selectedSlot === slot ? 'default' : 'outline'}
-                              onClick={() => setSelectedSlot(slot)}
+                              key={slot.time} 
+                              variant={selectedSlot === slot.time ? 'default' : 'outline'}
+                              onClick={() => setSelectedSlot(slot.time)}
+                              disabled={slot.isReserved || slot.isBooked}
+                              title={slot.isReserved ? "Reserved for Walk-in" : slot.isBooked ? "Already Booked" : ""}
                           >
-                              {slot}
+                              {slot.time}
                           </Button>
                       ))}
                   </div>
-                 ) : (
+                ) : (
                   <p className="text-center text-muted-foreground">No slots available for this session.</p>
                 )}
-                <div className="flex gap-2 pt-4">
+                <DialogFooter>
                     <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>
                     <Button onClick={handleSave} disabled={!selectedSlot} className="w-full">Confirm Reschedule</Button>
-                </div>
+                </DialogFooter>
             </div>
         )}
 

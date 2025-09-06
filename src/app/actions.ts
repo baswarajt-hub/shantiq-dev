@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule, getFamilyByPhone, addFamilyMember, updateTodayScheduleOverride, getFamily, searchFamilyMembers } from '@/lib/data';
+import { addPatient, findPatientById, getPatients, updateAllPatients, updatePatient, updateDoctorStatus, getDoctorStatus, updateDoctorSchedule, updateSpecialClosures, getDoctorSchedule, getFamilyByPhone, addFamilyMember, updateTodayScheduleOverride, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -28,31 +28,32 @@ export async function addWalkInPatientAction(formData: FormData) {
   return { success: 'Walk-in patient added successfully.' };
 }
 
-export async function addAppointmentAction(formData: FormData) {
-  const name = formData.get('name') as string;
-  const phone = formData.get('phone') as string;
-  const appointmentTime = formData.get('appointmentTime') as string;
-  
-  if (!name || !phone || !appointmentTime) {
-    return { error: 'Name, phone, and appointment time are required' };
-  }
+export async function addAppointmentAction(familyMember: FamilyMember, date: string, time: string) {
 
-  const appointmentDateTime = new Date();
-  const [hours, minutes] = appointmentTime.split(':');
-  appointmentDateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+  const appointmentDateTime = new Date(date);
+  const [hours, minutesPart] = time.split(':');
+  const minutes = minutesPart.split(' ')[0];
+  const ampm = minutesPart.split(' ')[1];
+
+  let hourNumber = parseInt(hours, 10);
+  if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
+    hourNumber += 12;
+  }
+  if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
+    hourNumber = 0;
+  }
+  appointmentDateTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
 
   await addPatient({
-    name,
-    phone,
+    name: familyMember.name,
+    phone: familyMember.phone,
     type: 'Appointment',
     appointmentTime: appointmentDateTime.toISOString(),
-    checkInTime: new Date().toISOString(),
-    status: 'Waiting',
+    checkInTime: appointmentDateTime.toISOString(), // For appointments, check-in is appointment time until they arrive
+    status: 'Confirmed', // A new status for appointments that are booked but not yet checked in
   });
 
-  revalidatePath('/');
-  revalidatePath('/appointment');
-  revalidatePath('/queue-status');
+  revalidatePath('/booking');
   
   return { success: 'Appointment booked successfully.' };
 }
@@ -186,6 +187,8 @@ export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 
         const newSchedule = { ...currentSchedule, ...schedule };
         await updateDoctorSchedule(newSchedule);
         revalidatePath('/admin');
+        revalidatePath('/booking');
+        revalidatePath('/');
         return { success: 'Schedule updated successfully.' };
     } catch (error) {
         return { error: 'Failed to update schedule.' };
@@ -196,6 +199,8 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     try {
         await updateSpecialClosures(closures);
         revalidatePath('/admin');
+        revalidatePath('/booking');
+        revalidatePath('/');
         return { success: 'Special closures updated successfully.' };
     } catch (error) {
         return { error: 'Failed to update special closures.' };
@@ -213,21 +218,58 @@ export async function searchFamilyMembersAction(searchTerm: string): Promise<Fam
 export async function addNewPatientAction(patientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<{ success: string; patient: FamilyMember }> {
     const newPatient = await addFamilyMember(patientData);
     revalidatePath('/');
+    revalidatePath('/booking');
     return { success: 'New patient added successfully.', patient: newPatient };
+}
+
+export async function updateFamilyMemberAction(member: FamilyMember) {
+    const updatedMember = await updateFamilyMember(member);
+    revalidatePath('/booking');
+    return { success: 'Family member updated.', patient: updatedMember };
 }
 
 export async function updateTodayScheduleOverrideAction(override: SpecialClosure) {
     try {
         await updateTodayScheduleOverride(override);
         revalidatePath('/');
+        revalidatePath('/booking');
         return { success: 'Today\'s schedule has been adjusted.' };
     } catch (error) {
         return { error: 'Failed to adjust schedule.' };
     }
 }
 
+export async function cancelAppointmentAction(appointmentId: number) {
+    const result = await cancelAppointment(appointmentId);
+    revalidatePath('/booking');
+    return { success: 'Appointment cancelled', patient: result };
+}
+
+export async function rescheduleAppointmentAction(appointmentId: number, newDate: string, newTime: string) {
+    const appointmentTime = new Date(newDate);
+    const [hours, minutesPart] = newTime.split(':');
+    const minutes = minutesPart.split(' ')[0];
+    const ampm = minutesPart.split(' ')[1];
+
+    let hourNumber = parseInt(hours, 10);
+    if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
+        hourNumber += 12;
+    }
+    if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
+        hourNumber = 0;
+    }
+    appointmentTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
+
+    const result = await updatePatient(appointmentId, {
+        appointmentTime: appointmentTime.toISOString(),
+        status: 'Confirmed'
+    });
+
+    revalidatePath('/booking');
+    return { success: 'Appointment rescheduled.', patient: result };
+}
+
+
 // Re-exporting for use in the new dashboard
 export { estimateConsultationTime };
-export { getFamily, getPatients, addPatient };
-
-
+export { getFamily, getPatients, addPatient, getDoctorSchedule };

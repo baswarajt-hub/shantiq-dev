@@ -7,8 +7,8 @@ let patients: Patient[] = [
     id: 1,
     name: 'Alice Johnson',
     type: 'Appointment',
-    appointmentTime: new Date(new Date().setHours(9, 0, 0, 0)).toISOString(),
-    checkInTime: new Date(new Date().setHours(8, 55, 0, 0)).toISOString(),
+    appointmentTime: new Date(new Date().setHours(10, 30, 0, 0)).toISOString(),
+    checkInTime: new Date(new Date().setHours(10, 25, 0, 0)).toISOString(),
     status: 'Waiting',
     phone: '555-0101',
     estimatedWaitTime: 10,
@@ -17,8 +17,8 @@ let patients: Patient[] = [
     id: 2,
     name: 'Bob Williams',
     type: 'Appointment',
-    appointmentTime: new Date(new Date().setHours(9, 15, 0, 0)).toISOString(),
-    checkInTime: new Date(new Date().setHours(9, 10, 0, 0)).toISOString(),
+    appointmentTime: new Date(new Date().setHours(10, 45, 0, 0)).toISOString(),
+    checkInTime: new Date(new Date().setHours(10, 40, 0, 0)).toISOString(),
     status: 'Waiting',
     phone: '555-0102',
     estimatedWaitTime: 25,
@@ -27,8 +27,8 @@ let patients: Patient[] = [
     id: 3,
     name: 'Charlie Brown',
     type: 'Walk-in',
-    appointmentTime: new Date(new Date().setHours(9, 20, 0, 0)).toISOString(),
-    checkInTime: new Date(new Date().setHours(9, 20, 0, 0)).toISOString(),
+    appointmentTime: new Date(new Date().setHours(10, 50, 0, 0)).toISOString(),
+    checkInTime: new Date(new Date().setHours(10, 50, 0, 0)).toISOString(),
     status: 'Waiting',
     phone: '555-0103',
     estimatedWaitTime: 40,
@@ -37,8 +37,8 @@ let patients: Patient[] = [
     id: 4,
     name: 'Diana Miller',
     type: 'Appointment',
-    appointmentTime: new Date(new Date().setHours(9, 30, 0, 0)).toISOString(),
-    checkInTime: new Date(new Date().setHours(9, 28, 0, 0)).toISOString(),
+    appointmentTime: new Date(new Date().setHours(11, 0, 0, 0)).toISOString(),
+    checkInTime: new Date(new Date().setHours(10, 58, 0, 0)).toISOString(),
     status: 'Waiting',
     phone: '555-0104',
     estimatedWaitTime: 55,
@@ -47,13 +47,13 @@ let patients: Patient[] = [
     id: 5,
     name: 'Ethan Davis',
     type: 'Completed',
-    appointmentTime: new Date(new Date().setHours(8, 45, 0, 0)).toISOString(),
-    checkInTime: new Date(new Date().setHours(8, 40, 0, 0)).toISOString(),
+    appointmentTime: new Date(new Date().setHours(10, 15, 0, 0)).toISOString(),
+    checkInTime: new Date(new Date().setHours(10, 10, 0, 0)).toISOString(),
     status: 'Completed',
     phone: '555-0105',
     estimatedWaitTime: 0,
     consultationTime: 12,
-    consultationEndTime: new Date(new Date().setHours(8, 57, 0, 0)).toISOString(),
+    consultationEndTime: new Date(new Date().setHours(10, 27, 0, 0)).toISOString(),
   },
 ];
 
@@ -115,7 +115,8 @@ let doctorSchedule: DoctorSchedule = {
 
 // This is a mock database. In a real app, you'd use a proper database.
 export async function getPatients() {
-  return patients;
+  // Make sure to return a deep copy to avoid mutations affecting the "DB"
+  return JSON.parse(JSON.stringify(patients));
 }
 
 export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime'>) {
@@ -151,7 +152,7 @@ export async function updateDoctorStatus(status: DoctorStatus) {
 }
 
 export async function getDoctorSchedule() {
-  return doctorSchedule;
+  return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
 export async function updateDoctorSchedule(schedule: Omit<DoctorSchedule, 'specialClosures'>) {
@@ -160,6 +161,7 @@ export async function updateDoctorSchedule(schedule: Omit<DoctorSchedule, 'speci
 }
 
 export async function updateSpecialClosures(closures: SpecialClosure[]) {
+    // In a real DB, you'd likely update this differently
     doctorSchedule.specialClosures = closures;
     return doctorSchedule;
 }
@@ -205,6 +207,21 @@ export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'ava
     return newMember;
 }
 
+export async function updateFamilyMember(updatedMember: FamilyMember) {
+    family = family.map(m => m.id === updatedMember.id ? updatedMember : m);
+    return updatedMember;
+}
+
+
+export async function cancelAppointment(appointmentId: number) {
+    const patient = await findPatientById(appointmentId);
+    if(patient){
+        await updatePatient(appointmentId, { status: 'Cancelled' });
+    }
+    return patient;
+}
+
+
 export async function getFamily() {
-    return family;
+    return JSON.parse(JSON.stringify(family));
 }

@@ -8,74 +8,98 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
-import type { FamilyMember, Appointment, DoctorSchedule } from '@/lib/types';
+import type { FamilyMember, Appointment, DoctorSchedule, Patient } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { format, set, addMinutes } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 type BookAppointmentDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   familyMembers: FamilyMember[];
   schedule: DoctorSchedule | null;
-  onSave: (appointment: Omit<Appointment, 'id' | 'status' | 'familyMemberName'>) => void;
+  onSave: (familyMember: FamilyMember, date: string, time: string) => void;
+  bookedPatients: Patient[];
 };
 
-export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, schedule, onSave }: BookAppointmentDialogProps) {
+export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, schedule, onSave, bookedPatients }: BookAppointmentDialogProps) {
   const [step, setStep] = useState(1);
-  const [selectedMember, setSelectedMember] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
-  const [availableSlots, setAvailableSlots] = useState<{time: string, isReserved: boolean}[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<{time: string, isReserved: boolean, isBooked: boolean}[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (schedule && selectedDate) {
-      const generatedSlots: {time: string, isReserved: boolean}[] = [];
+      const generatedSlots: {time: string, isReserved: boolean, isBooked: boolean}[] = [];
       const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
-      const daySchedule = schedule.days[dayOfWeek];
+      const todayStr = format(selectedDate, 'yyyy-MM-dd');
+      
+      let daySchedule = schedule.days[dayOfWeek];
+      const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+
+      if (todayOverride) {
+          daySchedule = {
+              morning: todayOverride.morningOverride ?? daySchedule.morning,
+              evening: todayOverride.eveningOverride ?? daySchedule.evening
+          }
+      }
+
       const sessionSchedule = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
+
+      const bookedSlotsForDay = bookedPatients
+        .filter(p => new Date(p.appointmentTime).toDateString() === selectedDate.toDateString())
+        .map(p => format(new Date(p.appointmentTime), 'hh:mm a'));
+
 
       if (sessionSchedule.isOpen) {
         const [startHour, startMinute] = sessionSchedule.start.split(':').map(Number);
         const [endHour, endMinute] = sessionSchedule.end.split(':').map(Number);
         
-        let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute });
-        const endTime = set(selectedDate, { hours: endHour, minutes: endMinute });
+        let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
+        const endTime = set(selectedDate, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
         
         let slotIndex = 0;
         while (currentTime < endTime) {
           const timeString = format(currentTime, 'hh:mm a');
+          const isBooked = bookedSlotsForDay.includes(timeString);
           let isReservedForWalkIn = false;
-          if (schedule.reserveFirstFive && slotIndex < 5) {
-              isReservedForWalkIn = true;
-          } else {
-              const reservationStrategy = schedule.walkInReservation;
-              const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
-              if (slotIndex >= startIndexForAlternate) {
-                  const relativeIndex = slotIndex - startIndexForAlternate;
-                  if (reservationStrategy === 'alternateOne') {
-                      if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-                  } else if (reservationStrategy === 'alternateTwo') {
-                      if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
+          if (!isBooked) {
+              if (schedule.reserveFirstFive && slotIndex < 5) {
+                  isReservedForWalkIn = true;
+              } else {
+                  const reservationStrategy = schedule.walkInReservation;
+                  const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+                  if (slotIndex >= startIndexForAlternate) {
+                      const relativeIndex = slotIndex - startIndexForAlternate;
+                      if (reservationStrategy === 'alternateOne') {
+                          if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+                      } else if (reservationStrategy === 'alternateTwo') {
+                          if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
+                      }
                   }
               }
           }
-          generatedSlots.push({ time: timeString, isReserved: isReservedForWalkIn });
+          generatedSlots.push({ time: timeString, isReserved: isReservedForWalkIn, isBooked });
           currentTime = addMinutes(currentTime, schedule.slotDuration);
           slotIndex++;
         }
       }
       setAvailableSlots(generatedSlots);
     }
-  }, [schedule, selectedDate, selectedSession]);
+  }, [schedule, selectedDate, selectedSession, bookedPatients]);
 
   const resetState = () => {
     setStep(1);
-    setSelectedMember('');
+    setSelectedMemberId('');
     setSelectedDate(new Date());
     setSelectedSession('morning');
     setSelectedSlot('');
@@ -89,28 +113,39 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   }
 
   const handleSave = () => {
+    const selectedMember = familyMembers.find(f => f.id.toString() === selectedMemberId);
     if (selectedMember && selectedDate && selectedSlot) {
-      console.log('Simulating payment processing...');
-      onSave({ 
-        familyMemberId: parseInt(selectedMember, 10), 
-        date: selectedDate.toISOString(), 
-        time: selectedSlot 
-      });
-      handleClose(false);
+      toast({ title: 'Processing Payment...', description: 'Please wait.' });
+      setTimeout(() => {
+          onSave(selectedMember, selectedDate.toISOString(), selectedSlot);
+          handleClose(false);
+      }, 1500)
     }
   };
+  
+  const disabledDays = [{ before: new Date(new Date().setDate(new Date().getDate())) }];
+  if (schedule) {
+    Object.entries(schedule.days)
+      .filter(([, daySchedule]) => !daySchedule.morning.isOpen && !daySchedule.evening.isOpen)
+      .forEach(([dayName]) => {
+        const dayIndex = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(dayName);
+        disabledDays.push({ dayOfWeek: [dayIndex] });
+      });
+  }
+
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Book Appointment - Step {step} of 3</DialogTitle>
+          <DialogDescription>Select a family member and find a time that works for you.</DialogDescription>
         </DialogHeader>
         
         {step === 1 && (
           <div className="space-y-4 py-4">
             <Label>Select Family Member</Label>
-            <Select onValueChange={setSelectedMember} value={selectedMember}>
+            <Select onValueChange={setSelectedMemberId} value={selectedMemberId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a family member" />
               </SelectTrigger>
@@ -120,7 +155,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={() => setStep(2)} disabled={!selectedMember} className="w-full">Next</Button>
+            <Button onClick={() => setStep(2)} disabled={!selectedMemberId} className="w-full">Next</Button>
           </div>
         )}
 
@@ -131,7 +166,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))}
+                disabled={disabledDays}
               />
             </div>
             <RadioGroup defaultValue="morning" onValueChange={(value) => { setSelectedSession(value); setSelectedSlot(''); }} className="flex justify-center gap-4">
@@ -155,14 +190,14 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
             <div className="space-y-4 py-4">
                 <Label>Select an available time slot</Label>
                 {availableSlots.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
                       {availableSlots.map(slot => (
                           <Button 
                               key={slot.time} 
                               variant={selectedSlot === slot.time ? 'default' : 'outline'}
                               onClick={() => setSelectedSlot(slot.time)}
-                              disabled={slot.isReserved}
-                              title={slot.isReserved ? "Reserved for Walk-in" : ""}
+                              disabled={slot.isReserved || slot.isBooked}
+                              title={slot.isReserved ? "Reserved for Walk-in" : slot.isBooked ? "Already Booked" : ""}
                           >
                               {slot.time}
                           </Button>
@@ -172,10 +207,10 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                   <p className="text-center text-muted-foreground">No slots available for this session.</p>
                 )}
                  <Label className="text-sm text-muted-foreground pt-4 block">A nominal fee will be charged upon confirmation.</Label>
-                <div className="flex gap-2">
+                <DialogFooter>
                     <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>
                     <Button onClick={handleSave} disabled={!selectedSlot} className="w-full">Pay & Confirm</Button>
-                </div>
+                </DialogFooter>
             </div>
         )}
 

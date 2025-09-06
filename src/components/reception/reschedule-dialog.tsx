@@ -12,7 +12,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import type { Appointment } from '@/lib/types';
+import type { Patient } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { format } from 'date-fns';
@@ -24,14 +24,14 @@ const eveningSlots = [ '04:00 PM', '04:15 PM', '04:30 PM', '04:45 PM', '05:00 PM
 type RescheduleDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  appointment: Appointment;
+  patient: Patient;
   onSave: (newDate: string, newTime: string) => void;
   bookedSlots: string[];
 };
 
-export function RescheduleDialog({ isOpen, onOpenChange, appointment, onSave, bookedSlots }: RescheduleDialogProps) {
+export function RescheduleDialog({ isOpen, onOpenChange, patient, onSave, bookedSlots }: RescheduleDialogProps) {
   const [step, setStep] = useState(1);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date(appointment.date));
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date(patient.appointmentTime));
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
 
@@ -42,7 +42,7 @@ export function RescheduleDialog({ isOpen, onOpenChange, appointment, onSave, bo
 
   const resetState = () => {
     setStep(1);
-    setSelectedDate(new Date(appointment.date));
+    setSelectedDate(new Date(patient.appointmentTime));
     setSelectedSession('morning');
     setSelectedSlot('');
   }
@@ -69,7 +69,7 @@ export function RescheduleDialog({ isOpen, onOpenChange, appointment, onSave, bo
         <DialogHeader>
           <DialogTitle>Reschedule Appointment</DialogTitle>
            <DialogDescription>
-            For {appointment.familyMemberName}. Original: {format(new Date(appointment.date), 'PPP')} at {appointment.time}
+            For {patient.name}. Original: {format(new Date(patient.appointmentTime), 'PPP')} at {format(new Date(patient.appointmentTime), 'hh:mm a')}
           </DialogDescription>
         </DialogHeader>
         
