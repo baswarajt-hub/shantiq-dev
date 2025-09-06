@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -169,7 +169,7 @@ export async function toggleDoctorStatusAction() {
 
 export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 'specialClosures'>) {
     try {
-        const currentSchedule = await getDoctorSchedule();
+        const currentSchedule = await getDoctorScheduleData();
         const newSchedule = { ...currentSchedule, ...schedule };
         await updateDoctorSchedule(newSchedule);
         revalidatePath('/admin');
@@ -260,10 +260,16 @@ export async function checkInPatientAction(patientId: number) {
   return { success: `${patient.name} has been checked in.` };
 }
 
+export async function addPatientAction(patient: Omit<Patient, 'id' | 'estimatedWaitTime'>) {
+  const newPatient = await addPatientData(patient);
+  revalidatePath('/');
+  return { success: 'Patient added successfully.', patient: newPatient };
+}
+
 
 // Re-exporting for use in the new dashboard
 export { estimateConsultationTime };
-export { getFamily, addFamilyMember as addPatient, getDoctorSchedule };
+export { getFamily, addFamilyMember as addPatient, getDoctorScheduleData as getDoctorSchedule };
 
 // Actions for live data fetching
 export async function getPatientsAction() {
