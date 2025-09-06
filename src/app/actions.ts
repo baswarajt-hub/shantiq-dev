@@ -191,16 +191,21 @@ export async function getFamilyByPhoneAction(phone: string) {
 
 export async function addNewPatientAction(patientData: Omit<FamilyMember, 'id' | 'avatar'>) {
     const newPatient = await addFamilyMember(patientData);
-    revalidatePath('/reception');
+    revalidatePath('/');
     return { success: 'New patient added successfully.', patient: newPatient };
 }
 
 export async function updateTodayScheduleOverrideAction(override: SpecialClosure) {
     try {
         await updateTodayScheduleOverride(override);
-        revalidatePath('/reception');
+        revalidatePath('/');
         return { success: 'Today\'s schedule has been adjusted.' };
     } catch (error) {
         return { error: 'Failed to adjust schedule.' };
     }
 }
+
+// Re-exporting for use in the new dashboard
+export { estimateConsultationTime };
+
+    

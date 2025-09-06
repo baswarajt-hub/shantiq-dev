@@ -1,27 +1,473 @@
+
+'use client';
+import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
-import PatientQueue from '@/components/dashboard/patient-queue';
-import { getDoctorStatus, getPatients } from '@/lib/data';
+import type { DoctorSchedule, FamilyMember, Appointment, Patient, SpecialClosure, Session } from '@/lib/types';
+import { getDoctorSchedule, getPatients, getFamilyByPhone } from '@/lib/data';
+import { format, set, parse } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
+import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
+import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
+import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
+import { updateTodayScheduleOverrideAction, estimateConsultationTime } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
-export default async function DashboardPage() {
-  const patients = await getPatients();
-  const doctorStatus = await getDoctorStatus();
-  const aipatients = {
-    patientFlowData: 'Average consultation time is 15 minutes. Peak hours are 10 AM to 1 PM.',
-    lateArrivals: '3 patients arrived late today, with an average delay of 10 minutes.',
-    doctorDelays: 'Dr. Smith is running 20 minutes behind schedule.',
-  };
 
-  return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
-      <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-        <div className="space-y-6">
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <Stats patients={patients} />
-          <PatientQueue initialPatients={patients} aipatients={aipatients} initialDoctorStatus={doctorStatus} />
-        </div>
-      </main>
-    </div>
-  );
+type TimeSlot = {
+  time: string;
+  isBooked: boolean;
+  appointment?: Appointment;
+  patientDetails?: FamilyMember;
+  estimatedConsultationTime?: number;
+  status?: 'Waiting' | 'Yet to Arrive' | 'In-Consultation' | 'Completed' | 'Cancelled' | 'Late';
 }
+
+const statusConfig = {
+    Waiting: { icon: Clock, color: 'text-blue-600' },
+    'Yet to Arrive': { icon: CalendarIcon, color: 'text-gray-500' },
+    'In-Consultation': { icon: Hourglass, color: 'text-yellow-600 animate-pulse' },
+    Completed: { icon: CheckCircle, color: 'text-green-600' },
+    Late: { icon: UserX, color: 'text-orange-600' },
+    Cancelled: { icon: XCircle, color: 'text-red-600' },
+};
+
+
+export default function DashboardPage() {
+    const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
+    const [family, setFamily] = useState<FamilyMember[]>([]);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+    
+    const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+    const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
+    const [isNewPatientOpen, setNewPatientOpen] = useState(false);
+    const [isRescheduleOpen, setRescheduleOpen] = useState(false);
+    const [isAdjustTimingOpen, setAdjustTimingOpen] = useState(false);
+    const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
+    const [currentDate, setCurrentDate] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [phoneToPreFill, setPhoneToPreFill] = useState('');
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const currentHour = new Date().getHours();
+        if (currentHour >= 14) {
+            setSelectedSession('evening');
+        }
+        
+        async function loadData() {
+            const scheduleData = await getDoctorSchedule();
+            setSchedule(scheduleData);
+            const patientData = await getPatients();
+            setPatients(patientData);
+            // This is a temporary solution to populate family data from patients
+            const familyFromPatients = await Promise.all(patientData.map(p => getFamilyByPhone(p.phone)));
+            const uniqueFamily = Array.from(new Set(familyFromPatients.flat().map(f => f.id))).map(id => familyFromPatients.flat().find(f => f.id === id)!);
+            setFamily(uniqueFamily);
+
+            const appointmentsFromPatients = patientData
+              .filter(p => p.type === 'Appointment')
+              .map(p => ({
+                id: p.id,
+                familyMemberId: uniqueFamily.find(f => f.phone === p.phone)?.id || 0,
+                familyMemberName: p.name,
+                date: p.appointmentTime,
+                time: format(new Date(p.appointmentTime), 'hh:mm a'),
+                status: p.status === 'Cancelled' ? 'Cancelled' : p.status === 'Completed' ? 'Completed' : 'Confirmed' as any,
+                type: 'Appointment'
+              }));
+            setAppointments(appointmentsFromPatients);
+        }
+        loadData();
+        
+    }, []);
+
+     useEffect(() => {
+        // Set the date string only on the client side
+        setCurrentDate(format(new Date(), 'EEEE, MMMM d, yyyy'));
+    }, []);
+
+    useEffect(() => {
+        if (!schedule) return;
+
+        const today = new Date();
+        const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
+        let daySchedule = schedule.days[dayOfWeek];
+        const generatedSlots: TimeSlot[] = [];
+
+        const todayStr = format(today, 'yyyy-MM-dd');
+        const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+
+        if (todayOverride) {
+            daySchedule = {
+                morning: todayOverride.morningOverride ?? daySchedule.morning,
+                evening: todayOverride.eveningOverride ?? daySchedule.evening
+            }
+        }
+
+        const generateSessionSlots = (session: Session) => {
+            if (!session.isOpen || !session.start || !session.end) return;
+
+            const [startHour, startMinute] = session.start.split(':').map(Number);
+            const [endHour, endMinute] = session.end.split(':').map(Number);
+            
+            let currentTime = set(today, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
+            const endTime = set(today, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
+
+            while (currentTime < endTime) {
+                const timeString = format(currentTime, 'hh:mm a');
+                const patientInQueue = patients.find(p => format(new Date(p.appointmentTime), 'hh:mm a') === timeString);
+                
+                let status: TimeSlot['status'] | undefined;
+                let patientDetails: FamilyMember | undefined;
+                let appointmentForSlot: Appointment | undefined;
+
+                if (patientInQueue) {
+                    status = patientInQueue.status;
+                    patientDetails = family.find(f => f.phone === patientInQueue.phone);
+                    appointmentForSlot = appointments.find(a => a.id === patientInQueue.id);
+                } else {
+                     const confirmedAppointment = appointments.find(a => a.time === timeString && new Date(a.date).toDateString() === today.toDateString() && a.status === 'Confirmed');
+                     if (confirmedAppointment) {
+                        status = 'Yet to Arrive';
+                        patientDetails = family.find(f => f.id === confirmedAppointment.familyMemberId);
+                        appointmentForSlot = confirmedAppointment;
+                     }
+                }
+                
+                generatedSlots.push({
+                    time: timeString,
+                    isBooked: !!patientInQueue || !!appointmentForSlot,
+                    appointment: appointmentForSlot,
+                    patientDetails,
+                    status: status,
+                });
+                currentTime.setMinutes(currentTime.getMinutes() + schedule.slotDuration);
+            }
+        }
+        
+        const sessionToGenerate = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
+        generateSessionSlots(sessionToGenerate);
+
+        const runEstimations = async (slots: TimeSlot[]) => {
+            const waitingSlots = slots.filter(s => s.isBooked && s.status === 'Waiting');
+            for (let i = 0; i < waitingSlots.length; i++) {
+                const slot = waitingSlots[i];
+                try {
+                    const estimation = await estimateConsultationTime({
+                        patientFlowData: 'Average consultation time is 15 minutes.',
+                        lateArrivals: 'No major late arrivals reported.',
+                        doctorDelays: 'Doctor is generally on time.',
+                        currentQueueLength: i + 1,
+                        appointmentType: slot.appointment?.type === 'Walk-in' ? 'Walk-in' : 'Routine'
+                    });
+                    const slotIndexInGenerated = generatedSlots.findIndex(s => s.time === slot.time);
+                    if (slotIndexInGenerated !== -1) {
+                       generatedSlots[slotIndexInGenerated].estimatedConsultationTime = estimation.estimatedConsultationTime;
+                    }
+                } catch(e) { console.error("Could not estimate time", e)}
+            }
+            setTimeSlots([...generatedSlots]);
+        }
+
+        setTimeSlots(generatedSlots);
+        runEstimations(generatedSlots);
+
+    }, [schedule, appointments, selectedSession, patients, family]);
+
+    const handleSlotClick = (time: string) => {
+        const slot = timeSlots.find(s => s.time === time);
+        if (slot && !slot.isBooked) {
+          setSelectedSlot(time);
+          setBookWalkInOpen(true);
+        }
+    };
+
+    const handleBookAppointment = (familyMember: FamilyMember, time: string) => {
+        const newAppointment: Appointment = {
+            id: Date.now(),
+            familyMemberId: familyMember.id,
+            familyMemberName: familyMember.name,
+            date: new Date().toISOString(),
+            time: time,
+            status: 'Confirmed',
+            type: 'Walk-in'
+        };
+        setAppointments(prev => [...prev, newAppointment]);
+        const newPatientEntry: Patient = {
+            id: patients.length + 1,
+            name: familyMember.name,
+            type: 'Walk-in',
+            appointmentTime: set(new Date(), { hours: parseInt(time.split(':')[0]), minutes: parseInt(time.split(':')[1].split(' ')[0])}).toISOString(),
+            checkInTime: new Date().toISOString(),
+            status: 'Waiting',
+            phone: familyMember.phone,
+            estimatedWaitTime: 0
+        };
+        setPatients(prev => [...prev, newPatientEntry]);
+        toast({ title: "Success", description: "Walk-in patient added to queue."});
+    };
+    
+    const handleAddNewPatient = (newPatient: FamilyMember) => {
+        setFamily(prev => [...prev, newPatient]);
+    }
+
+    const handleOpenReschedule = (appointment: Appointment) => {
+        setSelectedAppointment(appointment);
+        setRescheduleOpen(true);
+    };
+
+    const handleReschedule = (newDate: string, newTime: string) => {
+        if (selectedAppointment) {
+            setAppointments(prev => prev.map(a => 
+                a.id === selectedAppointment.id ? { ...a, date: newDate, time: newTime } : a
+            ));
+            toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
+        }
+    };
+
+    const handleCancelAppointment = (appointmentId: number) => {
+        setAppointments(prev => prev.map(a => 
+            a.id === appointmentId ? { ...a, status: 'Cancelled' } : a
+        ));
+         setPatients(prev => prev.map(p => 
+            p.id === appointmentId ? { ...p, status: 'Cancelled' } : p
+        ));
+        toast({ title: 'Success', description: 'Appointment has been cancelled.' });
+    };
+
+    const handleAdjustTiming = async (override: SpecialClosure) => {
+        const result = await updateTodayScheduleOverrideAction(override);
+        if (result.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: result.success });
+            const scheduleData = await getDoctorSchedule();
+            setSchedule(scheduleData);
+        }
+    };
+    
+    const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
+        setBookWalkInOpen(false);
+        if (/^\d+$/.test(searchTerm)) {
+            setPhoneToPreFill(searchTerm);
+        }
+        setNewPatientOpen(true);
+    };
+
+    const nowServingPatient = patients.find(p => p.status === 'In-Consultation');
+    
+    const filteredTimeSlots = timeSlots.filter(slot => {
+        if (!searchTerm.trim()) return true;
+        if (!slot.isBooked || !slot.patientDetails) return false;
+        return slot.patientDetails.name.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+
+    const confirmedAppointments = timeSlots.filter(s => s.isBooked && s.status !== 'Cancelled');
+
+    if (!schedule) {
+        return (
+            <div className="flex flex-col min-h-screen bg-background">
+                <Header />
+                <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
+                    <div className="space-y-6">
+                        <Skeleton className="h-12 w-1/3" />
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <Skeleton className="h-28 w-full" />
+                            <Skeleton className="h-28 w-full" />
+                            <Skeleton className="h-28 w-full" />
+                        </div>
+                        <Skeleton className="h-96 w-full" />
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col min-h-screen bg-background">
+            <Header />
+            <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
+                <div className="space-y-6">
+                    <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+                    <Stats patients={patients} />
+                    
+                    <Card>
+                        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
+                            <div className="flex-1">
+                                <CardTitle className="text-2xl">Today's Schedule</CardTitle>
+                                {currentDate && <CardDescription>{currentDate}</CardDescription>}
+                            </div>
+                             <div className="flex items-center gap-2 flex-wrap">
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        type="search"
+                                        placeholder="Search patient..."
+                                        className="pl-8 sm:w-[200px] md:w-[250px]"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <Button variant="outline" onClick={() => setAdjustTimingOpen(true)}>
+                                    <Clock className="mr-2 h-4 w-4" />
+                                    Adjust Timing
+                                </Button>
+                                <Button variant="outline" onClick={() => setNewPatientOpen(true)}>
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    New Patient
+                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline">
+                                            {selectedSession === 'morning' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                                            {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)} Session
+                                            <ChevronDown className="ml-2 h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => setSelectedSession('morning')}>
+                                            <Sun className="mr-2 h-4 w-4" />
+                                            Morning
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setSelectedSession('evening')}>
+                                            <Moon className="mr-2 h-4 w-4" />
+                                            Evening
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                            <div className="space-y-3">
+                            {filteredTimeSlots.length > 0 ? filteredTimeSlots.map((slot) => {
+                                const isBooked = slot.isBooked && slot.status && slot.status !== 'Cancelled';
+                                if (searchTerm && !isBooked) return null;
+
+                                const StatusIcon = isBooked && slot.status ? statusConfig[slot.status]?.icon : null;
+                                const statusColor = isBooked && slot.status ? statusConfig[slot.status]?.color : '';
+                                
+                                return (
+                                <div key={slot.time}>
+                                {isBooked && slot.appointment && slot.patientDetails ? (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <div className="p-3 flex items-center rounded-lg border bg-card shadow-sm cursor-pointer hover:bg-muted/50">
+                                                <div className="w-12 text-center font-bold text-lg text-primary">{confirmedAppointments.findIndex(a => a.time === slot.time) + 1}</div>
+                                                <div className="w-24 font-semibold">{slot.time}</div>
+                                                <div className="flex-1 flex items-center gap-2 font-semibold">
+                                                  {slot.patientDetails.name}
+                                                  {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : <FemaleIcon className="h-4 w-4 text-pink-500" />}
+                                                </div>
+                                                <div className="w-28">
+                                                    <Badge variant={slot.appointment.type === 'Walk-in' ? 'secondary' : 'outline'}>{slot.appointment.type || 'Appointment'}</Badge>
+                                                </div>
+                                                <div className="w-40 flex items-center gap-2">
+                                                   {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
+                                                   <span className={cn("font-medium", statusColor)}>{slot.status}</span>
+                                                    {slot.status === 'Waiting' && patients.find(p=>p.id === slot.appointment?.id)?.estimatedWaitTime && (
+                                                      <span className="text-xs text-muted-foreground">(~{patients.find(p=>p.id === slot.appointment?.id)?.estimatedWaitTime} min)</span>
+                                                   )}
+                                                </div>
+                                                 <div className="w-48 text-sm text-muted-foreground">
+                                                    {slot.estimatedConsultationTime ? `Est. Consult: ~${slot.estimatedConsultationTime} min` : (nowServingPatient ? `After ${nowServingPatient.name}`: 'Next in line')}
+                                                </div>
+                                            </div>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start">
+                                            <DropdownMenuItem onClick={() => handleOpenReschedule(slot.appointment!)}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                Reschedule
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <div className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Cancel Appointment
+                                                    </div>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently cancel the appointment.
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>Go Back</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleCancelAppointment(slot.appointment!.id)}>Confirm Cancellation</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                ) : (
+                                    <div className="p-3 flex items-center rounded-lg border border-dashed bg-muted/30 hover:bg-muted/60 cursor-pointer" onClick={() => handleSlotClick(slot.time)}>
+                                         <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
+                                         <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
+                                         <div className="flex-1 text-green-600 font-semibold">Available</div>
+                                    </div>
+                                )}
+                                </div>
+                                )
+                            }) : (
+                                 <div className="text-center py-16 text-muted-foreground">
+                                    <p>{searchTerm ? "No matching appointments found." : "This session is closed or has no available slots."}</p>
+                                </div>
+                            )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                {selectedSlot && (
+                    <BookWalkInDialog
+                        isOpen={isBookWalkInOpen}
+                        onOpenChange={setBookWalkInOpen}
+                        timeSlot={selectedSlot}
+                        onSave={handleBookAppointment}
+                        onAddNewPatient={handleOpenNewPatientDialogFromWalkIn}
+                    />
+                )}
+                <AddNewPatientDialog
+                    isOpen={isNewPatientOpen}
+                    onOpenChange={setNewPatientOpen}
+                    onSave={handleAddNewPatient}
+                    phoneToPreFill={phoneToPreFill}
+                    onClose={() => setPhoneToPreFill('')}
+                />
+                {selectedAppointment && (
+                    <RescheduleDialog
+                        isOpen={isRescheduleOpen}
+                        onOpenChange={setRescheduleOpen}
+                        appointment={selectedAppointment}
+                        onSave={handleReschedule}
+                        bookedSlots={appointments.filter(a => a.status === 'Confirmed' && a.id !== selectedAppointment.id).map(a => a.time)}
+                    />
+                )}
+                {schedule && (
+                    <AdjustTimingDialog
+                        isOpen={isAdjustTimingOpen}
+                        onOpenChange={setAdjustTimingOpen}
+                        schedule={schedule}
+                        onSave={handleAdjustTiming}
+                    />
+                )}
+            </main>
+        </div>
+    );
+}
+
+    

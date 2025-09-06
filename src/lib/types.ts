@@ -73,4 +73,7 @@ export type Appointment = {
   date: string; // ISO string format
   time: string;
   status: 'Confirmed' | 'Cancelled' | 'Completed' | 'Missed';
+  type?: 'Appointment' | 'Walk-in';
 };
+
+    

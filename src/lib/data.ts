@@ -60,6 +60,10 @@ let family: FamilyMember[] = [
     { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101', phone: '5551112222' },
     { id: 2, name: 'Jane Doe', dob: '1988-10-15', gender: 'Female', avatar: 'https://picsum.photos/id/238/200/200', phone: '5551112222' },
     { id: 3, name: 'Jimmy Doe', dob: '2015-02-25', gender: 'Male', avatar: 'https://picsum.photos/id/239/200/200', clinicId: 'C101', phone: '5551112222' },
+    { id: 4, name: 'Alice Johnson', dob: '1990-01-01', gender: 'Female', avatar: 'https://picsum.photos/id/240/200/200', clinicId: 'C102', phone: '555-0101' },
+    { id: 5, name: 'Bob Williams', dob: '1992-02-02', gender: 'Male', avatar: 'https://picsum.photos/id/241/200/200', clinicId: 'C103', phone: '555-0102' },
+    { id: 6, name: 'Charlie Brown', dob: '1994-03-03', gender: 'Male', avatar: 'https://picsum.photos/id/242/200/200', clinicId: 'C104', phone: '555-0103' },
+
 ];
 
 let nextPatientId = patients.length + 1;
@@ -185,3 +189,5 @@ export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'ava
     family.push(newMember);
     return newMember;
 }
+
+    

@@ -12,29 +12,17 @@ export default function Header() {
           <span className="font-bold sm:inline-block text-lg">QueueWise</span>
         </Link>
         <nav className="flex flex-1 items-center space-x-4">
+           <Button variant="ghost" asChild>
+            <Link href="/">Dashboard</Link>
+          </Button>
           <Button variant="ghost" asChild>
-            <Link href="/booking">Book Appointment</Link>
+            <Link href="/booking">Patient Portal</Link>
+          </Button>
+           <Button variant="ghost" asChild>
+            <Link href="/admin">Admin</Link>
           </Button>
         </nav>
         <div className="flex items-center justify-end space-x-2">
-           <Button variant="ghost" size="sm" className="gap-2" asChild>
-            <Link href="/reception">
-              <ClipboardList className="h-4 w-4" />
-              Reception
-            </Link>
-          </Button>
-           <Button variant="ghost" size="sm" className="gap-2" asChild>
-            <Link href="/booking">
-              <Users className="h-4 w-4" />
-              Patient Portal
-            </Link>
-          </Button>
-           <Button variant="ghost" size="sm" className="gap-2" asChild>
-            <Link href="/admin">
-              <Shield className="h-4 w-4" />
-              Admin
-            </Link>
-          </Button>
           <Button variant="outline" size="sm" className="gap-2" asChild>
             <Link href="/queue-status">
               <Eye className="h-4 w-4" />
@@ -52,3 +40,5 @@ export default function Header() {
     </header>
   );
 }
+
+    

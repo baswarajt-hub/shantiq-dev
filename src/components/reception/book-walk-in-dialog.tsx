@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,35 +15,40 @@ import { Label } from '@/components/ui/label';
 import type { FamilyMember } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { UserPlus } from 'lucide-react';
+import { getFamilyByPhoneAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 type BookWalkInDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   timeSlot: string;
   onSave: (familyMember: FamilyMember, time: string) => void;
-  mockFamily: FamilyMember[]; // In a real app, you'd fetch this
   onAddNewPatient: (searchTerm: string) => void;
 };
 
-export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockFamily, onAddNewPatient }: BookWalkInDialogProps) {
+export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAddNewPatient }: BookWalkInDialogProps) {
   const [step, setStep] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFoundMembers([]);
-      return;
-    }
-    // In a real app, this would be an API call with debouncing
-    const results = mockFamily.filter(m => 
-        m.clinicId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (m.phone && m.phone.includes(searchTerm))
-    );
-    setFoundMembers(results);
-  }, [searchTerm, mockFamily]);
+    const handler = setTimeout(() => {
+      if (searchTerm.trim() === '') {
+        setFoundMembers([]);
+        return;
+      }
+      startTransition(async () => {
+        // In a real app, you would also search by name and clinic ID
+        const results = await getFamilyByPhoneAction(searchTerm);
+        setFoundMembers(results);
+      });
+    }, 500); // Debounce search
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
 
   const handleSelectMember = (member: FamilyMember) => {
@@ -97,7 +102,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockF
                 
                 {searchTerm && (
                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {foundMembers.length > 0 ? (
+                        {isPending ? <p>Searching...</p> : foundMembers.length > 0 ? (
                             foundMembers.map(member => (
                                 <div key={member.id} className="p-2 border rounded-md flex items-center justify-between cursor-pointer hover:bg-muted" onClick={() => handleSelectMember(member)}>
                                     <div className="flex items-center gap-3">
@@ -151,3 +156,5 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, mockF
     </Dialog>
   );
 }
+
+    

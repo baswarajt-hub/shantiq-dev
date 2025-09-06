@@ -1,24 +1,14 @@
 'use client';
 
 import {
-  addWalkInPatientAction,
   emergencyCancelAction,
   runTimeEstimationAction,
   toggleDoctorStatusAction,
 } from '@/app/actions';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, Plus, Sparkles, LogIn, LogOut } from 'lucide-react';
+import { AlertTriangle, Sparkles, LogIn, LogOut } from 'lucide-react';
 import { useState, useTransition } from 'react';
-import { AddPatientForm } from './add-patient-form';
 import type { AIPatientData, DoctorStatus } from '@/lib/types';
 import {
   AlertDialog,
@@ -37,7 +27,6 @@ import { Switch } from '../ui/switch';
 export function QueueControls({ aipatients, initialDoctorStatus }: { aipatients: AIPatientData, initialDoctorStatus: DoctorStatus }) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [isDialogOpen, setDialogOpen] = useState(false);
   const [doctorStatus, setDoctorStatus] = useState(initialDoctorStatus);
 
   const handleRunEstimation = () => {
@@ -61,18 +50,6 @@ export function QueueControls({ aipatients, initialDoctorStatus }: { aipatients:
       }
     });
   };
-  
-  const handleAddPatient = (formData: FormData) => {
-    startTransition(async () => {
-        const result = await addWalkInPatientAction(formData);
-        if (result?.error) {
-          toast({ title: 'Error', description: result.error, variant: 'destructive' });
-        } else {
-          toast({ title: 'Success', description: result.success });
-          setDialogOpen(false);
-        }
-      });
-  }
 
   const handleToggleDoctorStatus = () => {
     startTransition(async () => {
@@ -95,26 +72,6 @@ export function QueueControls({ aipatients, initialDoctorStatus }: { aipatients:
             Doctor {doctorStatus.isOnline ? 'Online' : 'Offline'}
         </Label>
       </div>
-      <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Walk-in
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Walk-in Patient</DialogTitle>
-            <DialogDescription>
-              Enter the patient's details to add them to the queue.
-            </DialogDescription>
-          </DialogHeader>
-          <AddPatientForm
-            onSubmit={handleAddPatient}
-            isPending={isPending}
-          />
-        </DialogContent>
-      </Dialog>
       <Button
         variant="outline"
         onClick={handleRunEstimation}
@@ -148,3 +105,5 @@ export function QueueControls({ aipatients, initialDoctorStatus }: { aipatients:
     </div>
   );
 }
+
+    
