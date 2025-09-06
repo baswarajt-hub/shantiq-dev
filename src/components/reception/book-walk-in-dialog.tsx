@@ -16,13 +16,14 @@ import type { FamilyMember } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { UserPlus } from 'lucide-react';
 import { searchFamilyMembersAction } from '@/app/actions';
+import { AddNewPatientDialog } from './add-new-patient-dialog';
 
 type BookWalkInDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   timeSlot: string;
   onSave: (familyMember: FamilyMember, time: string) => void;
-  onAddNewPatient: (searchTerm: string) => void;
+  onAddNewPatient: (member: Omit<FamilyMember, 'id' | 'avatar'>) => Promise<FamilyMember | null>;
 };
 
 export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAddNewPatient }: BookWalkInDialogProps) {
@@ -31,6 +32,8 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isNewPatientDialogOpen, setIsNewPatientDialogOpen] = useState(false);
+  const [phoneToPreFill, setPhoneToPreFill] = useState('');
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -79,7 +82,20 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
     setSelectedMember(null);
   }
 
+  const handleOpenNewPatientDialog = () => {
+    if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
+      setPhoneToPreFill(searchTerm);
+    }
+    setIsNewPatientDialogOpen(true);
+  };
+
+  const handleNewPatientSaved = (newPatient: FamilyMember) => {
+    onSave(newPatient, timeSlot);
+    handleClose(false);
+  };
+
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
@@ -118,7 +134,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
                         ) : (
                             <div className="text-center text-sm text-muted-foreground py-4 space-y-3">
                                 <p>No patients found with this search term.</p>
-                                <Button variant="secondary" onClick={() => onAddNewPatient(searchTerm)}>
+                                <Button variant="secondary" onClick={handleOpenNewPatientDialog}>
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Add New Patient
                                 </Button>
@@ -151,5 +167,14 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
 
       </DialogContent>
     </Dialog>
+     <AddNewPatientDialog
+        isOpen={isNewPatientDialogOpen}
+        onOpenChange={setIsNewPatientDialogOpen}
+        onSave={onAddNewPatient}
+        phoneToPreFill={phoneToPreFill}
+        onClose={() => setPhoneToPreFill('')}
+        afterSave={handleNewPatientSaved}
+      />
+    </>
   );
 }

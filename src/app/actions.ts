@@ -54,6 +54,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, date: str
   });
 
   revalidatePath('/booking');
+  revalidatePath('/');
   
   return { success: 'Appointment booked successfully.' };
 }
@@ -242,6 +243,7 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
 export async function cancelAppointmentAction(appointmentId: number) {
     const result = await cancelAppointment(appointmentId);
     revalidatePath('/booking');
+    revalidatePath('/');
     return { success: 'Appointment cancelled', patient: result };
 }
 
@@ -266,6 +268,7 @@ export async function rescheduleAppointmentAction(appointmentId: number, newDate
     });
 
     revalidatePath('/booking');
+    revalidatePath('/');
     return { success: 'Appointment rescheduled.', patient: result };
 }
 

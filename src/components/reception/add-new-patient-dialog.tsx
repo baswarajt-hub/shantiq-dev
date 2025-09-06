@@ -71,12 +71,13 @@ const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, cli
 type AddNewPatientDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (member: Omit<FamilyMember, 'id' | 'avatar'>) => Promise<void>;
+  onSave: (member: Omit<FamilyMember, 'id' | 'avatar'>) => Promise<FamilyMember | null>;
   phoneToPreFill?: string;
   onClose?: () => void;
+  afterSave?: (newPatient: FamilyMember) => void;
 };
 
-export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFill, onClose }: AddNewPatientDialogProps) {
+export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFill, onClose, afterSave }: AddNewPatientDialogProps) {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
@@ -102,9 +103,12 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
   useEffect(() => {
     if (isOpen && phoneToPreFill) {
       setPhone(phoneToPreFill);
-      handlePhoneCheck(phoneToPreFill);
+      // Automatically trigger check if dialog is opened with a pre-filled phone.
+      if (step === 1 && !foundFamily) {
+        handlePhoneCheck(phoneToPreFill);
+      }
     }
-  }, [isOpen, phoneToPreFill, handlePhoneCheck]);
+  }, [isOpen, phoneToPreFill, handlePhoneCheck, step, foundFamily]);
 
   const resetState = () => {
     setStep(1);
@@ -131,8 +135,13 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     }
     startTransition(async () => {
         const newPatientData: Omit<FamilyMember, 'id' | 'avatar'> = { name, dob, gender, clinicId, phone };
-        await onSave(newPatientData);
-        handleClose(false);
+        const newPatient = await onSave(newPatientData);
+        if (newPatient) {
+          if (afterSave) {
+            afterSave(newPatient);
+          }
+          handleClose(false);
+        }
     });
   };
   

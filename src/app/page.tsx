@@ -16,7 +16,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { updateTodayScheduleOverrideAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule } from '@/app/actions';
+import { updateTodayScheduleOverrideAction, estimateConsultationTime, getFamily, getPatients, addPatient, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -63,13 +63,15 @@ export default function DashboardPage() {
     const [isPending, startTransition] = useTransition();
 
     const loadData = async () => {
-        const scheduleData = await getDoctorSchedule();
-        const patientData = await getPatients();
-        const familyData = await getFamily();
-        
-        setSchedule(scheduleData);
-        setPatients(patientData);
-        setFamily(familyData);
+        startTransition(async () => {
+            const scheduleData = await getDoctorSchedule();
+            const patientData = await getPatients();
+            const familyData = await getFamily();
+            
+            setSchedule(scheduleData);
+            setPatients(patientData);
+            setFamily(familyData);
+        });
     }
 
     useEffect(() => {
@@ -114,24 +116,27 @@ export default function DashboardPage() {
             let slotIndex = 0;
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
-                const patientForSlot = patients.find(p => format(new Date(p.appointmentTime), 'hh:mm a') === timeString && new Date(p.appointmentTime).toDateString() === today.toDateString());
+                const patientForSlot = patients.find(p => format(new Date(p.appointmentTime), 'hh:mm a') === timeString && new Date(p.appointmentTime).toDateString() === today.toDateString() && p.status !== 'Cancelled');
                 
                 let isBooked = !!patientForSlot;
                 
                 let isReservedForWalkIn = false;
                 if (!isBooked) {
+                    // Rule 1: Reserve first 5 slots
                     if (schedule.reserveFirstFive && slotIndex < 5) {
                         isReservedForWalkIn = true;
-                    } else {
-                        const reservationStrategy = schedule.walkInReservation;
-                        const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
-                        if (slotIndex >= startIndexForAlternate) {
-                            const relativeIndex = slotIndex - startIndexForAlternate;
-                            if (reservationStrategy === 'alternateOne') {
-                                if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-                            } else if (reservationStrategy === 'alternateTwo') {
-                                if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
-                            }
+                    }
+
+                    // Rule 2: Alternate reservation strategies (applies after the first 5 if that rule is active)
+                    const reservationStrategy = schedule.walkInReservation;
+                    const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+
+                    if (slotIndex >= startIndexForAlternate) {
+                        const relativeIndex = slotIndex - startIndexForAlternate;
+                        if (reservationStrategy === 'alternateOne') {
+                            if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+                        } else if (reservationStrategy === 'alternateTwo') {
+                            if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
                         }
                     }
                 }
@@ -188,38 +193,42 @@ export default function DashboardPage() {
     };
 
     const handleBookAppointment = async (familyMember: FamilyMember, time: string) => {
-        const appointmentTime = new Date();
-        const [hours, minutesPart] = time.split(':');
-        const minutes = minutesPart.split(' ')[0];
-        const ampm = minutesPart.split(' ')[1];
-        let hourNumber = parseInt(hours, 10);
-        if (ampm === 'PM' && hourNumber < 12) {
-            hourNumber += 12;
-        }
-        if (ampm === 'AM' && hourNumber === 12) {
-            hourNumber = 0;
-        }
-        appointmentTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
+        startTransition(async () => {
+            const appointmentTime = new Date();
+            const [hours, minutesPart] = time.split(':');
+            const minutes = minutesPart.split(' ')[0];
+            const ampm = minutesPart.split(' ')[1];
+            let hourNumber = parseInt(hours, 10);
+            if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
+                hourNumber += 12;
+            }
+            if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
+                hourNumber = 0;
+            }
+            appointmentTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
 
-        await addPatient({
-            name: familyMember.name,
-            phone: familyMember.phone,
-            type: 'Walk-in',
-            appointmentTime: appointmentTime.toISOString(),
-            checkInTime: new Date().toISOString(),
-            status: 'Waiting',
+            await addPatient({
+                name: familyMember.name,
+                phone: familyMember.phone,
+                type: 'Walk-in',
+                appointmentTime: appointmentTime.toISOString(),
+                checkInTime: new Date().toISOString(),
+                status: 'Waiting',
+            });
+            
+            await loadData();
+            toast({ title: "Success", description: "Walk-in patient added to queue."});
         });
-        
-        await loadData();
-        toast({ title: "Success", description: "Walk-in patient added to queue."});
     };
     
-    const handleAddNewPatient = async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>) => {
+    const handleAddNewPatient = async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
         const result = await addNewPatientAction(newPatientData);
         if (result.patient) {
             await loadData();
             toast({ title: "Success", description: result.success});
+            return result.patient;
         }
+        return null;
     };
 
     const handleOpenReschedule = (patient: Patient) => {
@@ -263,7 +272,15 @@ export default function DashboardPage() {
 
 
     const handleCancelAppointment = (patientId: number) => {
-        handleUpdateStatus(patientId, 'Cancelled');
+        startTransition(async () => {
+            const result = await cancelAppointmentAction(patientId);
+            if (result.success) {
+                toast({ title: 'Success', description: 'Appointment cancelled.' });
+                await loadData();
+            } else {
+                toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
+            }
+        });
     };
 
     const handleAdjustTiming = async (override: SpecialClosure) => {
@@ -517,7 +534,7 @@ export default function DashboardPage() {
                         onOpenChange={setBookWalkInOpen}
                         timeSlot={selectedSlot}
                         onSave={handleBookAppointment}
-                        onAddNewPatient={handleOpenNewPatientDialogFromWalkIn}
+                        onAddNewPatient={handleAddNewPatient}
                     />
                 )}
                 <AddNewPatientDialog
