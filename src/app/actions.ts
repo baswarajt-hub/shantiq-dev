@@ -38,12 +38,11 @@ export async function addAppointmentAction(familyMember: FamilyMember, date: str
   const ampm = minutesPart.split(' ')[1];
 
   let hourNumber = parseInt(hours, 10);
-  if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
-    hourNumber += 12;
-  }
-  if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
-    hourNumber = 0; // Midnight case
-  }
+    if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
+        hourNumber += 12;
+    } else if (ampm.toLowerCase() === 'am' && hourNumber === 12) { // Midnight case
+        hourNumber = 0;
+    }
   
   // Construct date in server's local timezone then convert to ISO string.
   const appointmentDateTime = new Date(year, month - 1, day, hourNumber, parseInt(minutes, 10));
@@ -265,8 +264,7 @@ export async function rescheduleAppointmentAction(appointmentId: number, newDate
     let hourNumber = parseInt(hours, 10);
     if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
         hourNumber += 12;
-    }
-    if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
+    } else if (ampm.toLowerCase() === 'am' && hourNumber === 12) { // Midnight case
         hourNumber = 0;
     }
 
@@ -286,5 +284,3 @@ export async function rescheduleAppointmentAction(appointmentId: number, newDate
 // Re-exporting for use in the new dashboard
 export { estimateConsultationTime };
 export { getFamily, getPatients, addPatient, getDoctorSchedule };
-
-    
