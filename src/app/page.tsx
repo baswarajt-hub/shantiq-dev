@@ -20,6 +20,8 @@ import { updateTodayScheduleOverrideAction, estimateConsultationTime, getFamily,
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 
 type TimeSlot = {
@@ -55,7 +57,7 @@ export default function DashboardPage() {
     const [isRescheduleOpen, setRescheduleOpen] = useState(false);
     const [isAdjustTimingOpen, setAdjustTimingOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
-    const [currentDate, setCurrentDate] = useState('');
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [searchTerm, setSearchTerm] = useState('');
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
@@ -82,20 +84,15 @@ export default function DashboardPage() {
         loadData();
     }, []);
 
-     useEffect(() => {
-        setCurrentDate(format(new Date(), 'EEEE, MMMM d, yyyy'));
-    }, []);
-
     useEffect(() => {
         if (!schedule) return;
 
-        const today = new Date();
-        const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
+        const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
         const generatedSlots: TimeSlot[] = [];
 
-        const todayStr = format(today, 'yyyy-MM-dd');
-        const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+        const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
 
         if (todayOverride) {
             daySchedule = {
@@ -110,13 +107,13 @@ export default function DashboardPage() {
             const [startHour, startMinute] = sessionToGenerate.start.split(':').map(Number);
             const [endHour, endMinute] = sessionToGenerate.end.split(':').map(Number);
             
-            let currentTime = set(today, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
-            const endTime = set(today, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
+            let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
+            const endTime = set(selectedDate, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
             
             let slotIndex = 0;
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
-                const patientForSlot = patients.find(p => format(new Date(p.appointmentTime), 'hh:mm a') === timeString && new Date(p.appointmentTime).toDateString() === today.toDateString() && p.status !== 'Cancelled');
+                const patientForSlot = patients.find(p => format(new Date(p.appointmentTime), 'hh:mm a') === timeString && new Date(p.appointmentTime).toDateString() === selectedDate.toDateString() && p.status !== 'Cancelled');
                 
                 let isBooked = !!patientForSlot;
                 
@@ -178,15 +175,15 @@ export default function DashboardPage() {
         }
 
         setTimeSlots(generatedSlots);
-        if(patients.length > 0) {
+        if(patients.length > 0 && format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')) {
             runEstimations(generatedSlots);
         }
 
-    }, [schedule, patients, family, selectedSession]);
+    }, [schedule, patients, family, selectedSession, selectedDate]);
 
     const handleSlotClick = (time: string) => {
         const slot = timeSlots.find(s => s.time === time);
-        if (slot && (!slot.isBooked || slot.isReservedForWalkIn)) {
+        if (slot && !slot.isBooked && !slot.isReservedForWalkIn) {
           setSelectedSlot(time);
           setBookWalkInOpen(true);
         }
@@ -194,7 +191,7 @@ export default function DashboardPage() {
 
     const handleBookAppointment = async (familyMember: FamilyMember, time: string) => {
         startTransition(async () => {
-            const appointmentTime = new Date();
+            const appointmentTime = new Date(selectedDate);
             const [hours, minutesPart] = time.split(':');
             const minutes = minutesPart.split(' ')[0];
             const ampm = minutesPart.split(' ')[1];
@@ -206,6 +203,8 @@ export default function DashboardPage() {
                 hourNumber = 0;
             }
             appointmentTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
+            
+            const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
 
             await addPatient({
                 name: familyMember.name,
@@ -213,7 +212,7 @@ export default function DashboardPage() {
                 type: 'Walk-in',
                 appointmentTime: appointmentTime.toISOString(),
                 checkInTime: new Date().toISOString(),
-                status: 'Waiting',
+                status: isToday ? 'Waiting' : 'Confirmed',
             });
             
             await loadData();
@@ -352,9 +351,27 @@ export default function DashboardPage() {
                     
                     <Card>
                         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
-                            <div className="flex-1">
-                                <CardTitle className="text-2xl">Today's Schedule</CardTitle>
-                                {currentDate && <CardDescription>{currentDate}</CardDescription>}
+                            <div className="flex items-center gap-4">
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant={"outline"} className={cn("w-[280px] justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar
+                                            mode="single"
+                                            selected={selectedDate}
+                                            onSelect={(day) => day && setSelectedDate(day)}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                                <div>
+                                    <CardTitle className="text-2xl">Schedule</CardTitle>
+                                    <CardDescription>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardDescription>
+                                </div>
                             </div>
                              <div className="flex items-center gap-2 flex-wrap">
                                 <div className="relative">
@@ -504,7 +521,7 @@ export default function DashboardPage() {
                                       className={cn(
                                           "p-3 flex items-center rounded-lg border border-dashed", 
                                           slot.isReservedForWalkIn ? "bg-amber-50" : "bg-muted/30",
-                                          "hover:bg-muted/60 cursor-pointer"
+                                          !slot.isReservedForWalkIn && "hover:bg-muted/60 cursor-pointer"
                                       )} 
                                       onClick={() => handleSlotClick(slot.time)}
                                     >
@@ -534,7 +551,7 @@ export default function DashboardPage() {
                         onOpenChange={setBookWalkInOpen}
                         timeSlot={selectedSlot}
                         onSave={handleBookAppointment}
-                        onAddNewPatient={handleAddNewPatient}
+                        onAddNewPatient={handleOpenNewPatientDialogFromWalkIn}
                     />
                 )}
                 <AddNewPatientDialog

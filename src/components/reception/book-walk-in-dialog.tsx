@@ -23,7 +23,7 @@ type BookWalkInDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   timeSlot: string;
   onSave: (familyMember: FamilyMember, time: string) => void;
-  onAddNewPatient: (member: Omit<FamilyMember, 'id' | 'avatar'>) => Promise<FamilyMember | null>;
+  onAddNewPatient: (searchTerm: string) => void;
 };
 
 export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAddNewPatient }: BookWalkInDialogProps) {
@@ -32,9 +32,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [isNewPatientDialogOpen, setIsNewPatientDialogOpen] = useState(false);
-  const [phoneToPreFill, setPhoneToPreFill] = useState('');
-
+  
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchTerm.trim() === '') {
@@ -83,19 +81,10 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
   }
 
   const handleOpenNewPatientDialog = () => {
-    if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
-      setPhoneToPreFill(searchTerm);
-    }
-    setIsNewPatientDialogOpen(true);
-  };
-
-  const handleNewPatientSaved = (newPatient: FamilyMember) => {
-    onSave(newPatient, timeSlot);
-    handleClose(false);
+    onAddNewPatient(searchTerm);
   };
 
   return (
-    <>
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
@@ -167,14 +156,5 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, onSave, onAdd
 
       </DialogContent>
     </Dialog>
-     <AddNewPatientDialog
-        isOpen={isNewPatientDialogOpen}
-        onOpenChange={setIsNewPatientDialogOpen}
-        onSave={onAddNewPatient}
-        phoneToPreFill={phoneToPreFill}
-        onClose={() => setPhoneToPreFill('')}
-        afterSave={handleNewPatientSaved}
-      />
-    </>
   );
 }
