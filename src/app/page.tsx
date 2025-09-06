@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, FamilyMember, Patient, SpecialClosure } from '@/lib/types';
-import { format, set, addMinutes } from 'date-fns';
+import { format, set, addMinutes, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -113,7 +113,16 @@ export default function DashboardPage() {
             let slotIndex = 0;
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
-                const patientForSlot = patients.find(p => format(new Date(p.appointmentTime), 'hh:mm a') === timeString && new Date(p.appointmentTime).toDateString() === selectedDate.toDateString() && p.status !== 'Cancelled');
+                
+                const patientForSlot = patients.find(p => {
+                    if (p.status === 'Cancelled') return false;
+                    const apptTime = parseISO(p.appointmentTime);
+                    return apptTime.getFullYear() === selectedDate.getFullYear() &&
+                           apptTime.getMonth() === selectedDate.getMonth() &&
+                           apptTime.getDate() === selectedDate.getDate() &&
+                           apptTime.getHours() === currentTime.getHours() &&
+                           apptTime.getMinutes() === currentTime.getMinutes();
+                });
                 
                 let isBooked = !!patientForSlot;
                 
