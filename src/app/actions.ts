@@ -46,9 +46,6 @@ export async function addAppointmentAction(familyMember: FamilyMember, date: str
   
   // Construct date in server's local timezone then convert to ISO string.
   const appointmentDateTime = new Date(year, month - 1, day, hourNumber, parseInt(minutes, 10));
-  
-  console.log(`Booking for ${date} ${time} -> created ISO string: ${appointmentDateTime.toISOString()}`);
-
 
   await addPatient({
     name: familyMember.name,
