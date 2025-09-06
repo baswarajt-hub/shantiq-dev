@@ -69,8 +69,8 @@ let nextPatientId = patients.length + 1;
 let nextFamilyId = family.length + 1;
 
 let doctorStatus: DoctorStatus = {
-  isOnline: true,
-  onlineTime: new Date(new Date().setHours(8, 30, 0, 0)).toISOString(),
+  isOnline: false,
+  onlineTime: undefined,
 };
 
 let doctorSchedule: DoctorSchedule = {

@@ -100,6 +100,45 @@ export default function DashboardPage() {
     }, [doctorStatus]);
 
     useEffect(() => {
+      if (!schedule || !doctorStatus || !doctorStatus.isOnline) return;
+
+      const autoCheckout = () => {
+          const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
+          const dateStr = format(selectedDate, 'yyyy-MM-dd');
+          const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+          let daySchedule = schedule.days[dayOfWeek];
+          if (todayOverride) {
+              daySchedule = {
+                  morning: todayOverride.morningOverride ?? daySchedule.morning,
+                  evening: todayOverride.eveningOverride ?? daySchedule.evening
+              }
+          }
+
+          const eveningSession = daySchedule.evening;
+          if (!eveningSession.isOpen || !eveningSession.end) {
+              return; // No evening session today
+          }
+
+          const [endHour, endMinute] = eveningSession.end.split(':').map(Number);
+          const endTime = set(new Date(), { hours: endHour, minutes: endMinute });
+          
+          const activePatients = patients.some(p => 
+              ['Waiting', 'In-Consultation', 'Confirmed', 'Late', 'Waiting for Reports'].includes(p.status)
+          );
+
+          if (new Date() > endTime && !activePatients) {
+              handleToggleDoctorStatus();
+              toast({ title: "Doctor Checked Out", description: "All patients for the day have been seen." });
+          }
+      };
+
+      const interval = setInterval(autoCheckout, 60000); // Check every minute
+      return () => clearInterval(interval);
+
+  }, [schedule, patients, doctorStatus]);
+
+
+    useEffect(() => {
         if (!schedule) return;
 
         const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
