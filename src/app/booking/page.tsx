@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -317,9 +318,8 @@ export default function BookingPage() {
     }
   };
   
-  const now = new Date();
-  const upcomingAppointments = appointments.filter(appt => appt.status === 'Confirmed' && parseISO(appt.date) >= now);
-  const pastAppointments = appointments.filter(appt => appt.status !== 'Confirmed' || parseISO(appt.date) < now);
+  const upcomingAppointments = appointments.filter(appt => appt.status === 'Confirmed' && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
+  const pastAppointments = appointments.filter(appt => appt.status !== 'Confirmed' || parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0)));
 
   const currentDaySchedule = todaySchedule();
 
@@ -506,5 +506,3 @@ export default function BookingPage() {
     </div>
   );
 }
-
-    
