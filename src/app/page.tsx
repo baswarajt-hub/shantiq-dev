@@ -117,11 +117,14 @@ export default function DashboardPage() {
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
                     const apptTime = parseISO(p.appointmentTime);
-                    return apptTime.getFullYear() === selectedDate.getFullYear() &&
-                           apptTime.getMonth() === selectedDate.getMonth() &&
-                           apptTime.getDate() === selectedDate.getDate() &&
-                           apptTime.getHours() === currentTime.getHours() &&
-                           apptTime.getMinutes() === currentTime.getMinutes();
+                    
+                    const localTime = new Date(currentTime);
+                    
+                    return apptTime.getFullYear() === localTime.getFullYear() &&
+                           apptTime.getMonth() === localTime.getMonth() &&
+                           apptTime.getDate() === localTime.getDate() &&
+                           apptTime.getHours() === localTime.getHours() &&
+                           apptTime.getMinutes() === localTime.getMinutes();
                 });
                 
                 let isBooked = !!patientForSlot;
@@ -314,7 +317,7 @@ export default function DashboardPage() {
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
-        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
+        if (/^\\d{5,}$/.test(searchTerm.replace(/\\D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
@@ -470,8 +473,8 @@ export default function DashboardPage() {
                                                    )}
                                                 </div>
                                                  <div className="w-48 text-sm text-muted-foreground">
-                                                     {slot.patient.checkInTime ? `Checked in: ${format(new Date(slot.patient.checkInTime), 'hh:mm a')}`
-                                                     : slot.patient.status === 'Completed' && slot.patient.consultationEndTime ? `Finished at ${format(new Date(slot.patient.consultationEndTime), 'hh:mm a')}`
+                                                     {slot.patient.checkInTime ? `Checked in: ${format(parseISO(slot.patient.checkInTime), 'hh:mm a')}`
+                                                     : slot.patient.status === 'Completed' && slot.patient.consultationEndTime ? `Finished at ${format(parseISO(slot.patient.consultationEndTime), 'hh:mm a')}`
                                                      : 'Awaiting Check-in' }
                                                 </div>
                                             </div>
@@ -605,3 +608,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
