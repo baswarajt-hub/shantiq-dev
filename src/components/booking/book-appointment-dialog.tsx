@@ -30,11 +30,11 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<{time: string, isReserved: boolean}[]>([]);
 
   useEffect(() => {
     if (schedule && selectedDate) {
-      const generatedSlots: string[] = [];
+      const generatedSlots: {time: string, isReserved: boolean}[] = [];
       const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
       const daySchedule = schedule.days[dayOfWeek];
       const sessionSchedule = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
@@ -45,10 +45,28 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         
         let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute });
         const endTime = set(selectedDate, { hours: endHour, minutes: endMinute });
-
+        
+        let slotIndex = 0;
         while (currentTime < endTime) {
-          generatedSlots.push(format(currentTime, 'hh:mm a'));
+          const timeString = format(currentTime, 'hh:mm a');
+          let isReservedForWalkIn = false;
+          if (schedule.reserveFirstFive && slotIndex < 5) {
+              isReservedForWalkIn = true;
+          } else {
+              const reservationStrategy = schedule.walkInReservation;
+              const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+              if (slotIndex >= startIndexForAlternate) {
+                  const relativeIndex = slotIndex - startIndexForAlternate;
+                  if (reservationStrategy === 'alternateOne') {
+                      if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+                  } else if (reservationStrategy === 'alternateTwo') {
+                      if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
+                  }
+              }
+          }
+          generatedSlots.push({ time: timeString, isReserved: isReservedForWalkIn });
           currentTime = addMinutes(currentTime, schedule.slotDuration);
+          slotIndex++;
         }
       }
       setAvailableSlots(generatedSlots);
@@ -140,11 +158,13 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                   <div className="grid grid-cols-3 gap-2">
                       {availableSlots.map(slot => (
                           <Button 
-                              key={slot} 
-                              variant={selectedSlot === slot ? 'default' : 'outline'}
-                              onClick={() => setSelectedSlot(slot)}
+                              key={slot.time} 
+                              variant={selectedSlot === slot.time ? 'default' : 'outline'}
+                              onClick={() => setSelectedSlot(slot.time)}
+                              disabled={slot.isReserved}
+                              title={slot.isReserved ? "Reserved for Walk-in" : ""}
                           >
-                              {slot}
+                              {slot.time}
                           </Button>
                       ))}
                   </div>

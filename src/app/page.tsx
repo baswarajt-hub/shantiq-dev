@@ -120,12 +120,12 @@ export default function DashboardPage() {
                 evening: todayOverride.eveningOverride ?? daySchedule.evening
             }
         }
+        
+        const sessionToGenerate = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
 
-        const generateSessionSlots = (session: Session) => {
-            if (!session.isOpen || !session.start || !session.end) return;
-
-            const [startHour, startMinute] = session.start.split(':').map(Number);
-            const [endHour, endMinute] = session.end.split(':').map(Number);
+        if (sessionToGenerate.isOpen && sessionToGenerate.start && sessionToGenerate.end) {
+            const [startHour, startMinute] = sessionToGenerate.start.split(':').map(Number);
+            const [endHour, endMinute] = sessionToGenerate.end.split(':').map(Number);
             
             let currentTime = set(today, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
             const endTime = set(today, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
@@ -168,7 +168,6 @@ export default function DashboardPage() {
                     }
                 }
 
-
                 generatedSlots.push({
                     time: timeString,
                     isBooked: !!patientInQueue || !!appointmentForSlot,
@@ -183,8 +182,6 @@ export default function DashboardPage() {
             }
         }
         
-        const sessionToGenerate = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
-        generateSessionSlots(sessionToGenerate);
 
         const runEstimations = async (slots: TimeSlot[]) => {
             const waitingSlots = slots.filter(s => s.isBooked && s.status === 'Waiting');
