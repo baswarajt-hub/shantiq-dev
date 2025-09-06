@@ -38,6 +38,9 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     status: 'Confirmed',
   });
   
+  revalidatePath('/booking');
+  revalidatePath('/');
+  
   return { success: 'Appointment booked successfully.' };
 }
 

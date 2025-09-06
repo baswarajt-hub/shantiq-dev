@@ -17,7 +17,7 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { getDoctorSchedule, getFamily, getPatientsAction, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addPatient } from '@/app/actions';
+import { getDoctorSchedule, getFamily, getPatientsAction, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
 import { format, parseISO, parse as parseDate } from 'date-fns';
 
 
@@ -266,15 +266,13 @@ export default function BookingPage() {
         const timeObj = parseDate(time, 'hh:mm a', dateObj);
         const appointmentTime = timeObj.toISOString();
 
-        await addPatient({
-          name: familyMember.name,
-          phone: familyMember.phone,
-          type: 'Appointment',
-          appointmentTime: appointmentTime,
-          status: 'Confirmed',
-        });
-        toast({ title: "Success", description: "Appointment booked."});
-        await loadData();
+        const result = await addAppointmentAction(familyMember, appointmentTime);
+        if (result.success) {
+            toast({ title: "Success", description: "Appointment booked."});
+            await loadData();
+        } else {
+            toast({ title: "Error", description: result.error, variant: 'destructive'});
+        }
     });
   };
 
