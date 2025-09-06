@@ -135,7 +135,7 @@ export default function TVDisplayPage() {
         </div>
       </main>
 
-      {(doctorStatus?.isOnline || waitingForReports.length > 0) && waitingForReports.length > 0 && (
+      {waitingForReports.length > 0 && (
          <footer className="pt-8 mt-8 border-t-2 border-slate-700">
             <h2 className="text-4xl text-purple-300 font-semibold mb-6 text-center">WAITING FOR REPORTS</h2>
              <div className="grid grid-cols-3 gap-6">

@@ -186,7 +186,7 @@ export default function QueueStatusPage() {
           )}
         </div>
 
-        {(doctorStatus?.isOnline || waitingPatients.length > 0) && nextInLine.length > 0 && (
+        {nextInLine.length > 0 && (
           <div className="mt-12 max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-6">Next in Line</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -205,7 +205,7 @@ export default function QueueStatusPage() {
           </div>
         )}
         
-        {(doctorStatus?.isOnline || waitingForReports.length > 0) && waitingForReports.length > 0 && (
+        {waitingForReports.length > 0 && (
           <div className="mt-12 max-w-4xl mx-auto">
              <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
