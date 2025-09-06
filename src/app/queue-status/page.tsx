@@ -176,11 +176,11 @@ export default function QueueStatusPage() {
           ) : (
              <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{!doctorStatus?.isOnline ? 'Doctor is Offline' : 'Queue is Empty'}</CardTitle>
-                <p className="text-sm text-muted-foreground">Please check back later.</p>
+                <CardTitle className="text-lg">Queue is Empty</CardTitle>
+                 <p className="text-sm text-muted-foreground">Please check back later.</p>
               </CardHeader>
               <CardContent>
-                 <p>{doctorStatus?.isOnline ? "There are no patients currently waiting." : "The waiting queue will be displayed once the doctor is online."}</p>
+                 <p>There are no patients currently waiting.</p>
               </CardContent>
             </Card>
           )}
@@ -224,11 +224,6 @@ export default function QueueStatusPage() {
           </div>
         )}
 
-        {!doctorStatus?.isOnline && waitingPatients.length === 0 && (
-            <div className="mt-12 max-w-4xl mx-auto text-center">
-                 <p className="text-muted-foreground">The doctor is currently offline. You can still see your position in the queue once patients have checked in.</p>
-            </div>
-        )}
       </main>
     </div>
   );
