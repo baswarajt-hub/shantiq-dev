@@ -30,7 +30,9 @@ export async function addWalkInPatientAction(formData: FormData) {
 
 export async function addAppointmentAction(familyMember: FamilyMember, date: string, time: string) {
 
-  const appointmentDateTime = new Date(date);
+  // Manually parse date to avoid timezone issues. date is in ISO string format (e.g., "2025-09-08T00:00:00.000Z") but we only care about the date part.
+  const [year, month, day] = date.split('T')[0].split('-').map(Number);
+
   const [hours, minutesPart] = time.split(':');
   const minutes = minutesPart.split(' ')[0];
   const ampm = minutesPart.split(' ')[1];
@@ -40,9 +42,11 @@ export async function addAppointmentAction(familyMember: FamilyMember, date: str
     hourNumber += 12;
   }
   if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
-    hourNumber = 0;
+    hourNumber = 0; // Midnight case
   }
-  appointmentDateTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
+  
+  // Construct date in server's local timezone then convert to ISO string.
+  const appointmentDateTime = new Date(year, month - 1, day, hourNumber, parseInt(minutes, 10));
 
   await addPatient({
     name: familyMember.name,
@@ -248,7 +252,9 @@ export async function cancelAppointmentAction(appointmentId: number) {
 }
 
 export async function rescheduleAppointmentAction(appointmentId: number, newDate: string, newTime: string) {
-    const appointmentTime = new Date(newDate);
+    // Manually parse date to avoid timezone issues. newDate is in ISO string format.
+    const [year, month, day] = newDate.split('T')[0].split('-').map(Number);
+    
     const [hours, minutesPart] = newTime.split(':');
     const minutes = minutesPart.split(' ')[0];
     const ampm = minutesPart.split(' ')[1];
@@ -260,7 +266,8 @@ export async function rescheduleAppointmentAction(appointmentId: number, newDate
     if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
         hourNumber = 0;
     }
-    appointmentTime.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
+
+    const appointmentTime = new Date(year, month - 1, day, hourNumber, parseInt(minutes, 10));
 
     const result = await updatePatient(appointmentId, {
         appointmentTime: appointmentTime.toISOString(),

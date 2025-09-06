@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
 import { getDoctorSchedule, getFamily, getPatients, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
 import { format } from 'date-fns';
+import { revalidatePath } from 'next/cache';
 
 
 const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
@@ -201,7 +202,17 @@ export default function BookingPage() {
     if (!schedule) return null;
     const today = new Date();
     const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
-    const todaySch = schedule.days[dayOfWeek];
+    let todaySch = schedule.days[dayOfWeek];
+
+    const dateStr = format(today, 'yyyy-MM-dd');
+    const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+    if(todayOverride) {
+        todaySch = {
+            morning: todayOverride.morningOverride ?? todaySch.morning,
+            evening: todayOverride.eveningOverride ?? todaySch.evening,
+        };
+    }
+
 
     const formatSession = (session: {start: string, end: string, isOpen: boolean}) => {
         if (!session.isOpen) return 'Closed';
