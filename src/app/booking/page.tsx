@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
 import { getDoctorSchedule, getFamily, getPatients, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, parse as parseDate } from 'date-fns';
 
 
 const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
@@ -261,7 +261,11 @@ export default function BookingPage() {
 
   const handleBookAppointment = (familyMember: FamilyMember, date: string, time: string) => {
      startTransition(async () => {
-        const result = await addAppointmentAction(familyMember, date, time);
+        const dateObj = parseDate(date, 'yyyy-MM-dd', new Date());
+        const timeObj = parseDate(time, 'hh:mm a', dateObj);
+        const appointmentTime = timeObj.toISOString();
+
+        const result = await addAppointmentAction(familyMember, appointmentTime);
         if (result.success) {
             toast({ title: "Success", description: "Appointment booked."});
             await loadData();
@@ -296,7 +300,11 @@ export default function BookingPage() {
   const handleRescheduleAppointment = (newDate: string, newTime: string) => {
     if (selectedAppointment) {
       startTransition(async () => {
-        const result = await rescheduleAppointmentAction(selectedAppointment.id, newDate, newTime);
+        const dateObj = parseDate(newDate, 'yyyy-MM-dd', new Date());
+        const timeObj = parseDate(newTime, 'hh:mm a', dateObj);
+        const appointmentTime = timeObj.toISOString();
+
+        const result = await rescheduleAppointmentAction(selectedAppointment.id, appointmentTime);
         if(result.success) {
           toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
           await loadData();

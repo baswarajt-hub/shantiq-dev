@@ -28,31 +28,14 @@ export async function addWalkInPatientAction(formData: FormData) {
   return { success: 'Walk-in patient added successfully.' };
 }
 
-export async function addAppointmentAction(familyMember: FamilyMember, date: string, time: string) {
-
-  // Manually parse date to avoid timezone issues. date is in YYYY-MM-DD format.
-  const [year, month, day] = date.split('-').map(Number);
-
-  const [hours, minutesPart] = time.split(':');
-  const minutes = minutesPart.split(' ')[0];
-  const ampm = minutesPart.split(' ')[1];
-
-  let hourNumber = parseInt(hours, 10);
-    if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
-        hourNumber += 12;
-    } else if (ampm.toLowerCase() === 'am' && hourNumber === 12) { // Midnight case for 12 AM
-        hourNumber = 0;
-    }
-  
-  // Construct date in server's local timezone then convert to ISO string.
-  const appointmentDateTime = new Date(year, month - 1, day, hourNumber, parseInt(minutes, 10));
+export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string) {
 
   await addPatient({
     name: familyMember.name,
     phone: familyMember.phone,
     type: 'Appointment',
-    appointmentTime: appointmentDateTime.toISOString(),
-    checkInTime: appointmentDateTime.toISOString(), // For appointments, check-in is appointment time until they arrive
+    appointmentTime: appointmentTime,
+    checkInTime: appointmentTime, // For appointments, check-in is appointment time until they arrive
     status: 'Confirmed', // A new status for appointments that are booked but not yet checked in
   });
 
@@ -250,25 +233,10 @@ export async function cancelAppointmentAction(appointmentId: number) {
     return { success: 'Appointment cancelled', patient: result };
 }
 
-export async function rescheduleAppointmentAction(appointmentId: number, newDate: string, newTime: string) {
-    // Manually parse date to avoid timezone issues. newDate is in YYYY-MM-DD format.
-    const [year, month, day] = newDate.split('-').map(Number);
+export async function rescheduleAppointmentAction(appointmentId: number, appointmentTime: string) {
     
-    const [hours, minutesPart] = newTime.split(':');
-    const minutes = minutesPart.split(' ')[0];
-    const ampm = minutesPart.split(' ')[1];
-
-    let hourNumber = parseInt(hours, 10);
-    if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
-        hourNumber += 12;
-    } else if (ampm.toLowerCase() === 'am' && hourNumber === 12) { // Midnight case for 12 AM
-        hourNumber = 0;
-    }
-
-    const appointmentTime = new Date(year, month - 1, day, hourNumber, parseInt(minutes, 10));
-
     const result = await updatePatient(appointmentId, {
-        appointmentTime: appointmentTime.toISOString(),
+        appointmentTime: appointmentTime,
         status: 'Confirmed'
     });
 
