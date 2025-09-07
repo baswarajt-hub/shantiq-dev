@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket } from 'lucide-react';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { useEffect, useState } from 'react';
-import { parseISO, format } from 'date-fns';
+import { parseISO, format, isToday } from 'date-fns';
 
 const anonymizeName = (name: string) => {
   const parts = name.split(' ');
@@ -27,8 +27,7 @@ export default function TVDisplayPage() {
       await recalculateQueueWithETC();
       const patientData: Patient[] = await getPatientsAction();
       const statusData = await getDoctorStatusAction();
-      const todayString = new Date().toDateString();
-      const todaysPatients = patientData.filter(p => new Date(p.appointmentTime).toDateString() === todayString);
+      const todaysPatients = patientData.filter(p => isToday(parseISO(p.appointmentTime)));
       setPatients(todaysPatients);
       setDoctorStatus(statusData);
     };

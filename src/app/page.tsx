@@ -367,7 +367,7 @@ export default function DashboardPage() {
 
     let bookedPatients = patients.filter(p => p.status === 'Booked');
 
-    const displayedPatients = [...liveQueue, ...bookedPatients];
+    const displayedPatients = [...liveQueue, ...bookedPatients].sort((a, b) => a.tokenNo - b.tokenNo);
 
     let filteredTimeSlots = timeSlots.map(slot => {
         const patient = displayedPatients.find(p => {
@@ -394,7 +394,7 @@ export default function DashboardPage() {
     }
 
 
-    const todaysPatients = patients.filter(p => new Date(p.appointmentTime).toDateString() === selectedDate.toDateString());
+    const todaysPatients = patients.filter(p => isToday(parseISO(p.appointmentTime)));
     const canDoctorCheckIn = isToday(selectedDate);
 
 
