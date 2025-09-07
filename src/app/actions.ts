@@ -8,7 +8,7 @@ import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosu
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format } from 'date-fns';
-import { zonedTimeToUtc, toZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 
 export async function addWalkInPatientAction(formData: FormData) {
   const name = formData.get('name') as string;
@@ -49,8 +49,8 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
 
   const checkSession = (session: Session) => {
     if (!session.isOpen) return false;
-    const start = zonedTimeToUtc(`${dateStr} ${session.start}`, timeZone);
-    const end = zonedTimeToUtc(`${dateStr} ${session.end}`, timeZone);
+    const start = toZonedTime(new Date(`${dateStr}T${session.start}:00.000`), timeZone);
+    const end = toZonedTime(new Date(`${dateStr}T${session.end}:00.000`), timeZone);
     return date >= start && date < end;
   };
 
