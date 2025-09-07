@@ -12,13 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, MessageSquare, HelpCircle, Stethoscope, Syringe } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, MessageSquare, HelpCircle, Stethoscope, Syringe, Ticket, UserCheck, Timer } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, getPatientsAction, addPatientAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addPatientAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -35,12 +35,12 @@ type TimeSlot = {
   isReservedForWalkIn?: boolean;
   patient?: Patient;
   patientDetails?: FamilyMember;
-  estimatedConsultationTime?: number;
 }
 
 const statusConfig = {
     Waiting: { icon: Clock, color: 'text-blue-600' },
-    'Confirmed': { icon: CalendarIcon, color: 'text-gray-500' },
+    'Booked': { icon: CalendarIcon, color: 'text-gray-500' },
+    'Confirmed': { icon: UserCheck, color: 'text-indigo-500' }, // This might be legacy, now 'Booked' is used
     'In-Consultation': { icon: Hourglass, color: 'text-yellow-600 animate-pulse' },
     Completed: { icon: CheckCircle, color: 'text-green-600' },
     Late: { icon: UserX, color: 'text-orange-600' },
@@ -61,6 +61,7 @@ export default function DashboardPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
     const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
+    const [doctorStartDelay, setDoctorStartDelay] = useState(0);
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -88,6 +89,7 @@ export default function DashboardPage() {
             setPatients(patientData);
             setFamily(familyData);
             setDoctorStatus(statusData);
+            setDoctorStartDelay(statusData.startDelay || 0);
         });
     }
 
@@ -106,44 +108,6 @@ export default function DashboardPage() {
             setDoctorOnlineTime('');
         }
     }, [doctorStatus]);
-
-    useEffect(() => {
-      if (!schedule || !doctorStatus || !doctorStatus.isOnline) return;
-
-      const autoCheckout = () => {
-          const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
-          const dateStr = format(selectedDate, 'yyyy-MM-dd');
-          const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
-          let daySchedule = schedule.days[dayOfWeek];
-          if (todayOverride) {
-              daySchedule = {
-                  morning: todayOverride.morningOverride ?? daySchedule.morning,
-                  evening: todayOverride.eveningOverride ?? daySchedule.evening
-              }
-          }
-
-          const eveningSession = daySchedule.evening;
-          if (!eveningSession.isOpen || !eveningSession.end) {
-              return; // No evening session today
-          }
-
-          const [endHour, endMinute] = eveningSession.end.split(':').map(Number);
-          const endTime = set(new Date(), { hours: endHour, minutes: endMinute });
-          
-          const activePatients = patients.some(p => 
-              ['Waiting', 'In-Consultation', 'Confirmed', 'Late', 'Waiting for Reports'].includes(p.status)
-          );
-
-          if (new Date() > endTime && !activePatients) {
-              handleToggleDoctorStatus();
-              toast({ title: "Doctor Checked Out", description: "All patients for the day have been seen." });
-          }
-      };
-
-      const interval = setInterval(autoCheckout, 60000); // Check every minute
-      return () => clearInterval(interval);
-
-  }, [schedule, patients, doctorStatus, selectedDate]);
 
 
     useEffect(() => {
@@ -182,7 +146,7 @@ export default function DashboardPage() {
                 
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
-                    const apptDateUtc = parseISO(p.appointmentTime);
+                    const apptDateUtc = parseISO(p.slotTime);
                     const apptInIST = toZonedTime(apptDateUtc, timeZone);
                     
                     const apptTimeStr = format(apptInIST, 'hh:mm a');
@@ -226,21 +190,7 @@ export default function DashboardPage() {
             }
         }
         
-
-        const runEstimations = async (slotsToEstimate: TimeSlot[]) => {
-            const waitingSlots = slotsToEstimate.filter(s => s.isBooked && s.patient?.status === 'Waiting');
-            if (waitingSlots.length > 0) {
-                // In a real app, you might re-run the estimation action here.
-                // For now, the estimation is triggered on the dashboard and updates patients.
-                // This effect will pick up the new estimated times when the `patients` prop changes.
-            }
-        }
-
         setTimeSlots(generatedSlots);
-        if(patients.length > 0 && format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')) {
-            runEstimations(generatedSlots);
-        }
-
     }, [schedule, patients, family, selectedSession, selectedDate]);
 
     const handleSlotClick = (time: string) => {
@@ -258,13 +208,14 @@ export default function DashboardPage() {
                 phone: familyMember.phone,
                 type: isWalkIn ? 'Walk-in' : 'Appointment',
                 appointmentTime: appointmentIsoString,
-                status: isWalkIn ? 'Waiting' : 'Confirmed',
+                status: isWalkIn ? 'Waiting' : 'Booked',
                 checkInTime: isWalkIn ? new Date().toISOString() : undefined,
                 purpose: purpose,
             });
             
             if (result.patient) {
                 await loadData();
+                await recalculateQueueWithETC();
                 toast({ title: "Success", description: "Appointment booked successfully."});
             } else {
                 toast({ title: "Error", description: result.error, variant: 'destructive'});
@@ -292,7 +243,7 @@ export default function DashboardPage() {
             // This needs to be backed by a server action to persist
             // For now, it just updates local state
             setPatients(prev => prev.map(p => 
-                p.id === selectedPatient.id ? { ...p, appointmentTime: new Date(newDate).toISOString(), status: 'Confirmed' } : p
+                p.id === selectedPatient.id ? { ...p, appointmentTime: new Date(newDate).toISOString(), status: 'Booked' } : p
             ));
             toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
         }
@@ -379,7 +330,7 @@ export default function DashboardPage() {
 
     const handleToggleDoctorStatus = () => {
         startTransition(async () => {
-            const result = await toggleDoctorStatusAction();
+            const result = await toggleDoctorStatusAction(!doctorStatus?.isOnline, doctorStartDelay);
             if (result?.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
@@ -388,13 +339,9 @@ export default function DashboardPage() {
             }
         });
     }
-    const handleRunEstimation = () => {
+    const handleRunRecalculation = () => {
         startTransition(async () => {
-            const result = await runTimeEstimationAction({
-                patientFlowData: 'Average consultation time is 15 minutes.',
-                lateArrivals: 'No major late arrivals reported.',
-                doctorDelays: 'Doctor is generally on time.',
-            });
+            const result = await recalculateQueueWithETC();
             if (result?.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
@@ -414,10 +361,30 @@ export default function DashboardPage() {
         });
     };
 
+    let liveQueue = patients
+        .filter(p => ['Waiting', 'Late', 'In-Consultation'].includes(p.status))
+        .sort((a,b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
 
-    const nowServingPatient = patients.find(p => p.status === 'In-Consultation');
-    
-    let filteredTimeSlots = timeSlots;
+    let bookedPatients = patients.filter(p => p.status === 'Booked');
+
+    const displayedPatients = [...liveQueue, ...bookedPatients];
+
+    let filteredTimeSlots = timeSlots.map(slot => {
+        const patient = displayedPatients.find(p => {
+             if (p.status === 'Cancelled') return false;
+            const apptDateUtc = parseISO(p.slotTime);
+            const apptInIST = toZonedTime(apptDateUtc, 'Asia/Kolkata');
+            const apptTimeStr = format(apptInIST, 'hh:mm a');
+            return apptTimeStr === slot.time;
+        });
+
+        return patient ? {...slot, isBooked: true, patient, patientDetails: family.find(f=> f.phone === patient.phone && f.name === patient.name)} : slot
+    }).filter(slot => {
+        if (!showCompleted) {
+            return !slot.patient || (slot.patient.status !== 'Completed' && slot.patient.status !== 'Cancelled');
+        }
+        return true;
+    });
 
     if (searchTerm.trim()) {
         filteredTimeSlots = timeSlots.filter(slot => {
@@ -426,14 +393,7 @@ export default function DashboardPage() {
         });
     }
 
-    if (!showCompleted) {
-        filteredTimeSlots = filteredTimeSlots.filter(slot => {
-            return !slot.patient || (slot.patient.status !== 'Completed' && slot.patient.status !== 'Cancelled');
-        });
-    }
 
-
-    const confirmedPatients = timeSlots.filter(s => s.isBooked && s.patient?.status !== 'Cancelled');
     const todaysPatients = patients.filter(p => new Date(p.appointmentTime).toDateString() === selectedDate.toDateString());
     const canDoctorCheckIn = isToday(selectedDate);
 
@@ -497,6 +457,10 @@ export default function DashboardPage() {
                                         {doctorStatus.isOnline ? `Online (since ${doctorOnlineTime})` : 'Offline'}
                                     </Label>
                                 </div>
+                                <div className='flex items-center space-x-2'>
+                                    <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
+                                    <Input id="doctor-delay" type="number" value={doctorStartDelay} onChange={e => setDoctorStartDelay(parseInt(e.target.value))} className="w-16 h-8" disabled={!doctorStatus.isOnline} />
+                                </div>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline">
@@ -542,9 +506,9 @@ export default function DashboardPage() {
                                     {showCompleted ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
                                     {showCompleted ? 'Hide' : 'Show'} Completed
                                 </Button>
-                                <Button variant="outline" onClick={handleRunEstimation} disabled={isPending}>
+                                <Button variant="outline" onClick={handleRunRecalculation} disabled={isPending}>
                                     <Sparkles className="mr-2 h-4 w-4" />
-                                    {isPending ? 'Estimating...' : 'Re-Estimate'}
+                                    {isPending ? 'Recalculating...' : 'Recalculate Queue'}
                                 </Button>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -576,42 +540,56 @@ export default function DashboardPage() {
                                 const isActionable = slot.patient && slot.patient.status !== 'Completed' && slot.patient.status !== 'Cancelled';
                                 if (searchTerm && !slot.isBooked) return null;
 
-                                const StatusIcon = slot.isBooked && slot.patient ? statusConfig[slot.patient.status]?.icon : null;
-                                const statusColor = slot.isBooked && slot.patient ? statusConfig[slot.patient.status]?.color : '';
-                                const PurposeIcon = slot.patient?.purpose ? purposeIcons[slot.patient.purpose] || HelpCircle : null;
+                                const StatusIcon = slot.isBooked && slot.patient && statusConfig[slot.patient.status] ? statusConfig[slot.patient.status].icon : HelpCircle;
+                                const statusColor = slot.isBooked && slot.patient && statusConfig[slot.patient.status] ? statusConfig[slot.patient.status].color : '';
+                                const PurposeIcon = slot.patient?.purpose && purposeIcons[slot.patient.purpose] ? purposeIcons[slot.patient.purpose] : HelpCircle;
                                 
                                 return (
                                 <div key={slot.time}>
                                 {slot.isBooked && slot.patient && slot.patientDetails ? (
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild disabled={!isActionable}>
-                                            <div className={cn("p-3 flex items-center rounded-lg border bg-card shadow-sm", isActionable ? "cursor-pointer hover:bg-muted/50" : "opacity-60")}>
-                                                <div className="w-12 text-center font-bold text-lg text-primary">{confirmedPatients.findIndex(p => p.time === slot.time) + 1}</div>
-                                                <div className="w-24 font-semibold">{slot.time}</div>
-                                                <div className="flex-1 flex items-center gap-2 font-semibold">
-                                                  {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={slot.patient.purpose} />}
-                                                  {slot.patientDetails.name}
-                                                  {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : <FemaleIcon className="h-4 w-4 text-pink-500" />}
+                                            <div className={cn("p-3 grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-lg border bg-card shadow-sm", isActionable ? "cursor-pointer hover:bg-muted/50" : "opacity-60")}>
+                                               <div className="flex items-center gap-4">
+                                                    <div className="w-12 text-center font-bold text-lg text-primary flex flex-col items-center">
+                                                        <Ticket className="h-5 w-5 mb-1" />
+                                                        #{slot.patient.tokenNo}
+                                                    </div>
+                                                    <div className="w-24 font-semibold">{slot.time}</div>
                                                 </div>
-                                                <div className="w-28">
-                                                    <Badge variant={slot.patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{slot.patient.type || 'Appointment'}</Badge>
+
+                                                <div className="flex-1 flex flex-col gap-1">
+                                                    <div className='flex items-center gap-2 font-semibold'>
+                                                        {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={slot.patient.purpose} />}
+                                                        {slot.patientDetails.name}
+                                                        {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : <FemaleIcon className="h-4 w-4 text-pink-500" />}
+                                                        <Badge variant={slot.patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{slot.patient.type || 'Appointment'}</Badge>
+                                                    </div>
+                                                    <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                                                        <Timer className="h-4 w-4" />
+                                                        ETC:
+                                                        <span className="font-semibold text-green-600">{slot.patient.bestCaseETC ? format(parseISO(slot.patient.bestCaseETC), 'hh:mm a') : '-'}</span>
+                                                        -
+                                                        <span className="font-semibold text-orange-600">{slot.patient.worstCaseETC ? format(parseISO(slot.patient.worstCaseETC), 'hh:mm a') : '-'}</span>
+
+                                                    </div>
                                                 </div>
-                                                <div className="w-40 flex items-center gap-2">
-                                                   {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
-                                                   <span className={cn("font-medium", statusColor)}>{slot.patient.status}</span>
-                                                    {slot.patient.status === 'Waiting' && slot.patient?.estimatedWaitTime && (
-                                                      <span className="text-xs text-muted-foreground">(~{slot.patient?.estimatedWaitTime} min)</span>
-                                                   )}
-                                                </div>
-                                                 <div className="w-48 text-sm text-muted-foreground">
-                                                     {slot.patient.checkInTime ? `Checked in: ${new Date(slot.patient.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
-                                                     : slot.patient.status === 'Completed' && slot.patient.consultationEndTime ? `Finished at ${new Date(slot.patient.consultationEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
-                                                     : 'Awaiting Check-in' }
+
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-40 flex items-center gap-2">
+                                                    {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
+                                                    <span className={cn("font-medium", statusColor)}>{slot.patient.status} {slot.patient.lateBy ? `(${slot.patient.lateBy} min)` : ''}</span>
+                                                    </div>
+                                                    <div className="w-48 text-sm text-muted-foreground">
+                                                        {slot.patient.checkInTime ? `Checked in: ${new Date(slot.patient.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
+                                                        : slot.patient.status === 'Completed' && slot.patient.consultationEndTime ? `Finished at ${new Date(slot.patient.consultationEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
+                                                        : 'Awaiting Check-in' }
+                                                    </div>
                                                 </div>
                                             </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start">
-                                            {slot.patient.status === 'Confirmed' && (
+                                            {slot.patient.status === 'Booked' && (
                                                 <DropdownMenuItem onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending}>
                                                     <LogIn className="mr-2 h-4 w-4" />
                                                     Check-in Patient
@@ -635,7 +613,7 @@ export default function DashboardPage() {
                                                     </DropdownMenuItem>
                                                 </>
                                             )}
-                                             {(slot.patient.status === 'Waiting' || slot.patient.status === 'Confirmed') && (
+                                             {(slot.patient.status === 'Waiting' || slot.patient.status === 'Booked') && (
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Late')} disabled={isPending}>
                                                     <Hourglass className="mr-2 h-4 w-4" />
                                                     Mark as Late
@@ -748,7 +726,7 @@ export default function DashboardPage() {
                         onOpenChange={setRescheduleOpen}
                         patient={selectedPatient}
                         onSave={handleReschedule}
-                        bookedSlots={patients.filter(p => p.status === 'Confirmed' && p.id !== selectedPatient.id).map(p => format(new Date(p.appointmentTime), 'hh:mm a'))}
+                        bookedSlots={patients.filter(p => p.status === 'Booked' && p.id !== selectedPatient.id).map(p => format(new Date(p.appointmentTime), 'hh:mm a'))}
                     />
                 )}
                 {schedule && (

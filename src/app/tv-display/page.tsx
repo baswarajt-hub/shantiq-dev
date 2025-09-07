@@ -1,11 +1,12 @@
 
 'use client';
-import { getDoctorStatusAction, getPatientsAction } from '@/app/actions';
+import { getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { FileClock, Hourglass, LogIn, LogOut, User } from 'lucide-react';
+import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket } from 'lucide-react';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { useEffect, useState } from 'react';
+import { parseISO, format } from 'date-fns';
 
 const anonymizeName = (name: string) => {
   const parts = name.split(' ');
@@ -23,6 +24,7 @@ export default function TVDisplayPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      await recalculateQueueWithETC();
       const patientData: Patient[] = await getPatientsAction();
       const statusData = await getDoctorStatusAction();
       const todayString = new Date().toDateString();
@@ -58,7 +60,7 @@ export default function TVDisplayPage() {
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   const waitingList = patients
     .filter((p) => p.status === 'Waiting' || p.status === 'Late')
-    .sort((a, b) => new Date(a.appointmentTime).getTime() - new Date(b.appointmentTime).getTime())
+    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0)
     .slice(0, 5);
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
 
@@ -90,8 +92,8 @@ export default function TVDisplayPage() {
                 <p className="text-8xl font-bold tracking-wider">
                   {anonymizeName(nowServing.name)}
                 </p>
-                <p className="text-3xl text-slate-400 mt-2">
-                  Please proceed to consultation room
+                <p className="text-4xl text-slate-300 mt-4 flex items-center justify-center gap-3">
+                  <Ticket className="h-8 w-8"/> Token #{nowServing.tokenNo}
                 </p>
               </>
             ) : (
@@ -115,13 +117,16 @@ export default function TVDisplayPage() {
                       : 'bg-slate-700'
                   )}
                 >
-                  <User className={cn("h-10 w-10 flex-shrink-0", index === 0 ? "text-amber-300" : "text-slate-400")} />
+                  <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                     <Ticket className={cn("h-8 w-8", index === 0 ? "text-amber-300" : "text-slate-400")} />
+                     <span className={cn("font-bold text-xl", index === 0 ? "text-white" : "text-slate-300")}>#{patient.tokenNo}</span>
+                  </div>
                   <div>
                     <p className={cn("text-5xl font-medium", index === 0 && "font-bold text-white")}>
                       {anonymizeName(patient.name)}
                     </p>
-                    <p className={cn("text-2xl", index === 0 ? "text-amber-200": "text-slate-400")}>
-                      Wait Time: ~{patient.estimatedWaitTime} min
+                    <p className={cn("text-2xl flex items-center gap-2", index === 0 ? "text-amber-200": "text-slate-400")}>
+                      <Timer className="h-6 w-6"/> Wait Time: ~{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : `${patient.estimatedWaitTime} min`}
                     </p>
                   </div>
                 </div>

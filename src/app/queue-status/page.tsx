@@ -3,10 +3,10 @@
 
 import Header from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getDoctorStatusAction, getPatientsAction } from '@/app/actions';
+import { getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, User, WifiOff } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, User, WifiOff, Timer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 
@@ -19,6 +19,10 @@ const anonymizeName = (name: string) => {
 };
 
 function QueueStatusCard({ patient, title, subtitle, highlight = false }: { patient: Patient, title: string, subtitle: string, highlight?: boolean }) {
+  const etcText = patient.bestCaseETC && patient.worstCaseETC
+    ? `~${format(parseISO(patient.bestCaseETC), 'hh:mm a')}`
+    : `~${patient.estimatedWaitTime} min`;
+
   return (
     <Card className={cn(highlight && 'bg-primary/20 border-primary')}>
       <CardHeader>
@@ -32,8 +36,8 @@ function QueueStatusCard({ patient, title, subtitle, highlight = false }: { pati
           </div>
           <div>
             <p className="text-2xl font-bold">{anonymizeName(patient.name)}</p>
-            <p className="text-muted-foreground">
-              Wait time: ~{patient.estimatedWaitTime} min
+            <p className="text-muted-foreground flex items-center gap-1.5">
+               <Timer className="h-4 w-4" /> Wait time: {etcText}
             </p>
           </div>
         </div>
@@ -48,7 +52,7 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
   
   useEffect(() => {
     if (patient) {
-      setFormattedTime(format(parseISO(patient.appointmentTime), 'hh:mm a'));
+      setFormattedTime(format(parseISO(patient.slotTime), 'hh:mm a'));
     }
   }, [patient]);
 
@@ -113,7 +117,7 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
            <div>
              <p className="text-2xl font-bold">{anonymizeName(patient.name)}</p>
              <p className="text-muted-foreground">
-              Appointment at {formattedTime}
+              Token #{patient.tokenNo} | Appointment at {formattedTime}
              </p>
            </div>
          </div>
@@ -129,6 +133,7 @@ export default function QueueStatusPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      await recalculateQueueWithETC();
       const patientData: Patient[] = await getPatientsAction();
       const statusData = await getDoctorStatusAction();
       const todayString = new Date().toDateString();
@@ -148,13 +153,13 @@ export default function QueueStatusPage() {
     return () => clearInterval(intervalId);
   }, []);
 
-  const waitingPatients = patients
-    .filter(p => p.status === 'Waiting' || p.status === 'Late')
-    .sort((a, b) => new Date(a.appointmentTime).getTime() - new Date(b.appointmentTime).getTime());
+  const liveQueue = patients
+    .filter(p => ['Waiting', 'Late'].includes(p.status))
+    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
   
   const nowServing = patients.find(p => p.status === 'In-Consultation');
-  const upNext = waitingPatients[0];
-  const nextInLine = waitingPatients.slice(1, 4);
+  const upNext = liveQueue[0];
+  const nextInLine = liveQueue.slice(1, 4);
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
 
   return (
@@ -196,7 +201,9 @@ export default function QueueStatusPage() {
                     <div className="flex-shrink-0 text-lg font-bold text-primary">#{index + 2}</div>
                     <div>
                       <p className="font-semibold">{anonymizeName(patient.name)}</p>
-                      <p className="text-sm text-muted-foreground">~{patient.estimatedWaitTime} min wait</p>
+                       <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        <Timer className="h-4 w-4" /> ~{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : `${patient.estimatedWaitTime} min`}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>

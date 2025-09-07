@@ -27,7 +27,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
   const [tooltipMessage, setTooltipMessage] = useState("You can view live queue status an hour before the doctor's session starts.");
 
   useEffect(() => {
-    if (appointment.status !== 'Confirmed' || !schedule) {
+    if (appointment.status !== 'Booked' || !schedule) {
       return;
     }
   
@@ -40,14 +40,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
       let sessionStartTimeStr: string | null = null;
       let sessionEndTimeStr: string | null = null;
       
-      const appointmentHour12 = parseInt(appointment.time.split(':')[0], 10);
-      const isPM = appointment.time.includes('PM');
-      let appointmentHour24 = appointmentHour12;
-      if (isPM && appointmentHour12 < 12) {
-          appointmentHour24 += 12;
-      } else if (!isPM && appointmentHour12 === 12) { // 12 AM case
-          appointmentHour24 = 0;
-      }
+      const appointmentHour24 = parseISO(appointment.date).getHours();
       
       const morningEndHour = daySchedule.morning.isOpen ? parseInt(daySchedule.morning.end.split(':')[0], 10) : 0;
       
@@ -91,7 +84,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
   
   }, [appointment, schedule]);
   
-  if (appointment.status !== 'Confirmed') {
+  if (appointment.status !== 'Booked') {
     return null;
   }
   
@@ -156,10 +149,12 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
 
 const getStatusBadgeClass = (status: string) => {
     switch (status) {
-        case 'Confirmed': return 'bg-blue-100 text-blue-800';
+        case 'Booked': return 'bg-blue-100 text-blue-800';
         case 'Completed': return 'bg-green-100 text-green-800';
         case 'Cancelled': return 'bg-red-100 text-red-800';
         case 'Missed': return 'bg-yellow-100 text-yellow-800';
+        case 'Waiting': return 'bg-indigo-100 text-indigo-800';
+        case 'Late': return 'bg-orange-100 text-orange-800';
         default: return 'bg-gray-100 text-gray-800';
     }
 }
@@ -200,7 +195,7 @@ export default function BookingPage() {
 
   useEffect(() => {
     const appointmentsFromPatients = patients
-        .filter(p => p.type === 'Appointment' || p.status === 'Confirmed') 
+        .filter(p => p.type === 'Appointment' || ['Booked', 'Confirmed'].includes(p.status)) 
         .map(p => {
             const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
             const appointmentDate = parseISO(p.appointmentTime);
@@ -341,8 +336,8 @@ export default function BookingPage() {
     }
   };
   
-  const upcomingAppointments = appointments.filter(appt => appt.status === 'Confirmed' && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
-  const pastAppointments = appointments.filter(appt => appt.status !== 'Confirmed' || parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0)));
+  const upcomingAppointments = appointments.filter(appt => ['Booked', 'Waiting', 'Late'].includes(appt.status as string) && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
+  const pastAppointments = appointments.filter(appt => !upcomingAppointments.some(up => up.id === appt.id));
 
   const currentDaySchedule = todaySchedule();
 
@@ -465,7 +460,7 @@ export default function BookingPage() {
               <CardContent className="space-y-4">
                 {pastAppointments.length > 0 ? pastAppointments.map(appt => {
                     let finalStatus: Appointment['status'] = appt.status;
-                    if (finalStatus === 'Confirmed' && parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0))) {
+                    if (finalStatus === 'Booked' && parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0))) {
                         finalStatus = 'Missed';
                     }
 

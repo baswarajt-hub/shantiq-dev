@@ -1,12 +1,13 @@
 
 
+
 export type Patient = {
   id: number;
   name: string;
   type: 'Appointment' | 'Walk-in';
   appointmentTime: string; // ISO string format
   checkInTime?: string; // ISO string format, set when patient checks in
-  status: 'Waiting' | 'In-Consultation' | 'Completed' | 'Late' | 'Cancelled' | 'Waiting for Reports' | 'Confirmed';
+  status: 'Waiting' | 'In-Consultation' | 'Completed' | 'Late' | 'Cancelled' | 'Waiting for Reports' | 'Confirmed' | 'Booked';
   phone: string;
   estimatedWaitTime: number; // in minutes
   consultationTime?: number; // actual time taken in minutes
@@ -14,6 +15,12 @@ export type Patient = {
   consultationEndTime?: string; // ISO string
   purpose?: string;
   rescheduleCount?: number;
+  // New fields for advanced queue management
+  tokenNo: number;        // Static token based on booking order
+  slotTime: string;         // ISO String for the scheduled slot start
+  bestCaseETC?: string;     // ISO String for the best-case consultation time
+  worstCaseETC?: string;    // ISO String for the worst-case consultation time
+  lateBy?: number; // in minutes
 };
 
 export type AIPatientData = {
@@ -25,6 +32,7 @@ export type AIPatientData = {
 export type DoctorStatus = {
   isOnline: boolean;
   onlineTime?: string; // ISO string format
+  startDelay: number; // in minutes
 };
 
 export type Session = {

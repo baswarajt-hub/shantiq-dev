@@ -1,7 +1,7 @@
 
 
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose } from './types';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 
 let patients: Patient[] = [];
 
@@ -21,6 +21,7 @@ let nextFamilyId = family.length + 1;
 let doctorStatus: DoctorStatus = {
   isOnline: false,
   onlineTime: undefined,
+  startDelay: 0,
 };
 
 let doctorSchedule: DoctorSchedule = {
@@ -73,13 +74,18 @@ export async function getPatients() {
   return JSON.parse(JSON.stringify(patients));
 }
 
-export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime'>) {
-  const newPatient: Patient = {
-    ...patient,
-    id: nextPatientId++,
-    estimatedWaitTime: patients.filter(p => p.status === 'Waiting').length * 15, // Simple estimation
-    rescheduleCount: 0,
-  };
+export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime' | 'tokenNo' | 'slotTime'>) {
+    const todayPatients = patients.filter(p => format(new Date(p.appointmentTime), 'yyyy-MM-dd') === format(new Date(patient.appointmentTime), 'yyyy-MM-dd'));
+    const tokenNo = todayPatients.length + 1;
+    const newPatient: Patient = {
+        ...patient,
+        id: nextPatientId++,
+        estimatedWaitTime: patients.filter(p => p.status === 'Waiting').length * 15,
+        rescheduleCount: 0,
+        tokenNo: tokenNo,
+        slotTime: patient.appointmentTime,
+        status: 'Booked',
+    };
   patients.push(newPatient);
   return newPatient;
 }
@@ -101,8 +107,8 @@ export async function getDoctorStatus() {
   return doctorStatus;
 }
 
-export async function updateDoctorStatus(status: DoctorStatus) {
-  doctorStatus = status;
+export async function updateDoctorStatus(status: Partial<DoctorStatus>) {
+  doctorStatus = { ...doctorStatus, ...status };
   return doctorStatus;
 }
 
