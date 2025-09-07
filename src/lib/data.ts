@@ -78,6 +78,7 @@ export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTim
     ...patient,
     id: nextPatientId++,
     estimatedWaitTime: patients.filter(p => p.status === 'Waiting').length * 15, // Simple estimation
+    rescheduleCount: 0,
   };
   patients.push(newPatient);
   return newPatient;

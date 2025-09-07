@@ -154,6 +154,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
   revalidatePath('/');
   revalidatePath('/tv-display');
   revalidatePath('/queue-status');
+  revalidatePath('/booking');
   
   return { success: `Patient status updated to ${status}` };
 }
@@ -381,7 +382,8 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
     await updatePatient(appointmentId, { 
         appointmentTime: newAppointmentTime, 
         purpose: newPurpose,
-        status: 'Confirmed'
+        status: 'Confirmed',
+        rescheduleCount: (patient.rescheduleCount || 0) + 1,
     });
 
     revalidatePath('/booking');

@@ -94,6 +94,8 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
   if (appointment.status !== 'Confirmed') {
     return null;
   }
+  
+  const hasBeenRescheduled = (appointment.rescheduleCount || 0) > 0;
 
   return (
     <div className="flex items-center gap-2">
@@ -113,9 +115,24 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
             <p>{tooltipMessage}</p>
           </TooltipContent>
         </Tooltip>
+
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+              <span tabIndex={0}>
+                <Button variant="outline" size="sm" className="h-8" onClick={() => onReschedule(appointment)} disabled={hasBeenRescheduled}>
+                  <Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule
+                </Button>
+              </span>
+          </TooltipTrigger>
+           {hasBeenRescheduled && (
+              <TooltipContent>
+                <p>This appointment has already been rescheduled once.</p>
+              </TooltipContent>
+            )}
+        </Tooltip>
+
       </TooltipProvider>
 
-      <Button variant="outline" size="sm" className="h-8" onClick={() => onReschedule(appointment)}><Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule</Button>
       <AlertDialog>
           <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" className="h-8"><Trash2 className="h-3.5 w-3.5 mr-1.5" />Cancel</Button>
@@ -196,6 +213,7 @@ export default function BookingPage() {
                 status: p.status, 
                 type: p.type,
                 purpose: p.purpose,
+                rescheduleCount: p.rescheduleCount,
             }
         });
     setAppointments(appointmentsFromPatients as Appointment[]);
@@ -446,7 +464,7 @@ export default function BookingPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {pastAppointments.length > 0 ? pastAppointments.map(appt => {
-                    let finalStatus = appt.status;
+                    let finalStatus: Appointment['status'] = appt.status;
                     if (finalStatus === 'Confirmed' && parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0))) {
                         finalStatus = 'Missed';
                     }

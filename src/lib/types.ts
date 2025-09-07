@@ -13,6 +13,7 @@ export type Patient = {
   consultationStartTime?: string; // ISO string
   consultationEndTime?: string; // ISO string
   purpose?: string;
+  rescheduleCount?: number;
 };
 
 export type AIPatientData = {
@@ -85,7 +86,8 @@ export type Appointment = {
   familyMemberName: string;
   date: string; // ISO string format from Patient.appointmentTime
   time: string;
-  status: Patient['status'] | 'Missed' | 'Yet to Arrive';
+  status: Patient['status'] | 'Missed';
   type?: 'Appointment' | 'Walk-in';
   purpose?: string;
+  rescheduleCount?: number;
 };
