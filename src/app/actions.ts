@@ -425,14 +425,28 @@ export async function recalculateQueueWithETC() {
     });
 
     // 5. Calculate Best-case ETC based on final position in the live queue
-    const doctorStartTime = doctorStatus.isOnline && doctorStatus.onlineTime
-        ? new Date(parseISO(doctorStatus.onlineTime).getTime() + doctorStatus.startDelay * 60000)
-        : new Date(); // Default to now if doctor is not online
+    let doctorStartTime: Date;
+    const now = new Date();
 
+    if (doctorStatus.isOnline && doctorStatus.onlineTime) {
+        doctorStartTime = new Date(parseISO(doctorStatus.onlineTime).getTime() + doctorStatus.startDelay * 60000);
+    } else {
+        // If doctor is not online, the best case starts from the LATER of now or the clinic's scheduled start time
+        const delayedClinicStart = new Date(clinicStartTime.getTime() + doctorStatus.startDelay * 60000);
+        doctorStartTime = now > delayedClinicStart ? now : delayedClinicStart;
+    }
+    
     liveQueue.forEach((p, i) => {
-        p.bestCaseETC = new Date(
-            doctorStartTime.getTime() + i * schedule.slotDuration * 60000
-        ).toISOString();
+        if (i === 0) {
+            // For the first person, best case is their worst case unless doctor is already late
+            const worstCaseTime = parseISO(p.worstCaseETC!);
+            p.bestCaseETC = doctorStartTime > worstCaseTime ? doctorStartTime.toISOString() : p.worstCaseETC;
+        } else {
+            const previousPatientETC = liveQueue[i - 1].bestCaseETC!;
+            p.bestCaseETC = new Date(
+                parseISO(previousPatientETC).getTime() + schedule.slotDuration * 60000
+            ).toISOString();
+        }
     });
 
     // 6. Merge updates back into the main patient list
@@ -540,3 +554,5 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
 export async function getFamilyAction() {
     return getFamily();
 }
+
+    
