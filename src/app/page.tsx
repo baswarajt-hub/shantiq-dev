@@ -17,7 +17,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatientsAction, addPatientAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, getPatientsAction, addPatientAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
+import { getFamily } from '@/lib/data';
 
 
 type TimeSlot = {
@@ -78,7 +79,7 @@ export default function DashboardPage() {
 
     const loadData = async () => {
         startTransition(async () => {
-            const scheduleData = await getDoctorSchedule();
+            const scheduleData = await getDoctorScheduleAction();
             const patientData = await getPatientsAction();
             const familyData = await getFamily();
             const statusData = await getDoctorStatusAction();
@@ -225,26 +226,13 @@ export default function DashboardPage() {
         }
         
 
-        const runEstimations = async (slots: TimeSlot[]) => {
-            const waitingSlots = slots.filter(s => s.isBooked && s.patient?.status === 'Waiting');
-            for (let i = 0; i < waitingSlots.length; i++) {
-                const slot = waitingSlots[i];
-                try {
-                    const estimation = await estimateConsultationTime({
-                        patientFlowData: 'Average consultation time is 15 minutes.',
-                        lateArrivals: 'No major late arrivals reported.',
-                        doctorDelays: 'Doctor is generally on time.',
-                        currentQueueLength: i + 1,
-                        appointmentType: slot.patient?.type === 'Walk-in' ? 'Walk-in' : 'Routine',
-                        visitPurpose: slot.patient?.purpose
-                    });
-                    const slotIndexInGenerated = generatedSlots.findIndex(s => s.time === slot.time);
-                    if (slotIndexInGenerated !== -1) {
-                       generatedSlots[slotIndexInGenerated].estimatedConsultationTime = estimation.estimatedConsultationTime;
-                    }
-                } catch(e) { console.error("Could not estimate time", e)}
+        const runEstimations = async (slotsToEstimate: TimeSlot[]) => {
+            const waitingSlots = slotsToEstimate.filter(s => s.isBooked && s.patient?.status === 'Waiting');
+            if (waitingSlots.length > 0) {
+                // In a real app, you might re-run the estimation action here.
+                // For now, the estimation is triggered on the dashboard and updates patients.
+                // This effect will pick up the new estimated times when the `patients` prop changes.
             }
-            setTimeSlots([...generatedSlots]);
         }
 
         setTimeSlots(generatedSlots);
@@ -410,6 +398,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                await loadData(); // Reload data to show new estimates
             }
         });
     };
