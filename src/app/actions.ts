@@ -7,8 +7,8 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { format, parse } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { format } from 'date-fns';
+import { toZonedTime, parse } from 'date-fns-tz';
 
 export async function addWalkInPatientAction(formData: FormData) {
   const name = formData.get('name') as string;
@@ -33,8 +33,9 @@ export async function addWalkInPatientAction(formData: FormData) {
 
 const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'evening' | null => {
   const timeZone = "Asia/Kolkata";
-  const dayOfWeek = format(toZonedTime(date, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-  const dateStr = format(toZonedTime(date, timeZone), 'yyyy-MM-dd');
+  const zonedDate = toZonedTime(date, timeZone);
+  const dayOfWeek = format(zonedDate, 'EEEE') as keyof DoctorSchedule['days'];
+  const dateStr = format(zonedDate, 'yyyy-MM-dd');
 
   let daySchedule = schedule.days[dayOfWeek];
 
@@ -49,15 +50,16 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
 
   const checkSession = (session: Session) => {
     if (!session.isOpen) return false;
-    const start = toZonedTime(parse(session.start, 'HH:mm', new Date()), timeZone);
-    const end = toZonedTime(parse(session.end, 'HH:mm', new Date()), timeZone);
-    const zonedDate = toZonedTime(date, timeZone);
     
-    // We only care about the time part, so let's set the date part to be the same for comparison
-    start.setFullYear(zonedDate.getFullYear(), zonedDate.getMonth(), zonedDate.getDate());
-    end.setFullYear(zonedDate.getFullYear(), zonedDate.getMonth(), zonedDate.getDate());
+    const startDateTime = parse(`${dateStr} ${session.start}`, 'yyyy-MM-dd HH:mm', new Date());
+    const endDateTime = parse(`${dateStr} ${session.end}`, 'yyyy-MM-dd HH:mm', new Date());
 
-    return zonedDate >= start && zonedDate < end;
+    const zonedStart = toZonedTime(startDateTime, timeZone);
+    const zonedEnd = toZonedTime(endDateTime, timeZone);
+    
+    // The original `date` is already in UTC, which is what we get from `toZonedTime`
+    // So we can compare them directly.
+    return date >= zonedStart && date < zonedEnd;
   };
 
   if (checkSession(daySchedule.morning)) return 'morning';
@@ -400,5 +402,3 @@ export async function getPatientsAction() {
 export async function getDoctorStatusAction() {
     return getDoctorStatusData();
 }
-
-    
