@@ -17,7 +17,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, getPatientsAction, addPatientAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, getPatientsAction, addPatientAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +26,6 @@ import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
-import { getFamily } from '@/lib/data';
 
 
 type TimeSlot = {
@@ -81,7 +80,7 @@ export default function DashboardPage() {
         startTransition(async () => {
             const scheduleData = await getDoctorScheduleAction();
             const patientData = await getPatientsAction();
-            const familyData = await getFamily();
+            const familyData = await getFamilyAction();
             const statusData = await getDoctorStatusAction();
             
             setSchedule(scheduleData);

@@ -8,19 +8,37 @@ import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosu
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format, parseISO, parse } from 'date-fns';
-import { toZonedTime, format as formatTz } from 'date-fns-tz';
+import { toZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 
 
-const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'evening' | null => {
-  const timeZone = "Asia/Kolkata";
-  
-  const zonedDate = toZonedTime(date, timeZone);
-  const dayOfWeek = formatTz(zonedDate, 'EEEE', { timeZone }) as keyof DoctorSchedule['days'];
-  const dateStr = formatTz(zonedDate, 'yyyy-MM-dd', { timeZone });
+const timeZone = "Asia/Kolkata";
+
+/**
+ * Helper: convert a session time string ("HH:mm" or "h:mm a") anchored to dateStr (yyyy-MM-dd)
+ * into a UTC Date (the instant when that local time occurs).
+ */
+function sessionLocalToUtc(dateStr: string, sessionTime: string) {
+  // Try 24-hour format first
+  let localDate: Date;
+  if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+    // "HH:mm" (24-hour)
+    localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+  } else {
+    // attempt 12-hour with AM/PM: "h:mm a" or "hh:mm a"
+    localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
+  }
+  // zonedTimeToUtc expects a Date (interpreted in the given zone) and returns the UTC Date instant
+  return zonedTimeToUtc(localDate, timeZone);
+}
+
+/** Returns 'morning' | 'evening' or null */
+const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 'morning' | 'evening' | null => {
+  // Convert appointment instant to clinic local date to decide which day's schedule to use
+  const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
+  const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
+  const dateStr = format(zonedAppt, 'yyyy-MM-dd');
 
   let daySchedule = schedule.days[dayOfWeek];
-
-  // apply overrides if any
   const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
   if (todayOverride) {
     daySchedule = {
@@ -31,14 +49,13 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
 
   const checkSession = (session: Session) => {
     if (!session.isOpen) return false;
-    
-    // Create Date objects from the schedule times, anchored to the appointment's date, in the clinic's timezone.
-    // We now explicitly use toZonedTime on the combination of date string and time string to get a correct IST Date object.
-    const startDateTime = toZonedTime(`${dateStr}T${session.start}:00`, timeZone);
-    const endDateTime = toZonedTime(`${dateStr}T${session.end}:00`, timeZone);
-    
-    // The incoming `date` is a UTC Date object. It must be compared against the IST boundaries.
-    return date >= startDateTime && date < endDateTime;
+
+    // Build UTC instants for start and end of the session (so we compare epochs)
+    const startUtc = sessionLocalToUtc(dateStr, session.start);
+    const endUtc = sessionLocalToUtc(dateStr, session.end);
+
+    const apptMs = appointmentUtcDate.getTime();
+    return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
   };
 
   if (checkSession(daySchedule.morning)) return 'morning';
@@ -47,11 +64,12 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
 };
 
 
+
 export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string) {
 
   const allPatients = await getPatientsData();
   const schedule = await getDoctorScheduleData();
-  const newAppointmentDate = new Date(appointmentTime);
+  const newAppointmentDate = parseISO(appointmentTime);
   const newAppointmentSession = getSessionForTime(schedule, newAppointmentDate);
   
   if (!newAppointmentSession) {
@@ -62,9 +80,8 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     const isSamePatient = p.name === familyMember.name && p.phone === familyMember.phone;
     if (!isSamePatient) return false;
     
-    const existingDate = new Date(p.appointmentTime);
+    const existingDate = parseISO(p.appointmentTime);
 
-    const timeZone = "Asia/Kolkata";
     const existingDay = format(toZonedTime(existingDate, timeZone), "yyyy-MM-dd");
     const newDay = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
 
@@ -236,7 +253,7 @@ export async function emergencyCancelAction() {
 
 export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estimatedWaitTime'>) {
     const schedule = await getDoctorScheduleData();
-    const newAppointmentDate = new Date(patientData.appointmentTime);
+    const newAppointmentDate = parseISO(patientData.appointmentTime);
     const newAppointmentSession = getSessionForTime(schedule, newAppointmentDate);
 
     if (!newAppointmentSession) {
@@ -331,7 +348,7 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
     }
 
     const schedule = await getDoctorScheduleData();
-    const newDate = new Date(newAppointmentTime);
+    const newDate = parseISO(newAppointmentTime);
     const session = getSessionForTime(schedule, newDate);
 
     if (!session) {
@@ -348,4 +365,8 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
     revalidatePath('/');
 
     return { success: 'Appointment rescheduled successfully.' };
+}
+
+export async function getFamilyAction() {
+    return getFamily();
 }
