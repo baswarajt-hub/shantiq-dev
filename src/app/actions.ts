@@ -397,7 +397,7 @@ export async function recalculateQueueWithETC() {
     // 1. Sort by token number to establish base order
     todaysPatients.sort((a, b) => a.tokenNo - b.tokenNo);
 
-    // 2. Assign Worst-case ETC based on slot/token
+    // 2. Assign Worst-case ETC based on slot/token, accounting for doctor delay
     const firstAppointmentDate = parseISO(todaysPatients[0].appointmentTime);
     const dayOfWeek = format(toZonedTime(firstAppointmentDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
     let daySchedule = schedule.days[dayOfWeek];
@@ -415,10 +415,13 @@ export async function recalculateQueueWithETC() {
 
     const sessionTimes = daySchedule[session];
     const clinicStartTime = sessionLocalToUtc(todayStr, sessionTimes.start);
+    
+    // Apply doctor's delay to the scheduled start time for worst-case calculation
+    const delayedClinicStartTime = new Date(clinicStartTime.getTime() + doctorStatus.startDelay * 60000);
 
     todaysPatients.forEach(p => {
         p.worstCaseETC = new Date(
-            clinicStartTime.getTime() + (p.tokenNo - 1) * schedule.slotDuration * 60000
+            delayedClinicStartTime.getTime() + (p.tokenNo - 1) * schedule.slotDuration * 60000
         ).toISOString();
     });
 
@@ -459,9 +462,9 @@ export async function recalculateQueueWithETC() {
     if (doctorStatus.isOnline && doctorStatus.onlineTime) {
         doctorStartTime = new Date(parseISO(doctorStatus.onlineTime).getTime() + doctorStatus.startDelay * 60000);
     } else {
-        // If doctor is not online, the best case starts from the LATER of now or the clinic's scheduled start time
-        const delayedClinicStart = new Date(clinicStartTime.getTime() + doctorStatus.startDelay * 60000);
-        doctorStartTime = now > delayedClinicStart ? now : delayedClinicStart;
+        // If doctor is not online, the best case starts from the LATER of now or the clinic's scheduled start time (with delay)
+        const delayedClinicStartForBestCase = new Date(clinicStartTime.getTime() + doctorStatus.startDelay * 60000);
+        doctorStartTime = now > delayedClinicStartForBestCase ? now : delayedClinicStartForBestCase;
     }
     
     liveQueue.forEach((p, i) => {
@@ -610,3 +613,4 @@ export async function getFamilyAction() {
     
 
     
+
