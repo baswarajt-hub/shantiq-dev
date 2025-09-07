@@ -45,6 +45,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
   const [selectedPurpose, setSelectedPurpose] = useState('Consultation');
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const { toast } = useToast();
 
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
