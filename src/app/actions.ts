@@ -226,7 +226,7 @@ export async function toggleDoctorStatusAction(isOnline: boolean, startDelayMinu
     const newStatus = {
         isOnline: isOnline,
         onlineTime: isOnline ? new Date().toISOString() : undefined,
-        startDelay: isOnline ? startDelayMinutes : 0
+        startDelay: startDelayMinutes
     };
     await updateDoctorStatus(newStatus);
     await recalculateQueueWithETC();
@@ -493,4 +493,3 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
 export async function getFamilyAction() {
     return getFamily();
 }
-

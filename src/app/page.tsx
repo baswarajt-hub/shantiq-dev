@@ -459,7 +459,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className='flex items-center space-x-2'>
                                     <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
-                                    <Input id="doctor-delay" type="number" value={doctorStartDelay} onChange={e => setDoctorStartDelay(parseInt(e.target.value))} className="w-16 h-8" disabled={!doctorStatus.isOnline} />
+                                    <Input id="doctor-delay" type="number" value={doctorStartDelay} onChange={e => setDoctorStartDelay(parseInt(e.target.value))} className="w-16 h-8" disabled={doctorStatus.isOnline} />
                                 </div>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -741,5 +741,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
