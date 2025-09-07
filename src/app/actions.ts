@@ -7,13 +7,13 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { format, parseISO } from 'date-fns';
+import { format, parse, parseISO } from 'date-fns';
 import { toZonedTime, format as formatTz } from 'date-fns-tz';
 
 
 const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'evening' | null => {
   const timeZone = "Asia/Kolkata";
-
+  
   const zonedDate = toZonedTime(date, timeZone);
   const dayOfWeek = formatTz(zonedDate, 'EEEE', { timeZone }) as keyof DoctorSchedule['days'];
   const dateStr = formatTz(zonedDate, 'yyyy-MM-dd', { timeZone });
