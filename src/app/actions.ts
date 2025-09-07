@@ -269,7 +269,7 @@ export async function addPatientAction(patient: Omit<Patient, 'id' | 'estimatedW
 
 // Re-exporting for use in the new dashboard
 export { estimateConsultationTime };
-export { getFamily, addFamilyMember as addPatient, getDoctorScheduleData as getDoctorSchedule };
+export { getFamily, addFamilyMember, getDoctorScheduleData as getDoctorSchedule };
 
 // Actions for live data fetching
 export async function getPatientsAction() {
