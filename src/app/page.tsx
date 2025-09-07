@@ -5,6 +5,7 @@ import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, VisitPurpose } from '@/lib/types';
 import { format, set, addMinutes, parseISO, parse, isToday } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -175,13 +176,16 @@ export default function DashboardPage() {
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
                 
-                const slotStartTime = currentTime;
-                const slotEndTime = addMinutes(currentTime, schedule.slotDuration);
-
+                const timeZone = "Asia/Kolkata";
+                
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
-                    const patientApptTime = parseISO(p.appointmentTime);
-                    return patientApptTime >= slotStartTime && patientApptTime < slotEndTime;
+                    const apptDate = parseISO(p.appointmentTime);
+                    const apptIST = toZonedTime(apptDate, timeZone);
+                    const apptTimeStr = format(apptIST, 'hh:mm a');
+                    const apptDateStr = format(apptIST, 'yyyy-MM-dd');
+                    
+                    return apptTimeStr === timeString && apptDateStr === format(selectedDate, 'yyyy-MM-dd');
                 });
                 
                 let isBooked = !!patientForSlot;
@@ -273,7 +277,7 @@ export default function DashboardPage() {
                 await loadData();
                 toast({ title: "Success", description: "Appointment booked successfully."});
             } else {
-                toast({ title: "Error", description: "Could not book appointment.", variant: 'destructive'});
+                toast({ title: "Error", description: result.error, variant: 'destructive'});
             }
         });
     };
@@ -766,5 +770,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
