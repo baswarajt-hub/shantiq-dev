@@ -54,8 +54,8 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
         return date >= startTime && date < endTime;
     };
 
-    if (checkSession(daySchedule.morning)) return 'morning';
-    if (checkSession(daySchedule.evening)) return 'evening';
+    if (daySchedule.morning && checkSession(daySchedule.morning)) return 'morning';
+    if (daySchedule.evening && checkSession(daySchedule.evening)) return 'evening';
     return null;
 }
 

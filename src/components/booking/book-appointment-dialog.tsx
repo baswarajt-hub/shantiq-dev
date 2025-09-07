@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
-import type { FamilyMember, Appointment, DoctorSchedule, Patient } from '@/lib/types';
+import type { FamilyMember, DoctorSchedule, Patient } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { format, set, addMinutes, parse } from 'date-fns';
