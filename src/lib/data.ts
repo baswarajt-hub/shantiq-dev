@@ -3,63 +3,7 @@
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose } from './types';
 import { format } from 'date-fns';
 
-let patients: Patient[] = [
-  {
-    id: 1,
-    name: 'Alice Johnson',
-    type: 'Appointment',
-    appointmentTime: new Date(new Date().setHours(10, 30, 0, 0)).toISOString(),
-    status: 'Confirmed',
-    phone: '555-0101',
-    estimatedWaitTime: 10,
-    purpose: 'Consultation',
-  },
-  {
-    id: 2,
-    name: 'Bob Williams',
-    type: 'Appointment',
-    appointmentTime: new Date(new Date().setHours(10, 45, 0, 0)).toISOString(),
-    checkInTime: new Date(new Date().setHours(10, 40, 0, 0)).toISOString(),
-    status: 'Waiting',
-    phone: '555-0102',
-    estimatedWaitTime: 25,
-    purpose: 'Follow-up visit',
-  },
-  {
-    id: 3,
-    name: 'Charlie Brown',
-    type: 'Walk-in',
-    appointmentTime: new Date(new Date().setHours(10, 50, 0, 0)).toISOString(),
-    checkInTime: new Date(new Date().setHours(10, 50, 0, 0)).toISOString(),
-    status: 'Waiting',
-    phone: '555-0103',
-    estimatedWaitTime: 40,
-    purpose: 'Vaccination',
-  },
-  {
-    id: 4,
-    name: 'Diana Miller',
-    type: 'Appointment',
-    appointmentTime: new Date(new Date().setHours(11, 0, 0, 0)).toISOString(),
-    status: 'Confirmed',
-    phone: '555-0104',
-    estimatedWaitTime: 55,
-    purpose: 'Consultation',
-  },
-  {
-    id: 5,
-    name: 'Ethan Davis',
-    type: 'Appointment',
-    appointmentTime: new Date(new Date().setHours(10, 15, 0, 0)).toISOString(),
-    checkInTime: new Date(new Date().setHours(10, 10, 0, 0)).toISOString(),
-    status: 'Completed',
-    phone: '555-0105',
-    estimatedWaitTime: 0,
-    consultationTime: 12,
-    consultationEndTime: new Date(new Date().setHours(10, 27, 0, 0)).toISOString(),
-    purpose: 'Consultation',
-  },
-];
+let patients: Patient[] = [];
 
 let family: FamilyMember[] = [
     { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101', phone: '5551112222' },
@@ -71,7 +15,7 @@ let family: FamilyMember[] = [
 
 ];
 
-let nextPatientId = patients.length + 1;
+let nextPatientId = 1;
 let nextFamilyId = family.length + 1;
 
 let doctorStatus: DoctorStatus = {
