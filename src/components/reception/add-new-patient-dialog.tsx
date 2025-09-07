@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { FamilyMember } from '@/lib/types';
+import type { FamilyMember, VisitPurpose } from '@/lib/types';
 import { getFamilyByPhoneAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -32,9 +32,12 @@ type PatientFormProps = {
     setGender: (value: string) => void;
     clinicId: string;
     setClinicId: (value: string) => void;
+    purpose: string;
+    setPurpose: (value: string) => void;
+    visitPurposes: VisitPurpose[];
 };
 
-const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, clinicId, setClinicId }: PatientFormProps) => (
+const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, clinicId, setClinicId, purpose, setPurpose, visitPurposes }: PatientFormProps) => (
     <div className="space-y-4">
         <div className="space-y-2">
             <Label htmlFor="phone-display">Phone Number</Label>
@@ -44,26 +47,41 @@ const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, cli
             <Label htmlFor="name">Patient's Name</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Doe" required/>
         </div>
-        <div className="space-y-2">
-            <Label htmlFor="dob">Date of Birth</Label>
-            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required max={format(new Date(), 'yyyy-MM-dd')}/>
+        <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="dob">Date of Birth</Label>
+                <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required max={format(new Date(), 'yyyy-MM-dd')}/>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Select value={gender} onValueChange={setGender}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
-        <div className="space-y-2">
-            <Label htmlFor="gender">Gender</Label>
-            <Select value={gender} onValueChange={setGender}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-            </Select>
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="clinicId">Clinic ID (Optional)</Label>
-            <Input id="clinicId" value={clinicId} onChange={(e) => setClinicId(e.target.value)} placeholder="e.g. C12345" />
+        <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="clinicId">Clinic ID (Optional)</Label>
+                <Input id="clinicId" value={clinicId} onChange={(e) => setClinicId(e.target.value)} placeholder="e.g. C12345" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="purpose">Purpose of Visit</Label>
+                <Select value={purpose} onValueChange={setPurpose}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select purpose" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {visitPurposes.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
     </div>
 );
@@ -74,16 +92,18 @@ type AddNewPatientDialogProps = {
   onSave: (member: Omit<FamilyMember, 'id' | 'avatar'>) => Promise<FamilyMember | null>;
   phoneToPreFill?: string;
   onClose?: () => void;
-  afterSave?: (newPatient: FamilyMember) => void;
+  afterSave?: (newPatient: FamilyMember, purpose: string) => void;
+  visitPurposes: VisitPurpose[];
 };
 
-export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFill, onClose, afterSave }: AddNewPatientDialogProps) {
+export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFill, onClose, afterSave, visitPurposes }: AddNewPatientDialogProps) {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState('');
   const [clinicId, setClinicId] = useState('');
+  const [purpose, setPurpose] = useState('');
   const [isPending, startTransition] = useTransition();
   const [foundFamily, setFoundFamily] = useState<FamilyMember[] | null>(null);
   const { toast } = useToast();
@@ -117,6 +137,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     setDob('');
     setGender('');
     setClinicId('');
+    setPurpose('');
     setFoundFamily(null);
     if(onClose) onClose();
   };
@@ -129,7 +150,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
   }
 
   const handleSave = () => {
-    if (!phone || !name || !dob || !gender) {
+    if (!phone || !name || !dob || !gender || !purpose) {
         toast({ title: "Error", description: "Please fill all required fields.", variant: 'destructive'});
         return;
     }
@@ -138,7 +159,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
         const newPatient = await onSave(newPatientData);
         if (newPatient) {
           if (afterSave) {
-            afterSave(newPatient);
+            afterSave(newPatient, purpose);
           }
           handleClose(false);
         }
@@ -147,7 +168,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
   
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add New Patient</DialogTitle>
            <DialogDescription>
@@ -200,6 +221,9 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
                     setGender={setGender}
                     clinicId={clinicId}
                     setClinicId={setClinicId}
+                    purpose={purpose}
+                    setPurpose={setPurpose}
+                    visitPurposes={visitPurposes}
                 />
                 <DialogFooter>
                     <Button variant="outline" onClick={() => { setStep(1); setFoundFamily(null); }}>Back</Button>

@@ -12,26 +12,29 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { FamilyMember } from '@/lib/types';
+import type { FamilyMember, VisitPurpose } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { UserPlus } from 'lucide-react';
 import { searchFamilyMembersAction } from '@/app/actions';
 import { AddNewPatientDialog } from './add-new-patient-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 type BookWalkInDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   timeSlot: string;
   selectedDate: Date;
-  onSave: (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean) => void;
+  onSave: (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean, purpose: string) => void;
   onAddNewPatient: (searchTerm: string) => void;
+  visitPurposes: VisitPurpose[];
 };
 
-export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate, onSave, onAddNewPatient }: BookWalkInDialogProps) {
+export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate, onSave, onAddNewPatient, visitPurposes }: BookWalkInDialogProps) {
   const [step, setStep] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
+  const [selectedPurpose, setSelectedPurpose] = useState('');
   const [isPending, startTransition] = useTransition();
   
   useEffect(() => {
@@ -56,7 +59,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
   }
 
   const handleConfirmBooking = () => {
-    if (selectedMember) {
+    if (selectedMember && selectedPurpose) {
         const [time, ampm] = timeSlot.split(' ');
         const [hours, minutes] = time.split(':');
         let hourNumber = parseInt(hours, 10);
@@ -69,7 +72,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
         const appointmentDate = new Date(selectedDate);
         appointmentDate.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
 
-        onSave(selectedMember, appointmentDate.toISOString(), true);
+        onSave(selectedMember, appointmentDate.toISOString(), true, selectedPurpose);
         handleClose(false);
     }
   };
@@ -79,6 +82,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
     setSearchTerm('');
     setFoundMembers([]);
     setSelectedMember(null);
+    setSelectedPurpose('');
   };
 
   const handleClose = (open: boolean) => {
@@ -160,9 +164,20 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
                         <p>at <span className="font-semibold">{timeSlot}</span></p>
                     </div>
                 </div>
+                <div className="space-y-2">
+                    <Label htmlFor="purpose">Purpose of Visit</Label>
+                    <Select value={selectedPurpose} onValueChange={setSelectedPurpose}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select purpose" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {visitPurposes.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={goBackToSearch}>Back to Search</Button>
-                    <Button onClick={handleConfirmBooking}>Confirm & Check-in</Button>
+                    <Button onClick={handleConfirmBooking} disabled={!selectedPurpose}>Confirm & Check-in</Button>
                 </DialogFooter>
             </div>
         )}

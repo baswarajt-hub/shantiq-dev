@@ -2,8 +2,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment } from '@/lib/data';
-import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember } from '@/lib/types';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposes as updateVisitPurposesData } from '@/lib/data';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 
@@ -28,7 +28,7 @@ export async function addWalkInPatientAction(formData: FormData) {
   return { success: 'Walk-in patient added successfully.' };
 }
 
-export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string) {
+export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string) {
 
   await addPatientData({
     name: familyMember.name,
@@ -36,6 +36,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     type: 'Appointment',
     appointmentTime: appointmentTime,
     status: 'Confirmed',
+    purpose: purpose,
   });
   
   revalidatePath('/booking');
@@ -98,6 +99,7 @@ export async function runTimeEstimationAction(aiPatientData: AIPatientData) {
         ...aiPatientData,
         currentQueueLength: waitingPatients.indexOf(patient) + 1,
         appointmentType: patient.type === 'Appointment' ? 'Routine Checkup' : 'Walk-in Inquiry',
+        visitPurpose: patient.purpose
       });
       
       await updatePatient(patient.id, { estimatedWaitTime: estimation.estimatedConsultationTime });
@@ -167,7 +169,7 @@ export async function toggleDoctorStatusAction() {
   return { success: `Doctor is now ${newStatus.isOnline ? 'online' : 'offline'}.` };
 }
 
-export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 'specialClosures'>) {
+export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>) {
     try {
         const currentSchedule = await getDoctorScheduleData();
         const newSchedule = { ...currentSchedule, ...schedule };
@@ -190,6 +192,18 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
         return { success: 'Special closures updated successfully.' };
     } catch (error) {
         return { error: 'Failed to update special closures.' };
+    }
+}
+
+export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
+    try {
+        await updateVisitPurposesData(purposes);
+        revalidatePath('/admin');
+        revalidatePath('/booking');
+        revalidatePath('/');
+        return { success: 'Visit purposes updated successfully.' };
+    } catch (error) {
+        return { error: 'Failed to update visit purposes.' };
     }
 }
 
@@ -232,11 +246,12 @@ export async function cancelAppointmentAction(appointmentId: number) {
     return { success: 'Appointment cancelled', patient: result };
 }
 
-export async function rescheduleAppointmentAction(appointmentId: number, appointmentTime: string) {
+export async function rescheduleAppointmentAction(appointmentId: number, appointmentTime: string, purpose: string) {
     
     const result = await updatePatient(appointmentId, {
         appointmentTime: appointmentTime,
-        status: 'Confirmed'
+        status: 'Confirmed',
+        purpose: purpose,
     });
 
     revalidatePath('/booking');
@@ -264,6 +279,12 @@ export async function addPatientAction(patient: Omit<Patient, 'id' | 'estimatedW
   const newPatient = await addPatientData(patient);
   revalidatePath('/');
   return { success: 'Patient added successfully.', patient: newPatient };
+}
+
+export async function updatePatientPurposeAction(patientId: number, purpose: string) {
+    await updatePatient(patientId, { purpose });
+    revalidatePath('/');
+    return { success: 'Visit purpose updated.' };
 }
 
 

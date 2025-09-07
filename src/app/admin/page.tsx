@@ -6,10 +6,11 @@ import { ScheduleForm } from '@/components/admin/schedule-form';
 import { getDoctorSchedule } from '@/lib/data';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
-import type { DoctorSchedule, SpecialClosure } from '@/lib/types';
+import type { DoctorSchedule, SpecialClosure, VisitPurpose } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { updateDoctorScheduleAction, updateSpecialClosuresAction } from '../actions';
+import { updateDoctorScheduleAction, updateSpecialClosuresAction, updateVisitPurposesAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
+import { VisitPurposeForm } from '@/components/admin/visit-purpose-form';
 
 export default function AdminPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -23,7 +24,7 @@ export default function AdminPage() {
     loadSchedule();
   }, []);
 
-  const handleScheduleSave = async (updatedSchedule: Omit<DoctorSchedule, 'specialClosures'>) => {
+  const handleScheduleSave = async (updatedSchedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>) => {
     if (!schedule) return;
     const result = await updateDoctorScheduleAction(updatedSchedule);
     if (result.error) {
@@ -42,6 +43,17 @@ export default function AdminPage() {
     } else {
         toast({ title: 'Success', description: 'Closure updated successfully.' });
         setSchedule(prev => prev ? { ...prev, specialClosures: updatedClosures } : null);
+    }
+  };
+
+  const handleVisitPurposesSave = async (updatedPurposes: VisitPurpose[]) => {
+    if (!schedule) return;
+    const result = await updateVisitPurposesAction(updatedPurposes);
+    if (result.error) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: result.success });
+      setSchedule(prev => prev ? { ...prev, visitPurposes: updatedPurposes } : null);
     }
   };
 
@@ -74,6 +86,11 @@ export default function AdminPage() {
             <ScheduleForm 
                 initialSchedule={schedule} 
                 onSave={handleScheduleSave} 
+            />
+            <Separator />
+             <VisitPurposeForm 
+              initialPurposes={schedule.visitPurposes}
+              onSave={handleVisitPurposesSave}
             />
             <Separator />
             <SpecialClosures 

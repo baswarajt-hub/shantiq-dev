@@ -12,6 +12,7 @@ export type Patient = {
   consultationTime?: number; // actual time taken in minutes
   consultationStartTime?: string; // ISO string
   consultationEndTime?: string; // ISO string
+  purpose?: string;
 };
 
 export type AIPatientData = {
@@ -44,6 +45,13 @@ export type SpecialClosure = {
   eveningOverride?: Session;
 };
 
+export type VisitPurpose = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  description?: string;
+}
+
 export type DoctorSchedule = {
   slotDuration: number;
   reserveFirstFive: boolean;
@@ -58,6 +66,7 @@ export type DoctorSchedule = {
     Sunday: DaySchedule;
   };
   specialClosures: SpecialClosure[];
+  visitPurposes: VisitPurpose[];
 };
 
 export type FamilyMember = {
@@ -78,4 +87,5 @@ export type Appointment = {
   time: string;
   status: Patient['status'] | 'Missed' | 'Yet to Arrive';
   type?: 'Appointment' | 'Walk-in';
+  purpose?: string;
 };

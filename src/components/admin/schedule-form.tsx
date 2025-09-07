@@ -2,7 +2,7 @@
 'use client';
 
 import { useTransition, useState } from 'react';
-import type { DoctorSchedule, DaySchedule, Session } from '@/lib/types';
+import type { DoctorSchedule, DaySchedule, Session, VisitPurpose } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,8 +17,8 @@ const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const allDays = [...weekdays, 'Saturday', 'Sunday'];
 
 type ScheduleFormProps = {
-  initialSchedule: Omit<DoctorSchedule, 'specialClosures'>;
-  onSave: (schedule: Omit<DoctorSchedule, 'specialClosures'>) => Promise<void>;
+  initialSchedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>;
+  onSave: (schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>) => Promise<void>;
 };
 
 function SessionControl({ day, sessionName, session, handleInputChange, handleSwitchChange }: { day: string, sessionName: 'morning' | 'evening', session: Session, handleInputChange: any, handleSwitchChange: any }) {
@@ -197,6 +197,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
 
             </div>
           </div>
+
         </CardContent>
         <CardFooter>
             <Button type="submit" disabled={isPending}>

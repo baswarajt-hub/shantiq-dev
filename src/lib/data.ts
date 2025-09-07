@@ -1,5 +1,6 @@
 
-import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session } from './types';
+
+import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose } from './types';
 import { format } from 'date-fns';
 
 let patients: Patient[] = [
@@ -11,6 +12,7 @@ let patients: Patient[] = [
     status: 'Confirmed',
     phone: '555-0101',
     estimatedWaitTime: 10,
+    purpose: 'Consultation',
   },
   {
     id: 2,
@@ -21,6 +23,7 @@ let patients: Patient[] = [
     status: 'Waiting',
     phone: '555-0102',
     estimatedWaitTime: 25,
+    purpose: 'Follow-up visit',
   },
   {
     id: 3,
@@ -31,6 +34,7 @@ let patients: Patient[] = [
     status: 'Waiting',
     phone: '555-0103',
     estimatedWaitTime: 40,
+    purpose: 'Vaccination',
   },
   {
     id: 4,
@@ -40,6 +44,7 @@ let patients: Patient[] = [
     status: 'Confirmed',
     phone: '555-0104',
     estimatedWaitTime: 55,
+    purpose: 'Consultation',
   },
   {
     id: 5,
@@ -52,6 +57,7 @@ let patients: Patient[] = [
     estimatedWaitTime: 0,
     consultationTime: 12,
     consultationEndTime: new Date(new Date().setHours(10, 27, 0, 0)).toISOString(),
+    purpose: 'Consultation',
   },
 ];
 
@@ -108,6 +114,12 @@ let doctorSchedule: DoctorSchedule = {
     },
   },
   specialClosures: [],
+  visitPurposes: [
+    { id: 'vp_1', name: 'Consultation', enabled: true },
+    { id: 'vp_2', name: 'Follow-up visit', enabled: true, description: 'Next visit after paid consultation. Only one visit within 5 days of paid consultation.' },
+    { id: 'vp_3', name: 'Vaccination', enabled: true },
+    { id: 'vp_4', name: 'Others', enabled: true },
+  ],
 };
 
 
@@ -153,9 +165,14 @@ export async function getDoctorSchedule() {
   return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
-export async function updateDoctorSchedule(schedule: Omit<DoctorSchedule, 'specialClosures'>) {
+export async function updateDoctorSchedule(schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>) {
   doctorSchedule = { ...doctorSchedule, ...schedule };
   return doctorSchedule;
+}
+
+export async function updateVisitPurposes(purposes: VisitPurpose[]) {
+    doctorSchedule.visitPurposes = purposes;
+    return doctorSchedule;
 }
 
 export async function updateSpecialClosures(closures: SpecialClosure[]) {

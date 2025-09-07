@@ -3,20 +3,20 @@
 import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
-import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure } from '@/lib/types';
+import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, VisitPurpose } from '@/lib/types';
 import { format, set, addMinutes, parseISO, parse } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, MessageSquare, HelpCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatientsAction, addPatientAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, runTimeEstimationAction, estimateConsultationTime, getFamily, getPatientsAction, addPatientAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, getDoctorSchedule, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +45,12 @@ const statusConfig = {
     'Waiting for Reports': { icon: FileClock, color: 'text-purple-600' },
 };
 
+const purposeIcons: { [key: string]: React.ElementType } = {
+    'Consultation': MessageSquare,
+    'Follow-up visit': Repeat,
+    'Vaccination': Shield,
+    'Others': HelpCircle,
+};
 
 export default function DashboardPage() {
     const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -224,7 +230,8 @@ export default function DashboardPage() {
                         lateArrivals: 'No major late arrivals reported.',
                         doctorDelays: 'Doctor is generally on time.',
                         currentQueueLength: i + 1,
-                        appointmentType: slot.patient?.type === 'Walk-in' ? 'Walk-in' : 'Routine'
+                        appointmentType: slot.patient?.type === 'Walk-in' ? 'Walk-in' : 'Routine',
+                        visitPurpose: slot.patient?.purpose
                     });
                     const slotIndexInGenerated = generatedSlots.findIndex(s => s.time === slot.time);
                     if (slotIndexInGenerated !== -1) {
@@ -250,7 +257,7 @@ export default function DashboardPage() {
         }
     };
 
-    const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean) => {
+    const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean, purpose: string) => {
         startTransition(async () => {
             const result = await addPatientAction({
                 name: familyMember.name,
@@ -259,6 +266,7 @@ export default function DashboardPage() {
                 appointmentTime: appointmentIsoString,
                 status: isWalkIn ? 'Waiting' : 'Confirmed',
                 checkInTime: isWalkIn ? new Date().toISOString() : undefined,
+                purpose: purpose,
             });
             
             if (result.patient) {
@@ -307,6 +315,18 @@ export default function DashboardPage() {
             }
         });
     };
+
+    const handleUpdatePurpose = (patientId: number, purpose: string) => {
+        startTransition(async () => {
+            const result = await updatePatientPurposeAction(patientId, purpose);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.success });
+                await loadData();
+            }
+        });
+    }
 
     const handleSendReminder = (patientId: number) => {
         startTransition(async () => {
@@ -562,6 +582,7 @@ export default function DashboardPage() {
 
                                 const StatusIcon = slot.isBooked && slot.patient ? statusConfig[slot.patient.status]?.icon : null;
                                 const statusColor = slot.isBooked && slot.patient ? statusConfig[slot.patient.status]?.color : '';
+                                const PurposeIcon = slot.patient?.purpose ? purposeIcons[slot.patient.purpose] || HelpCircle : null;
                                 
                                 return (
                                 <div key={slot.time}>
@@ -572,6 +593,7 @@ export default function DashboardPage() {
                                                 <div className="w-12 text-center font-bold text-lg text-primary">{confirmedPatients.findIndex(p => p.time === slot.time) + 1}</div>
                                                 <div className="w-24 font-semibold">{slot.time}</div>
                                                 <div className="flex-1 flex items-center gap-2 font-semibold">
+                                                  {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={slot.patient.purpose} />}
                                                   {slot.patientDetails.name}
                                                   {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : <FemaleIcon className="h-4 w-4 text-pink-500" />}
                                                 </div>
@@ -624,6 +646,19 @@ export default function DashboardPage() {
                                                 </DropdownMenuItem>
                                             )}
                                             {isActionable && <DropdownMenuSeparator />}
+                                            <DropdownMenuSub>
+                                                <DropdownMenuSubTrigger>
+                                                    <Repeat className="mr-2 h-4 w-4" />
+                                                    Change Purpose
+                                                </DropdownMenuSubTrigger>
+                                                <DropdownMenuSubContent>
+                                                     <DropdownMenuRadioGroup value={slot.patient.purpose} onValueChange={(value) => handleUpdatePurpose(slot.patient!.id, value)}>
+                                                        {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
+                                                            <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
+                                                        ))}
+                                                    </DropdownMenuRadioGroup>
+                                                </DropdownMenuSubContent>
+                                            </DropdownMenuSub>
                                             <DropdownMenuItem onClick={() => handleOpenReschedule(slot.patient!)}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 Reschedule
@@ -693,6 +728,7 @@ export default function DashboardPage() {
                         selectedDate={selectedDate}
                         onSave={handleBookAppointment}
                         onAddNewPatient={handleOpenNewPatientDialogFromWalkIn}
+                        visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
                     />
                 )}
                 <AddNewPatientDialog
@@ -701,11 +737,12 @@ export default function DashboardPage() {
                     onSave={handleAddNewPatient}
                     phoneToPreFill={phoneToPreFill}
                     onClose={() => setPhoneToPreFill('')}
-                    afterSave={(newPatient) => {
-                        if (selectedSlot) {
-                            handleBookAppointment(newPatient, parse(`${format(selectedDate, 'yyyy-MM-dd')} ${selectedSlot}`, 'yyyy-MM-dd hh:mm a', new Date()).toISOString(), true);
+                    afterSave={(newPatient, purpose) => {
+                        if (selectedSlot && purpose) {
+                            handleBookAppointment(newPatient, parse(`${format(selectedDate, 'yyyy-MM-dd')} ${selectedSlot}`, 'yyyy-MM-dd hh:mm a', new Date()).toISOString(), true, purpose);
                         }
                     }}
+                    visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
                 />
                 {selectedPatient && (
                     <RescheduleDialog

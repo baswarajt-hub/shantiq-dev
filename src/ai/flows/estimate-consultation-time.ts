@@ -35,6 +35,10 @@ const EstimateConsultationTimeInputSchema = z.object({
     .describe(
       'The type of appointment (e.g., routine checkup, follow-up, emergency).'
     ),
+  visitPurpose: z
+    .string()
+    .optional()
+    .describe('The stated purpose for the visit (e.g., Consultation, Vaccination). This is a key factor.'),
 });
 export type EstimateConsultationTimeInput = z.infer<
   typeof EstimateConsultationTimeInputSchema
@@ -74,13 +78,14 @@ const prompt = ai.definePrompt({
   output: {schema: EstimateConsultationTimeOutputSchema},
   prompt: `You are an expert in predicting consultation times in a clinic.
 
-  Based on the following information, estimate the consultation time in minutes:
+  Based on the following information, estimate the consultation time in minutes. Pay close attention to the visit purpose as it heavily influences the duration. For example, 'Vaccination' usually takes more time than a 'Follow-up visit'.
 
   Patient Flow Data: {{{patientFlowData}}}
   Late Arrivals: {{{lateArrivals}}}
   Doctor Delays: {{{doctorDelays}}}
   Current Queue Length: {{{currentQueueLength}}}
   Appointment Type: {{{appointmentType}}}
+  Purpose of Visit: {{{visitPurpose}}}
 
   Consider all these factors and provide a reasonable estimate. Also, provide a confidence level (high, medium, low) for your estimate and a brief explanation of your reasoning.
 

@@ -12,20 +12,21 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
-import type { Appointment, DoctorSchedule, Patient } from '@/lib/types';
+import type { Appointment, DoctorSchedule, Patient, VisitPurpose } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 import { addMinutes, format, set } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 type RescheduleAppointmentDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   appointment: Appointment;
   schedule: DoctorSchedule;
-  onSave: (newDate: string, newTime: string) => void;
+  onSave: (newDate: string, newTime: string, newPurpose: string) => void;
   bookedPatients: Patient[];
 };
 
@@ -41,7 +42,10 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date(appointment.date));
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
+  const [selectedPurpose, setSelectedPurpose] = useState(appointment.purpose || '');
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  
+  const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
 
   useEffect(() => {
      if (schedule && selectedDate) {
@@ -120,6 +124,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
     setSelectedDate(new Date(appointment.date));
     setSelectedSession('morning');
     setSelectedSlot('');
+    setSelectedPurpose(appointment.purpose || '');
   }
 
   const handleClose = (open: boolean) => {
@@ -130,8 +135,8 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
   }
 
   const handleSave = () => {
-    if (selectedDate && selectedSlot) {
-      onSave(format(selectedDate, 'yyyy-MM-dd'), selectedSlot);
+    if (selectedDate && selectedSlot && selectedPurpose) {
+      onSave(format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
       handleClose(false);
     }
   };
@@ -144,6 +149,8 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
         default: return "";
     }
   };
+
+  const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === selectedPurpose);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -173,6 +180,25 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
 
         {step === 2 && (
           <div className="space-y-4 py-4">
+             <div className="space-y-2">
+                <Label>Purpose of Visit</Label>
+                <Select onValueChange={setSelectedPurpose} value={selectedPurpose}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reason for your visit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeVisitPurposes.map(purpose => (
+                      <SelectItem key={purpose.id} value={purpose.name}>{purpose.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                 {selectedPurposeDetails?.description && (
+                    <div className="text-xs text-muted-foreground p-2 flex gap-2 items-start">
+                        <Info className="h-3 w-3 mt-0.5 shrink-0"/>
+                        <span>{selectedPurposeDetails.description}</span>
+                    </div>
+                )}
+            </div>
             <div className="flex justify-center">
               <ScheduleCalendar
                 mode="single"
@@ -193,7 +219,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
             </RadioGroup>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep(1)} className="w-full">Back</Button>
-              <Button onClick={() => setStep(3)} disabled={!selectedDate}>Next</Button>
+              <Button onClick={() => setStep(3)} disabled={!selectedDate || !selectedPurpose}>Next</Button>
             </div>
           </div>
         )}

@@ -19,13 +19,14 @@ import { Label } from '../ui/label';
 import { format, set, addMinutes, parse } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Info } from 'lucide-react';
 
 type BookAppointmentDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   familyMembers: FamilyMember[];
   schedule: DoctorSchedule | null;
-  onSave: (familyMember: FamilyMember, date: string, time: string) => void;
+  onSave: (familyMember: FamilyMember, date: string, time: string, purpose: string) => void;
   bookedPatients: Patient[];
 };
 
@@ -44,7 +45,10 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [selectedPurpose, setSelectedPurpose] = useState('');
   const { toast } = useToast();
+
+  const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
 
   useEffect(() => {
     if (schedule && selectedDate) {
@@ -129,6 +133,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     setSelectedDate(new Date());
     setSelectedSession('morning');
     setSelectedSlot('');
+    setSelectedPurpose('');
   }
 
   const handleClose = (open: boolean) => {
@@ -140,10 +145,10 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
 
   const handleSave = () => {
     const selectedMember = familyMembers.find(f => f.id.toString() === selectedMemberId);
-    if (selectedMember && selectedDate && selectedSlot) {
+    if (selectedMember && selectedDate && selectedSlot && selectedPurpose) {
       toast({ title: 'Processing Payment...', description: 'Please wait.' });
       setTimeout(() => {
-          onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot);
+          onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
           handleClose(false);
       }, 1500)
     }
@@ -158,6 +163,8 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     }
   };
 
+  const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === selectedPurpose);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
@@ -168,18 +175,39 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         
         {step === 1 && (
           <div className="space-y-4 py-4">
-            <Label>Select Family Member</Label>
-            <Select onValueChange={setSelectedMemberId} value={selectedMemberId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a family member" />
-              </SelectTrigger>
-              <SelectContent>
-                {familyMembers.map(member => (
-                  <SelectItem key={member.id} value={member.id.toString()}>{member.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={() => setStep(2)} disabled={!selectedMemberId} className="w-full">Next</Button>
+            <div className="space-y-2">
+                <Label>Select Family Member</Label>
+                <Select onValueChange={setSelectedMemberId} value={selectedMemberId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a family member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {familyMembers.map(member => (
+                      <SelectItem key={member.id} value={member.id.toString()}>{member.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+            </div>
+             <div className="space-y-2">
+                <Label>Purpose of Visit</Label>
+                <Select onValueChange={setSelectedPurpose} value={selectedPurpose}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reason for your visit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeVisitPurposes.map(purpose => (
+                      <SelectItem key={purpose.id} value={purpose.name}>{purpose.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                 {selectedPurposeDetails?.description && (
+                    <div className="text-xs text-muted-foreground p-2 flex gap-2 items-start">
+                        <Info className="h-3 w-3 mt-0.5 shrink-0"/>
+                        <span>{selectedPurposeDetails.description}</span>
+                    </div>
+                )}
+            </div>
+            <Button onClick={() => setStep(2)} disabled={!selectedMemberId || !selectedPurpose} className="w-full">Next</Button>
           </div>
         )}
 

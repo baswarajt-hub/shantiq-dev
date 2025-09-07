@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -193,7 +192,8 @@ export default function BookingPage() {
                 date: p.appointmentTime,
                 time: format(appointmentDate, 'hh:mm a'),
                 status: p.status, 
-                type: p.type
+                type: p.type,
+                purpose: p.purpose,
             }
         });
     setAppointments(appointmentsFromPatients as Appointment[]);
@@ -260,13 +260,13 @@ export default function BookingPage() {
     });
   }
 
-  const handleBookAppointment = (familyMember: FamilyMember, date: string, time: string) => {
+  const handleBookAppointment = (familyMember: FamilyMember, date: string, time: string, purpose: string) => {
      startTransition(async () => {
         const dateObj = parseDate(date, 'yyyy-MM-dd', new Date());
         const timeObj = parseDate(time, 'hh:mm a', dateObj);
         const appointmentTime = timeObj.toISOString();
 
-        const result = await addAppointmentAction(familyMember, appointmentTime);
+        const result = await addAppointmentAction(familyMember, appointmentTime, purpose);
         if (result.success) {
             toast({ title: "Success", description: "Appointment booked."});
             await loadData();
@@ -298,14 +298,14 @@ export default function BookingPage() {
     setEditMemberOpen(true);
   }
 
-  const handleRescheduleAppointment = (newDate: string, newTime: string) => {
+  const handleRescheduleAppointment = (newDate: string, newTime: string, newPurpose: string) => {
     if (selectedAppointment) {
       startTransition(async () => {
         const dateObj = parseDate(newDate, 'yyyy-MM-dd', new Date());
         const timeObj = parseDate(newTime, 'hh:mm a', dateObj);
         const appointmentTime = timeObj.toISOString();
 
-        const result = await rescheduleAppointmentAction(selectedAppointment.id, appointmentTime);
+        const result = await rescheduleAppointmentAction(selectedAppointment.id, appointmentTime, newPurpose);
         if(result.success) {
           toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
           await loadData();
@@ -413,6 +413,7 @@ export default function BookingPage() {
                             <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
                             <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
                          </div>
+                         {appt.purpose && <p className="text-sm text-primary font-medium mt-1">{appt.purpose}</p>}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2 self-stretch justify-between">
