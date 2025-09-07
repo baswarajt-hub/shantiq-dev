@@ -4,10 +4,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposes as updateVisitPurposesData, updateTodayScheduleOverride as updateTodayScheduleOverrideData } from '@/lib/data';
-import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose } from '@/lib/types';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { startOfDay } from 'date-fns';
+import { startOfDay, parse, format } from 'date-fns';
 
 export async function addWalkInPatientAction(formData: FormData) {
   const name = formData.get('name') as string;
@@ -30,20 +30,59 @@ export async function addWalkInPatientAction(formData: FormData) {
   return { success: 'Walk-in patient added successfully.' };
 }
 
+const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'evening' | null => {
+    const dayOfWeek = format(date, 'EEEE') as keyof DoctorSchedule['days'];
+    const dateStr = format(date, 'yyyy-MM-dd');
+    let daySchedule = schedule.days[dayOfWeek];
+
+    const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+    if(todayOverride) {
+        daySchedule = {
+            morning: todayOverride.morningOverride ?? daySchedule.morning,
+            evening: todayOverride.eveningOverride ?? daySchedule.evening,
+        };
+    }
+
+    const checkSession = (session: Session, sessionName: 'morning' | 'evening') => {
+        if (!session.isOpen) return false;
+        const startTime = parse(session.start, 'HH:mm', date);
+        const endTime = parse(session.end, 'HH:mm', date);
+        return date >= startTime && date < endTime;
+    };
+
+    if (checkSession(daySchedule.morning, 'morning')) return 'morning';
+    if (checkSession(daySchedule.evening, 'evening')) return 'evening';
+    return null;
+}
+
 export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string) {
 
   const allPatients = await getPatientsData();
-  const newAppointmentDate = startOfDay(new Date(appointmentTime));
+  const schedule = await getDoctorScheduleData();
+  const newAppointmentDate = new Date(appointmentTime);
+  const newAppointmentSession = getSessionForTime(schedule, newAppointmentDate);
+  
+  if (!newAppointmentSession) {
+      return { error: "The selected time is outside of clinic hours." };
+  }
 
   const existingAppointment = allPatients.find(p => {
     const isSamePatient = p.name === familyMember.name && p.phone === familyMember.phone;
-    const isSameDay = startOfDay(new Date(p.appointmentTime)).getTime() === newAppointmentDate.getTime();
+    if (!isSamePatient) return false;
+    
+    const existingDate = new Date(p.appointmentTime);
+    const isSameDay = startOfDay(existingDate).getTime() === startOfDay(newAppointmentDate).getTime();
+    if (!isSameDay) return false;
+    
+    const existingSession = getSessionForTime(schedule, existingDate);
+    const isSameSession = existingSession === newAppointmentSession;
+
     const isActive = ['Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
-    return isSamePatient && isSameDay && isActive;
+    return isSamePatient && isSameDay && isSameSession && isActive;
   });
 
   if (existingAppointment) {
-    return { error: `This patient already has an appointment scheduled for this day.` };
+    return { error: `This patient already has an appointment scheduled for this day and session.` };
   }
 
   await addPatientData({
@@ -293,18 +332,33 @@ export async function checkInPatientAction(patientId: number) {
 
 export async function addPatientAction(patient: Omit<Patient, 'id' | 'estimatedWaitTime'>) {
   const allPatients = await getPatientsData();
-  const newAppointmentDate = startOfDay(new Date(patient.appointmentTime));
+  const schedule = await getDoctorScheduleData();
+  const newAppointmentDate = new Date(patient.appointmentTime);
+  const newAppointmentSession = getSessionForTime(schedule, newAppointmentDate);
+  
+  if (!newAppointmentSession) {
+      return { error: "The selected time is outside of clinic hours." };
+  }
 
   const existingAppointment = allPatients.find(p => {
     const isSamePatient = p.name === patient.name && p.phone === patient.phone;
-    const isSameDay = startOfDay(new Date(p.appointmentTime)).getTime() === newAppointmentDate.getTime();
+    if (!isSamePatient) return false;
+    
+    const existingDate = new Date(p.appointmentTime);
+    const isSameDay = startOfDay(existingDate).getTime() === startOfDay(newAppointmentDate).getTime();
+    if (!isSameDay) return false;
+    
+    const existingSession = getSessionForTime(schedule, existingDate);
+    const isSameSession = existingSession === newAppointmentSession;
+
     const isActive = ['Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
-    return isSamePatient && isSameDay && isActive;
+    return isSamePatient && isSameDay && isSameSession && isActive;
   });
 
   if (existingAppointment) {
-    return { error: `This patient already has an appointment scheduled for this day.` };
+    return { error: `This patient already has an appointment scheduled for this day and session.` };
   }
+
   const newPatient = await addPatientData(patient);
   revalidatePath('/');
   return { success: 'Patient added successfully.', patient: newPatient };
@@ -329,3 +383,5 @@ export async function getPatientsAction() {
 export async function getDoctorStatusAction() {
     return getDoctorStatusData();
 }
+
+    
