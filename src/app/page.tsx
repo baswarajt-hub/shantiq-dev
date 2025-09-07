@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addPatientAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
-                    const apptDateUtc = parseISO(p.slotTime);
+                    const apptDateUtc = parseISO(p.appointmentTime); // Use appointmentTime for booking
                     const apptInIST = toZonedTime(apptDateUtc, timeZone);
                     
                     const apptTimeStr = format(apptInIST, 'hh:mm a');
@@ -200,29 +200,26 @@ export default function DashboardPage() {
           setBookWalkInOpen(true);
         }
     };
-
+    
     const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean, purpose: string) => {
         startTransition(async () => {
-            const result = await addPatientAction({
-                name: familyMember.name,
-                phone: familyMember.phone,
-                type: isWalkIn ? 'Walk-in' : 'Appointment',
-                appointmentTime: appointmentIsoString,
-                status: isWalkIn ? 'Waiting' : 'Booked',
-                checkInTime: isWalkIn ? new Date().toISOString() : undefined,
-                purpose: purpose,
-            });
-            
-            if (result.patient) {
+             const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, isWalkIn);
+
+            if (result.success) {
+                if (isWalkIn) {
+                    const patient = result.patient;
+                    if (patient) {
+                        await checkInPatientAction(patient.id);
+                    }
+                }
                 await loadData();
-                await recalculateQueueWithETC();
                 toast({ title: "Success", description: "Appointment booked successfully."});
             } else {
                 toast({ title: "Error", description: result.error, variant: 'destructive'});
             }
         });
     };
-    
+
     const handleAddNewPatient = async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
         const result = await addNewPatientAction(newPatientData);
         if (result.patient) {
@@ -372,7 +369,7 @@ export default function DashboardPage() {
     let filteredTimeSlots = timeSlots.map(slot => {
         const patient = displayedPatients.find(p => {
              if (p.status === 'Cancelled') return false;
-            const apptDateUtc = parseISO(p.slotTime);
+            const apptDateUtc = parseISO(p.appointmentTime);
             const apptInIST = toZonedTime(apptDateUtc, 'Asia/Kolkata');
             const apptTimeStr = format(apptInIST, 'hh:mm a');
             return apptTimeStr === slot.time;

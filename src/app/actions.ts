@@ -65,7 +65,7 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
 
 
 
-export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string) {
+export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string, isWalkIn: boolean = false) {
 
   const allPatients = await getPatientsData();
   const schedule = await getDoctorScheduleData();
@@ -120,12 +120,12 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   // --- End Calculation ---
 
 
-  await addPatientData({
+  const newPatient = await addPatientData({
     name: familyMember.name,
     phone: familyMember.phone,
-    type: 'Appointment',
+    type: isWalkIn ? 'Walk-in' : 'Appointment',
     appointmentTime: appointmentTime,
-    status: 'Booked',
+    status: isWalkIn ? 'Waiting' : 'Booked',
     purpose: purpose,
     tokenNo: tokenNo
   });
@@ -135,7 +135,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   revalidatePath('/queue-status');
   revalidatePath('/tv-display');
   
-  return { success: 'Appointment booked successfully.' };
+  return { success: 'Appointment booked successfully.', patient: newPatient };
 }
 
 
