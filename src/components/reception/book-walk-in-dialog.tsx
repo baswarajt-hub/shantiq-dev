@@ -34,7 +34,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
   const [searchTerm, setSearchTerm] = useState('');
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
-  const [selectedPurpose, setSelectedPurpose] = useState('');
+  const [selectedPurpose, setSelectedPurpose] = useState('Consultation');
   const [isPending, startTransition] = useTransition();
   
   useEffect(() => {
@@ -82,7 +82,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
     setSearchTerm('');
     setFoundMembers([]);
     setSelectedMember(null);
-    setSelectedPurpose('');
+    setSelectedPurpose('Consultation');
   };
 
   const handleClose = (open: boolean) => {
