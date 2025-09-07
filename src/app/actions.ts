@@ -7,35 +7,16 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { format, parse, parseISO } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { format, parseISO } from 'date-fns';
+import { toZonedTime, format as formatTz } from 'date-fns-tz';
 
-export async function addWalkInPatientAction(formData: FormData) {
-  const name = formData.get('name') as string;
-  const phone = formData.get('phone') as string;
-
-  if (!name || !phone) {
-    return { error: 'Name and phone are required' };
-  }
-
-  await addPatientData({
-    name,
-    phone,
-    type: 'Walk-in',
-    appointmentTime: new Date().toISOString(),
-    checkInTime: new Date().toISOString(),
-    status: 'Waiting',
-  });
-
-  revalidatePath('/');
-  return { success: 'Walk-in patient added successfully.' };
-}
 
 const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'evening' | null => {
   const timeZone = "Asia/Kolkata";
+
   const zonedDate = toZonedTime(date, timeZone);
-  const dayOfWeek = format(zonedDate, 'EEEE') as keyof DoctorSchedule['days'];
-  const dateStr = format(zonedDate, 'yyyy-MM-dd');
+  const dayOfWeek = formatTz(zonedDate, 'EEEE', { timeZone }) as keyof DoctorSchedule['days'];
+  const dateStr = formatTz(zonedDate, 'yyyy-MM-dd', { timeZone });
 
   let daySchedule = schedule.days[dayOfWeek];
 
@@ -52,20 +33,19 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
     if (!session.isOpen) return false;
     
     // Create Date objects from the schedule times, anchored to the appointment's date, in the clinic's timezone.
-    const startDateTime = parse(`${dateStr} ${session.start}`, 'yyyy-MM-dd HH:mm', new Date());
-    const endDateTime = parse(`${dateStr} ${session.end}`, 'yyyy-MM-dd HH:mm', new Date());
-
-    // Convert these parsed dates into the target timezone to get accurate Date objects for comparison.
-    const zonedStart = toZonedTime(startDateTime, timeZone);
-    const zonedEnd = toZonedTime(endDateTime, timeZone);
+    const startDateTime = toZonedTime(`${dateStr}T${session.start}:00`, timeZone);
+    const endDateTime = toZonedTime(`${dateStr}T${session.end}:00`, timeZone);
     
-    return date >= zonedStart && date < zonedEnd;
+    // The incoming `date` is already a valid Date object (from UTC ISO string).
+    // We can compare it directly.
+    return date >= startDateTime && date < endDateTime;
   };
 
   if (checkSession(daySchedule.morning)) return 'morning';
   if (checkSession(daySchedule.evening)) return 'evening';
   return null;
 };
+
 
 export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string) {
 
@@ -404,5 +384,3 @@ export async function getPatientsAction() {
 export async function getDoctorStatusAction() {
     return getDoctorStatusData();
 }
-
-    
