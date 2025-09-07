@@ -48,8 +48,8 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
         const [startHour, startMinute] = session.start.split(':').map(Number);
         const [endHour, endMinute] = session.end.split(':').map(Number);
         
-        const startTime = set(date, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
-        const endTime = set(date, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
+        const startTime = set(new Date(date), { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
+        const endTime = set(new Date(date), { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
         
         return date >= startTime && date < endTime;
     };
@@ -395,3 +395,4 @@ export async function getDoctorStatusAction() {
 
 
     
+
