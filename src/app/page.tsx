@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, VisitPurpose } from '@/lib/types';
-import { format, set, addMinutes, parseISO, parse, isToday } from 'date-fns';
+import { format, set, addMinutes, parseISO, isToday } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { parse } from 'date-fns';
 
 
 type TimeSlot = {
@@ -744,7 +745,9 @@ export default function DashboardPage() {
                     onClose={() => setPhoneToPreFill('')}
                     afterSave={(newPatient, purpose) => {
                         if (selectedSlot && purpose) {
-                            handleBookAppointment(newPatient, parse(`${format(selectedDate, 'yyyy-MM-dd')} ${selectedSlot}`, 'yyyy-MM-dd hh:mm a', new Date()).toISOString(), true, purpose);
+                            const date = new Date(selectedDate);
+                            const time = parse(selectedSlot, 'hh:mm a', date);
+                            handleBookAppointment(newPatient, time.toISOString(), true, purpose);
                         }
                     }}
                     visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
