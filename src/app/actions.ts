@@ -3,7 +3,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposes as updateVisitPurposesData, updateTodayScheduleOverride as updateTodayScheduleOverrideData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposes as updateVisitPurposesData, updateTodayScheduleOverrideData } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -101,7 +101,14 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
 
   // --- Static Token Number Calculation ---
   const dayOfWeek = format(toZonedTime(newAppointmentDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-  const daySchedule = schedule.days[dayOfWeek];
+  let daySchedule = schedule.days[dayOfWeek];
+  const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+  if (todayOverride) {
+    daySchedule = {
+      morning: todayOverride.morningOverride ?? daySchedule.morning,
+      evening: todayOverride.eveningOverride ?? daySchedule.evening,
+    };
+  }
 
   const morningStart = sessionLocalToUtc(dateStr, daySchedule.morning.start);
   const morningEnd = sessionLocalToUtc(dateStr, daySchedule.morning.end);
@@ -260,6 +267,15 @@ export async function toggleDoctorStatusAction(isOnline: boolean, startDelayMinu
     return { success: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.` };
 }
 
+export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
+    await updateDoctorStatus({ startDelay: startDelayMinutes });
+    await recalculateQueueWithETC();
+    revalidatePath('/');
+    revalidatePath('/tv-display');
+    revalidatePath('/queue-status');
+    return { success: `Doctor delay updated to ${startDelayMinutes} minutes.` };
+}
+
 export async function emergencyCancelAction() {
     const patients = await getPatientsData();
     const activePatients = patients.filter(p => ['Waiting', 'Confirmed', 'Booked', 'In-Consultation'].includes(p.status));
@@ -382,10 +398,22 @@ export async function recalculateQueueWithETC() {
     todaysPatients.sort((a, b) => a.tokenNo - b.tokenNo);
 
     // 2. Assign Worst-case ETC based on slot/token
-    const session = getSessionForTime(schedule, parseISO(todaysPatients[0].appointmentTime));
+    const firstAppointmentDate = parseISO(todaysPatients[0].appointmentTime);
+    const dayOfWeek = format(toZonedTime(firstAppointmentDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+    let daySchedule = schedule.days[dayOfWeek];
+
+    const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
+    if(specialClosure) {
+        daySchedule = {
+            morning: specialClosure.morningOverride ?? daySchedule.morning,
+            evening: specialClosure.eveningOverride ?? daySchedule.evening
+        }
+    }
+    
+    const session = getSessionForTime(schedule, firstAppointmentDate);
     if (!session) return { error: "Cannot determine session." };
 
-    const sessionTimes = schedule.days[format(new Date(), 'EEEE') as keyof DoctorSchedule['days']][session];
+    const sessionTimes = daySchedule[session];
     const clinicStartTime = sessionLocalToUtc(todayStr, sessionTimes.start);
 
     todaysPatients.forEach(p => {
@@ -438,9 +466,8 @@ export async function recalculateQueueWithETC() {
     
     liveQueue.forEach((p, i) => {
         if (i === 0) {
-            // For the first person, best case is their worst case unless doctor is already late
-            const worstCaseTime = parseISO(p.worstCaseETC!);
-            p.bestCaseETC = doctorStartTime > worstCaseTime ? doctorStartTime.toISOString() : p.worstCaseETC;
+            // For the first person, their best-case ETC is the doctor's actual start time
+             p.bestCaseETC = doctorStartTime.toISOString();
         } else {
             const previousPatientETC = liveQueue[i - 1].bestCaseETC!;
             p.bestCaseETC = new Date(
@@ -512,7 +539,7 @@ export async function updateFamilyMemberAction(member: FamilyMember) {
 
 export async function cancelAppointmentAction(appointmentId: number) {
     const patient = await cancelAppointment(appointmentId);
-    if (patient) {
+if (patient) {
         await recalculateQueueWithETC();
         revalidatePath('/booking');
         revalidatePath('/');
@@ -535,12 +562,37 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
         return { error: 'The selected time is outside of clinic hours.' };
     }
 
+    const dateStr = format(toZonedTime(newDate, timeZone), "yyyy-MM-dd");
+    // --- Static Token Number Recalculation ---
+    const dayOfWeek = format(toZonedTime(newDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+    const daySchedule = schedule.days[dayOfWeek];
+    const morningStart = sessionLocalToUtc(dateStr, daySchedule.morning.start);
+    const morningEnd = sessionLocalToUtc(dateStr, daySchedule.morning.end);
+    const eveningStart = sessionLocalToUtc(dateStr, daySchedule.evening.start);
+    const totalMorningSlots = daySchedule.morning.isOpen ? differenceInMinutes(morningEnd, morningStart) / schedule.slotDuration : 0;
+    
+    let tokenNo = 0;
+    if (session === 'morning') {
+        const minutesFromStart = differenceInMinutes(newDate, morningStart);
+        tokenNo = Math.floor(minutesFromStart / schedule.slotDuration) + 1;
+    } else { // evening
+        const minutesFromStart = differenceInMinutes(newDate, eveningStart);
+        tokenNo = totalMorningSlots + Math.floor(minutesFromStart / schedule.slotDuration) + 1;
+    }
+    // --- End Recalculation ---
+    
+
     await updatePatient(appointmentId, { 
         appointmentTime: newAppointmentTime, 
         slotTime: newAppointmentTime,
         purpose: newPurpose,
         status: 'Booked',
         rescheduleCount: (patient.rescheduleCount || 0) + 1,
+        tokenNo: tokenNo,
+        bestCaseETC: undefined,
+        worstCaseETC: undefined,
+        checkInTime: undefined,
+        lateBy: undefined,
     });
     
     await recalculateQueueWithETC();
@@ -554,5 +606,3 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
 export async function getFamilyAction() {
     return getFamily();
 }
-
-    

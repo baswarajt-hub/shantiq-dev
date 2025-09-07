@@ -1,7 +1,8 @@
 
 
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose } from './types';
-import { format, parse } from 'date-fns';
+import { format, parse, parseISO } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 let patients: Patient[] = [];
 
@@ -81,10 +82,21 @@ export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTim
         estimatedWaitTime: patients.filter(p => p.status === 'Waiting').length * 15,
         rescheduleCount: 0,
         slotTime: patient.appointmentTime,
-        status: 'Booked',
+        status: patient.status || 'Booked',
     };
   patients.push(newPatient);
   return newPatient;
+}
+
+export async function addPatientData(patientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>) {
+    const newPatient: Patient = {
+        ...patientData,
+        id: nextPatientId++,
+        estimatedWaitTime: 15, // Default, will be recalculated
+        slotTime: patientData.appointmentTime,
+    };
+    patients.push(newPatient);
+    return newPatient;
 }
 
 export async function updatePatient(id: number, updates: Partial<Patient>) {
@@ -118,7 +130,7 @@ export async function updateDoctorSchedule(schedule: Omit<DoctorSchedule, 'speci
   return doctorSchedule;
 }
 
-export async function updateVisitPurposes(purposes: VisitPurpose[]) {
+export async function updateVisitPurposesData(purposes: VisitPurpose[]) {
     doctorSchedule.visitPurposes = purposes;
     return doctorSchedule;
 }
@@ -129,7 +141,7 @@ export async function updateSpecialClosures(closures: SpecialClosure[]) {
     return doctorSchedule;
 }
 
-export async function updateTodayScheduleOverride(override: SpecialClosure) {
+export async function updateTodayScheduleOverrideData(override: SpecialClosure) {
     const existingClosureIndex = doctorSchedule.specialClosures.findIndex(c => c.date === override.date);
     if (existingClosureIndex > -1) {
         doctorSchedule.specialClosures[existingClosureIndex] = {

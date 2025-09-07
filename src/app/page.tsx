@@ -12,13 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, MessageSquare, HelpCircle, Stethoscope, Syringe, Ticket, UserCheck, Timer } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, MessageSquare, HelpCircle, Stethoscope, Syringe, Ticket, UserCheck, Timer, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -205,10 +205,8 @@ export default function DashboardPage() {
         startTransition(async () => {
              const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, isWalkIn);
 
-            if (result.success) {
+            if (result.success && result.patient) {
                 if (isWalkIn) {
-                    // Check-in action is now called from the Walk-in Dialog itself after saving.
-                    // This ensures the queue is recalculated immediately.
                     await checkInPatientAction(result.patient.id);
                 }
                 await loadData();
@@ -326,7 +324,7 @@ export default function DashboardPage() {
 
     const handleToggleDoctorStatus = () => {
         startTransition(async () => {
-            const result = await toggleDoctorStatusAction(!doctorStatus?.isOnline, doctorStartDelay);
+            const result = await toggleDoctorStatusAction(!doctorStatus?.isOnline, doctorStatus?.startDelay);
             if (result?.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
@@ -335,6 +333,19 @@ export default function DashboardPage() {
             }
         });
     }
+
+    const handleUpdateDelay = () => {
+        startTransition(async () => {
+            const result = await updateDoctorStartDelayAction(doctorStartDelay);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive'});
+            } else {
+                toast({ title: 'Success', description: result.success});
+                await loadData();
+            }
+        });
+    };
+
     const handleRunRecalculation = () => {
         startTransition(async () => {
             const result = await recalculateQueueWithETC();
@@ -450,6 +461,7 @@ export default function DashboardPage() {
                                 <div className='flex items-center space-x-2'>
                                     <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
                                     <Input id="doctor-delay" type="number" value={doctorStartDelay} onChange={e => setDoctorStartDelay(parseInt(e.target.value))} className="w-16 h-8" disabled={doctorStatus.isOnline} />
+                                    <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={doctorStatus.isOnline}>Update</Button>
                                 </div>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -612,7 +624,7 @@ export default function DashboardPage() {
                                             {isActionable && <DropdownMenuSeparator />}
                                             <DropdownMenuSub>
                                                 <DropdownMenuSubTrigger>
-                                                    <Repeat className="mr-2 h-4 w-4" />
+                                                    <Pencil className="mr-2 h-4 w-4" />
                                                     Change Purpose
                                                 </DropdownMenuSubTrigger>
                                                 <DropdownMenuSubContent>
