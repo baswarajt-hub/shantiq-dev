@@ -51,14 +51,14 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
   const checkSession = (session: Session) => {
     if (!session.isOpen) return false;
     
+    // Create Date objects from the schedule times, anchored to the appointment's date, in the clinic's timezone.
     const startDateTime = parse(`${dateStr} ${session.start}`, 'yyyy-MM-dd HH:mm', new Date());
     const endDateTime = parse(`${dateStr} ${session.end}`, 'yyyy-MM-dd HH:mm', new Date());
 
+    // Convert these parsed dates into the target timezone to get accurate Date objects for comparison.
     const zonedStart = toZonedTime(startDateTime, timeZone);
     const zonedEnd = toZonedTime(endDateTime, timeZone);
     
-    // The original `date` is already in UTC, which is what we get from `toZonedTime`
-    // So we can compare them directly.
     return date >= zonedStart && date < zonedEnd;
   };
 
@@ -84,8 +84,9 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     
     const existingDate = new Date(p.appointmentTime);
 
-    const existingDay = format(toZonedTime(existingDate, "Asia/Kolkata"), "yyyy-MM-dd");
-    const newDay = format(toZonedTime(newAppointmentDate, "Asia/Kolkata"), "yyyy-MM-dd");
+    const timeZone = "Asia/Kolkata";
+    const existingDay = format(toZonedTime(existingDate, timeZone), "yyyy-MM-dd");
+    const newDay = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
 
     if (existingDay !== newDay) return false;
     
@@ -362,8 +363,9 @@ export async function addPatientAction(patient: Omit<Patient, 'id' | 'estimatedW
     
     const existingDate = new Date(p.appointmentTime);
     
-    const existingDay = format(toZonedTime(existingDate, "Asia/Kolkata"), "yyyy-MM-dd");
-    const newDay = format(toZonedTime(newAppointmentDate, "Asia/Kolkata"), "yyyy-MM-dd");
+    const timeZone = "Asia/Kolkata";
+    const existingDay = format(toZonedTime(existingDate, timeZone), "yyyy-MM-dd");
+    const newDay = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
 
     if (existingDay !== newDay) return false;
 
