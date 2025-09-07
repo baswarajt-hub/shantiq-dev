@@ -7,7 +7,7 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 
 export async function addWalkInPatientAction(formData: FormData) {
@@ -49,9 +49,15 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
 
   const checkSession = (session: Session) => {
     if (!session.isOpen) return false;
-    const start = toZonedTime(new Date(`${dateStr}T${session.start}:00.000`), timeZone);
-    const end = toZonedTime(new Date(`${dateStr}T${session.end}:00.000`), timeZone);
-    return date >= start && date < end;
+    const start = toZonedTime(parse(session.start, 'HH:mm', new Date()), timeZone);
+    const end = toZonedTime(parse(session.end, 'HH:mm', new Date()), timeZone);
+    const zonedDate = toZonedTime(date, timeZone);
+    
+    // We only care about the time part, so let's set the date part to be the same for comparison
+    start.setFullYear(zonedDate.getFullYear(), zonedDate.getMonth(), zonedDate.getDate());
+    end.setFullYear(zonedDate.getFullYear(), zonedDate.getMonth(), zonedDate.getDate());
+
+    return zonedDate >= start && zonedDate < end;
   };
 
   if (checkSession(daySchedule.morning)) return 'morning';
