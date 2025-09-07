@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
@@ -181,10 +182,11 @@ export default function DashboardPage() {
                 
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
-                    const apptDate = parseISO(p.appointmentTime);
-                    const apptIST = toZonedTime(apptDate, timeZone);
-                    const apptTimeStr = format(apptIST, 'hh:mm a');
-                    const apptDateStr = format(apptIST, 'yyyy-MM-dd');
+                    const apptDateUtc = parseISO(p.appointmentTime);
+                    const apptInIST = toZonedTime(apptDateUtc, timeZone);
+                    
+                    const apptTimeStr = format(apptInIST, 'hh:mm a');
+                    const apptDateStr = format(apptInIST, 'yyyy-MM-dd');
                     
                     return apptTimeStr === timeString && apptDateStr === format(selectedDate, 'yyyy-MM-dd');
                 });
