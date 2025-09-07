@@ -8,7 +8,7 @@ import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosu
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format } from 'date-fns';
-import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+import { zonedTimeToUtc, toZonedTime } from 'date-fns-tz';
 
 export async function addWalkInPatientAction(formData: FormData) {
   const name = formData.get('name') as string;
@@ -33,8 +33,8 @@ export async function addWalkInPatientAction(formData: FormData) {
 
 const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'evening' | null => {
   const timeZone = "Asia/Kolkata";
-  const dayOfWeek = format(utcToZonedTime(date, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-  const dateStr = format(utcToZonedTime(date, timeZone), 'yyyy-MM-dd');
+  const dayOfWeek = format(toZonedTime(date, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+  const dateStr = format(toZonedTime(date, timeZone), 'yyyy-MM-dd');
 
   let daySchedule = schedule.days[dayOfWeek];
 
@@ -76,8 +76,8 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     
     const existingDate = new Date(p.appointmentTime);
 
-    const existingDay = format(utcToZonedTime(existingDate, "Asia/Kolkata"), "yyyy-MM-dd");
-    const newDay = format(utcToZonedTime(newAppointmentDate, "Asia/Kolkata"), "yyyy-MM-dd");
+    const existingDay = format(toZonedTime(existingDate, "Asia/Kolkata"), "yyyy-MM-dd");
+    const newDay = format(toZonedTime(newAppointmentDate, "Asia/Kolkata"), "yyyy-MM-dd");
 
     if (existingDay !== newDay) return false;
     
@@ -354,8 +354,8 @@ export async function addPatientAction(patient: Omit<Patient, 'id' | 'estimatedW
     
     const existingDate = new Date(p.appointmentTime);
     
-    const existingDay = format(utcToZonedTime(existingDate, "Asia/Kolkata"), "yyyy-MM-dd");
-    const newDay = format(utcToZonedTime(newAppointmentDate, "Asia/Kolkata"), "yyyy-MM-dd");
+    const existingDay = format(toZonedTime(existingDate, "Asia/Kolkata"), "yyyy-MM-dd");
+    const newDay = format(toZonedTime(newAppointmentDate, "Asia/Kolkata"), "yyyy-MM-dd");
 
     if (existingDay !== newDay) return false;
 
@@ -394,3 +394,5 @@ export async function getPatientsAction() {
 export async function getDoctorStatusAction() {
     return getDoctorStatusData();
 }
+
+    
