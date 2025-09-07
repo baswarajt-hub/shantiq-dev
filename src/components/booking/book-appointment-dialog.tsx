@@ -17,7 +17,8 @@ import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import type { FamilyMember, DoctorSchedule, Patient } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
-import { format, set, addMinutes, parse, parseISO } from 'date-fns';
+import { format, set, addMinutes, parse, parseISO, toDate } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Info } from 'lucide-react';
@@ -78,9 +79,14 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
 
       const sessionSchedule = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
 
+      const timeZone = "Asia/Kolkata";
       const bookedSlotsForDay = bookedPatients
-        .filter(p => format(parseISO(p.appointmentTime), 'yyyy-MM-dd') === dateStr && p.status !== 'Cancelled')
-        .map(p => format(parseISO(p.appointmentTime), 'hh:mm a'));
+        .filter(p => {
+          if (p.status === 'Cancelled') return false;
+          const apptDate = toZonedTime(parseISO(p.appointmentTime), timeZone);
+          return format(apptDate, 'yyyy-MM-dd') === dateStr;
+        })
+        .map(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'hh:mm a'));
 
 
       if (sessionSchedule.isOpen) {

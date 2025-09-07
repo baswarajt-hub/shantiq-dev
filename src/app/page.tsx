@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled') return false;
-                    const apptDateUtc = parseISO(p.appointmentTime); // Use appointmentTime for booking
+                    const apptDateUtc = parseISO(p.appointmentTime);
                     const apptInIST = toZonedTime(apptDateUtc, timeZone);
                     
                     const apptTimeStr = format(apptInIST, 'hh:mm a');
@@ -207,10 +207,9 @@ export default function DashboardPage() {
 
             if (result.success) {
                 if (isWalkIn) {
-                    const patient = result.patient;
-                    if (patient) {
-                        await checkInPatientAction(patient.id);
-                    }
+                    // Check-in action is now called from the Walk-in Dialog itself after saving.
+                    // This ensures the queue is recalculated immediately.
+                    await checkInPatientAction(result.patient.id);
                 }
                 await loadData();
                 toast({ title: "Success", description: "Appointment booked successfully."});
@@ -364,31 +363,25 @@ export default function DashboardPage() {
 
     let bookedPatients = patients.filter(p => p.status === 'Booked');
 
-    const displayedPatients = [...liveQueue, ...bookedPatients].sort((a, b) => a.tokenNo - b.tokenNo);
+    const todaysDateStr = format(selectedDate, 'yyyy-MM-dd');
+    let displayedTimeSlots = timeSlots.filter(slot => {
+        const patient = slot.patient;
+        if (!patient) return !showCompleted; // Show empty slots unless hiding completed
+        
+        const patientDateStr = format(toZonedTime(parseISO(patient.appointmentTime), "Asia/Kolkata"), 'yyyy-MM-dd');
+        if (patientDateStr !== todaysDateStr) return false;
 
-    let filteredTimeSlots = timeSlots.map(slot => {
-        const patient = displayedPatients.find(p => {
-             if (p.status === 'Cancelled') return false;
-            const apptDateUtc = parseISO(p.appointmentTime);
-            const apptInIST = toZonedTime(apptDateUtc, 'Asia/Kolkata');
-            const apptTimeStr = format(apptInIST, 'hh:mm a');
-            return apptTimeStr === slot.time;
-        });
+        if (showCompleted) return true;
 
-        return patient ? {...slot, isBooked: true, patient, patientDetails: family.find(f=> f.phone === patient.phone && f.name === patient.name)} : slot
+        return patient.status !== 'Completed' && patient.status !== 'Cancelled';
     }).filter(slot => {
-        if (!showCompleted) {
-            return !slot.patient || (slot.patient.status !== 'Completed' && slot.patient.status !== 'Cancelled');
-        }
-        return true;
+        if (!searchTerm.trim()) return true;
+        if (!slot.isBooked || !slot.patientDetails) return false;
+        const lowerSearch = searchTerm.toLowerCase();
+        return slot.patientDetails.name.toLowerCase().includes(lowerSearch) ||
+               slot.patientDetails.phone.includes(lowerSearch) ||
+               (slot.patientDetails.clinicId && slot.patientDetails.clinicId.toLowerCase().includes(lowerSearch));
     });
-
-    if (searchTerm.trim()) {
-        filteredTimeSlots = timeSlots.filter(slot => {
-            if (!slot.isBooked || !slot.patientDetails) return false;
-            return slot.patientDetails.name.toLowerCase().includes(searchTerm.toLowerCase());
-        });
-    }
 
 
     const todaysPatients = patients.filter(p => isToday(parseISO(p.appointmentTime)));
@@ -533,7 +526,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent className="p-4">
                             <div className="space-y-3">
-                            {filteredTimeSlots.length > 0 ? filteredTimeSlots.map((slot, index) => {
+                            {displayedTimeSlots.length > 0 ? displayedTimeSlots.map((slot, index) => {
                                 const isActionable = slot.patient && slot.patient.status !== 'Completed' && slot.patient.status !== 'Cancelled';
                                 if (searchTerm && !slot.isBooked) return null;
 
