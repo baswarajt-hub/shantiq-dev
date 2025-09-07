@@ -8,7 +8,7 @@ import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosu
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format, parseISO, parse } from 'date-fns';
-import { toZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 
 const timeZone = "Asia/Kolkata";
@@ -27,8 +27,8 @@ function sessionLocalToUtc(dateStr: string, sessionTime: string) {
     // attempt 12-hour with AM/PM: "h:mm a" or "hh:mm a"
     localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
   }
-  // zonedTimeToUtc expects a Date (interpreted in the given zone) and returns the UTC Date instant
-  return zonedTimeToUtc(localDate, timeZone);
+  // fromZonedTime will give us the UTC Date object corresponding to that wall-clock time in the specified zone.
+  return fromZonedTime(localDate, timeZone);
 }
 
 /** Returns 'morning' | 'evening' or null */
