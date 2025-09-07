@@ -7,7 +7,7 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { startOfDay, parse, format } from 'date-fns';
+import { startOfDay, parse, format, set } from 'date-fns';
 
 export async function addWalkInPatientAction(formData: FormData) {
   const name = formData.get('name') as string;
@@ -43,15 +43,19 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
         };
     }
 
-    const checkSession = (session: Session, sessionName: 'morning' | 'evening') => {
+    const checkSession = (session: Session) => {
         if (!session.isOpen) return false;
-        const startTime = parse(session.start, 'HH:mm', date);
-        const endTime = parse(session.end, 'HH:mm', date);
+        const [startHour, startMinute] = session.start.split(':').map(Number);
+        const [endHour, endMinute] = session.end.split(':').map(Number);
+        
+        const startTime = set(date, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
+        const endTime = set(date, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
+
         return date >= startTime && date < endTime;
     };
 
-    if (checkSession(daySchedule.morning, 'morning')) return 'morning';
-    if (checkSession(daySchedule.evening, 'evening')) return 'evening';
+    if (checkSession(daySchedule.morning)) return 'morning';
+    if (checkSession(daySchedule.evening)) return 'evening';
     return null;
 }
 
