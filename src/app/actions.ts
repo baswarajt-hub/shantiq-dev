@@ -81,9 +81,8 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     if (!isSamePatient) return false;
     
     const existingDate = parseISO(p.appointmentTime);
-
-    const existingDay = format(toZonedTime(existingDate, timeZone), "yyyy-MM-dd");
     const newDay = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
+    const existingDay = format(toZonedTime(existingDate, timeZone), "yyyy-MM-dd");
 
     if (existingDay !== newDay) return false;
     
@@ -91,7 +90,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     const isSameSession = existingSession === newAppointmentSession;
 
     const isActive = ['Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
-    return isSamePatient && isSameSession && isActive;
+    return isSameSession && isActive;
   });
 
   if (existingAppointment) {
@@ -253,11 +252,33 @@ export async function emergencyCancelAction() {
 
 export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estimatedWaitTime'>) {
     const schedule = await getDoctorScheduleData();
+    const allPatients = await getPatientsData();
     const newAppointmentDate = parseISO(patientData.appointmentTime);
     const newAppointmentSession = getSessionForTime(schedule, newAppointmentDate);
 
     if (!newAppointmentSession) {
         return { error: "The selected time is outside of clinic hours." };
+    }
+    
+    const existingAppointment = allPatients.find(p => {
+        const isSamePatient = p.name === patientData.name && p.phone === patientData.phone;
+        if (!isSamePatient) return false;
+        
+        const existingDate = parseISO(p.appointmentTime);
+        const newDay = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
+        const existingDay = format(toZonedTime(existingDate, timeZone), "yyyy-MM-dd");
+
+        if (existingDay !== newDay) return false;
+        
+        const existingSession = getSessionForTime(schedule, existingDate);
+        const isSameSession = existingSession === newAppointmentSession;
+
+        const isActive = ['Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
+        return isSameSession && isActive;
+    });
+
+    if (existingAppointment) {
+        return { error: `This patient already has an appointment scheduled for this day and session.` };
     }
     
     const newPatient = await addPatientData(patientData);
@@ -370,3 +391,5 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
 export async function getFamilyAction() {
     return getFamily();
 }
+
+    
