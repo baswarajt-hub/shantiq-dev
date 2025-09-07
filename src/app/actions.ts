@@ -7,7 +7,7 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { startOfDay, parse, format, set } from 'date-fns';
+import { startOfDay, parse as parseDate, format, set } from 'date-fns';
 
 export async function addWalkInPatientAction(formData: FormData) {
   const name = formData.get('name') as string;
@@ -50,7 +50,7 @@ const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'e
         
         const startTime = set(date, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
         const endTime = set(date, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
-
+        
         return date >= startTime && date < endTime;
     };
 
@@ -292,6 +292,7 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
         await updateTodayScheduleOverrideData(override);
         revalidatePath('/');
         revalidatePath('/booking');
+        revalidatePath('/admin');
         return { success: 'Today\'s schedule has been adjusted.' };
     } catch (error) {
         return { error: 'Failed to adjust schedule.' };
