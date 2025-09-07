@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
 import { getDoctorScheduleAction, getFamilyAction, getPatientsAction, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
 import { format, parseISO, parse as parseDate } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 
 const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
@@ -298,6 +299,11 @@ export default function BookingPage() {
     setSelectedMember(member);
     setEditMemberOpen(true);
   }
+  
+  const handleOpenBookingForMember = (member: FamilyMember) => {
+    setSelectedMember(member);
+    setBookingOpen(true);
+  };
 
   const handleRescheduleAppointment = (newDate: string, newTime: string, newPurpose: string) => {
     if (selectedAppointment) {
@@ -361,7 +367,8 @@ export default function BookingPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {family.map(member => (
-                  <div key={member.id} className="flex items-center justify-between">
+                  <div key={member.id} className={cn("flex items-center justify-between p-2 rounded-lg transition-colors", "hover:bg-muted/50 cursor-pointer")}
+                    onClick={() => handleOpenBookingForMember(member)}>
                     <div className="flex items-center gap-3">
                       <Avatar>
                         <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
@@ -372,7 +379,7 @@ export default function BookingPage() {
                         <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditMember(member)}><Edit className="h-4 w-4" /></Button>
                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
                     </div>
@@ -490,6 +497,8 @@ export default function BookingPage() {
           schedule={schedule}
           onSave={handleBookAppointment}
           bookedPatients={patients}
+          initialMemberId={selectedMember?.id}
+          onDialogClose={() => setSelectedMember(null)}
         />
         {selectedAppointment && schedule && (
           <RescheduleAppointmentDialog

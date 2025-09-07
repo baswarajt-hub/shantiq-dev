@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -28,6 +29,8 @@ type BookAppointmentDialogProps = {
   schedule: DoctorSchedule | null;
   onSave: (familyMember: FamilyMember, date: string, time: string, purpose: string) => void;
   bookedPatients: Patient[];
+  initialMemberId?: number | null;
+  onDialogClose?: () => void;
 };
 
 type SlotState = 'available' | 'booked' | 'reserved' | 'past';
@@ -38,7 +41,7 @@ type AvailableSlot = {
 };
 
 
-export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, schedule, onSave, bookedPatients }: BookAppointmentDialogProps) {
+export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, schedule, onSave, bookedPatients, initialMemberId, onDialogClose }: BookAppointmentDialogProps) {
   const [step, setStep] = useState(1);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -49,6 +52,13 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const { toast } = useToast();
 
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
+
+  useEffect(() => {
+    if (isOpen && initialMemberId) {
+        setSelectedMemberId(initialMemberId.toString());
+        setStep(2);
+    }
+  }, [isOpen, initialMemberId]);
 
   useEffect(() => {
     if (schedule && selectedDate) {
@@ -134,6 +144,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     setSelectedSession('morning');
     setSelectedSlot('');
     setSelectedPurpose('Consultation');
+    if(onDialogClose) onDialogClose();
   }
 
   const handleClose = (open: boolean) => {
@@ -162,6 +173,17 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         default: return "";
     }
   };
+  
+  const handleBack = () => {
+    if (step > 1) {
+        // If an initial member was passed, going back from step 2 should close the dialog
+        if (step === 2 && initialMemberId) {
+            handleClose(false);
+        } else {
+            setStep(step - 1);
+        }
+    }
+  }
 
   const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === selectedPurpose);
 
@@ -232,7 +254,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                 </div>
             </RadioGroup>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(1)} className="w-full">Back</Button>
+              <Button variant="outline" onClick={handleBack} className="w-full">Back</Button>
               <Button onClick={() => setStep(3)} disabled={!selectedDate} className="w-full">Next</Button>
             </div>
           </div>
