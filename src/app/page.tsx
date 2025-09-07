@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
 import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, VisitPurpose } from '@/lib/types';
-import { format, set, addMinutes, parseISO, parse } from 'date-fns';
+import { format, set, addMinutes, parseISO, parse, isToday } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -440,6 +440,7 @@ export default function DashboardPage() {
 
     const confirmedPatients = timeSlots.filter(s => s.isBooked && s.patient?.status !== 'Cancelled');
     const todaysPatients = patients.filter(p => new Date(p.appointmentTime).toDateString() === selectedDate.toDateString());
+    const canDoctorCheckIn = isToday(selectedDate);
 
 
     if (!schedule || !doctorStatus) {
@@ -495,8 +496,8 @@ export default function DashboardPage() {
                             </div>
                              <div className="flex items-center gap-2 flex-wrap">
                                  <div className="flex items-center space-x-2">
-                                    <Switch id="doctor-status" checked={doctorStatus.isOnline} onCheckedChange={handleToggleDoctorStatus} disabled={isPending}/>
-                                    <Label htmlFor="doctor-status" className='flex items-center text-sm'>
+                                    <Switch id="doctor-status" checked={doctorStatus.isOnline} onCheckedChange={handleToggleDoctorStatus} disabled={isPending || !canDoctorCheckIn}/>
+                                    <Label htmlFor="doctor-status" className={cn('flex items-center text-sm', !canDoctorCheckIn && 'text-muted-foreground')}>
                                         {doctorStatus.isOnline ? <LogIn className="mr-2 h-4 w-4 text-green-500" /> : <LogOut className="mr-2 h-4 w-4 text-red-500" />}
                                         {doctorStatus.isOnline ? `Online (since ${doctorOnlineTime})` : 'Offline'}
                                     </Label>
@@ -622,7 +623,7 @@ export default function DashboardPage() {
                                                 </DropdownMenuItem>
                                             )}
                                             {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late') && (
-                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending}>
+                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline}>
                                                     <ChevronsRight className="mr-2 h-4 w-4" />
                                                     Start Consultation
                                                 </DropdownMenuItem>
@@ -765,3 +766,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
