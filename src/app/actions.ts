@@ -7,7 +7,8 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { startOfDay, parse as parseDate, format, set } from 'date-fns';
+import { format } from 'date-fns';
+import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
 
 export async function addWalkInPatientAction(formData: FormData) {
   const name = formData.get('name') as string;
@@ -31,33 +32,32 @@ export async function addWalkInPatientAction(formData: FormData) {
 }
 
 const getSessionForTime = (schedule: DoctorSchedule, date: Date): 'morning' | 'evening' | null => {
-    const dayOfWeek = format(date, 'EEEE') as keyof DoctorSchedule['days'];
-    const dateStr = format(date, 'yyyy-MM-dd');
-    let daySchedule = schedule.days[dayOfWeek];
+  const timeZone = "Asia/Kolkata";
+  const dayOfWeek = format(utcToZonedTime(date, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+  const dateStr = format(utcToZonedTime(date, timeZone), 'yyyy-MM-dd');
 
-    const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
-    if(todayOverride) {
-        daySchedule = {
-            morning: todayOverride.morningOverride ?? daySchedule.morning,
-            evening: todayOverride.eveningOverride ?? daySchedule.evening,
-        };
-    }
+  let daySchedule = schedule.days[dayOfWeek];
 
-    const checkSession = (session: Session) => {
-        if (!session.isOpen) return false;
-        const [startHour, startMinute] = session.start.split(':').map(Number);
-        const [endHour, endMinute] = session.end.split(':').map(Number);
-        
-        const startTime = set(new Date(date), { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
-        const endTime = set(new Date(date), { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
-        
-        return date >= startTime && date < endTime;
+  // apply overrides if any
+  const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+  if (todayOverride) {
+    daySchedule = {
+      morning: todayOverride.morningOverride ?? daySchedule.morning,
+      evening: todayOverride.eveningOverride ?? daySchedule.evening,
     };
+  }
 
-    if (daySchedule.morning && checkSession(daySchedule.morning)) return 'morning';
-    if (daySchedule.evening && checkSession(daySchedule.evening)) return 'evening';
-    return null;
-}
+  const checkSession = (session: Session) => {
+    if (!session.isOpen) return false;
+    const start = zonedTimeToUtc(`${dateStr} ${session.start}`, timeZone);
+    const end = zonedTimeToUtc(`${dateStr} ${session.end}`, timeZone);
+    return date >= start && date < end;
+  };
+
+  if (checkSession(daySchedule.morning)) return 'morning';
+  if (checkSession(daySchedule.evening)) return 'evening';
+  return null;
+};
 
 export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string) {
 
@@ -75,14 +75,17 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     if (!isSamePatient) return false;
     
     const existingDate = new Date(p.appointmentTime);
-    const isSameDay = startOfDay(existingDate).getTime() === startOfDay(newAppointmentDate).getTime();
-    if (!isSameDay) return false;
+
+    const existingDay = format(utcToZonedTime(existingDate, "Asia/Kolkata"), "yyyy-MM-dd");
+    const newDay = format(utcToZonedTime(newAppointmentDate, "Asia/Kolkata"), "yyyy-MM-dd");
+
+    if (existingDay !== newDay) return false;
     
     const existingSession = getSessionForTime(schedule, existingDate);
     const isSameSession = existingSession === newAppointmentSession;
 
     const isActive = ['Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
-    return isSamePatient && isSameDay && isSameSession && isActive;
+    return isSamePatient && isSameSession && isActive;
   });
 
   if (existingAppointment) {
@@ -350,14 +353,17 @@ export async function addPatientAction(patient: Omit<Patient, 'id' | 'estimatedW
     if (!isSamePatient) return false;
     
     const existingDate = new Date(p.appointmentTime);
-    const isSameDay = startOfDay(existingDate).getTime() === startOfDay(newAppointmentDate).getTime();
-    if (!isSameDay) return false;
     
+    const existingDay = format(utcToZonedTime(existingDate, "Asia/Kolkata"), "yyyy-MM-dd");
+    const newDay = format(utcToZonedTime(newAppointmentDate, "Asia/Kolkata"), "yyyy-MM-dd");
+
+    if (existingDay !== newDay) return false;
+
     const existingSession = getSessionForTime(schedule, existingDate);
     const isSameSession = existingSession === newAppointmentSession;
 
     const isActive = ['Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
-    return isSamePatient && isSameDay && isSameSession && isActive;
+    return isSamePatient && isSameSession && isActive;
   });
 
   if (existingAppointment) {
@@ -388,11 +394,3 @@ export async function getPatientsAction() {
 export async function getDoctorStatusAction() {
     return getDoctorStatusData();
 }
-
-    
-
-    
-
-
-    
-
