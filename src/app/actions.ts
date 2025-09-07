@@ -7,6 +7,7 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
+import { startOfDay } from 'date-fns';
 
 export async function addWalkInPatientAction(formData: FormData) {
   const name = formData.get('name') as string;
@@ -30,6 +31,20 @@ export async function addWalkInPatientAction(formData: FormData) {
 }
 
 export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string) {
+
+  const allPatients = await getPatientsData();
+  const newAppointmentDate = startOfDay(new Date(appointmentTime));
+
+  const existingAppointment = allPatients.find(p => {
+    const isSamePatient = p.name === familyMember.name && p.phone === familyMember.phone;
+    const isSameDay = startOfDay(new Date(p.appointmentTime)).getTime() === newAppointmentDate.getTime();
+    const isActive = ['Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
+    return isSamePatient && isSameDay && isActive;
+  });
+
+  if (existingAppointment) {
+    return { error: `This patient already has an appointment scheduled for this day.` };
+  }
 
   await addPatientData({
     name: familyMember.name,
@@ -277,6 +292,19 @@ export async function checkInPatientAction(patientId: number) {
 }
 
 export async function addPatientAction(patient: Omit<Patient, 'id' | 'estimatedWaitTime'>) {
+  const allPatients = await getPatientsData();
+  const newAppointmentDate = startOfDay(new Date(patient.appointmentTime));
+
+  const existingAppointment = allPatients.find(p => {
+    const isSamePatient = p.name === patient.name && p.phone === patient.phone;
+    const isSameDay = startOfDay(new Date(p.appointmentTime)).getTime() === newAppointmentDate.getTime();
+    const isActive = ['Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
+    return isSamePatient && isSameDay && isActive;
+  });
+
+  if (existingAppointment) {
+    return { error: `This patient already has an appointment scheduled for this day.` };
+  }
   const newPatient = await addPatientData(patient);
   revalidatePath('/');
   return { success: 'Patient added successfully.', patient: newPatient };
