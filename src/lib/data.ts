@@ -74,15 +74,12 @@ export async function getPatients() {
   return JSON.parse(JSON.stringify(patients));
 }
 
-export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime' | 'tokenNo' | 'slotTime'>) {
-    const todayPatients = patients.filter(p => format(new Date(p.appointmentTime), 'yyyy-MM-dd') === format(new Date(patient.appointmentTime), 'yyyy-MM-dd'));
-    const tokenNo = todayPatients.length + 1;
+export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>) {
     const newPatient: Patient = {
         ...patient,
         id: nextPatientId++,
         estimatedWaitTime: patients.filter(p => p.status === 'Waiting').length * 15,
         rescheduleCount: 0,
-        tokenNo: tokenNo,
         slotTime: patient.appointmentTime,
         status: 'Booked',
     };

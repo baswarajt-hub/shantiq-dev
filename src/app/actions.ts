@@ -7,7 +7,7 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { format, parseISO, parse } from 'date-fns';
+import { format, parseISO, parse, differenceInMinutes, startOfDay } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 
@@ -70,6 +70,8 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   const allPatients = await getPatientsData();
   const schedule = await getDoctorScheduleData();
   const newAppointmentDate = parseISO(appointmentTime);
+  const dateStr = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
+
   const newAppointmentSession = getSessionForTime(schedule, newAppointmentDate);
   
   if (!newAppointmentSession) {
@@ -97,6 +99,27 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     return { error: `This patient already has an appointment scheduled for this day and session.` };
   }
 
+  // --- Static Token Number Calculation ---
+  const dayOfWeek = format(toZonedTime(newAppointmentDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+  const daySchedule = schedule.days[dayOfWeek];
+
+  const morningStart = sessionLocalToUtc(dateStr, daySchedule.morning.start);
+  const morningEnd = sessionLocalToUtc(dateStr, daySchedule.morning.end);
+  const eveningStart = sessionLocalToUtc(dateStr, daySchedule.evening.start);
+
+  const totalMorningSlots = daySchedule.morning.isOpen ? differenceInMinutes(morningEnd, morningStart) / schedule.slotDuration : 0;
+  
+  let tokenNo = 0;
+  if (newAppointmentSession === 'morning') {
+    const minutesFromStart = differenceInMinutes(newAppointmentDate, morningStart);
+    tokenNo = Math.floor(minutesFromStart / schedule.slotDuration) + 1;
+  } else { // evening
+    const minutesFromStart = differenceInMinutes(newAppointmentDate, eveningStart);
+    tokenNo = totalMorningSlots + Math.floor(minutesFromStart / schedule.slotDuration) + 1;
+  }
+  // --- End Calculation ---
+
+
   await addPatientData({
     name: familyMember.name,
     phone: familyMember.phone,
@@ -104,6 +127,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     appointmentTime: appointmentTime,
     status: 'Booked',
     purpose: purpose,
+    tokenNo: tokenNo
   });
   
   revalidatePath('/booking');
@@ -255,10 +279,12 @@ export async function emergencyCancelAction() {
     return { success: `Emergency declared. All ${activePatients.length} active appointments have been cancelled.` };
 }
 
-export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'tokenNo' | 'slotTime'>) {
+export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime' | 'tokenNo'>) {
     const schedule = await getDoctorScheduleData();
     const allPatients = await getPatientsData();
     const newAppointmentDate = parseISO(patientData.appointmentTime);
+    const dateStr = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
+
     const newAppointmentSession = getSessionForTime(schedule, newAppointmentDate);
 
     if (!newAppointmentSession) {
@@ -285,8 +311,28 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
     if (existingAppointment) {
         return { error: `This patient already has an appointment scheduled for this day and session.` };
     }
+
+    // --- Static Token Number Calculation ---
+    const dayOfWeek = format(toZonedTime(newAppointmentDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+    const daySchedule = schedule.days[dayOfWeek];
+
+    const morningStart = sessionLocalToUtc(dateStr, daySchedule.morning.start);
+    const morningEnd = sessionLocalToUtc(dateStr, daySchedule.morning.end);
+    const eveningStart = sessionLocalToUtc(dateStr, daySchedule.evening.start);
+
+    const totalMorningSlots = daySchedule.morning.isOpen ? differenceInMinutes(morningEnd, morningStart) / schedule.slotDuration : 0;
     
-    const newPatient = await addPatientData(patientData);
+    let tokenNo = 0;
+    if (newAppointmentSession === 'morning') {
+        const minutesFromStart = differenceInMinutes(newAppointmentDate, morningStart);
+        tokenNo = Math.floor(minutesFromStart / schedule.slotDuration) + 1;
+    } else { // evening
+        const minutesFromStart = differenceInMinutes(newAppointmentDate, eveningStart);
+        tokenNo = totalMorningSlots + Math.floor(minutesFromStart / schedule.slotDuration) + 1;
+    }
+    // --- End Calculation ---
+    
+    const newPatient = await addPatientData({...patientData, tokenNo });
     revalidatePath('/');
     return { patient: newPatient, success: "Patient added successfully" };
 }
@@ -326,8 +372,9 @@ export async function recalculateQueueWithETC() {
     const schedule = await getDoctorScheduleData();
     const doctorStatus = await getDoctorStatusData();
 
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const todaysPatients = patients.filter(p => format(parseISO(p.appointmentTime), 'yyyy-MM-dd') === todayStr);
+    const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
+    const todaysPatients = patients.filter(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === todayStr);
+
 
     if (todaysPatients.length === 0) return { success: "No patients for today." };
 
