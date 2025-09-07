@@ -103,7 +103,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState('');
   const [clinicId, setClinicId] = useState('');
-  const [purpose, setPurpose] = useState('');
+  const [purpose, setPurpose] = useState('Consultation');
   const [isPending, startTransition] = useTransition();
   const [foundFamily, setFoundFamily] = useState<FamilyMember[] | null>(null);
   const { toast } = useToast();
@@ -137,7 +137,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     setDob('');
     setGender('');
     setClinicId('');
-    setPurpose('');
+    setPurpose('Consultation');
     setFoundFamily(null);
     if(onClose) onClose();
   };

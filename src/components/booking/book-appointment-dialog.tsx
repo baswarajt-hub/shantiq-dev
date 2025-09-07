@@ -44,8 +44,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSession, setSelectedSession] = useState('morning');
   const [selectedSlot, setSelectedSlot] = useState('');
-  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
-  const [selectedPurpose, setSelectedPurpose] = useState('');
+  const [selectedPurpose, setSelectedPurpose] = useState('Consultation');
   const { toast } = useToast();
 
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
@@ -133,7 +132,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     setSelectedDate(new Date());
     setSelectedSession('morning');
     setSelectedSlot('');
-    setSelectedPurpose('');
+    setSelectedPurpose('Consultation');
   }
 
   const handleClose = (open: boolean) => {
