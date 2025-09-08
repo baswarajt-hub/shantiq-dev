@@ -6,11 +6,12 @@ import { ScheduleForm } from '@/components/admin/schedule-form';
 import { getDoctorSchedule } from '@/lib/data';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
-import type { DoctorSchedule, SpecialClosure, VisitPurpose } from '@/lib/types';
+import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { updateDoctorScheduleAction, updateSpecialClosuresAction, updateVisitPurposesAction } from '../actions';
+import { updateDoctorScheduleAction, updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { VisitPurposeForm } from '@/components/admin/visit-purpose-form';
+import { ClinicDetailsForm } from '@/components/admin/clinic-details-form';
 
 export default function AdminPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -24,7 +25,18 @@ export default function AdminPage() {
     loadSchedule();
   }, []);
 
-  const handleScheduleSave = async (updatedSchedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>) => {
+  const handleClinicDetailsSave = async (updatedDetails: ClinicDetails) => {
+    if (!schedule) return;
+    const result = await updateClinicDetailsAction(updatedDetails);
+    if (result.error) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: result.success });
+      setSchedule(prev => prev ? { ...prev, clinicDetails: updatedDetails } : null);
+    }
+  };
+
+  const handleScheduleSave = async (updatedSchedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>) => {
     if (!schedule) return;
     const result = await updateDoctorScheduleAction(updatedSchedule);
     if (result.error) {
@@ -79,10 +91,15 @@ export default function AdminPage() {
         <div className="space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Admin Settings</h1>
-            <p className="text-muted-foreground">Manage doctor's schedule and special closures.</p>
+            <p className="text-muted-foreground">Manage clinic details, doctor's schedule, and special closures.</p>
           </div>
 
           <div className="space-y-8">
+            <ClinicDetailsForm
+              initialDetails={schedule.clinicDetails}
+              onSave={handleClinicDetailsSave}
+            />
+            <Separator />
             <ScheduleForm 
                 initialSchedule={schedule} 
                 onSave={handleScheduleSave} 

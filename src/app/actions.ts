@@ -1,10 +1,11 @@
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData } from '@/lib/data';
-import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session } from '@/lib/types';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData } from '@/lib/data';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format, parseISO, parse, differenceInMinutes, startOfDay } from 'date-fns';
@@ -514,11 +515,18 @@ export async function updatePatientPurposeAction(patientId: number, purpose: str
     return { success: 'Visit purpose updated.' };
 }
 
-export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>) {
+export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>) {
     await updateDoctorSchedule(schedule);
     revalidatePath('/admin');
     revalidatePath('/');
     return { success: 'Doctor schedule updated successfully.' };
+}
+
+export async function updateClinicDetailsAction(details: ClinicDetails) {
+    await updateClinicDetailsData(details);
+    revalidatePath('/admin');
+    revalidatePath('/');
+    return { success: 'Clinic details updated successfully.' };
 }
 
 export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
@@ -613,4 +621,5 @@ export async function getFamilyAction() {
     
 
     
+
 

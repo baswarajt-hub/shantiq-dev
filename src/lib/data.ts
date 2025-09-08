@@ -1,6 +1,7 @@
 
 
-import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose } from './types';
+
+import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
 import { format, parse, parseISO } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
@@ -26,6 +27,15 @@ let doctorStatus: DoctorStatus = {
 };
 
 let doctorSchedule: DoctorSchedule = {
+  clinicDetails: {
+    doctorName: 'Dr. John Smith',
+    clinicName: 'HealthCare Clinic',
+    tagLine: 'Your Health, Our Priority',
+    address: '123 Health St, Wellness City, 12345',
+    contactNumber: '555-123-4567',
+    consultationFee: 500,
+    paymentQRCode: 'https://picsum.photos/200'
+  },
   slotDuration: 5,
   reserveFirstFive: true,
   walkInReservation: 'alternateTwo',
@@ -125,8 +135,13 @@ export async function getDoctorSchedule() {
   return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
-export async function updateDoctorSchedule(schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>) {
+export async function updateDoctorSchedule(schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>) {
   doctorSchedule = { ...doctorSchedule, ...schedule };
+  return doctorSchedule;
+}
+
+export async function updateClinicDetailsData(details: ClinicDetails) {
+  doctorSchedule.clinicDetails = details;
   return doctorSchedule;
 }
 
