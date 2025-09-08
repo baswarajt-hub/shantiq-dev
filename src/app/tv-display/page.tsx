@@ -1,9 +1,10 @@
 
+
 'use client';
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon } from 'lucide-react';
+import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { useEffect, useState, useRef } from 'react';
 import { parseISO, format, isToday, differenceInMinutes } from 'date-fns';
@@ -28,6 +29,13 @@ const formatSessionTime = (session: Session) => {
     }
     return `${formatTime(session.start)} - ${formatTime(session.end)}`;
 }
+
+const purposeIcons: { [key: string]: React.ElementType } = {
+    'Consultation': Stethoscope,
+    'Follow-up visit': Repeat,
+    'Vaccination': Syringe,
+    'Others': HelpCircle,
+};
 
 
 export default function TVDisplayPage() {
@@ -237,9 +245,10 @@ export default function TVDisplayPage() {
 
         {/* Waiting List */}
         <div className="flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
-            <div className="grid grid-cols-[80px_1fr_100px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
+            <div className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
                 <h3 className="text-center">Token</h3>
                 <h3>Name</h3>
+                <h3 className="text-center">Purpose</h3>
                 <h3 className="text-center">Type</h3>
                 <h3 className="text-center">Wait Time</h3>
                 <h3 className="text-center">Estimated Consultation Time</h3>
@@ -249,6 +258,8 @@ export default function TVDisplayPage() {
                 {queue.length > 0 ? (
                     queue.map((patient, index) => {
                         const waitTime = patient.checkInTime ? differenceInMinutes(currentTime, parseISO(patient.checkInTime)) : 0;
+                        const PurposeIcon = patient.purpose && purposeIcons[patient.purpose] ? purposeIcons[patient.purpose] : HelpCircle;
+
                         return (
                         <motion.div
                             key={patient.id}
@@ -256,12 +267,15 @@ export default function TVDisplayPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, x: -50 }}
-                            className="grid grid-cols-[80px_1fr_100px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
+                            className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
                         >
                             <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                             <div className="font-medium text-3xl">{anonymizeName(patient.name)}</div>
-                            <div className="text-center font-medium text-slate-600 flex justify-center">
-                                {patient.type === 'Walk-in' ? <Footprints className="h-7 w-7" title="Walk-in"/> : <Calendar className="h-7 w-7" title="Appointment"/>}
+                            <div className="text-center text-slate-600 flex justify-center">
+                                <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
+                            </div>
+                             <div className="text-center font-medium text-slate-600">
+                                {patient.type}
                             </div>
                             <div className="text-center font-semibold text-slate-600">
                                 {waitTime > 0 ? `${waitTime} min` : '-'}
