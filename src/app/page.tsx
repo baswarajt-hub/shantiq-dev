@@ -63,6 +63,7 @@ export default function DashboardPage() {
     const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
     const [doctorStartDelay, setDoctorStartDelay] = useState(0);
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+    const [averageConsultationTime, setAverageConsultationTime] = useState(0);
     
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -90,6 +91,15 @@ export default function DashboardPage() {
             setFamily(familyData);
             setDoctorStatus(statusData);
             setDoctorStartDelay(statusData.startDelay || 0);
+
+            const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
+            const completedWithTime = todaysPatients.filter(p => p.status === 'Completed' && typeof p.consultationTime === 'number');
+            if (completedWithTime.length > 0) {
+                const totalTime = completedWithTime.reduce((acc, p) => acc + p.consultationTime!, 0);
+                setAverageConsultationTime(Math.round(totalTime / completedWithTime.length));
+            } else {
+                setAverageConsultationTime(scheduleData.slotDuration);
+            }
         });
     }
 
@@ -424,7 +434,7 @@ export default function DashboardPage() {
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
                     <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-                    <Stats patients={todaysPatients} />
+                    <Stats patients={todaysPatients} averageConsultationTime={averageConsultationTime} />
                     
                     <Card>
                         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
