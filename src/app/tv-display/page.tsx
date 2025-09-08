@@ -3,10 +3,10 @@
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users } from 'lucide-react';
-import type { DoctorSchedule, DoctorStatus, Patient } from '@/lib/types';
+import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon } from 'lucide-react';
+import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { useEffect, useState, useRef } from 'react';
-import { parseISO, format, isToday } from 'date-fns';
+import { parseISO, format, isToday, differenceInMinutes } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const anonymizeName = (name: string) => {
@@ -18,11 +18,24 @@ const anonymizeName = (name: string) => {
   return parts[0];
 };
 
+const formatSessionTime = (session: Session) => {
+    if (!session.isOpen) return 'Closed';
+    const formatTime = (time: string) => {
+        const [h, m] = time.split(':');
+        const d = new Date();
+        d.setHours(parseInt(h, 10), parseInt(m, 10));
+        return format(d, 'hh:mm a');
+    }
+    return `${formatTime(session.start)} - ${formatTime(session.end)}`;
+}
+
+
 export default function TVDisplayPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [time, setTime] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [averageWait, setAverageWait] = useState(0);
 
   const listRef = useRef<HTMLDivElement>(null);
@@ -51,6 +64,7 @@ export default function TVDisplayPage() {
   useEffect(() => {
     const updateClock = () => {
       setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+      setCurrentTime(new Date());
     };
 
     fetchData();
@@ -101,6 +115,17 @@ export default function TVDisplayPage() {
   const queue = waitingList.slice(1);
   const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
   const clinicName = schedule?.clinicDetails.clinicName || 'Clinic';
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const dayName = format(new Date(), 'EEEE') as keyof DoctorSchedule['days'];
+  let todaySchedule = schedule?.days[dayName];
+  const todayOverride = schedule?.specialClosures.find(c => c.date === todayStr);
+  if(todayOverride) {
+    todaySchedule = {
+        morning: todayOverride.morningOverride ?? schedule!.days[dayName].morning,
+        evening: todayOverride.eveningOverride ?? schedule!.days[dayName].evening
+    };
+  }
   
   return (
     <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col p-6 font-body">
@@ -112,6 +137,17 @@ export default function TVDisplayPage() {
             <p className="text-xl text-slate-500">{doctorName}</p>
           </div>
         </div>
+
+        {todaySchedule && (
+          <div className="text-center text-xl">
+             <h2 className="font-bold text-slate-900">Today's Hours</h2>
+             <div className="flex gap-6 text-slate-600">
+                <p><span className="font-semibold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
+                <p><span className="font-semibold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
+             </div>
+          </div>
+        )}
+
         <div className="text-right flex items-center gap-6">
            <div className="flex items-center gap-2 text-2xl">
                 <Activity className="h-7 w-7 text-amber-500" />
@@ -201,32 +237,41 @@ export default function TVDisplayPage() {
 
         {/* Waiting List */}
         <div className="flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
-            <div className="grid grid-cols-[80px_1fr_200px_250px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
+            <div className="grid grid-cols-[80px_1fr_100px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
                 <h3 className="text-center">Token</h3>
                 <h3>Name</h3>
                 <h3 className="text-center">Type</h3>
+                <h3 className="text-center">Wait Time</h3>
                 <h3 className="text-center">Estimated Consultation Time</h3>
             </div>
             <div ref={listRef} className="flex-1 overflow-y-scroll no-scrollbar">
                 <AnimatePresence>
                 {queue.length > 0 ? (
-                    queue.map((patient, index) => (
-                    <motion.div
-                        key={patient.id}
-                        layout
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: -50 }}
-                        className="grid grid-cols-[80px_1fr_200px_250px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
-                    >
-                        <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
-                        <div className="font-medium text-3xl">{anonymizeName(patient.name)}</div>
-                        <div className="text-center font-medium text-slate-600">{patient.type}</div>
-                        <div className="text-center font-semibold text-slate-600">
-                            {patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'} - {patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}
-                        </div>
-                    </motion.div>
-                    ))
+                    queue.map((patient, index) => {
+                        const waitTime = patient.checkInTime ? differenceInMinutes(currentTime, parseISO(patient.checkInTime)) : 0;
+                        return (
+                        <motion.div
+                            key={patient.id}
+                            layout
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, x: -50 }}
+                            className="grid grid-cols-[80px_1fr_100px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
+                        >
+                            <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
+                            <div className="font-medium text-3xl">{anonymizeName(patient.name)}</div>
+                            <div className="text-center font-medium text-slate-600 flex justify-center">
+                                {patient.type === 'Walk-in' ? <Footprints className="h-7 w-7" title="Walk-in"/> : <Calendar className="h-7 w-7" title="Appointment"/>}
+                            </div>
+                            <div className="text-center font-semibold text-slate-600">
+                                {waitTime > 0 ? `${waitTime} min` : '-'}
+                            </div>
+                            <div className="text-center font-semibold text-slate-600">
+                                {patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'} - {patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}
+                            </div>
+                        </motion.div>
+                        )
+                    })
                 ) : (
                     !upNext && <p className="text-center text-slate-400 text-2xl pt-16">The waiting queue is empty.</p>
                 )}
