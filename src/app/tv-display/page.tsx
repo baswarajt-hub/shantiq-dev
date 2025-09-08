@@ -4,7 +4,7 @@
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope } from 'lucide-react';
+import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { useEffect, useState, useRef } from 'react';
 import { parseISO, format, isToday, differenceInMinutes } from 'date-fns';
@@ -22,6 +22,7 @@ const anonymizeName = (name: string) => {
 const formatSessionTime = (session: Session) => {
     if (!session.isOpen) return 'Closed';
     const formatTime = (time: string) => {
+        if (!time) return '';
         const [h, m] = time.split(':');
         const d = new Date();
         d.setHours(parseInt(h, 10), parseInt(m, 10));
@@ -122,8 +123,9 @@ export default function TVDisplayPage() {
   const upNext = waitingList[0];
   const queue = waitingList.slice(1);
   const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
+  const qualifications = schedule?.clinicDetails.qualifications || '';
   const clinicName = schedule?.clinicDetails.clinicName || 'Clinic';
-
+  
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const dayName = format(new Date(), 'EEEE') as keyof DoctorSchedule['days'];
   let todaySchedule = schedule?.days[dayName];
@@ -137,31 +139,35 @@ export default function TVDisplayPage() {
   
   return (
     <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col p-6 font-body">
-      <header className="flex justify-between items-center pb-4 border-b-2 border-slate-200">
+      <header className="grid grid-cols-3 items-center pb-4 border-b-2 border-slate-200">
         <div className="flex items-center space-x-4">
           <StethoscopeIcon className="h-12 w-12 text-sky-500" />
           <div>
-            <h1 className="text-4xl font-bold text-slate-900">{clinicName}</h1>
-            <p className="text-xl text-slate-500">{doctorName}</p>
+            <h1 className="text-3xl font-bold text-slate-900">{clinicName}</h1>
+            {todaySchedule && (
+                <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200">
+                    <p className="font-semibold text-sky-800"><span className="font-bold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
+                    <p className="font-semibold text-sky-800"><span className="font-bold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
+                </div>
+            )}
           </div>
         </div>
 
-        {todaySchedule && (
-          <div className="text-center text-xl">
-             <h2 className="font-bold text-slate-900">Today's Hours</h2>
-             <div className="flex gap-6 text-slate-600">
-                <p><span className="font-semibold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
-                <p><span className="font-semibold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
-             </div>
-          </div>
-        )}
+        <div className="text-center">
+            <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
+            <p className="text-lg text-slate-500">{qualifications}</p>
+            <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+                {doctorStatus?.isOnline ? `Online since ${doctorStatus.onlineTime ? format(parseISO(doctorStatus.onlineTime), 'hh:mm a') : ''}` : 'Doctor is Offline'}
+            </div>
+        </div>
 
-        <div className="text-right flex items-center gap-6">
-           <div className="flex items-center gap-2 text-2xl">
-                <Activity className="h-7 w-7 text-amber-500" />
+        <div className="text-right flex flex-col items-end gap-2">
+           <div className="text-5xl font-semibold text-slate-900">{time}</div>
+           <div className="flex items-center gap-2 text-xl">
+                <Activity className="h-6 w-6 text-amber-500" />
                 Avg. Wait: <span className="font-bold">{averageWait} min</span>
            </div>
-           <div className="text-5xl font-semibold text-slate-900">{time}</div>
         </div>
       </header>
 
@@ -201,10 +207,7 @@ export default function TVDisplayPage() {
                     </motion.div>
                 )}
                 </AnimatePresence>
-                <div className={cn("text-xl px-4 py-1 rounded-full flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                    {doctorStatus?.isOnline ? <LogIn className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
-                    {doctorStatus?.isOnline ? 'Doctor is Online' : 'Doctor is Offline'}
-                </div>
+                 <div></div>
             </div>
             <div className="bg-white rounded-2xl p-6 flex flex-col items-center shadow-lg border border-slate-200">
                 <h2 className="text-3xl text-purple-600 font-semibold mb-4">WAITING FOR REPORTS</h2>
