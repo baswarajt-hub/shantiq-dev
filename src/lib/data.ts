@@ -1,6 +1,7 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
 import { format, parse, parseISO } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
@@ -28,12 +29,15 @@ let doctorStatus: DoctorStatus = {
 
 let doctorSchedule: DoctorSchedule = {
   clinicDetails: {
-    doctorName: 'Dr. John Smith',
-    clinicName: 'HealthCare Clinic',
-    tagLine: 'Your Health, Our Priority',
-    address: '123 Health St, Wellness City, 12345',
-    contactNumber: '555-123-4567',
-    consultationFee: 500,
+    doctorName: 'Dr Baswaraj Tandur',
+    qualifications: 'MBBS, DCH, DNB (Paediatrics), MBA',
+    clinicName: 'Shanti Children\'s Clinic',
+    tagLine: 'Your child\'s health is in safe hands',
+    address: 'Dr Baswaraj Tandur Shanti Children\'s clinic Prajaymall complex Gowliguda Chaman, Hyderabad - 500012',
+    contactNumber: '9000664833, 9398303183',
+    email: 'info@shantichildrensclinic.com',
+    website: 'shantichildrensclinic.com',
+    consultationFee: 400,
     paymentQRCode: 'https://picsum.photos/200'
   },
   slotDuration: 5,

@@ -2,6 +2,7 @@
 
 
 
+
 export type Patient = {
   id: number;
   name: string;
@@ -64,10 +65,13 @@ export type VisitPurpose = {
 
 export type ClinicDetails = {
     doctorName: string;
+    qualifications: string;
     clinicName: string;
     tagLine: string;
     address: string;
     contactNumber: string;
+    email: string;
+    website: string;
     consultationFee: number;
     paymentQRCode?: string;
 };

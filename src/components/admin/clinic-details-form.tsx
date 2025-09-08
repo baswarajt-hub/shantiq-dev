@@ -62,11 +62,15 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
                 <Label htmlFor="doctorName">Doctor's Name</Label>
                 <Input id="doctorName" name="doctorName" value={details.doctorName} onChange={handleInputChange} />
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
+                <Label htmlFor="qualifications">Qualifications</Label>
+                <Input id="qualifications" name="qualifications" value={details.qualifications} onChange={handleInputChange} />
+            </div>
+          </div>
+           <div className="space-y-2">
                 <Label htmlFor="clinicName">Clinic Name</Label>
                 <Input id="clinicName" name="clinicName" value={details.clinicName} onChange={handleInputChange} />
             </div>
-          </div>
            <div className="space-y-2">
                 <Label htmlFor="tagLine">Clinic Tag Line</Label>
                 <Input id="tagLine" name="tagLine" value={details.tagLine} onChange={handleInputChange} />
@@ -83,6 +87,16 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
                  <div className="space-y-2">
                     <Label htmlFor="consultationFee">Consultation Fee</Label>
                     <Input id="consultationFee" name="consultationFee" type="number" value={details.consultationFee} onChange={handleInputChange} />
+                </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" type="email" value={details.email} onChange={handleInputChange} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="website">Website</Label>
+                    <Input id="website" name="website" value={details.website} onChange={handleInputChange} />
                 </div>
             </div>
             <div className="space-y-2">
