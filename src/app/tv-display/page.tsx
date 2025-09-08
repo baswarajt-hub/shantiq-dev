@@ -164,10 +164,12 @@ export default function TVDisplayPage() {
 
         <div className="text-right flex flex-col items-end gap-2">
            <div className="text-5xl font-semibold text-slate-900">{time}</div>
-           <div className="flex items-center gap-2 text-xl">
-                <Activity className="h-6 w-6 text-amber-500" />
-                Avg. Wait: <span className="font-bold">{averageWait} min</span>
-           </div>
+            <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
+                <div className="flex items-center gap-2 font-semibold text-amber-800">
+                    <Activity className="h-6 w-6" />
+                    Avg. Wait: <span className="font-bold">{averageWait} min</span>
+                </div>
+            </div>
         </div>
       </header>
 
