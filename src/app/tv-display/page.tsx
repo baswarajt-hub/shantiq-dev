@@ -241,9 +241,12 @@ export default function TVDisplayPage() {
                     </div>
                     <span className="text-4xl font-bold text-slate-800">{anonymizeName(upNext.name)}</span>
                 </div>
-                <div className="text-2xl font-semibold flex items-center gap-2 text-slate-600">
-                    <Timer className="h-7 w-7" />
-                    ETC: {upNext.bestCaseETC ? format(parseISO(upNext.bestCaseETC), 'hh:mm a') : '-'}
+                <div className="text-2xl font-semibold flex items-center gap-2">
+                    <Timer className="h-7 w-7 text-slate-600" />
+                    <span className="text-slate-600">ETC:</span>
+                    <span className="font-bold text-green-600">{upNext.bestCaseETC ? format(parseISO(upNext.bestCaseETC), 'hh:mm a') : '-'}</span>
+                    <span className="text-slate-600">-</span>
+                    <span className="font-bold text-orange-600">{upNext.worstCaseETC ? format(parseISO(upNext.worstCaseETC), 'hh:mm a') : '-'}</span>
                 </div>
             </div>
         )}
@@ -285,8 +288,10 @@ export default function TVDisplayPage() {
                             <div className="text-center font-semibold text-slate-600">
                                 {waitTime > 0 ? `${waitTime} min` : '-'}
                             </div>
-                            <div className="text-center font-semibold text-slate-600">
-                                {patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'} - {patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}
+                            <div className="text-center font-semibold text-slate-600 flex items-center justify-center gap-1">
+                                <span className="font-bold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>
+                                <span>-</span>
+                                <span className="font-bold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
                             </div>
                         </motion.div>
                         )
