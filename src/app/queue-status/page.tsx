@@ -139,20 +139,19 @@ export default function QueueStatusPage() {
   useEffect(() => {
     const fetchData = async () => {
       await recalculateQueueWithETC();
-      const patientData: Patient[] = await getPatientsAction();
-      const statusData = await getDoctorStatusAction();
+      const [patientData, statusData] = await Promise.all([
+        getPatientsAction(),
+        getDoctorStatusAction()
+      ]);
       const todaysPatients = patientData.filter(p => isToday(parseISO(p.appointmentTime)));
       setPatients(todaysPatients);
       setDoctorStatus(statusData);
+      setLastUpdated(new Date().toLocaleTimeString());
     };
 
     fetchData();
-    setLastUpdated(new Date().toLocaleTimeString());
 
-    const intervalId = setInterval(() => {
-        fetchData();
-        setLastUpdated(new Date().toLocaleTimeString());
-    }, 15000); // Poll every 15 seconds
+    const intervalId = setInterval(fetchData, 15000); // Poll every 15 seconds
 
     return () => clearInterval(intervalId);
   }, []);
