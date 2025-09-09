@@ -189,10 +189,11 @@ export default function TVDisplayPage() {
                     >
                         <Hourglass className="h-16 w-16 text-sky-500 mx-auto animate-pulse mb-2" />
                         <p className="text-6xl font-bold tracking-wider text-slate-900">
-                        {anonymizeName(nowServing.name)}
+                           {anonymizeName(nowServing.name)}
                         </p>
+                        {nowServing.subStatus === 'Reports' && <p className="text-2xl font-semibold text-purple-600">(Reports)</p>}
                         <p className="text-3xl text-slate-500 mt-2 flex items-center justify-center gap-3">
-                        <Ticket className="h-8 w-8"/>#{nowServing.tokenNo}
+                           <Ticket className="h-8 w-8"/>#{nowServing.tokenNo}
                         </p>
                     </motion.div>
                 ) : (

@@ -65,7 +65,7 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
 
 
 
-export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string, isWalkIn: boolean = false) {
+export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string, isWalkIn: boolean) {
 
   const allPatients = await getPatientsData();
   const schedule = await getDoctorScheduleData();
@@ -166,18 +166,27 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
         status: 'Completed',
         consultationEndTime: endTime.toISOString(),
         consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)), // in minutes
+        subStatus: undefined,
       };
       await updatePatient(currentlyServing.id, completedUpdates);
     }
     
     // Now, set the new patient to "In-Consultation"
     updates.consultationStartTime = new Date().toISOString();
+    // Check if coming from "Waiting for Reports"
+    if(patient.status === 'Waiting for Reports') {
+        updates.subStatus = 'Reports';
+    } else {
+        updates.subStatus = undefined;
+    }
+
 
   } else if (status === 'Completed' && patient.consultationStartTime) {
     const startTime = new Date(patient.consultationStartTime);
     const endTime = new Date();
     updates.consultationEndTime = endTime.toISOString();
     updates.consultationTime = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // in minutes
+    updates.subStatus = undefined;
   } else if (status === 'Priority') {
     // Special handling for priority status, this just sets the status.
     // The queue recalculation logic will handle the re-ordering.

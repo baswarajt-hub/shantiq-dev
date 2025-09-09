@@ -387,7 +387,7 @@ export default function DashboardPage() {
     };
 
     let liveQueue = patients
-        .filter(p => ['Waiting', 'Late', 'In-Consultation'].includes(p.status))
+        .filter(p => ['Waiting', 'Late', 'In-Consultation', 'Priority'].includes(p.status))
         .sort((a,b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
 
     let bookedPatients = patients.filter(p => p.status === 'Booked');
@@ -632,6 +632,12 @@ export default function DashboardPage() {
                                                         Waiting for Reports
                                                     </DropdownMenuItem>
                                                 </>
+                                            )}
+                                            {slot.patient.status === 'Waiting for Reports' && (
+                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline}>
+                                                    <ChevronsRight className="mr-2 h-4 w-4" />
+                                                    Start Consultation (Reports)
+                                                </DropdownMenuItem>
                                             )}
                                              {(slot.patient.status === 'Waiting' || slot.patient.status === 'Booked') && (
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Late')} disabled={isPending}>
