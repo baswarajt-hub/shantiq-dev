@@ -46,6 +46,7 @@ const statusConfig = {
     Late: { icon: UserX, color: 'text-orange-600' },
     Cancelled: { icon: XCircle, color: 'text-red-600' },
     'Waiting for Reports': { icon: FileClock, color: 'text-purple-600' },
+    Priority: { icon: Shield, color: 'text-red-700 font-bold' },
 };
 
 const purposeIcons: { [key: string]: React.ElementType } = {
@@ -607,7 +608,7 @@ export default function DashboardPage() {
                                                     Check-in Patient
                                                 </DropdownMenuItem>
                                             )}
-                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late') && (
+                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late' || slot.patient.status === 'Priority') && (
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline}>
                                                     <ChevronsRight className="mr-2 h-4 w-4" />
                                                     Start Consultation
@@ -629,6 +630,12 @@ export default function DashboardPage() {
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Late')} disabled={isPending}>
                                                     <Hourglass className="mr-2 h-4 w-4" />
                                                     Mark as Late
+                                                </DropdownMenuItem>
+                                            )}
+                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late') && (
+                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Priority')} disabled={isPending} className="text-red-600 focus:text-red-600 focus:bg-red-50">
+                                                    <Shield className="mr-2 h-4 w-4" />
+                                                    Consult Now (Priority)
                                                 </DropdownMenuItem>
                                             )}
                                             {isActionable && <DropdownMenuSeparator />}

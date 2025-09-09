@@ -1,6 +1,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -179,6 +180,9 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     const endTime = new Date();
     updates.consultationEndTime = endTime.toISOString();
     updates.consultationTime = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // in minutes
+  } else if (status === 'Priority') {
+    // Special handling for priority status, this just sets the status.
+    // The queue recalculation logic will handle the re-ordering.
   }
 
   await updatePatient(patientId, updates);
@@ -427,22 +431,26 @@ export async function recalculateQueueWithETC() {
     });
 
     // 3. Filter for checked-in patients only to form the live queue
-    let liveQueue = todaysPatients.filter(p => ['Waiting', 'Late'].includes(p.status));
+    let liveQueue = todaysPatients.filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status));
 
     // 4. Handle late arrivals
     liveQueue.forEach(patient => {
         if (patient.checkInTime && patient.worstCaseETC) {
             const lateBy = Math.round((parseISO(patient.checkInTime).getTime() - parseISO(patient.worstCaseETC).getTime()) / 60000);
             
-            if (lateBy > 0) {
+            if (lateBy > 0 && patient.status !== 'Priority') {
                  patient.status = 'Late';
                  patient.lateBy = lateBy;
             }
         }
     });
 
-    // Sort live queue: on-time first, then by late arrival penalty
+    // Sort live queue: Priority first, then on-time, then by late arrival penalty
     liveQueue.sort((a, b) => {
+      // Prioritize 'Priority' patients over everyone else
+      if (a.status === 'Priority' && b.status !== 'Priority') return -1;
+      if (a.status !== 'Priority' && b.status === 'Priority') return 1;
+
       // Prioritize 'Waiting' (on-time) patients over 'Late' patients
       if (a.status === 'Waiting' && b.status === 'Late') return -1;
       if (a.status === 'Late' && b.status === 'Waiting') return 1;
@@ -452,7 +460,7 @@ export async function recalculateQueueWithETC() {
         return parseISO(a.checkInTime!).getTime() - parseISO(b.checkInTime!).getTime();
       }
       
-      // If both are on time, sort by their original token number
+      // If both are on time (or both are priority), sort by their original token number
       return a.tokenNo - b.tokenNo;
     });
 
@@ -621,5 +629,6 @@ export async function getFamilyAction() {
     
 
     
+
 
 

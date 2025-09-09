@@ -3,13 +3,14 @@
 
 
 
+
 export type Patient = {
   id: number;
   name: string;
   type: 'Appointment' | 'Walk-in';
   appointmentTime: string; // ISO string
   checkInTime?: string; // ISO string format, set when patient checks in
-  status: 'Waiting' | 'In-Consultation' | 'Completed' | 'Late' | 'Cancelled' | 'Waiting for Reports' | 'Confirmed' | 'Booked';
+  status: 'Waiting' | 'In-Consultation' | 'Completed' | 'Late' | 'Cancelled' | 'Waiting for Reports' | 'Confirmed' | 'Booked' | 'Priority';
   phone: string;
   estimatedWaitTime: number; // in minutes
   consultationTime?: number; // actual time taken in minutes
