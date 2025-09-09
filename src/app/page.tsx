@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -243,14 +243,21 @@ export default function DashboardPage() {
         setRescheduleOpen(true);
     };
 
-    const handleReschedule = (newDate: string, newTime: string) => {
+    const handleReschedule = (newDate: string, newTime: string, newPurpose: string) => {
         if (selectedPatient) {
-            // This needs to be backed by a server action to persist
-            // For now, it just updates local state
-            setPatients(prev => prev.map(p => 
-                p.id === selectedPatient.id ? { ...p, appointmentTime: new Date(newDate).toISOString(), status: 'Booked' } : p
-            ));
-            toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
+            startTransition(async () => {
+                const dateObj = parse(newDate, 'yyyy-MM-dd', new Date());
+                const timeObj = parse(newTime, 'hh:mm a', dateObj);
+                const appointmentTime = timeObj.toISOString();
+
+                const result = await rescheduleAppointmentAction(selectedPatient.id, appointmentTime, newPurpose);
+                if (result.success) {
+                    toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
+                    await loadData();
+                } else {
+                    toast({ title: "Error", description: result.error, variant: 'destructive' });
+                }
+            });
         }
     };
 
@@ -557,6 +564,8 @@ export default function DashboardPage() {
                                 const statusColor = slot.isBooked && slot.patient && statusConfig[slot.patient.status] ? statusConfig[slot.patient.status].color : '';
                                 const PurposeIcon = slot.patient?.purpose && purposeIcons[slot.patient.purpose] ? purposeIcons[slot.patient.purpose] : HelpCircle;
                                 
+                                const hasBeenRescheduled = (slot.patient?.rescheduleCount || 0) > 0;
+
                                 return (
                                 <div key={slot.time}>
                                 {slot.isBooked && slot.patient && slot.patientDetails ? (
@@ -652,7 +661,7 @@ export default function DashboardPage() {
                                                     </DropdownMenuRadioGroup>
                                                 </DropdownMenuSubContent>
                                             </DropdownMenuSub>
-                                            <DropdownMenuItem onClick={() => handleOpenReschedule(slot.patient!)}>
+                                            <DropdownMenuItem onClick={() => handleOpenReschedule(slot.patient!)} disabled={hasBeenRescheduled}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 Reschedule
                                             </DropdownMenuItem>
@@ -739,13 +748,14 @@ export default function DashboardPage() {
                     }}
                     visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
                 />
-                {selectedPatient && (
+                {selectedPatient && schedule && (
                     <RescheduleDialog
                         isOpen={isRescheduleOpen}
                         onOpenChange={setRescheduleOpen}
                         patient={selectedPatient}
+                        schedule={schedule}
                         onSave={handleReschedule}
-                        bookedSlots={patients.filter(p => p.status === 'Booked' && p.id !== selectedPatient.id).map(p => format(new Date(p.appointmentTime), 'hh:mm a'))}
+                        bookedPatients={patients.filter(p => p.id !== selectedPatient.id)}
                     />
                 )}
                 {schedule && (

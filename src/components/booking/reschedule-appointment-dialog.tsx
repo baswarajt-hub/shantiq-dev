@@ -17,7 +17,8 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertTriangle, Info } from 'lucide-react';
-import { addMinutes, format, set } from 'date-fns';
+import { addMinutes, format, set, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -65,9 +66,14 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
 
       const sessionSchedule = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
 
+      const timeZone = "Asia/Kolkata";
       const bookedSlotsForDay = bookedPatients
-        .filter(p => new Date(p.appointmentTime).toDateString() === selectedDate.toDateString() && p.id !== appointment.id)
-        .map(p => format(new Date(p.appointmentTime), 'hh:mm a'));
+        .filter(p => {
+          if (p.status === 'Cancelled' || p.id === appointment.id) return false;
+          const apptDate = toZonedTime(parseISO(p.appointmentTime), timeZone);
+          return format(apptDate, 'yyyy-MM-dd') === dateStr;
+        })
+        .map(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'hh:mm a'));
 
 
       if (sessionSchedule.isOpen) {
@@ -258,7 +264,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
                 )}
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>
-                    <Button onClick={handleSave} disabled={!selectedSlot} className="w-full">Confirm Reschedule</Button>
+                    <Button onClick={handleSave} disabled={!selectedSlot}>Confirm Reschedule</Button>
                 </DialogFooter>
             </div>
         )}

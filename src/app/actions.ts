@@ -1,7 +1,5 @@
 
 
-
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -625,10 +623,3 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
 export async function getFamilyAction() {
     return getFamily();
 }
-
-    
-
-    
-
-
-
