@@ -281,7 +281,7 @@ export default function BookingPage() {
         const timeObj = parseDate(time, 'hh:mm a', dateObj);
         const appointmentTime = timeObj.toISOString();
 
-        const result = await addAppointmentAction(familyMember, appointmentTime, purpose);
+        const result = await addAppointmentAction(familyMember, appointmentTime, purpose, false);
         if (result.success) {
             toast({ title: "Success", description: "Appointment booked."});
             await loadData();
@@ -336,7 +336,7 @@ export default function BookingPage() {
     }
   };
   
-  const upcomingAppointments = appointments.filter(appt => ['Booked', 'Waiting', 'Late'].includes(appt.status as string) && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
+  const upcomingAppointments = appointments.filter(appt => ['Booked', 'Waiting', 'Late', 'Priority'].includes(appt.status as string) && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
   const pastAppointments = appointments.filter(appt => !upcomingAppointments.some(up => up.id === appt.id));
 
   const currentDaySchedule = todaySchedule();

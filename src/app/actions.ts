@@ -91,7 +91,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     const existingSession = getSessionForTime(schedule, existingDate);
     const isSameSession = existingSession === newAppointmentSession;
 
-    const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
+    const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late', 'Priority'].includes(p.status);
     return isSameSession && isActive;
   });
 
@@ -281,7 +281,7 @@ export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
 
 export async function emergencyCancelAction() {
     const patients = await getPatientsData();
-    const activePatients = patients.filter(p => ['Waiting', 'Confirmed', 'Booked', 'In-Consultation'].includes(p.status));
+    const activePatients = patients.filter(p => ['Waiting', 'Confirmed', 'Booked', 'In-Consultation', 'Priority'].includes(p.status));
 
     for (const patient of activePatients) {
         await updatePatient(patient.id, { status: 'Cancelled' });
@@ -323,7 +323,7 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
         const existingSession = getSessionForTime(schedule, existingDate);
         const isSameSession = existingSession === newAppointmentSession;
 
-        const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late'].includes(p.status);
+        const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late', 'Priority'].includes(p.status);
         return isSameSession && isActive;
     });
 
