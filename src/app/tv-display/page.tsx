@@ -4,7 +4,7 @@
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock } from 'lucide-react';
+import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { useEffect, useState, useRef } from 'react';
 import { parseISO, format, isToday, differenceInMinutes } from 'date-fns';
@@ -116,7 +116,7 @@ export default function TVDisplayPage() {
 
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   const waitingList = patients
-    .filter((p) => p.status === 'Waiting' || p.status === 'Late')
+    .filter((p) => ['Waiting', 'Late', 'Priority'].includes(p.status))
     .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
 
@@ -232,11 +232,14 @@ export default function TVDisplayPage() {
 
         {/* Up Next */}
         {upNext && (
-            <div className="bg-amber-100 border-2 border-amber-400 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+            <div className={cn("rounded-2xl p-4 flex items-center justify-between shadow-lg", upNext.status === 'Priority' ? 'bg-red-200 border-2 border-red-500' : 'bg-amber-100 border-2 border-amber-400')}>
                 <div className="flex items-center gap-6">
-                    <h2 className="text-3xl text-amber-700 font-bold flex items-center gap-3"><ChevronRight /> UP NEXT</h2>
+                    <h2 className={cn("text-3xl font-bold flex items-center gap-3", upNext.status === 'Priority' ? 'text-red-800' : 'text-amber-700')}>
+                        {upNext.status === 'Priority' ? <Shield /> : <ChevronRight />}
+                        {upNext.status === 'Priority' ? 'PRIORITY' : 'UP NEXT'}
+                    </h2>
                     <div className="flex items-center gap-3">
-                         <Ticket className="h-8 w-8 text-amber-600"/>
+                         <Ticket className={cn("h-8 w-8", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-600')}/>
                          <span className="text-4xl font-bold text-slate-800">#{upNext.tokenNo}</span>
                     </div>
                     <span className="text-4xl font-bold text-slate-800">{anonymizeName(upNext.name)}</span>

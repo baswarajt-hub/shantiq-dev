@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, User, WifiOff, Timer } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, User, WifiOff, Timer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { format, parseISO, isToday } from 'date-fns';
 
@@ -23,15 +23,20 @@ function QueueStatusCard({ patient, title, subtitle, highlight = false }: { pati
     ? `~${format(parseISO(patient.bestCaseETC), 'hh:mm a')}`
     : `~${patient.estimatedWaitTime} min`;
 
+    const isPriority = patient.status === 'Priority';
+
   return (
-    <Card className={cn(highlight && 'bg-primary/20 border-primary')}>
+    <Card className={cn(highlight && 'bg-primary/20 border-primary', isPriority && 'bg-red-100/70 border-red-400')}>
       <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
+        <CardTitle className="text-lg flex items-center gap-2">
+            {isPriority && <Shield className="h-5 w-5 text-red-600" />}
+            {title}
+        </CardTitle>
         <p className="text-sm text-muted-foreground">{subtitle}</p>
       </CardHeader>
       <CardContent>
         <div className="flex items-center space-x-4">
-          <div className={cn("p-3 rounded-full", highlight ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground")}>
+          <div className={cn("p-3 rounded-full", highlight ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground", isPriority && "bg-red-200 text-red-800")}>
             <User className="h-6 w-6" />
           </div>
           <div>
@@ -51,7 +56,7 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
   const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
   
   useEffect(() => {
-    if (patient) {
+    if (patient && patient.slotTime) {
       setFormattedTime(format(parseISO(patient.slotTime), 'hh:mm a'));
     }
   }, [patient]);
@@ -153,7 +158,7 @@ export default function QueueStatusPage() {
   }, []);
 
   const liveQueue = patients
-    .filter(p => ['Waiting', 'Late'].includes(p.status))
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
     .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
   
   const nowServing = patients.find(p => p.status === 'In-Consultation');
