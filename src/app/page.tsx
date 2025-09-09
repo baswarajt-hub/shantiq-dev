@@ -592,7 +592,6 @@ export default function DashboardPage() {
                                                         <span className="font-semibold text-green-600">{slot.patient.bestCaseETC ? format(parseISO(slot.patient.bestCaseETC), 'hh:mm a') : '-'}</span>
                                                         -
                                                         <span className="font-semibold text-orange-600">{slot.patient.worstCaseETC ? format(parseISO(slot.patient.worstCaseETC), 'hh:mm a') : '-'}</span>
-
                                                     </div>
                                                 </div>
 

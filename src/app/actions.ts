@@ -616,6 +616,8 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
 
     revalidatePath('/booking');
     revalidatePath('/');
+    revalidatePath('/queue-status');
+    revalidatePath('/tv-display');
 
     return { success: 'Appointment rescheduled successfully.' };
 }
