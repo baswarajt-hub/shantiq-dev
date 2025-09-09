@@ -564,7 +564,6 @@ export default function DashboardPage() {
                                 const statusColor = slot.isBooked && slot.patient && statusConfig[slot.patient.status] ? statusConfig[slot.patient.status].color : '';
                                 const PurposeIcon = slot.patient?.purpose && purposeIcons[slot.patient.purpose] ? purposeIcons[slot.patient.purpose] : HelpCircle;
                                 
-                                const hasBeenRescheduled = (slot.patient?.rescheduleCount || 0) > 0;
 
                                 return (
                                 <div key={slot.time}>
@@ -661,7 +660,7 @@ export default function DashboardPage() {
                                                     </DropdownMenuRadioGroup>
                                                 </DropdownMenuSubContent>
                                             </DropdownMenuSub>
-                                            <DropdownMenuItem onClick={() => handleOpenReschedule(slot.patient!)} disabled={hasBeenRescheduled}>
+                                            <DropdownMenuItem onClick={() => handleOpenReschedule(slot.patient!)}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 Reschedule
                                             </DropdownMenuItem>

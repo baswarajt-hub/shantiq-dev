@@ -32,7 +32,7 @@ type RescheduleDialogProps = {
   bookedPatients: Patient[];
 };
 
-type SlotState = 'available' | 'booked' | 'reserved' | 'past';
+type SlotState = 'available' | 'booked' | 'past';
 
 type AvailableSlot = {
     time: string;
@@ -48,7 +48,6 @@ export function RescheduleDialog({ isOpen, onOpenChange, patient, schedule, onSa
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
-  const hasBeenRescheduled = (patient.rescheduleCount || 0) > 0;
 
    useEffect(() => {
      if (schedule && selectedDate) {
@@ -85,7 +84,6 @@ export function RescheduleDialog({ isOpen, onOpenChange, patient, schedule, onSa
         let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
         const endTime = set(selectedDate, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
         
-        let slotIndex = 0;
         const now = new Date();
 
         while (currentTime < endTime) {
@@ -93,34 +91,15 @@ export function RescheduleDialog({ isOpen, onOpenChange, patient, schedule, onSa
           let slotState: SlotState = 'available';
 
           const isBooked = bookedSlotsForDay.includes(timeString);
-          let isReservedForWalkIn = false;
 
           if (currentTime < now) {
             slotState = 'past';
           } else if (isBooked) {
             slotState = 'booked';
-          } else {
-            if (schedule.reserveFirstFive && slotIndex < 5) {
-              isReservedForWalkIn = true;
-            }
-            
-            const reservationStrategy = schedule.walkInReservation;
-            const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
-            if (slotIndex >= startIndexForAlternate) {
-                const relativeIndex = slotIndex - startIndexForAlternate;
-                if (reservationStrategy === 'alternateOne') {
-                    if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-                } else if (reservationStrategy === 'alternateTwo') {
-                    if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
-                }
-            }
-            if(isReservedForWalkIn) {
-                slotState = 'reserved';
-            }
-          }
+          } 
+          
           generatedSlots.push({ time: timeString, state: slotState });
           currentTime = addMinutes(currentTime, schedule.slotDuration);
-          slotIndex++;
         }
       }
       setAvailableSlots(generatedSlots);
@@ -152,7 +131,6 @@ export function RescheduleDialog({ isOpen, onOpenChange, patient, schedule, onSa
   const getTooltipMessage = (state: SlotState) => {
     switch (state) {
         case 'booked': return "Already booked";
-        case 'reserved': return "Reserved for walk-ins";
         case 'past': return "Time has passed";
         default: return "";
     }
@@ -171,22 +149,6 @@ export function RescheduleDialog({ isOpen, onOpenChange, patient, schedule, onSa
         </DialogHeader>
         
         {step === 1 && (
-          <div className="space-y-4 py-4">
-              <Alert variant={hasBeenRescheduled ? "destructive" : "default"}>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>{hasBeenRescheduled ? "Reschedule Limit Reached" : "Heads up!"}</AlertTitle>
-              <AlertDescription>
-                {hasBeenRescheduled ? "This appointment has already been rescheduled once and cannot be changed again." : "You can only reschedule this appointment once. This action cannot be undone."}
-              </AlertDescription>
-            </Alert>
-            <div className="flex gap-2">
-                <Button variant="outline" onClick={() => handleClose(false)} className="w-full">Cancel</Button>
-                <Button onClick={() => setStep(2)} className="w-full" disabled={hasBeenRescheduled}>Continue</Button>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
             <div className="space-y-4 py-4">
              <div className="space-y-2">
                 <Label>Purpose of Visit</Label>
@@ -226,13 +188,13 @@ export function RescheduleDialog({ isOpen, onOpenChange, patient, schedule, onSa
                 </div>
             </RadioGroup>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(1)} className="w-full">Back</Button>
-              <Button onClick={() => setStep(3)} disabled={!selectedDate || !selectedPurpose}>Next</Button>
+              <Button variant="outline" onClick={() => handleClose(false)} className="w-full">Cancel</Button>
+              <Button onClick={() => setStep(2)} disabled={!selectedDate || !selectedPurpose}>Next</Button>
             </div>
           </div>
         )}
 
-        {step === 3 && (
+        {step === 2 && (
             <div className="space-y-4 py-4">
                 <Label>Select a new available time slot</Label>
                  {availableSlots.length > 0 ? (
@@ -265,7 +227,7 @@ export function RescheduleDialog({ isOpen, onOpenChange, patient, schedule, onSa
                   <p className="text-center text-muted-foreground">No slots available for this session.</p>
                 )}
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>
+                    <Button variant="outline" onClick={() => setStep(1)} className="w-full">Back</Button>
                     <Button onClick={handleSave} disabled={!selectedSlot}>Confirm Reschedule</Button>
                 </DialogFooter>
             </div>
