@@ -585,6 +585,7 @@ export default function DashboardPage() {
                                                         {slot.patientDetails.name}
                                                         {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : <FemaleIcon className="h-4 w-4 text-pink-500" />}
                                                         <Badge variant={slot.patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{slot.patient.type || 'Appointment'}</Badge>
+                                                         {slot.patient.status === 'Priority' && <Badge variant="destructive">Priority</Badge>}
                                                     </div>
                                                     <div className='flex items-center gap-2 text-xs text-muted-foreground'>
                                                         <Timer className="h-4 w-4" />
