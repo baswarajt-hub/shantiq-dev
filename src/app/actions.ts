@@ -411,6 +411,13 @@ export async function recalculateQueueWithETC() {
             evening: specialClosure.eveningOverride ?? daySchedule.evening
         };
     }
+    
+    // Determine which session the doctor's delay applies to.
+    let delaySession: 'morning' | 'evening' | null = null;
+    if (doctorStatus.isOnline && doctorStatus.onlineTime) {
+        delaySession = getSessionForTime(schedule, parseISO(doctorStatus.onlineTime));
+    }
+
 
     const patientUpdates = new Map<number, Partial<Patient>>();
     const sessions: ('morning' | 'evening')[] = ['morning', 'evening'];
@@ -430,7 +437,10 @@ export async function recalculateQueueWithETC() {
         if (sessionPatients.length === 0) continue;
 
         const clinicSessionStartTime = sessionLocalToUtc(todayStr, sessionTimes.start);
-        const delayedClinicStartTime = new Date(clinicSessionStartTime.getTime() + doctorStatus.startDelay * 60000);
+        
+        // Apply delay ONLY if it belongs to the current session being calculated
+        const sessionDelay = delaySession === session ? doctorStatus.startDelay : 0;
+        const delayedClinicStartTime = new Date(clinicSessionStartTime.getTime() + sessionDelay * 60000);
 
         // 1. Assign Worst-case ETC for all of this session's patients based on token
         sessionPatients.forEach(p => {
