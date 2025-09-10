@@ -403,12 +403,7 @@ export async function recalculateQueueWithETC() {
     
     // Determine the current session based on the current time
     const now = new Date();
-    const currentSession = getSessionForTime(schedule, now);
 
-    // If clinic is closed now, we don't need to do live calculation.
-    // However, we might still want to show worst-case for a future session.
-    // For simplicity, we'll focus on the live session. If no live session, maybe check next upcoming.
-    
     // Let's find the active or next upcoming session for today
     const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
     let daySchedule = schedule.days[dayOfWeek];
@@ -424,17 +419,18 @@ export async function recalculateQueueWithETC() {
     let sessionTimes: Session | null = null;
 
     const morningStartUtc = sessionLocalToUtc(todayStr, daySchedule.morning.start);
+    const morningEndUtc = sessionLocalToUtc(todayStr, daySchedule.morning.end);
     const eveningStartUtc = sessionLocalToUtc(todayStr, daySchedule.evening.start);
     const eveningEndUtc = sessionLocalToUtc(todayStr, daySchedule.evening.end);
     
-    if (now < eveningStartUtc) {
+    if (now >= morningStartUtc && now < eveningStartUtc) {
         session = 'morning';
         sessionTimes = daySchedule.morning;
-    } else if (now < eveningEndUtc) {
+    } else if (now >= eveningStartUtc && now < eveningEndUtc) {
         session = 'evening';
         sessionTimes = daySchedule.evening;
     } else {
-        // After evening session, do nothing.
+        // Before morning or after evening, do nothing.
          return { success: "Clinic is closed for the day." };
     }
 
