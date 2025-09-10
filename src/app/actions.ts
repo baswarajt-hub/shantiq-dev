@@ -507,7 +507,7 @@ export async function recalculateQueueWithETC() {
         const currentlyServing = updatedSessionPatients.find(p => p.status === 'In-Consultation');
         if (currentlyServing && currentlyServing.consultationStartTime) {
             const expectedEndTime = new Date(parseISO(currentlyServing.consultationStartTime).getTime() + schedule.slotDuration * 60000);
-            effectiveDoctorStartTime = max([now, expectedEndTime]);
+            effectiveDoctorStartTime = max([now, expectedEndTime, delayedClinicStartTime]);
         }
         
         liveQueue.forEach((p, i) => {
