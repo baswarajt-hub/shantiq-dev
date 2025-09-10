@@ -727,7 +727,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-                {selectedSlot && (
+                {schedule && selectedSlot && (
                     <BookWalkInDialog
                         isOpen={isBookWalkInOpen}
                         onOpenChange={setBookWalkInOpen}
