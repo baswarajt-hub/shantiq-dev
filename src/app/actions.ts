@@ -307,7 +307,7 @@ export async function emergencyCancelAction() {
     return { success: `Emergency declared. All ${activePatients.length} active appointments have been cancelled.` };
 }
 
-export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime' | 'tokenNo'>) {
+export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>) {
     const schedule = await getDoctorScheduleData();
     const allPatients = await getPatientsData();
     const newAppointmentDate = parseISO(patientData.appointmentTime);
