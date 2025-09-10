@@ -440,8 +440,8 @@ export async function recalculateQueueWithETC() {
             patientUpdates.set(p.id, { ...patientUpdates.get(p.id), worstCaseETC });
         });
 
-        // 2. Automatically mark late arrivals (only for 'Booked' or 'Walk-in' types)
-        if (doctorStatus.isOnline) { // Only mark late if the doctor has started
+        // 2. Automatically mark late arrivals (only for 'Booked' types, if doctor is online)
+        if (doctorStatus.isOnline) {
             sessionPatients.forEach(p => {
                 const currentUpdates = patientUpdates.get(p.id) || {};
                 const worstCaseETC = currentUpdates.worstCaseETC || p.worstCaseETC;
@@ -736,4 +736,5 @@ export async function applyLatePenaltyAction(patientId: number, penalty: number)
 
     
 
+    
     
