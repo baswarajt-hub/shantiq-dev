@@ -414,7 +414,7 @@ export async function recalculateQueueWithETC() {
     
     // Determine which session the doctor's delay applies to.
     let delaySession: 'morning' | 'evening' | null = null;
-    if (doctorStatus.isOnline && doctorStatus.onlineTime) {
+    if (doctorStatus.onlineTime) {
         delaySession = getSessionForTime(schedule, parseISO(doctorStatus.onlineTime));
     }
 
@@ -507,7 +507,7 @@ export async function recalculateQueueWithETC() {
         const currentlyServing = updatedSessionPatients.find(p => p.status === 'In-Consultation');
         if (currentlyServing && currentlyServing.consultationStartTime) {
             const expectedEndTime = new Date(parseISO(currentlyServing.consultationStartTime).getTime() + schedule.slotDuration * 60000);
-            effectiveDoctorStartTime = max([now, expectedEndTime, delayedClinicStartTime]);
+            effectiveDoctorStartTime = max([now, expectedEndTime]);
         }
         
         liveQueue.forEach((p, i) => {
@@ -748,3 +748,4 @@ export async function applyLatePenaltyAction(patientId: number, penalty: number)
 
     
     
+
