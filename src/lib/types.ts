@@ -21,6 +21,8 @@ export type Patient = {
   bestCaseETC?: string;     // ISO String for the best-case consultation time
   worstCaseETC?: string;    // ISO String for the worst-case consultation time
   lateBy?: number; // in minutes
+  latePenalty?: number;    // set by receptionist
+  latePosition?: number;  // fixed position after penalty applied
 };
 
 export type AIPatientData = {

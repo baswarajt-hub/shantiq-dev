@@ -452,17 +452,22 @@ export async function recalculateQueueWithETC() {
         }
     });
 
-    // Sort live queue: Priority first, then on-time, then by late arrival penalty
+    // Sort live queue: Priority first, then patients with a locked position, then on-time, then by late arrival penalty
     liveQueue.sort((a, b) => {
       // Prioritize 'Priority' patients over everyone else
       if (a.status === 'Priority' && b.status !== 'Priority') return -1;
       if (a.status !== 'Priority' && b.status === 'Priority') return 1;
 
+      // Handle locked positions for late patients
+      if (a.latePosition !== undefined && b.latePosition !== undefined) return a.latePosition - b.latePosition;
+      if (a.latePosition !== undefined) return -1; // Sort penalized patients before others if one has a penalty
+      if (b.latePosition !== undefined) return 1;
+
       // Prioritize 'Waiting' (on-time) patients over 'Late' patients
       if (a.status === 'Waiting' && b.status === 'Late') return -1;
       if (a.status === 'Late' && b.status === 'Waiting') return 1;
 
-      // If both are late, the one who checked in earlier goes first
+      // If both are late (without a penalty), the one who checked in earlier goes first
       if (a.status === 'Late' && b.status === 'Late') {
         return parseISO(a.checkInTime!).getTime() - parseISO(b.checkInTime!).getTime();
       }
@@ -633,4 +638,51 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
 
 export async function getFamilyAction() {
     return getFamily();
+}
+
+export async function applyLatePenaltyAction(patientId: number, penalty: number) {
+    const patients = await getPatientsData();
+    let liveQueue = patients
+        .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
+        .sort((a,b) => a.tokenNo - b.tokenNo); // Sort by original token to find index
+
+    const patientIndex = liveQueue.findIndex(p => p.id === patientId);
+    if (patientIndex === -1) {
+        return { error: 'Patient not found in the live queue.' };
+    }
+
+    const patient = liveQueue[patientIndex];
+    
+    // Remove from current position
+    liveQueue.splice(patientIndex, 1);
+    
+    // Calculate new position, ensuring it's within bounds
+    const newIndex = Math.min(patientIndex + penalty, liveQueue.length);
+    
+    // Re-insert patient
+    liveQueue.splice(newIndex, 0, patient);
+
+    // Assign fixed positions to all penalized patients to lock them in
+    let positionCounter = 0;
+    liveQueue.forEach(p => {
+        if (p.id === patientId) {
+             p.latePenalty = penalty;
+             p.latePosition = newIndex;
+        }
+        if (p.latePenalty) {
+           p.latePosition = positionCounter;
+        }
+        positionCounter++;
+    });
+
+    // Update the patient record with penalty details
+    await updatePatient(patientId, { latePenalty: penalty, latePosition: newIndex });
+
+    await recalculateQueueWithETC();
+
+    revalidatePath('/');
+    revalidatePath('/tv-display');
+    revalidatePath('/queue-status');
+
+    return { success: `Applied penalty of ${penalty} positions.` };
 }
