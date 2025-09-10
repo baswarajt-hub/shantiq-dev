@@ -423,20 +423,29 @@ export async function recalculateQueueWithETC() {
     const eveningStartUtc = sessionLocalToUtc(todayStr, daySchedule.evening.start);
     const eveningEndUtc = sessionLocalToUtc(todayStr, daySchedule.evening.end);
     
-    if (now >= morningStartUtc && now < eveningStartUtc) {
+    if (now >= morningStartUtc && now < morningEndUtc) {
         session = 'morning';
         sessionTimes = daySchedule.morning;
     } else if (now >= eveningStartUtc && now < eveningEndUtc) {
         session = 'evening';
         sessionTimes = daySchedule.evening;
     } else {
-        // Before morning or after evening, do nothing.
-         return { success: "Clinic is closed for the day." };
+        // Before morning, after evening, or between sessions.
+        // Try to find the *next* upcoming session for today if any, for pre-calculation.
+        if (now < morningStartUtc) {
+             session = 'morning';
+             sessionTimes = daySchedule.morning;
+        } else if (now > morningEndUtc && now < eveningStartUtc) {
+             session = 'evening';
+             sessionTimes = daySchedule.evening;
+        } else {
+             return { success: "Clinic is closed." };
+        }
     }
 
     if (!sessionTimes?.isOpen) return { success: `Clinic is closed for the ${session} session.` };
     
-    // Filter patients for today and the *current or upcoming* session
+    // Filter patients for today and the determined session
     const sessionPatients = patients.filter(p => {
         const apptDate = parseISO(p.appointmentTime);
         if (format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') !== todayStr) return false;
@@ -741,3 +750,4 @@ export async function applyLatePenaltyAction(patientId: number, penalty: number)
     
 
     
+
