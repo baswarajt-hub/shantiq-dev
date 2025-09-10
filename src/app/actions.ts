@@ -7,7 +7,7 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { format, parseISO, parse, differenceInMinutes, startOfDay } from 'date-fns';
+import { format, parseISO, parse, differenceInMinutes, startOfDay, max } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 
@@ -139,8 +139,8 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   
   revalidatePath('/booking');
   revalidatePath('/');
-  revalidatePath('/queue-status');
-  revalidatePath('/tv-display');
+  revalidatePath('/queue_status');
+  revalidatePath('/tv_display');
   
   return { success: 'Appointment booked successfully.', patient: newPatient };
 }
@@ -196,8 +196,8 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
   await recalculateQueueWithETC();
 
   revalidatePath('/');
-  revalidatePath('/tv-display');
-  revalidatePath('/queue-status');
+  revalidatePath('/tv_display');
+  revalidatePath('/queue_status');
   revalidatePath('/booking');
   
   return { success: `Patient status updated to ${status}` };
@@ -274,8 +274,8 @@ export async function toggleDoctorStatusAction(isOnline: boolean, startDelayMinu
     await updateDoctorStatus(newStatus);
     await recalculateQueueWithETC();
     revalidatePath('/');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
+    revalidatePath('/tv_display');
+    revalidatePath('/queue_status');
     return { success: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.` };
 }
 
@@ -283,8 +283,8 @@ export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
     await updateDoctorStatus({ startDelay: startDelayMinutes });
     await recalculateQueueWithETC();
     revalidatePath('/');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
+    revalidatePath('/tv_display');
+    revalidatePath('/queue_status');
     return { success: `Doctor delay updated to ${startDelayMinutes} minutes.` };
 }
 
@@ -301,8 +301,8 @@ export async function emergencyCancelAction() {
     await updateDoctorStatus({ isOnline: false, startDelay: 0 });
 
     revalidatePath('/');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
+    revalidatePath('/tv_display');
+    revalidatePath('/queue_status');
     
     return { success: `Emergency declared. All ${activePatients.length} active appointments have been cancelled.` };
 }
@@ -390,8 +390,8 @@ export async function checkInPatientAction(patientId: number) {
   await recalculateQueueWithETC();
   revalidatePath('/');
   revalidatePath('/booking');
-  revalidatePath('/queue-status');
-  revalidatePath('/tv-display');
+  revalidatePath('/queue_status');
+  revalidatePath('/tv_display');
   return { success: `${patient.name} has been checked in.` };
 }
 
@@ -403,17 +403,14 @@ export async function recalculateQueueWithETC() {
     const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
     const todaysPatients = patients.filter(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === todayStr);
 
-
     if (todaysPatients.length === 0) return { success: "No patients for today." };
 
-    // 1. Determine session based on first patient
-    todaysPatients.sort((a, b) => a.tokenNo - b.tokenNo);
-    const firstAppointmentDate = parseISO(todaysPatients[0].appointmentTime);
-    const session = getSessionForTime(schedule, firstAppointmentDate);
-    if (!session) return { error: "Cannot determine session." };
-
-    // 2. Assign Worst-case ETC for all of today's patients
-    const dayOfWeek = format(toZonedTime(firstAppointmentDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+    // Determine the session based on the current time or first appointment
+    const now = new Date();
+    const currentHour = now.getHours();
+    const session: 'morning' | 'evening' = (currentHour < 14) ? 'morning' : 'evening'; // Simple assumption
+    
+    const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
     let daySchedule = schedule.days[dayOfWeek];
     const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
     if (specialClosure) {
@@ -422,32 +419,38 @@ export async function recalculateQueueWithETC() {
             evening: specialClosure.eveningOverride ?? daySchedule.evening
         }
     }
+    
     const sessionTimes = daySchedule[session];
-    const clinicStartTime = sessionLocalToUtc(todayStr, sessionTimes.start);
-    const delayedClinicStartTime = new Date(clinicStartTime.getTime() + doctorStatus.startDelay * 60000);
+    if (!sessionTimes.isOpen) return { success: `Clinic is closed for the ${session} session.` };
 
+    const clinicSessionStartTime = sessionLocalToUtc(todayStr, sessionTimes.start);
+    const delayedClinicStartTime = new Date(clinicSessionStartTime.getTime() + doctorStatus.startDelay * 60000);
+
+    // 1. Assign Worst-case ETC for all of today's patients based on token
     todaysPatients.forEach(p => {
         p.worstCaseETC = new Date(
             delayedClinicStartTime.getTime() + (p.tokenNo - 1) * schedule.slotDuration * 60000
         ).toISOString();
     });
     
-    // 3. Automatically mark late arrivals
-    todaysPatients.forEach(patient => {
-        if (patient.checkInTime && patient.worstCaseETC) {
-            const isLate = parseISO(patient.checkInTime).getTime() > parseISO(patient.worstCaseETC).getTime();
-            if (isLate && patient.status === 'Waiting') {
-                 patient.status = 'Late';
-                 const lateBy = Math.round((parseISO(patient.checkInTime).getTime() - parseISO(patient.worstCaseETC).getTime()) / 60000);
-                 patient.lateBy = lateBy > 0 ? lateBy : 0;
+    // 2. Automatically mark late arrivals (only for 'Booked' or 'Walk-in' types)
+    if (doctorStatus.isOnline) { // Only mark late if the doctor has started
+        todaysPatients.forEach(patient => {
+            if (patient.checkInTime && patient.worstCaseETC && patient.type !== 'Walk-in') {
+                const isLate = parseISO(patient.checkInTime).getTime() > parseISO(patient.worstCaseETC).getTime();
+                if (isLate && patient.status === 'Waiting') {
+                     patient.status = 'Late';
+                     const lateBy = Math.round((parseISO(patient.checkInTime).getTime() - parseISO(patient.worstCaseETC).getTime()) / 60000);
+                     patient.lateBy = lateBy > 0 ? lateBy : 0;
+                }
             }
-        }
-    });
+        });
+    }
 
-    // 4. Form the live queue of checked-in patients
+    // 3. Form the live queue of checked-in patients
     let liveQueue = todaysPatients.filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status));
 
-    // 5. Sort the live queue
+    // 4. Sort the live queue
     liveQueue.sort((a, b) => {
         // Priority patients always first, sorted by check-in time
         if (a.status === 'Priority' && b.status !== 'Priority') return -1;
@@ -476,39 +479,49 @@ export async function recalculateQueueWithETC() {
         return a.tokenNo - b.tokenNo; // Fallback
     });
 
-    // 6. Calculate Best-case ETC based on final sorted live queue
-    let doctorStartTime: Date;
-    const now = new Date();
+    // 5. Calculate Best-case ETC based on final sorted live queue
+    let effectiveDoctorStartTime: Date;
     if (doctorStatus.isOnline && doctorStatus.onlineTime) {
-        doctorStartTime = new Date(parseISO(doctorStatus.onlineTime).getTime() + doctorStatus.startDelay * 60000);
+        // If doctor is online, start time is the later of now or their actual online time.
+        effectiveDoctorStartTime = max([now, parseISO(doctorStatus.onlineTime), delayedClinicStartTime]);
     } else {
-        const delayedClinicStartForBestCase = new Date(clinicStartTime.getTime() + doctorStatus.startDelay * 60000);
-        doctorStartTime = now > delayedClinicStartForBestCase ? now : delayedClinicStartForBestCase;
+        // If doctor is offline, the best case starts from the delayed clinic opening time.
+        effectiveDoctorStartTime = delayedClinicStartTime;
+    }
+
+    // Account for any ongoing consultation
+    const currentlyServing = todaysPatients.find(p => p.status === 'In-Consultation');
+    if (currentlyServing && currentlyServing.consultationStartTime) {
+        const expectedEndTime = new Date(parseISO(currentlyServing.consultationStartTime).getTime() + schedule.slotDuration * 60000);
+        effectiveDoctorStartTime = max([now, expectedEndTime]);
     }
     
     liveQueue.forEach((p, i) => {
         if (i === 0) {
-            p.bestCaseETC = doctorStartTime.toISOString();
+            p.bestCaseETC = effectiveDoctorStartTime.toISOString();
         } else {
             const previousPatientETC = liveQueue[i - 1].bestCaseETC!;
             p.bestCaseETC = new Date(
                 parseISO(previousPatientETC).getTime() + schedule.slotDuration * 60000
             ).toISOString();
         }
+        // Constraint: worstETC >= bestETC
+        if (p.worstCaseETC && p.bestCaseETC && parseISO(p.worstCaseETC) < parseISO(p.bestCaseETC)) {
+            p.worstCaseETC = p.bestCaseETC;
+        }
     });
 
-    // 7. Merge updates back into the main patient list
+    // 6. Merge updates back into the main patient list
     const patientMap = new Map(todaysPatients.map(p => [p.id, p]));
     liveQueue.forEach(p => patientMap.set(p.id, p));
 
     const updatedPatients = patients.map(p => patientMap.get(p.id) || p);
 
-
     await updateAllPatients(updatedPatients);
     revalidatePath('/');
     revalidatePath('/booking');
-    revalidatePath('/queue-status');
-    revalidatePath('/tv-display');
+    revalidatePath('/queue_status');
+    revalidatePath('/tv_display');
     return { success: 'Queue recalculated' };
 }
 
@@ -623,8 +636,8 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
 
     revalidatePath('/booking');
     revalidatePath('/');
-    revalidatePath('/queue-status');
-    revalidatePath('/tv-display');
+    revalidatePath('/queue_status');
+    revalidatePath('/tv_display');
 
     return { success: 'Appointment rescheduled successfully.' };
 }
@@ -646,7 +659,7 @@ export async function applyLatePenaltyAction(patientId: number, penalty: number)
     liveQueue.sort((a, b) => {
         if (a.status === 'Priority' && b.status !== 'Priority') return -1;
         if (a.status !== 'Priority' && b.status === 'Priority') return 1;
-        if (a.status === 'Priority' && b.status === 'Priority') return parseISO(a.checkInTime!).getTime() - parseISO(b.checkInTime!).getTime();
+        if (a.status === 'Priority' && b.status === 'Priority') return parseISO(a.checkInTime!).getTime() - parseISO(a.checkInTime!).getTime();
         if (a.latePosition !== undefined && b.latePosition === undefined) return -1;
         if (a.latePosition === undefined && b.latePosition !== undefined) return 1;
         if (a.latePosition !== undefined && b.latePosition !== undefined) return a.latePosition - b.latePosition;
@@ -671,23 +684,27 @@ export async function applyLatePenaltyAction(patientId: number, penalty: number)
     
     liveQueue.splice(newIndex, 0, patientToMove);
     
-    let positionCounter = 0;
-    for (const p of liveQueue) {
+    // Update latePosition for all penalized patients to lock them in
+    for (let i = 0; i < liveQueue.length; i++) {
+        const p = liveQueue[i];
         if (p.latePenalty !== undefined) {
-             p.latePosition = positionCounter;
+             p.latePosition = i;
         }
-        positionCounter++;
     }
 
-    // Update the patient record with penalty details
-    await updatePatient(patientId, { latePenalty: penalty, latePosition: liveQueue.find(p=>p.id===patientId)?.latePosition });
-
+    // Update just the penalized patients in the main list before recalculating
+    const patientMap = new Map(liveQueue.map(p => [p.id, p]));
+    const updatedPatients = allPatients.map(p => patientMap.get(p.id) || p);
+    await updateAllPatients(updatedPatients);
+    
     // After applying penalty, we must recalculate the queue to update ETCs for everyone
     await recalculateQueueWithETC();
 
     revalidatePath('/');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
+    revalidatePath('/tv_display');
+    revalidatePath('/queue_status');
 
     return { success: `Applied penalty of ${penalty} positions.` };
 }
+
+    
