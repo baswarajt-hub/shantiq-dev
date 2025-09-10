@@ -751,3 +751,4 @@ export async function applyLatePenaltyAction(patientId: number, penalty: number)
 
     
 
+    
