@@ -12,7 +12,7 @@ type StatsProps = {
 export default function Stats({ patients, averageConsultationTime }: StatsProps) {
   const waitingPatients = patients.filter(p => p.status === 'Waiting' || p.status === 'Late');
   const completedPatients = patients.filter(p => p.status === 'Completed');
-  const yetToArrive = patients.filter(p => p.status === 'Booked' || p.status === 'Confirmed');
+  const yetToArrive = patients.filter(p => p.status === 'Booked');
   
   const totalAppointments = patients.filter(p => p.status !== 'Cancelled').length;
 
