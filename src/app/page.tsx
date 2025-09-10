@@ -3,7 +3,7 @@
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
-import Stats from '@/components/dashboard/stats';
+import Stats from '@/app/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, VisitPurpose } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
