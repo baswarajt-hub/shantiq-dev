@@ -407,8 +407,12 @@ export async function recalculateQueueWithETC() {
 
     // Determine the session based on the current time or first appointment
     const now = new Date();
-    const currentHour = now.getHours();
-    const session: 'morning' | 'evening' = (currentHour < 14) ? 'morning' : 'evening'; // Simple assumption
+    const firstAppointmentTime = todaysPatients.length > 0 ? parseISO(todaysPatients.sort((a,b) => a.tokenNo - b.tokenNo)[0].appointmentTime) : now;
+    
+    let session = getSessionForTime(schedule, firstAppointmentTime);
+    if (!session) {
+      session = getSessionForTime(schedule, now) || 'morning';
+    }
     
     const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
     let daySchedule = schedule.days[dayOfWeek];
@@ -689,7 +693,7 @@ export async function applyLatePenaltyAction(patientId: number, penalty: number)
         const p = liveQueue[i];
         if (p.latePenalty !== undefined) {
              p.latePosition = i;
-        }
+         }
     }
 
     // Update just the penalized patients in the main list before recalculating
@@ -706,5 +710,7 @@ export async function applyLatePenaltyAction(patientId: number, penalty: number)
 
     return { success: `Applied penalty of ${penalty} positions.` };
 }
+
+    
 
     
