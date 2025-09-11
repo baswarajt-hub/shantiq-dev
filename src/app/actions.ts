@@ -433,16 +433,30 @@ export async function recalculateQueueWithETC() {
         
         // 1. Determine session delay based on doctor status
         let sessionDelay = 0;
+        let actualDelay = 0;
+
         if (doctorStatus.isOnline && doctorStatus.onlineTime) {
             const onlineTimeUtc = parseISO(doctorStatus.onlineTime);
             const onlineSession = getSessionForTime(schedule, onlineTimeUtc);
             if (onlineSession === session) {
-                 const actualDelay = differenceInMinutes(onlineTimeUtc, clinicSessionStartTime);
+                 actualDelay = differenceInMinutes(onlineTimeUtc, clinicSessionStartTime);
                  sessionDelay = actualDelay > 0 ? actualDelay : 0;
             }
         } else {
             // Doctor is offline, use manual delay for the appropriate session
-            const delaySession = getSessionForTime(schedule, new Date());
+            const now = new Date();
+            const morningStartUtc = sessionLocalToUtc(todayStr, daySchedule.morning.start);
+            const eveningStartUtc = sessionLocalToUtc(todayStr, daySchedule.evening.start);
+            
+            let delaySession: 'morning' | 'evening' | null = null;
+            if (now < morningStartUtc) {
+                delaySession = 'morning';
+            } else if (now >= morningStartUtc && now < eveningStartUtc) {
+                delaySession = 'morning';
+            } else {
+                delaySession = 'evening';
+            }
+
              if (delaySession === session) {
                 sessionDelay = doctorStatus.startDelay;
              }
@@ -462,7 +476,7 @@ export async function recalculateQueueWithETC() {
             if (p.checkInTime && p.status === 'Waiting' && p.type !== 'Walk-in') {
                 const lateCheckThreshold = max([parseISO(p.slotTime), p.bestCaseETC ? parseISO(p.bestCaseETC) : new Date(0)]);
                 if (parseISO(p.checkInTime) > lateCheckThreshold) {
-                    const lateBy = differenceInMinutes(parseISO(p.checkInTime), lateCheckThreshold);
+                    const lateBy = differenceInMinutes(parseISO(p.checkInTime), lateThreshold);
                     patientUpdates.set(p.id, { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
                 }
             }
@@ -578,6 +592,7 @@ export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 
     await updateDoctorSchedule(schedule);
     revalidatePath('/admin');
     revalidatePath('/');
+    revalidatePath('/booking');
     return { success: 'Doctor schedule updated successfully.' };
 }
 
@@ -585,6 +600,7 @@ export async function updateClinicDetailsAction(details: ClinicDetails) {
     await updateClinicDetailsData(details);
     revalidatePath('/admin');
     revalidatePath('/');
+    revalidatePath('/booking');
     return { success: 'Clinic details updated successfully.' };
 }
 
@@ -592,12 +608,14 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     await updateSpecialClosures(closures);
     revalidatePath('/admin');
     revalidatePath('/');
+    revalidatePath('/booking');
     return { success: 'Special closures updated successfully.' };
 }
 
 export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
     await updateVisitPurposesData(purposes);
     revalidatePath('/admin');
+    revalidatePath('/booking');
     return { success: 'Visit purposes updated successfully.' };
 }
 
@@ -751,4 +769,5 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
     
     
+
 
