@@ -140,8 +140,8 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   
   revalidatePath('/booking');
   revalidatePath('/');
-  revalidatePath('/queue_status');
-  revalidatePath('/tv_display');
+  revalidatePath('/queue-status');
+  revalidatePath('/tv-display');
   
   return { success: 'Appointment booked successfully.', patient: newPatient };
 }

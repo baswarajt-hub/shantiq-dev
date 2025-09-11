@@ -176,19 +176,19 @@ export default function BookingPage() {
   const [isPending, startTransition] = useTransition();
 
   const loadData = async () => {
-    startTransition(async () => {
-        const familyData = await getFamilyAction();
-        const patientData = await getPatientsAction();
-        const scheduleData = await getDoctorScheduleAction();
-        
-        setFamily(familyData);
-        setPatients(patientData);
-        setSchedule(scheduleData);
-    });
+    const familyData = await getFamilyAction();
+    const patientData = await getPatientsAction();
+    const scheduleData = await getDoctorScheduleAction();
+    
+    setFamily(familyData);
+    setPatients(patientData);
+    setSchedule(scheduleData);
   };
 
   useEffect(() => {
-    loadData();
+    startTransition(() => {
+        loadData();
+    });
     const today = new Date();
     setCurrentDate(today.toDateString());
   }, []);
@@ -529,4 +529,3 @@ export default function BookingPage() {
   );
 }
 
-    
