@@ -37,14 +37,21 @@ export default function AdminPage() {
     }
   };
 
-  const handleScheduleSave = async (updatedSchedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>) => {
+  const handleScheduleSave = async (updatedScheduleData: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>) => {
     if (!schedule) return;
-    const result = await updateDoctorScheduleAction(updatedSchedule);
+
+    // Create the full schedule object to send to the action
+    const fullSchedule: DoctorSchedule = {
+      ...schedule,
+      ...updatedScheduleData,
+    };
+
+    const result = await updateDoctorScheduleAction(fullSchedule);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
-      setSchedule(prev => prev ? { ...prev, ...updatedSchedule } : null);
+      setSchedule(fullSchedule); // Update local state with the full object
     }
   };
 

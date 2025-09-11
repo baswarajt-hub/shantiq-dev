@@ -588,7 +588,7 @@ export async function updatePatientPurposeAction(patientId: number, purpose: str
     return { success: 'Visit purpose updated.' };
 }
 
-export async function updateDoctorScheduleAction(schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>) {
+export async function updateDoctorScheduleAction(schedule: DoctorSchedule) {
     await updateDoctorSchedule(schedule);
     revalidatePath('/admin');
     revalidatePath('/');
@@ -769,5 +769,6 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
     
     
+
 
 

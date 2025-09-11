@@ -2,6 +2,7 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
 import { format, parse, parseISO } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
@@ -139,8 +140,8 @@ export async function getDoctorSchedule() {
   return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
-export async function updateDoctorSchedule(schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>) {
-  doctorSchedule = { ...doctorSchedule, ...schedule };
+export async function updateDoctorSchedule(schedule: DoctorSchedule) {
+  doctorSchedule = schedule;
   return doctorSchedule;
 }
 
