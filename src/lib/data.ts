@@ -137,19 +137,20 @@ export async function getDoctorSchedule() {
 }
 
 export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedule>): Promise<DoctorSchedule> {
-    const newSchedule: DoctorSchedule = {
-        ...doctorSchedule,
-        ...scheduleUpdate,
-        days: {
-            ...doctorSchedule.days,
-            ...scheduleUpdate.days,
-        },
-        clinicDetails: scheduleUpdate.clinicDetails ?? doctorSchedule.clinicDetails,
-        specialClosures: scheduleUpdate.specialClosures ?? doctorSchedule.specialClosures,
-        visitPurposes: scheduleUpdate.visitPurposes ?? doctorSchedule.visitPurposes,
-    };
-    doctorSchedule = newSchedule;
-    return JSON.parse(JSON.stringify(doctorSchedule));
+  const newSchedule: DoctorSchedule = {
+    ...doctorSchedule,
+    ...scheduleUpdate,
+    days: {
+      ...doctorSchedule.days,
+      ...scheduleUpdate.days,
+    },
+    // Ensure nested objects that are not part of the partial update are preserved
+    clinicDetails: scheduleUpdate.clinicDetails ?? doctorSchedule.clinicDetails,
+    specialClosures: scheduleUpdate.specialClosures ?? doctorSchedule.specialClosures,
+    visitPurposes: scheduleUpdate.visitPurposes ?? doctorSchedule.visitPurposes,
+  };
+  doctorSchedule = newSchedule;
+  return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
 export async function updateClinicDetailsData(details: ClinicDetails) {
@@ -227,3 +228,5 @@ export async function cancelAppointment(appointmentId: number) {
 export async function getFamily() {
     return JSON.parse(JSON.stringify(family));
 }
+
+    

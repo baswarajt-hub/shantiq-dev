@@ -46,12 +46,8 @@ export default function AdminPage() {
     } else {
       toast({ title: 'Success', description: result.success });
       // Re-fetch the canonical schedule from the server to ensure UI state is in sync
-      if(result.schedule) {
-        setSchedule(result.schedule);
-      } else {
-        const freshSchedule = await getDoctorScheduleData();
-        setSchedule(freshSchedule);
-      }
+      const freshSchedule = await getDoctorScheduleData();
+      setSchedule(freshSchedule);
     }
   };
 
@@ -128,3 +124,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
