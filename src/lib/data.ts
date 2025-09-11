@@ -3,6 +3,7 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
 import { format, parse, parseISO } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
@@ -141,7 +142,11 @@ export async function getDoctorSchedule() {
 }
 
 export async function updateDoctorSchedule(schedule: DoctorSchedule) {
-  doctorSchedule = schedule;
+  // Correctly merge the schedule to preserve all parts
+  doctorSchedule = {
+    ...doctorSchedule, // Keep existing values like clinicDetails, specialClosures etc.
+    ...schedule       // Overwrite with the new values passed in (days, slotDuration etc)
+  };
   return doctorSchedule;
 }
 

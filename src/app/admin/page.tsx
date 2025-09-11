@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import { ScheduleForm } from '@/components/admin/schedule-form';
-import { getDoctorSchedule } from '@/lib/data';
+import { getDoctorScheduleAction as getDoctorScheduleData } from '@/app/actions';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
 import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose } from '@/lib/types';
@@ -20,7 +20,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     async function loadSchedule() {
-      const scheduleData = await getDoctorSchedule();
+      const scheduleData = await getDoctorScheduleData();
       setSchedule(scheduleData);
     }
     loadSchedule();
