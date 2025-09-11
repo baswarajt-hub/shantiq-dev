@@ -412,13 +412,6 @@ export async function recalculateQueueWithETC() {
         };
     }
     
-    // Determine which session the doctor's delay applies to.
-    let delaySession: 'morning' | 'evening' | null = null;
-    if (doctorStatus.onlineTime) {
-        delaySession = getSessionForTime(schedule, parseISO(doctorStatus.onlineTime));
-    }
-
-
     const patientUpdates = new Map<number, Partial<Patient>>();
     const sessions: ('morning' | 'evening')[] = ['morning', 'evening'];
 
@@ -438,33 +431,43 @@ export async function recalculateQueueWithETC() {
 
         const clinicSessionStartTime = sessionLocalToUtc(todayStr, sessionTimes.start);
         
-        // Apply delay ONLY if it belongs to the current session being calculated
-        const sessionDelay = delaySession === session ? doctorStatus.startDelay : 0;
+        // 1. Determine session delay based on doctor status
+        let sessionDelay = 0;
+        if (doctorStatus.isOnline && doctorStatus.onlineTime) {
+            const onlineTimeUtc = parseISO(doctorStatus.onlineTime);
+            const onlineSession = getSessionForTime(schedule, onlineTimeUtc);
+            if (onlineSession === session) {
+                 const actualDelay = differenceInMinutes(onlineTimeUtc, clinicSessionStartTime);
+                 sessionDelay = actualDelay > 0 ? actualDelay : 0;
+            }
+        } else {
+            // Doctor is offline, use manual delay for the appropriate session
+            const delaySession = getSessionForTime(schedule, new Date());
+             if (delaySession === session) {
+                sessionDelay = doctorStatus.startDelay;
+             }
+        }
+
         const delayedClinicStartTime = new Date(clinicSessionStartTime.getTime() + sessionDelay * 60000);
 
-        // 1. Assign Worst-case ETC for all of this session's patients based on token
+        // 2. Assign Worst-case ETC and handle auto-late marking
         sessionPatients.forEach(p => {
             const worstCaseETC = new Date(
                 delayedClinicStartTime.getTime() + (p.tokenNo - 1) * schedule.slotDuration * 60000
             ).toISOString();
-            patientUpdates.set(p.id, { ...patientUpdates.get(p.id), worstCaseETC });
+            patientUpdates.set(p.id, { ...patientUpdates.get(p.id), worstCaseETC: worstCaseETC, slotTime: worstCaseETC });
+
+            // Auto-mark late arrivals if they've checked in
+            const currentUpdates = patientUpdates.get(p.id) || {};
+            if (p.checkInTime && p.status === 'Waiting' && p.type !== 'Walk-in') {
+                const lateCheckThreshold = max([parseISO(p.slotTime), p.bestCaseETC ? parseISO(p.bestCaseETC) : new Date(0)]);
+                if (parseISO(p.checkInTime) > lateCheckThreshold) {
+                    const lateBy = differenceInMinutes(parseISO(p.checkInTime), lateCheckThreshold);
+                    patientUpdates.set(p.id, { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
+                }
+            }
         });
 
-        // 2. Automatically mark late arrivals (only for 'Booked' types, if doctor is online)
-        if (doctorStatus.isOnline) {
-            sessionPatients.forEach(p => {
-                const currentUpdates = patientUpdates.get(p.id) || {};
-                const worstCaseETC = currentUpdates.worstCaseETC || p.worstCaseETC;
-                if (p.checkInTime && worstCaseETC && p.type !== 'Walk-in') {
-                    const isLate = parseISO(p.checkInTime).getTime() > parseISO(worstCaseETC).getTime();
-                    if (isLate && p.status === 'Waiting') {
-                        const lateBy = Math.round((parseISO(p.checkInTime).getTime() - parseISO(worstCaseETC).getTime()) / 60000);
-                        patientUpdates.set(p.id, { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
-                    }
-                }
-            });
-        }
-        
         // Apply pending status updates before forming live queue
         const updatedSessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
 
@@ -473,25 +476,31 @@ export async function recalculateQueueWithETC() {
 
         // 4. Sort the live queue
         liveQueue.sort((a, b) => {
+            // Priority first
             if (a.status === 'Priority' && b.status !== 'Priority') return -1;
             if (a.status !== 'Priority' && b.status === 'Priority') return 1;
             if (a.status === 'Priority' && b.status === 'Priority') {
                 return parseISO(a.checkInTime!).getTime() - parseISO(b.checkInTime!).getTime();
             }
 
+            // Penalized patients (locked position)
             if (a.latePosition !== undefined && b.latePosition === undefined) return -1;
             if (a.latePosition === undefined && b.latePosition !== undefined) return 1;
             if (a.latePosition !== undefined && b.latePosition !== undefined) return a.latePosition - b.latePosition;
-            
+
+            // Waiting (on-time) vs Late
             if (a.status === 'Waiting' && b.status === 'Late') return -1;
             if (a.status === 'Late' && b.status === 'Waiting') return 1;
             
+            // Both Waiting, sort by token
             if (a.status === 'Waiting' && b.status === 'Waiting') return a.tokenNo - b.tokenNo;
-
+            
+            // Both Late, sort by check-in time
             if (a.status === 'Late' && b.status === 'Late') {
                 return parseISO(a.checkInTime!).getTime() - parseISO(b.checkInTime!).getTime();
             }
             
+            // Fallback to token number
             return a.tokenNo - b.tokenNo;
         });
 
@@ -677,67 +686,61 @@ export async function getFamilyAction() {
     return getFamily();
 }
 
-export async function applyLatePenaltyAction(patientId: number, penalty: number) {
+export async function markPatientAsLateAndCheckInAction(patientId: number, penalty: number) {
     const allPatients = await getPatientsData();
-    const schedule = await getDoctorScheduleData();
+    
+    const patientToUpdate = allPatients.find(p => p.id === patientId);
+    if (!patientToUpdate) {
+        return { error: 'Patient not found.' };
+    }
 
-    // Re-create the sorted live queue exactly as it appears to the user
+    // Check them in, mark as late, and set penalty in one go
+    patientToUpdate.status = 'Late';
+    patientToUpdate.checkInTime = new Date().toISOString();
+    patientToUpdate.latePenalty = penalty;
+    const lateThreshold = max([parseISO(patientToUpdate.slotTime), patientToUpdate.bestCaseETC ? parseISO(patientToUpdate.bestCaseETC) : new Date(0)]);
+    const lateBy = differenceInMinutes(parseISO(patientToUpdate.checkInTime), lateThreshold);
+    patientToUpdate.lateBy = lateBy > 0 ? lateBy : 0;
+    
+    // Get today's live queue to insert the patient
     const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
     let liveQueue = allPatients
         .filter(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === todayStr)
-        .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status));
-        
+        .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.id !== patientId); // Exclude the patient we're moving
+
+    // Sort existing queue
     liveQueue.sort((a, b) => {
         if (a.status === 'Priority' && b.status !== 'Priority') return -1;
         if (a.status !== 'Priority' && b.status === 'Priority') return 1;
-        if (a.status === 'Priority' && b.status === 'Priority') return parseISO(a.checkInTime!).getTime() - parseISO(b.checkInTime!).getTime();
-        if (a.latePosition !== undefined && b.latePosition === undefined) return -1;
-        if (a.latePosition === undefined && b.latePosition !== undefined) return 1;
-        if (a.latePosition !== undefined && b.latePosition !== undefined) return a.latePosition - b.latePosition;
-        if (a.status === 'Waiting' && b.status === 'Late') return -1;
-        if (a.status === 'Late' && b.status === 'Waiting') return 1;
-        if (a.status === 'Waiting' && b.status === 'Waiting') return a.tokenNo - b.tokenNo;
-        if (a.status === 'Late' && b.status === 'Late') return parseISO(a.checkInTime!).getTime() - parseISO(b.checkInTime!).getTime();
-        return a.tokenNo - b.tokenNo;
+        return a.tokenNo - b.tokenNo; // Simplified sort for positioning
     });
 
-    const patientIndex = liveQueue.findIndex(p => p.id === patientId);
-    if (patientIndex === -1) {
-        return { error: 'Patient not found in the live queue.' };
-    }
+    const patientOriginalIndexInAll = allPatients.findIndex(p => p.id === patientId);
+    const originalTokenOrderIndex = liveQueue.filter(p => p.tokenNo < patientToUpdate.tokenNo).length;
 
-    const patientToMove = liveQueue[patientIndex];
-    patientToMove.latePenalty = penalty;
+    const newIndex = Math.min(originalTokenOrderIndex + penalty, liveQueue.length);
+    liveQueue.splice(newIndex, 0, patientToUpdate);
 
-    liveQueue.splice(patientIndex, 1);
-    
-    const newIndex = Math.min(patientIndex + penalty, liveQueue.length);
-    
-    liveQueue.splice(newIndex, 0, patientToMove);
-    
     // Update latePosition for all penalized patients to lock them in
     for (let i = 0; i < liveQueue.length; i++) {
         const p = liveQueue[i];
-        if (p.latePenalty !== undefined) {
+        if (p.id === patientId) {
              p.latePosition = i;
          }
     }
 
-    // Update just the penalized patients in the main list before recalculating
     const patientMap = new Map(liveQueue.map(p => [p.id, p]));
     const updatedPatients = allPatients.map(p => patientMap.get(p.id) || p);
     await updateAllPatients(updatedPatients);
-    
-    // After applying penalty, we must recalculate the queue to update ETCs for everyone
+
     await recalculateQueueWithETC();
 
     revalidatePath('/');
     revalidatePath('/tv_display');
     revalidatePath('/queue_status');
 
-    return { success: `Applied penalty of ${penalty} positions.` };
+    return { success: `Patient marked as late and pushed down by ${penalty} positions.` };
 }
-
     
 
     

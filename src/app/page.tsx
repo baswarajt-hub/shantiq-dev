@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, applyLatePenaltyAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -364,9 +364,9 @@ export default function DashboardPage() {
         });
     };
     
-    const handleLatePenalty = (patientId: number, penalty: number) => {
+    const handleMarkAsLateAndCheckIn = (patientId: number, penalty: number) => {
         startTransition(async () => {
-            const result = await applyLatePenaltyAction(patientId, penalty);
+            const result = await markPatientAsLateAndCheckInAction(patientId, penalty);
             if (result?.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
@@ -623,10 +623,27 @@ export default function DashboardPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start">
                                             {slot.patient.status === 'Booked' && (
-                                                <DropdownMenuItem onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending}>
-                                                    <LogIn className="mr-2 h-4 w-4" />
-                                                    Check-in Patient
-                                                </DropdownMenuItem>
+                                                <>
+                                                    <DropdownMenuItem onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending}>
+                                                        <LogIn className="mr-2 h-4 w-4" />
+                                                        Check-in Patient
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSub>
+                                                        <DropdownMenuSubTrigger>
+                                                            <Hourglass className="mr-2 h-4 w-4" />
+                                                            Mark as Late
+                                                        </DropdownMenuSubTrigger>
+                                                        <DropdownMenuSubContent>
+                                                            <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
+                                                            <DropdownMenuSeparator />
+                                                            {[1, 2, 3, 5, 8].map(penalty => (
+                                                                <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(slot.patient!.id, penalty)}>
+                                                                    {`${penalty} position${penalty > 1 ? 's' : ''}`}
+                                                                </DropdownMenuItem>
+                                                            ))}
+                                                        </DropdownMenuSubContent>
+                                                    </DropdownMenuSub>
+                                                </>
                                             )}
                                             {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late' || slot.patient.status === 'Priority') && (
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline}>
@@ -652,27 +669,13 @@ export default function DashboardPage() {
                                                     Start Consultation (Reports)
                                                 </DropdownMenuItem>
                                             )}
-                                             {(slot.patient.status === 'Waiting' || slot.patient.status === 'Booked') && (
+                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Booked') && (
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Late')} disabled={isPending}>
                                                     <Hourglass className="mr-2 h-4 w-4" />
                                                     Mark as Late
                                                 </DropdownMenuItem>
                                             )}
-                                            {slot.patient.status === 'Late' && (
-                                                <DropdownMenuSub>
-                                                    <DropdownMenuSubTrigger>
-                                                        <ArrowDown className="mr-2 h-4 w-4" />
-                                                        Push Down
-                                                    </DropdownMenuSubTrigger>
-                                                    <DropdownMenuSubContent>
-                                                        {[1, 2, 3, 5, 8].map(penalty => (
-                                                            <DropdownMenuItem key={penalty} onClick={() => handleLatePenalty(slot.patient!.id, penalty)}>
-                                                                {`By ${penalty} position${penalty > 1 ? 's' : ''}`}
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                    </DropdownMenuSubContent>
-                                                </DropdownMenuSub>
-                                            )}
+                                           
                                             {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late') && (
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Priority')} disabled={isPending} className="text-red-600 focus:text-red-600 focus:bg-red-50">
                                                     <Shield className="mr-2 h-4 w-4" />
