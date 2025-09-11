@@ -4,6 +4,7 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
 import { format, parse, parseISO } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
@@ -141,11 +142,19 @@ export async function getDoctorSchedule() {
   return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
-export async function updateDoctorSchedule(schedule: DoctorSchedule) {
-  // Correctly merge the schedule to preserve all parts
+export async function updateDoctorSchedule(newScheduleData: DoctorSchedule) {
+  // Deep merge to ensure no data is lost
   doctorSchedule = {
-    ...doctorSchedule, // Keep existing values like clinicDetails, specialClosures etc.
-    ...schedule       // Overwrite with the new values passed in (days, slotDuration etc)
+    ...doctorSchedule, // Base with existing full schedule
+    ...newScheduleData, // Overwrite with all new data from form
+    days: {
+        ...doctorSchedule.days,
+        ...newScheduleData.days
+    },
+    // Ensure nested objects that aren't part of the form are preserved
+    clinicDetails: newScheduleData.clinicDetails ?? doctorSchedule.clinicDetails,
+    specialClosures: newScheduleData.specialClosures ?? doctorSchedule.specialClosures,
+    visitPurposes: newScheduleData.visitPurposes ?? doctorSchedule.visitPurposes
   };
   return doctorSchedule;
 }

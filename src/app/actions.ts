@@ -431,16 +431,14 @@ export async function recalculateQueueWithETC() {
 
         const clinicSessionStartTime = sessionLocalToUtc(todayStr, sessionTimes.start);
         
-        // 1. Determine session delay based on doctor status
         let sessionDelay = 0;
-        let actualDelay = 0;
-
         if (doctorStatus.isOnline && doctorStatus.onlineTime) {
             const onlineTimeUtc = parseISO(doctorStatus.onlineTime);
+            // Check if doctor's online time belongs to this session
             const onlineSession = getSessionForTime(schedule, onlineTimeUtc);
             if (onlineSession === session) {
-                 actualDelay = differenceInMinutes(onlineTimeUtc, clinicSessionStartTime);
-                 sessionDelay = actualDelay > 0 ? actualDelay : 0;
+                const actualDelay = differenceInMinutes(onlineTimeUtc, clinicSessionStartTime);
+                sessionDelay = actualDelay > 0 ? actualDelay : 0;
             }
         } else {
             // Doctor is offline, use manual delay for the appropriate session
@@ -448,18 +446,19 @@ export async function recalculateQueueWithETC() {
             const morningStartUtc = sessionLocalToUtc(todayStr, daySchedule.morning.start);
             const eveningStartUtc = sessionLocalToUtc(todayStr, daySchedule.evening.start);
             
-            let delaySession: 'morning' | 'evening' | null = null;
+            let delayAppliesToSession: 'morning' | 'evening' | null = null;
             if (now < morningStartUtc) {
-                delaySession = 'morning';
+                delayAppliesToSession = 'morning'; // It's before morning session, delay must be for morning
             } else if (now >= morningStartUtc && now < eveningStartUtc) {
-                delaySession = 'morning';
+                delayAppliesToSession = 'morning'; // It's during or after morning but before evening, assume delay is for the current/just-passed morning session
             } else {
-                delaySession = 'evening';
+                delayAppliesToSession = 'evening'; // It's evening time
             }
 
-             if (delaySession === session) {
+            // Only apply manual delay if it's for the session we are currently calculating
+            if (delayAppliesToSession === session) {
                 sessionDelay = doctorStatus.startDelay;
-             }
+            }
         }
 
         const delayedClinicStartTime = new Date(clinicSessionStartTime.getTime() + sessionDelay * 60000);
@@ -476,7 +475,7 @@ export async function recalculateQueueWithETC() {
             if (p.checkInTime && p.status === 'Waiting' && p.type !== 'Walk-in') {
                 const lateCheckThreshold = max([parseISO(p.slotTime), p.bestCaseETC ? parseISO(p.bestCaseETC) : new Date(0)]);
                 if (parseISO(p.checkInTime) > lateCheckThreshold) {
-                    const lateBy = differenceInMinutes(parseISO(p.checkInTime), lateThreshold);
+                    const lateBy = differenceInMinutes(parseISO(p.checkInTime), lateCheckThreshold);
                     patientUpdates.set(p.id, { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
                 }
             }
@@ -769,6 +768,7 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
     
     
+
 
 
 
