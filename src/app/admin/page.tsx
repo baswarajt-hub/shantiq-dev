@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -38,17 +37,21 @@ export default function AdminPage() {
     }
   };
 
-  const handleScheduleSave = async (updatedScheduleData: Partial<Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>>) => {
+  const handleScheduleSave = async (updatedScheduleData: Partial<DoctorSchedule>) => {
     if (!schedule) return;
 
-    const result = await updateDoctorScheduleAction(updatedScheduleData as any);
+    const result = await updateDoctorScheduleAction(updatedScheduleData);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
       // Re-fetch the canonical schedule from the server to ensure UI state is in sync
-      const freshSchedule = await getDoctorScheduleData();
-      setSchedule(freshSchedule);
+      if(result.schedule) {
+        setSchedule(result.schedule);
+      } else {
+        const freshSchedule = await getDoctorScheduleData();
+        setSchedule(freshSchedule);
+      }
     }
   };
 
@@ -125,5 +128,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    

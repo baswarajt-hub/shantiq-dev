@@ -1,14 +1,7 @@
 
-
-
-
-
-
-
-
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
 import { format, parse, parseISO } from 'date-fns';
-import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 let patients: Patient[] = [];
 
@@ -143,19 +136,19 @@ export async function getDoctorSchedule() {
   return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
-export async function updateDoctorSchedule(newScheduleData: Partial<DoctorSchedule>) {
-    // Deep merge to ensure no data is lost
-    doctorSchedule = {
+export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedule>): Promise<DoctorSchedule> {
+    const newSchedule: DoctorSchedule = {
         ...doctorSchedule,
-        ...newScheduleData,
+        ...scheduleUpdate,
         days: {
             ...doctorSchedule.days,
-            ...newScheduleData.days,
+            ...scheduleUpdate.days,
         },
-        clinicDetails: newScheduleData.clinicDetails ?? doctorSchedule.clinicDetails,
-        specialClosures: newScheduleData.specialClosures ?? doctorSchedule.specialClosures,
-        visitPurposes: newScheduleData.visitPurposes ?? doctorSchedule.visitPurposes,
+        clinicDetails: scheduleUpdate.clinicDetails ?? doctorSchedule.clinicDetails,
+        specialClosures: scheduleUpdate.specialClosures ?? doctorSchedule.specialClosures,
+        visitPurposes: scheduleUpdate.visitPurposes ?? doctorSchedule.visitPurposes,
     };
+    doctorSchedule = newSchedule;
     return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
@@ -234,5 +227,3 @@ export async function cancelAppointment(appointmentId: number) {
 export async function getFamily() {
     return JSON.parse(JSON.stringify(family));
 }
-
-    

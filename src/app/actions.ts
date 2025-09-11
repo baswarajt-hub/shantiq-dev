@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -756,20 +755,3 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
   return { success: `Patient marked as late and pushed down by ${penalty} positions.` };
 }
-    
-
-    
-
-    
-
-    
-
-    
-    
-
-
-
-
-
-
-    
