@@ -5,9 +5,10 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
 import { format, parse, parseISO } from 'date-fns';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 
 let patients: Patient[] = [];
 
@@ -142,21 +143,20 @@ export async function getDoctorSchedule() {
   return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
-export async function updateDoctorSchedule(newScheduleData: DoctorSchedule) {
-  // Deep merge to ensure no data is lost
-  doctorSchedule = {
-    ...doctorSchedule, // Base with existing full schedule
-    ...newScheduleData, // Overwrite with all new data from form
-    days: {
-        ...doctorSchedule.days,
-        ...newScheduleData.days
-    },
-    // Ensure nested objects that aren't part of the form are preserved
-    clinicDetails: newScheduleData.clinicDetails ?? doctorSchedule.clinicDetails,
-    specialClosures: newScheduleData.specialClosures ?? doctorSchedule.specialClosures,
-    visitPurposes: newScheduleData.visitPurposes ?? doctorSchedule.visitPurposes
-  };
-  return doctorSchedule;
+export async function updateDoctorSchedule(newScheduleData: Partial<DoctorSchedule>) {
+    // Deep merge to ensure no data is lost
+    doctorSchedule = {
+        ...doctorSchedule,
+        ...newScheduleData,
+        days: {
+            ...doctorSchedule.days,
+            ...newScheduleData.days,
+        },
+        clinicDetails: newScheduleData.clinicDetails ?? doctorSchedule.clinicDetails,
+        specialClosures: newScheduleData.specialClosures ?? doctorSchedule.specialClosures,
+        visitPurposes: newScheduleData.visitPurposes ?? doctorSchedule.visitPurposes,
+    };
+    return JSON.parse(JSON.stringify(doctorSchedule));
 }
 
 export async function updateClinicDetailsData(details: ClinicDetails) {
@@ -234,3 +234,5 @@ export async function cancelAppointment(appointmentId: number) {
 export async function getFamily() {
     return JSON.parse(JSON.stringify(family));
 }
+
+    

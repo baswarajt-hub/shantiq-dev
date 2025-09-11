@@ -10,8 +10,14 @@ import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders'
 import { format, parseISO, parse, differenceInMinutes, startOfDay, max } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
-
 const timeZone = "Asia/Kolkata";
+
+function toDate(value?: string | Date): Date | undefined {
+  if (!value) return undefined;
+  if (typeof value === 'string') return parseISO(value);
+  return value;
+}
+
 
 /**
  * Helper: convert a session time string ("HH:mm" or "h:mm a") anchored to dateStr (yyyy-MM-dd)
@@ -156,7 +162,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     // If we are starting a new consultation, find and complete any existing one.
     const currentlyServing = patients.find(p => p.status === 'In-Consultation');
     if (currentlyServing && currentlyServing.id !== patientId) {
-      const startTime = new Date(currentlyServing.consultationStartTime!);
+      const startTime = toDate(currentlyServing.consultationStartTime!)!;
       const endTime = new Date();
       const completedUpdates: Partial<Patient> = {
         status: 'Completed',
@@ -178,7 +184,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
 
 
   } else if (status === 'Completed' && patient.consultationStartTime) {
-    const startTime = new Date(patient.consultationStartTime);
+    const startTime = toDate(patient.consultationStartTime)!;
     const endTime = new Date();
     updates.consultationEndTime = endTime.toISOString();
     updates.consultationTime = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // in minutes
@@ -434,28 +440,25 @@ export async function recalculateQueueWithETC() {
         let sessionDelay = 0;
         if (doctorStatus.isOnline && doctorStatus.onlineTime) {
             const onlineTimeUtc = parseISO(doctorStatus.onlineTime);
-            // Check if doctor's online time belongs to this session
             const onlineSession = getSessionForTime(schedule, onlineTimeUtc);
             if (onlineSession === session) {
                 const actualDelay = differenceInMinutes(onlineTimeUtc, clinicSessionStartTime);
                 sessionDelay = actualDelay > 0 ? actualDelay : 0;
             }
         } else {
-            // Doctor is offline, use manual delay for the appropriate session
             const now = new Date();
             const morningStartUtc = sessionLocalToUtc(todayStr, daySchedule.morning.start);
             const eveningStartUtc = sessionLocalToUtc(todayStr, daySchedule.evening.start);
             
             let delayAppliesToSession: 'morning' | 'evening' | null = null;
             if (now < morningStartUtc) {
-                delayAppliesToSession = 'morning'; // It's before morning session, delay must be for morning
+                delayAppliesToSession = 'morning'; 
             } else if (now >= morningStartUtc && now < eveningStartUtc) {
-                delayAppliesToSession = 'morning'; // It's during or after morning but before evening, assume delay is for the current/just-passed morning session
+                delayAppliesToSession = 'morning';
             } else {
-                delayAppliesToSession = 'evening'; // It's evening time
+                delayAppliesToSession = 'evening';
             }
 
-            // Only apply manual delay if it's for the session we are currently calculating
             if (delayAppliesToSession === session) {
                 sessionDelay = doctorStatus.startDelay;
             }
@@ -473,9 +476,9 @@ export async function recalculateQueueWithETC() {
             // Auto-mark late arrivals if they've checked in
             const currentUpdates = patientUpdates.get(p.id) || {};
             if (p.checkInTime && p.status === 'Waiting' && p.type !== 'Walk-in') {
-                const lateCheckThreshold = max([parseISO(p.slotTime), p.bestCaseETC ? parseISO(p.bestCaseETC) : new Date(0)]);
-                if (parseISO(p.checkInTime) > lateCheckThreshold) {
-                    const lateBy = differenceInMinutes(parseISO(p.checkInTime), lateCheckThreshold);
+                const lateCheckThreshold = max([toDate(p.slotTime)!, toDate(p.bestCaseETC) ?? new Date(0)]);
+                if (toDate(p.checkInTime)! > lateCheckThreshold) {
+                    const lateBy = differenceInMinutes(toDate(p.checkInTime)!, lateCheckThreshold);
                     patientUpdates.set(p.id, { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
                 }
             }
@@ -489,31 +492,25 @@ export async function recalculateQueueWithETC() {
 
         // 4. Sort the live queue
         liveQueue.sort((a, b) => {
-            // Priority first
             if (a.status === 'Priority' && b.status !== 'Priority') return -1;
             if (a.status !== 'Priority' && b.status === 'Priority') return 1;
             if (a.status === 'Priority' && b.status === 'Priority') {
-                return parseISO(a.checkInTime!).getTime() - parseISO(b.checkInTime!).getTime();
+                return toDate(a.checkInTime!)!.getTime() - toDate(b.checkInTime!)!.getTime();
             }
 
-            // Penalized patients (locked position)
-            if (a.latePosition !== undefined && b.latePosition === undefined) return -1;
-            if (a.latePosition === undefined && b.latePosition !== undefined) return 1;
+            if (a.latePosition !== undefined && b.latePosition === undefined) return 1;
+            if (a.latePosition === undefined && b.latePosition !== undefined) return -1;
             if (a.latePosition !== undefined && b.latePosition !== undefined) return a.latePosition - b.latePosition;
 
-            // Waiting (on-time) vs Late
             if (a.status === 'Waiting' && b.status === 'Late') return -1;
             if (a.status === 'Late' && b.status === 'Waiting') return 1;
             
-            // Both Waiting, sort by token
             if (a.status === 'Waiting' && b.status === 'Waiting') return a.tokenNo - b.tokenNo;
             
-            // Both Late, sort by check-in time
             if (a.status === 'Late' && b.status === 'Late') {
-                return parseISO(a.checkInTime!).getTime() - parseISO(b.checkInTime!).getTime();
+                return toDate(a.checkInTime!)!.getTime() - toDate(b.checkInTime!)!.getTime();
             }
             
-            // Fallback to token number
             return a.tokenNo - b.tokenNo;
         });
 
@@ -521,14 +518,14 @@ export async function recalculateQueueWithETC() {
         let now = new Date();
         let effectiveDoctorStartTime: Date;
         if (doctorStatus.isOnline && doctorStatus.onlineTime) {
-            effectiveDoctorStartTime = max([now, parseISO(doctorStatus.onlineTime), delayedClinicStartTime]);
+            effectiveDoctorStartTime = max([now, toDate(doctorStatus.onlineTime)!, delayedClinicStartTime]);
         } else {
             effectiveDoctorStartTime = delayedClinicStartTime;
         }
 
         const currentlyServing = updatedSessionPatients.find(p => p.status === 'In-Consultation');
         if (currentlyServing && currentlyServing.consultationStartTime) {
-            const expectedEndTime = new Date(parseISO(currentlyServing.consultationStartTime).getTime() + schedule.slotDuration * 60000);
+            const expectedEndTime = new Date(toDate(currentlyServing.consultationStartTime)!.getTime() + schedule.slotDuration * 60000);
             effectiveDoctorStartTime = max([now, expectedEndTime]);
         }
         
@@ -539,16 +536,15 @@ export async function recalculateQueueWithETC() {
             } else {
                 const previousPatientETC = patientUpdates.get(liveQueue[i - 1].id)?.bestCaseETC || liveQueue[i-1].bestCaseETC!;
                 bestCaseETC = new Date(
-                    parseISO(previousPatientETC).getTime() + schedule.slotDuration * 60000
+                    toDate(previousPatientETC)!.getTime() + schedule.slotDuration * 60000
                 ).toISOString();
             }
             
             const currentUpdates = patientUpdates.get(p.id) || {};
             let finalUpdates: Partial<Patient> = { ...currentUpdates, bestCaseETC };
 
-            // Constraint: worstETC >= bestETC
             const worstETC = finalUpdates.worstCaseETC || p.worstCaseETC;
-            if (worstETC && bestCaseETC && parseISO(worstETC) < parseISO(bestCaseETC)) {
+            if (worstETC && bestCaseETC && toDate(worstETC)! < toDate(bestCaseETC)!) {
                 finalUpdates.worstCaseETC = bestCaseETC;
             }
 
@@ -587,12 +583,13 @@ export async function updatePatientPurposeAction(patientId: number, purpose: str
     return { success: 'Visit purpose updated.' };
 }
 
-export async function updateDoctorScheduleAction(schedule: DoctorSchedule) {
-    await updateDoctorSchedule(schedule);
+export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedule>) {
+    const updated = await updateDoctorSchedule(schedule);
     revalidatePath('/admin');
     revalidatePath('/');
     revalidatePath('/booking');
-    return { success: 'Doctor schedule updated successfully.' };
+    revalidatePath('/patient-portal');
+    return { success: 'Doctor schedule updated successfully.', schedule: updated };
 }
 
 export async function updateClinicDetailsAction(details: ClinicDetails) {
@@ -704,59 +701,60 @@ export async function getFamilyAction() {
 }
 
 export async function markPatientAsLateAndCheckInAction(patientId: number, penalty: number) {
-    const allPatients = await getPatientsData();
-    
-    const patientToUpdate = allPatients.find(p => p.id === patientId);
-    if (!patientToUpdate) {
-        return { error: 'Patient not found.' };
+  const allPatients = await getPatientsData();
+  const patientToUpdate = allPatients.find(p => p.id === patientId);
+  if (!patientToUpdate) return { error: 'Patient not found.' };
+
+  // Mark them checked-in + late
+  patientToUpdate.status = 'Late';
+  patientToUpdate.checkInTime = new Date().toISOString();
+  patientToUpdate.latePenalty = penalty;
+  const lateThreshold = max([
+    toDate(patientToUpdate.slotTime) ?? new Date(0),
+    patientToUpdate.bestCaseETC ? toDate(patientToUpdate.bestCaseETC)! : new Date(0)
+  ]);
+  const lateBy = differenceInMinutes(toDate(patientToUpdate.checkInTime)!, lateThreshold!);
+  patientToUpdate.lateBy = lateBy > 0 ? lateBy : 0;
+
+  // Build today's live queue (same filtering as recalc)
+  const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
+  let liveQueue = allPatients
+    .filter(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === todayStr)
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.id !== patientId);
+
+  // sort using same comparator you use elsewhere (simplified here: token + priority)
+  liveQueue.sort((a, b) => {
+    if (a.status === 'Priority' && b.status !== 'Priority') return -1;
+    if (a.status !== 'Priority' && b.status === 'Priority') return 1;
+    return a.tokenNo - b.tokenNo;
+  });
+
+  // Find logical original position (how many currently queued have token < patient's token)
+  const originalTokenOrderIndex = liveQueue.filter(p => p.tokenNo < patientToUpdate.tokenNo).length;
+  const insertIndex = Math.min(originalTokenOrderIndex + penalty, liveQueue.length);
+
+  // Insert patientToUpdate at insertIndex
+  liveQueue.splice(insertIndex, 0, patientToUpdate);
+
+  // Lock latePosition values for penalized patient
+  for (let i = 0; i < liveQueue.length; i++) {
+    const p = liveQueue[i];
+    if (p.id === patientId) {
+      p.latePosition = i;
     }
+  }
 
-    // Check them in, mark as late, and set penalty in one go
-    patientToUpdate.status = 'Late';
-    patientToUpdate.checkInTime = new Date().toISOString();
-    patientToUpdate.latePenalty = penalty;
-    const lateThreshold = max([parseISO(patientToUpdate.slotTime), patientToUpdate.bestCaseETC ? parseISO(patientToUpdate.bestCaseETC) : new Date(0)]);
-    const lateBy = differenceInMinutes(parseISO(patientToUpdate.checkInTime), lateThreshold);
-    patientToUpdate.lateBy = lateBy > 0 ? lateBy : 0;
-    
-    // Get today's live queue to insert the patient
-    const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
-    let liveQueue = allPatients
-        .filter(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === todayStr)
-        .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.id !== patientId); // Exclude the patient we're moving
+  // Build map and update allPatients: keep other patients as is except those present in liveQueue should be replaced
+  const patientMap = new Map(liveQueue.map(p => [p.id, p]));
+  const updatedPatients = allPatients.map(p => (patientMap.has(p.id) ? { ...p, ...patientMap.get(p.id) } : p));
+  await updateAllPatients(updatedPatients);
 
-    // Sort existing queue
-    liveQueue.sort((a, b) => {
-        if (a.status === 'Priority' && b.status !== 'Priority') return -1;
-        if (a.status !== 'Priority' && b.status === 'Priority') return 1;
-        return a.tokenNo - b.tokenNo; // Simplified sort for positioning
-    });
+  await recalculateQueueWithETC();
+  revalidatePath('/');
+  revalidatePath('/tv_display');
+  revalidatePath('/queue_status');
 
-    const patientOriginalIndexInAll = allPatients.findIndex(p => p.id === patientId);
-    const originalTokenOrderIndex = liveQueue.filter(p => p.tokenNo < patientToUpdate.tokenNo).length;
-
-    const newIndex = Math.min(originalTokenOrderIndex + penalty, liveQueue.length);
-    liveQueue.splice(newIndex, 0, patientToUpdate);
-
-    // Update latePosition for all penalized patients to lock them in
-    for (let i = 0; i < liveQueue.length; i++) {
-        const p = liveQueue[i];
-        if (p.id === patientId) {
-             p.latePosition = i;
-         }
-    }
-
-    const patientMap = new Map(liveQueue.map(p => [p.id, p]));
-    const updatedPatients = allPatients.map(p => patientMap.get(p.id) || p);
-    await updateAllPatients(updatedPatients);
-
-    await recalculateQueueWithETC();
-
-    revalidatePath('/');
-    revalidatePath('/tv_display');
-    revalidatePath('/queue_status');
-
-    return { success: `Patient marked as late and pushed down by ${penalty} positions.` };
+  return { success: `Patient marked as late and pushed down by ${penalty} positions.` };
 }
     
 
@@ -772,3 +770,6 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
 
 
+
+
+    

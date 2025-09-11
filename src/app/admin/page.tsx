@@ -38,21 +38,17 @@ export default function AdminPage() {
     }
   };
 
-  const handleScheduleSave = async (updatedScheduleData: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>) => {
+  const handleScheduleSave = async (updatedScheduleData: Partial<Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'clinicDetails'>>) => {
     if (!schedule) return;
 
-    // Create the full schedule object to send to the action
-    const fullSchedule: DoctorSchedule = {
-      ...schedule,
-      ...updatedScheduleData,
-    };
-
-    const result = await updateDoctorScheduleAction(fullSchedule);
+    const result = await updateDoctorScheduleAction(updatedScheduleData as any);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
-      setSchedule(fullSchedule); // Update local state with the full object
+      // Re-fetch the canonical schedule from the server to ensure UI state is in sync
+      const freshSchedule = await getDoctorScheduleData();
+      setSchedule(freshSchedule);
     }
   };
 
@@ -129,3 +125,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
