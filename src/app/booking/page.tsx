@@ -17,7 +17,7 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction, getFamilyAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
+import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
 import { format, parseISO, parse as parseDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -252,9 +252,13 @@ export default function BookingPage() {
   }
 
 
-  const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar'>) => {
+  const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
     startTransition(async () => {
-        const result = await addNewPatientAction(member);
+        // Since all family members share one phone number, we get it from the first existing member.
+        // In a real app with authentication, this would come from the logged-in user's profile.
+        const phone = family.length > 0 ? family[0].phone : '5551112222'; // Fallback for the very first member
+        
+        const result = await addNewPatientAction({ ...member, phone });
         if(result.success){
             toast({ title: "Success", description: "Family member added."});
             await loadData();
@@ -536,5 +540,6 @@ export default function BookingPage() {
     
 
     
+
 
 

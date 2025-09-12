@@ -20,7 +20,7 @@ import { format } from 'date-fns';
 type AddFamilyMemberDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (member: Omit<FamilyMember, 'id' | 'avatar'>) => void;
+  onSave: (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => void;
 };
 
 export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamilyMemberDialogProps) {
@@ -28,18 +28,16 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState('');
   const [clinicId, setClinicId] = useState('');
-  const [phone, setPhone] = useState('');
 
   const handleSave = () => {
-    if (name && dob && gender && phone) {
-      onSave({ name, dob, gender, clinicId, phone });
+    if (name && dob && gender) {
+      onSave({ name, dob, gender, clinicId });
       onOpenChange(false);
       // Reset form
       setName('');
       setDob('');
       setGender('');
       setClinicId('');
-      setPhone('');
     }
   };
 
@@ -54,10 +52,6 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Doe" />
-          </div>
-           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. 555-123-4567" type="tel"/>
           </div>
           <div className="space-y-2">
             <Label htmlFor="dob">Date of Birth</Label>
