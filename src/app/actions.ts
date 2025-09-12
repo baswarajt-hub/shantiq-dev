@@ -142,6 +142,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   revalidatePath('/');
   revalidatePath('/queue-status');
   revalidatePath('/tv-display');
+  revalidatePath('/admin');
   
   return { success: 'Appointment booked successfully.', patient: newPatient };
 }
@@ -366,6 +367,10 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
     
     const newPatient = await addPatientData({...patientData, tokenNo });
     revalidatePath('/');
+    revalidatePath('/booking');
+    revalidatePath('/queue-status');
+    revalidatePath('/tv-display');
+    revalidatePath('/admin');
     return { patient: newPatient, success: "Patient added successfully" };
 }
 
@@ -497,6 +502,7 @@ export async function recalculateQueueWithETC() {
                 return toDate(a.checkInTime!)!.getTime() - toDate(b.checkInTime!)!.getTime();
             }
 
+            // penalized (locked latePosition) must be after normal waiting patients
             if (a.latePosition !== undefined && b.latePosition === undefined) return 1;
             if (a.latePosition === undefined && b.latePosition !== undefined) return -1;
             if (a.latePosition !== undefined && b.latePosition !== undefined) return a.latePosition - b.latePosition;
@@ -570,6 +576,7 @@ export async function recalculateQueueWithETC() {
 
 export async function updateTodayScheduleOverrideAction(override: SpecialClosure) {
     await updateTodayScheduleOverrideData(override);
+    await recalculateQueueWithETC();
     revalidatePath('/');
     revalidatePath('/admin');
     revalidatePath('/booking');
@@ -578,6 +585,7 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
 
 export async function updatePatientPurposeAction(patientId: number, purpose: string) {
     await updatePatient(patientId, { purpose });
+    await recalculateQueueWithETC();
     revalidatePath('/');
     return { success: 'Visit purpose updated.' };
 }
@@ -757,3 +765,5 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 }
 
     
+
+  
