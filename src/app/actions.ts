@@ -147,6 +147,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   revalidatePath('/tv-display');
   revalidatePath('/admin');
   revalidatePath('/api/patients');
+  revalidatePath('/api/family');
   
   return { success: 'Appointment booked successfully.', patient: newPatient };
 }
@@ -390,6 +391,7 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
     revalidatePath('/tv-display');
     revalidatePath('/admin');
     revalidatePath('/api/patients');
+    revalidatePath('/api/family');
     return { patient: newPatient, success: "Patient added successfully" };
 }
 

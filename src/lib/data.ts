@@ -205,7 +205,7 @@ export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'ava
     const newMember: FamilyMember = {
         ...memberData,
         id: nextFamilyId++,
-        avatar: `https://picsum.photos/seed/${Date.now()}/200/200`,
+        avatar: `https://picsum.photos/seed/${nextFamilyId}/200/200`,
     };
     family.push(newMember);
     return newMember;
