@@ -1,4 +1,5 @@
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
 import { format, parse, parseISO } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -38,8 +39,6 @@ export default function AdminPage() {
   };
 
   const handleScheduleSave = async (updatedScheduleData: Partial<DoctorSchedule>) => {
-    if (!schedule) return;
-
     const result = await updateDoctorScheduleAction(updatedScheduleData);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });

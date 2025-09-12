@@ -285,6 +285,7 @@ export async function toggleDoctorStatusAction(isOnline: boolean, startDelayMinu
     revalidatePath('/dashboard');
     revalidatePath('/tv_display');
     revalidatePath('/queue_status');
+    revalidatePath('/patient-portal');
     return { success: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.` };
 }
 
@@ -295,6 +296,7 @@ export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
     revalidatePath('/dashboard');
     revalidatePath('/tv_display');
     revalidatePath('/queue_status');
+    revalidatePath('/patient-portal');
     return { success: `Doctor delay updated to ${startDelayMinutes} minutes.` };
 }
 
@@ -392,6 +394,8 @@ export async function addNewPatientAction(familyMemberData: Omit<FamilyMember, '
     const newMember = await addFamilyMember(familyMemberData);
     revalidatePath('/booking');
     revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath('/patient-portal');
     return { patient: newMember, success: "Family member added successfully." };
 }
 
@@ -597,6 +601,8 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
     revalidatePath('/');
     revalidatePath('/admin');
     revalidatePath('/booking');
+    revalidatePath('/patient-portal');
+    revalidatePath('/dashboard');
     return { success: "Today's schedule has been updated." };
 }
 
@@ -627,6 +633,8 @@ export async function updateClinicDetailsAction(details: ClinicDetails) {
     revalidatePath('/admin');
     revalidatePath('/');
     revalidatePath('/booking');
+    revalidatePath('/patient-portal');
+    revalidatePath('/dashboard');
     return { success: 'Clinic details updated successfully.' };
 }
 
@@ -635,6 +643,8 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     revalidatePath('/admin');
     revalidatePath('/');
     revalidatePath('/booking');
+    revalidatePath('/patient-portal');
+    revalidatePath('/dashboard');
     return { success: 'Special closures updated successfully.' };
 }
 
@@ -642,12 +652,16 @@ export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
     await updateVisitPurposesData(purposes);
     revalidatePath('/admin');
     revalidatePath('/booking');
+    revalidatePath('/patient-portal');
+    revalidatePath('/dashboard');
     return { success: 'Visit purposes updated successfully.' };
 }
 
 export async function updateFamilyMemberAction(member: FamilyMember) {
     await updateFamilyMember(member);
     revalidatePath('/booking');
+    revalidatePath('/patient-portal');
+    revalidatePath('/dashboard');
     return { success: 'Family member updated.' };
 }
 
