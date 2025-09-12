@@ -146,6 +146,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   revalidatePath('/queue-status');
   revalidatePath('/tv-display');
   revalidatePath('/admin');
+  revalidatePath('/api/patients');
   
   return { success: 'Appointment booked successfully.', patient: newPatient };
 }
@@ -207,6 +208,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
   revalidatePath('/tv-display');
   revalidatePath('/queue-status');
   revalidatePath('/admin');
+  revalidatePath('/api/patients');
   
   return { success: `Patient status updated to ${status}` };
 }
@@ -318,6 +320,7 @@ export async function emergencyCancelAction() {
     revalidatePath('/queue_status');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
+    revalidatePath('/api/patients');
     
     return { success: `Emergency declared. All ${activePatients.length} active appointments have been cancelled.` };
 }
@@ -386,6 +389,7 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
     revalidatePath('/queue-status');
     revalidatePath('/tv-display');
     revalidatePath('/admin');
+    revalidatePath('/api/patients');
     return { patient: newPatient, success: "Patient added successfully" };
 }
 
@@ -405,6 +409,7 @@ export async function addNewPatientAction(familyMemberData: Omit<FamilyMember, '
     revalidatePath('/queue-status');
     revalidatePath('/tv-display');
     revalidatePath('/admin');
+    revalidatePath('/api/family');
     return { patient: newMember, success: "Family member added successfully." };
 }
 
@@ -429,6 +434,7 @@ export async function checkInPatientAction(patientId: number) {
   revalidatePath('/patient-portal');
   revalidatePath('/queue-status');
   revalidatePath('/tv-display');
+  revalidatePath('/api/patients');
   return { success: `${patient.name} has been checked in.` };
 }
 
@@ -601,6 +607,7 @@ export async function recalculateQueueWithETC() {
     revalidatePath('/patient-portal');
     revalidatePath('/queue_status');
     revalidatePath('/tv_display');
+    revalidatePath('/api/patients');
     return { success: `Queue recalculated for all sessions.` };
 }
 
@@ -612,6 +619,7 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
     revalidatePath('/dashboard');
+    revalidatePath('/api/schedule');
     return { success: "Today's schedule has been updated." };
 }
 
@@ -624,6 +632,7 @@ export async function updatePatientPurposeAction(patientId: number, purpose: str
     revalidatePath('/patient-portal');
     revalidatePath('/queue-status');
     revalidatePath('/tv-display');
+    revalidatePath('/api/patients');
     return { success: 'Visit purpose updated.' };
 }
 
@@ -634,6 +643,7 @@ export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedul
     revalidatePath('/dashboard');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
+    revalidatePath('/api/schedule');
     return { success: 'Doctor schedule updated successfully.', schedule: updated };
 }
 
@@ -644,6 +654,7 @@ export async function updateClinicDetailsAction(details: ClinicDetails) {
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
     revalidatePath('/dashboard');
+    revalidatePath('/api/schedule');
     return { success: 'Clinic details updated successfully.' };
 }
 
@@ -654,6 +665,7 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
     revalidatePath('/dashboard');
+    revalidatePath('/api/schedule');
     return { success: 'Special closures updated successfully.' };
 }
 
@@ -664,6 +676,7 @@ export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
     revalidatePath('/dashboard');
+    revalidatePath('/api/schedule');
     return { success: 'Visit purposes updated successfully.' };
 }
 
@@ -674,6 +687,7 @@ export async function updateFamilyMemberAction(member: FamilyMember) {
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
     revalidatePath('/dashboard');
+    revalidatePath('/api/family');
     return { success: 'Family member updated.' };
 }
 
@@ -687,6 +701,7 @@ if (patient) {
         revalidatePath('/patient-portal');
         revalidatePath('/queue-status');
         revalidatePath('/tv-display');
+        revalidatePath('/api/patients');
         return { success: 'Appointment cancelled.' };
     }
     return { error: 'Could not find appointment to cancel.' };
@@ -754,6 +769,7 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
     revalidatePath('/patient-portal');
     revalidatePath('/queue-status');
     revalidatePath('/tv-display');
+    revalidatePath('/api/patients');
 
     return { success: 'Appointment rescheduled successfully.' };
 }
@@ -818,6 +834,7 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   revalidatePath('/queue_status');
   revalidatePath('/booking');
   revalidatePath('/patient-portal');
+  revalidatePath('/api/patients');
 
   return { success: `Patient marked as late and pushed down by ${penalty} positions.` };
 }
@@ -832,3 +849,6 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
 
 
+
+
+    
