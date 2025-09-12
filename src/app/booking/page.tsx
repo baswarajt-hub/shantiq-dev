@@ -196,8 +196,10 @@ export default function BookingPage() {
   }, []);
 
   useEffect(() => {
+    const activeStatuses: Patient['status'][] = ['Booked', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Waiting for Reports'];
+    
     const appointmentsFromPatients = patients
-        .filter(p => ['Appointment', 'Booked', 'Confirmed'].includes(p.status) || p.type === 'Appointment')
+        .filter(p => activeStatuses.includes(p.status) || p.type === 'Appointment')
         .map(p => {
             const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
             const appointmentDate = parseISO(p.appointmentTime);
@@ -252,7 +254,7 @@ export default function BookingPage() {
 
   const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
     startTransition(async () => {
-        const phone = family.length > 0 ? family[0].phone : '5551112222'; // Use existing family phone or a default
+        const phone = family.length > 0 ? family[0].phone : '5551112222';
         const result = await addNewPatientAction({...member, phone });
         if(result.success){
             toast({ title: "Success", description: "Family member added."});
