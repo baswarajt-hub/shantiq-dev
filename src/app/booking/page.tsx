@@ -199,7 +199,7 @@ export default function BookingPage() {
     const activeStatuses: Patient['status'][] = ['Booked', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Waiting for Reports'];
     
     const appointmentsFromPatients = patients
-        .filter(p => activeStatuses.includes(p.status) || (p.type === 'Appointment' && !['Cancelled', 'Completed'].includes(p.status)))
+        .filter(p => activeStatuses.includes(p.status) || p.status === 'Booked' || p.status === 'Confirmed')
         .map(p => {
             const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
             const appointmentDate = parseISO(p.appointmentTime);
@@ -252,17 +252,9 @@ export default function BookingPage() {
   }
 
 
-  const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
+  const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar'>) => {
     startTransition(async () => {
-        // Find the phone number from an existing family member.
-        // In a real app, this might come from the logged-in user's session.
-        const phone = family.length > 0 ? family[0].phone : '';
-        if (!phone) {
-          toast({ title: "Action Required", description: "Please add a phone number for the family first.", variant: 'destructive'});
-          return;
-        }
-
-        const result = await addNewPatientAction({ ...member, phone });
+        const result = await addNewPatientAction(member);
         if(result.success){
             toast({ title: "Success", description: "Family member added."});
             await loadData();
@@ -544,4 +536,5 @@ export default function BookingPage() {
     
 
     
+
 
