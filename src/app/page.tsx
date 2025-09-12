@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -82,10 +82,12 @@ export default function DashboardPage() {
 
     const loadData = async () => {
         startTransition(async () => {
-            const scheduleData = await getDoctorScheduleAction();
-            const patientData = await getPatientsAction();
-            const familyData = await getFamilyAction();
-            const statusData = await getDoctorStatusAction();
+            const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+                getDoctorScheduleAction(),
+                getPatientsAction(),
+                getFamilyAction(),
+                getDoctorStatusAction()
+            ]);
             
             setSchedule(scheduleData);
             setPatients(patientData);
@@ -214,7 +216,14 @@ export default function DashboardPage() {
     
     const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean, purpose: string) => {
         startTransition(async () => {
-             const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, isWalkIn);
+             const result = await addPatientAction({
+                name: familyMember.name,
+                phone: familyMember.phone,
+                type: isWalkIn ? 'Walk-in' : 'Appointment',
+                appointmentTime: appointmentIsoString,
+                status: isWalkIn ? 'Waiting' : 'Booked',
+                purpose: purpose,
+             });
 
             if (result.success && result.patient) {
                 if (isWalkIn) {
