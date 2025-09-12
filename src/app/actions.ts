@@ -198,8 +198,8 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
   await recalculateQueueWithETC();
 
   revalidatePath('/');
-  revalidatePath('/tv_display');
-  revalidatePath('/queue_status');
+  revalidatePath('/tv-display');
+  revalidatePath('/queue-status');
   revalidatePath('/booking');
   
   return { success: `Patient status updated to ${status}` };
@@ -399,8 +399,8 @@ export async function checkInPatientAction(patientId: number) {
   await recalculateQueueWithETC();
   revalidatePath('/');
   revalidatePath('/booking');
-  revalidatePath('/queue_status');
-  revalidatePath('/tv_display');
+  revalidatePath('/queue-status');
+  revalidatePath('/tv-display');
   return { success: `${patient.name} has been checked in.` };
 }
 
@@ -697,8 +697,8 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
 
     revalidatePath('/booking');
     revalidatePath('/');
-    revalidatePath('/queue_status');
-    revalidatePath('/tv_display');
+    revalidatePath('/queue-status');
+    revalidatePath('/tv-display');
 
     return { success: 'Appointment rescheduled successfully.' };
 }
@@ -767,3 +767,5 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
     
 
   
+
+    
