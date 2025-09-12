@@ -392,10 +392,13 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
 
 export async function addNewPatientAction(familyMemberData: Omit<FamilyMember, 'id'|'avatar'>) {
     const newMember = await addFamilyMember(familyMemberData);
-    revalidatePath('/booking');
     revalidatePath('/');
     revalidatePath('/dashboard');
+    revalidatePath('/booking');
     revalidatePath('/patient-portal');
+    revalidatePath('/queue-status');
+    revalidatePath('/tv-display');
+    revalidatePath('/admin');
     return { patient: newMember, success: "Family member added successfully." };
 }
 
@@ -620,8 +623,8 @@ export async function updatePatientPurposeAction(patientId: number, purpose: str
 
 export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedule>) {
     const updated = await updateDoctorSchedule(schedule);
-    revalidatePath('/admin');
     revalidatePath('/');
+    revalidatePath('/admin');
     revalidatePath('/dashboard');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
@@ -630,8 +633,8 @@ export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedul
 
 export async function updateClinicDetailsAction(details: ClinicDetails) {
     await updateClinicDetailsData(details);
-    revalidatePath('/admin');
     revalidatePath('/');
+    revalidatePath('/admin');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
     revalidatePath('/dashboard');
@@ -640,8 +643,8 @@ export async function updateClinicDetailsAction(details: ClinicDetails) {
 
 export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     await updateSpecialClosures(closures);
-    revalidatePath('/admin');
     revalidatePath('/');
+    revalidatePath('/admin');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
     revalidatePath('/dashboard');
@@ -650,6 +653,7 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
 
 export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
     await updateVisitPurposesData(purposes);
+    revalidatePath('/');
     revalidatePath('/admin');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
@@ -659,6 +663,8 @@ export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
 
 export async function updateFamilyMemberAction(member: FamilyMember) {
     await updateFamilyMember(member);
+    revalidatePath('/');
+    revalidatePath('/admin');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
     revalidatePath('/dashboard');
@@ -815,6 +821,7 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   
 
     
+
 
 
 

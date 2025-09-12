@@ -17,7 +17,7 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
+import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction, getFamilyAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
 import { format, parseISO, parse as parseDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -199,7 +199,7 @@ export default function BookingPage() {
     const activeStatuses: Patient['status'][] = ['Booked', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Waiting for Reports'];
     
     const appointmentsFromPatients = patients
-        .filter(p => activeStatuses.includes(p.status) || p.type === 'Appointment')
+        .filter(p => activeStatuses.includes(p.status) || (p.type === 'Appointment' && !['Cancelled', 'Completed'].includes(p.status)))
         .map(p => {
             const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
             const appointmentDate = parseISO(p.appointmentTime);
@@ -254,8 +254,8 @@ export default function BookingPage() {
 
   const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
     startTransition(async () => {
-        const phone = family.length > 0 ? family[0].phone : '5551112222';
-        const result = await addNewPatientAction({...member, phone });
+        // The addNewPatientAction on the server will handle assigning the correct phone number.
+        const result = await addNewPatientAction({...member });
         if(result.success){
             toast({ title: "Success", description: "Family member added."});
             await loadData();
@@ -323,7 +323,7 @@ export default function BookingPage() {
   const handleRescheduleAppointment = (newDate: string, newTime: string, newPurpose: string) => {
     if (selectedAppointment) {
       startTransition(async () => {
-        const dateObj = parseDate(newDate, 'yyyy-MM-dd', new Date());
+        const dateObj = parseDate(newDate, 'yyyy-M-dd', new Date());
         const timeObj = parseDate(newTime, 'hh:mm a', dateObj);
         const appointmentTime = timeObj.toISOString();
 
@@ -332,13 +332,13 @@ export default function BookingPage() {
           toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
           await loadData();
         } else {
-          toast({ title: 'Error', description: "Could not reschedule", variant: 'destructive' });
+          toast({ title: 'Error', description: result.error || "Could not reschedule", variant: 'destructive' });
         }
       });
     }
   };
   
-  const upcomingAppointments = appointments.filter(appt => ['Booked', 'Waiting', 'Late', 'Priority'].includes(appt.status as string) && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
+  const upcomingAppointments = appointments.filter(appt => ['Booked', 'Waiting', 'Late', 'Priority', 'In-Consultation', 'Waiting for Reports'].includes(appt.status as string) && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
   const pastAppointments = appointments.filter(appt => !upcomingAppointments.some(up => up.id === appt.id));
 
   const currentDaySchedule = todaySchedule();
