@@ -254,8 +254,15 @@ export default function BookingPage() {
 
   const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
     startTransition(async () => {
-        // The addNewPatientAction on the server will handle assigning the correct phone number.
-        const result = await addNewPatientAction({...member });
+        // Find the phone number from an existing family member.
+        // In a real app, this might come from the logged-in user's session.
+        const phone = family.length > 0 ? family[0].phone : '';
+        if (!phone) {
+          toast({ title: "Error", description: "Could not determine phone number for the family.", variant: 'destructive'});
+          return;
+        }
+
+        const result = await addNewPatientAction({ ...member, phone });
         if(result.success){
             toast({ title: "Success", description: "Family member added."});
             await loadData();
