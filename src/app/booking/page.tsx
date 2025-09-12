@@ -182,9 +182,13 @@ export default function BookingPage() {
       fetch('/api/schedule', { cache: 'no-store' }),
     ]);
 
-    setFamily(await familyRes.json());
-    setPatients(await patientsRes.json());
-    setSchedule(await scheduleRes.json());
+    const familyData = await familyRes.json();
+    const patientData = await patientsRes.json();
+    const scheduleData = await scheduleRes.json();
+
+    setFamily(familyData);
+    setPatients(patientData);
+    setSchedule(scheduleData);
   };
 
   useEffect(() => {
@@ -196,10 +200,10 @@ export default function BookingPage() {
   }, []);
 
   useEffect(() => {
-    const activeStatuses: Patient['status'][] = ['Booked', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Waiting for Reports'];
+    const activeStatuses: Patient['status'][] = ['Booked', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Waiting for Reports', 'Confirmed'];
     
     const appointmentsFromPatients = patients
-        .filter(p => activeStatuses.includes(p.status) || p.status === 'Booked' || p.status === 'Confirmed')
+        .filter(p => activeStatuses.includes(p.status))
         .map(p => {
             const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
             const appointmentDate = parseISO(p.appointmentTime);
@@ -303,7 +307,7 @@ export default function BookingPage() {
             toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
             await loadData();
         } else {
-            toast({ title: 'Error', description: "Could not cancel appointment", variant: 'destructive' });
+            toast({ title: 'Error', description: result.error || "Could not cancel appointment", variant: 'destructive' });
         }
     });
   }
@@ -341,7 +345,7 @@ export default function BookingPage() {
     }
   };
   
-  const upcomingAppointments = appointments.filter(appt => ['Booked', 'Waiting', 'Late', 'Priority', 'In-Consultation', 'Waiting for Reports'].includes(appt.status as string) && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
+  const upcomingAppointments = appointments.filter(appt => ['Booked', 'Waiting', 'Late', 'Priority', 'In-Consultation', 'Waiting for Reports', 'Confirmed'].includes(appt.status as string) && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
   const pastAppointments = appointments.filter(appt => !upcomingAppointments.some(up => up.id === appt.id));
 
   const currentDaySchedule = todaySchedule();
@@ -543,3 +547,6 @@ export default function BookingPage() {
 
 
 
+
+
+    
