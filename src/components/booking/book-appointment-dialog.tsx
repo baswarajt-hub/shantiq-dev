@@ -111,12 +111,10 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
           } else if (isBooked) {
             slotState = 'booked';
           } else {
-            // Rule 1: Reserve first 5 slots
             if (schedule.reserveFirstFive && slotIndex < 5) {
               isReservedForWalkIn = true;
             }
 
-            // Rule 2: Alternate reservation strategies (applies after the first 5 if that rule is active)
             const reservationStrategy = schedule.walkInReservation;
             const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
 
@@ -310,3 +308,5 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     </Dialog>
   );
 }
+
+    
