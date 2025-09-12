@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -138,8 +139,10 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     tokenNo: tokenNo
   });
   
-  revalidatePath('/booking');
   revalidatePath('/');
+  revalidatePath('/dashboard');
+  revalidatePath('/booking');
+  revalidatePath('/patient-portal');
   revalidatePath('/queue-status');
   revalidatePath('/tv-display');
   revalidatePath('/admin');
@@ -198,9 +201,12 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
   await recalculateQueueWithETC();
 
   revalidatePath('/');
+  revalidatePath('/dashboard');
+  revalidatePath('/booking');
+  revalidatePath('/patient-portal');
   revalidatePath('/tv-display');
   revalidatePath('/queue-status');
-  revalidatePath('/booking');
+  revalidatePath('/admin');
   
   return { success: `Patient status updated to ${status}` };
 }
@@ -276,6 +282,7 @@ export async function toggleDoctorStatusAction(isOnline: boolean, startDelayMinu
     await updateDoctorStatus(newStatus);
     await recalculateQueueWithETC();
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath('/tv_display');
     revalidatePath('/queue_status');
     return { success: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.` };
@@ -285,6 +292,7 @@ export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
     await updateDoctorStatus({ startDelay: startDelayMinutes });
     await recalculateQueueWithETC();
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath('/tv_display');
     revalidatePath('/queue_status');
     return { success: `Doctor delay updated to ${startDelayMinutes} minutes.` };
@@ -303,8 +311,11 @@ export async function emergencyCancelAction() {
     await updateDoctorStatus({ isOnline: false, startDelay: 0 });
 
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath('/tv_display');
     revalidatePath('/queue_status');
+    revalidatePath('/booking');
+    revalidatePath('/patient-portal');
     
     return { success: `Emergency declared. All ${activePatients.length} active appointments have been cancelled.` };
 }
@@ -367,7 +378,9 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
     
     const newPatient = await addPatientData({...patientData, tokenNo });
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath('/booking');
+    revalidatePath('/patient-portal');
     revalidatePath('/queue-status');
     revalidatePath('/tv-display');
     revalidatePath('/admin');
@@ -398,7 +411,9 @@ export async function checkInPatientAction(patientId: number) {
   await updatePatient(patient.id, { status: 'Waiting', checkInTime: new Date().toISOString() });
   await recalculateQueueWithETC();
   revalidatePath('/');
+  revalidatePath('/dashboard');
   revalidatePath('/booking');
+  revalidatePath('/patient-portal');
   revalidatePath('/queue-status');
   revalidatePath('/tv-display');
   return { success: `${patient.name} has been checked in.` };
@@ -568,7 +583,9 @@ export async function recalculateQueueWithETC() {
     await updateAllPatients(updatedPatients);
 
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath('/booking');
+    revalidatePath('/patient-portal');
     revalidatePath('/queue_status');
     revalidatePath('/tv_display');
     return { success: `Queue recalculated for all sessions.` };
@@ -587,6 +604,11 @@ export async function updatePatientPurposeAction(patientId: number, purpose: str
     await updatePatient(patientId, { purpose });
     await recalculateQueueWithETC();
     revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath('/booking');
+    revalidatePath('/patient-portal');
+    revalidatePath('/queue-status');
+    revalidatePath('/tv-display');
     return { success: 'Visit purpose updated.' };
 }
 
@@ -594,6 +616,7 @@ export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedul
     const updated = await updateDoctorSchedule(schedule);
     revalidatePath('/admin');
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
     return { success: 'Doctor schedule updated successfully.', schedule: updated };
@@ -632,8 +655,12 @@ export async function cancelAppointmentAction(appointmentId: number) {
     const patient = await cancelAppointment(appointmentId);
 if (patient) {
         await recalculateQueueWithETC();
-        revalidatePath('/booking');
         revalidatePath('/');
+        revalidatePath('/dashboard');
+        revalidatePath('/booking');
+        revalidatePath('/patient-portal');
+        revalidatePath('/queue-status');
+        revalidatePath('/tv-display');
         return { success: 'Appointment cancelled.' };
     }
     return { error: 'Could not find appointment to cancel.' };
@@ -695,8 +722,10 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
     
     await recalculateQueueWithETC();
 
-    revalidatePath('/booking');
     revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath('/booking');
+    revalidatePath('/patient-portal');
     revalidatePath('/queue-status');
     revalidatePath('/tv-display');
 
@@ -758,8 +787,11 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
   await recalculateQueueWithETC();
   revalidatePath('/');
+  revalidatePath('/dashboard');
   revalidatePath('/tv_display');
   revalidatePath('/queue_status');
+  revalidatePath('/booking');
+  revalidatePath('/patient-portal');
 
   return { success: `Patient marked as late and pushed down by ${penalty} positions.` };
 }

@@ -17,7 +17,7 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { getDoctorScheduleAction, getFamilyAction, getPatientsAction, addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
+import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction } from '@/app/actions';
 import { format, parseISO, parse as parseDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -176,13 +176,15 @@ export default function BookingPage() {
   const [isPending, startTransition] = useTransition();
 
   const loadData = async () => {
-    const familyData = await getFamilyAction();
-    const patientData = await getPatientsAction();
-    const scheduleData = await getDoctorScheduleAction();
-    
-    setFamily(familyData);
-    setPatients(patientData);
-    setSchedule(scheduleData);
+    const [familyRes, patientsRes, scheduleRes] = await Promise.all([
+      fetch('/api/family', { cache: 'no-store' }),
+      fetch('/api/patients', { cache: 'no-store' }),
+      fetch('/api/schedule', { cache: 'no-store' }),
+    ]);
+
+    setFamily(await familyRes.json());
+    setPatients(await patientsRes.json());
+    setSchedule(await scheduleRes.json());
   };
 
   useEffect(() => {
