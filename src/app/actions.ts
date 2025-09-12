@@ -76,7 +76,6 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   const allPatients = await getPatientsData();
   const schedule = await getDoctorScheduleData();
   const newAppointmentDate = parseISO(appointmentTime);
-  const dateStr = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
 
   const newAppointmentSession = getSessionForTime(schedule, newAppointmentDate);
   
@@ -106,6 +105,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   }
 
   // --- Session-Specific Token Number Calculation ---
+    const dateStr = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
     const dayOfWeek = format(toZonedTime(newAppointmentDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
     let daySchedule = schedule.days[dayOfWeek];
     const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
@@ -326,7 +326,6 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
     const schedule = await getDoctorScheduleData();
     const allPatients = await getPatientsData();
     const newAppointmentDate = parseISO(patientData.appointmentTime);
-    const dateStr = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
 
     const newAppointmentSession = getSessionForTime(schedule, newAppointmentDate);
 
@@ -356,6 +355,7 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
     }
 
     // --- Session-Specific Token Number Calculation ---
+    const dateStr = format(toZonedTime(newAppointmentDate, timeZone), "yyyy-MM-dd");
     const dayOfWeek = format(toZonedTime(newAppointmentDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
     let daySchedule = schedule.days[dayOfWeek];
     const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
@@ -815,3 +815,4 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   
 
     
+
