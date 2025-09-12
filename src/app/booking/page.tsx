@@ -258,7 +258,7 @@ export default function BookingPage() {
         // In a real app, this might come from the logged-in user's session.
         const phone = family.length > 0 ? family[0].phone : '';
         if (!phone) {
-          toast({ title: "Error", description: "Could not determine phone number for the family.", variant: 'destructive'});
+          toast({ title: "Action Required", description: "Please add a phone number for the family first.", variant: 'destructive'});
           return;
         }
 
@@ -544,3 +544,4 @@ export default function BookingPage() {
     
 
     
+

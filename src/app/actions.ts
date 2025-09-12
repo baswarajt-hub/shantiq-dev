@@ -391,7 +391,13 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
 
 
 export async function addNewPatientAction(familyMemberData: Omit<FamilyMember, 'id'|'avatar'>) {
+    if (!familyMemberData.phone) {
+        return { error: 'Phone number is required to add a family member.' };
+    }
     const newMember = await addFamilyMember(familyMemberData);
+    if (!newMember) {
+        return { error: 'Failed to create a new family member.' };
+    }
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath('/booking');
@@ -821,6 +827,7 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   
 
     
+
 
 
 
