@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { findPatientsByPhoneAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, Shield, User, WifiOff, Timer, Search, Ticket, ArrowRight, UserCheck, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, User, WifiOff, Timer, Search, Ticket, ArrowRight, UserCheck, AlertTriangle, PartyPopper } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { format, parseISO, isToday } from 'date-fns';
 import { Input } from '@/components/ui/input';
@@ -89,7 +89,7 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
             <CardHeader>
                  <CardTitle className="text-lg flex items-center gap-2">
                     {isPriority ? <Shield className="text-red-600" /> : <ArrowRight />}
-                    {isPriority ? 'Priority Patient Next' : 'You\'re Up Next!'}
+                    {isPriority ? 'Priority Patient Next' : 'Up Next'}
                  </CardTitle>
                 <CardDescription>Please proceed to the waiting area.</CardDescription>
             </CardHeader>
@@ -105,6 +105,21 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
 }
 
 function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { patient: Patient, queuePosition: number, isUpNext: boolean, isNowServing: boolean }) {
+
+    if (patient.status === 'Completed') {
+        return (
+             <Card className="bg-green-100 border-green-400">
+                <CardHeader>
+                    <CardTitle className="text-xl flex items-center gap-2"><PartyPopper /> Consultation Completed!</CardTitle>
+                    <CardDescription>We wish you a speedy recovery.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-4xl font-bold">{patient.name}</p>
+                    <p className="text-muted-foreground mt-1">Your consultation is finished. Thank you for visiting.</p>
+                </CardContent>
+            </Card>
+        )
+    }
 
     if (isNowServing) {
         return (
@@ -125,7 +140,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
          return (
             <Card className="bg-amber-100 border-amber-400">
                 <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2"><UserCheck /> You Are Next!</CardTitle>
+                    <CardTitle className="text-xl flex items-center gap-2"><UserCheck /> You Are Up Next!</CardTitle>
                     <CardDescription>Please be ready, your turn is about to begin.</CardDescription>
                 </CardHeader>
                  <CardContent>
@@ -166,10 +181,6 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
             </Card>
         )
     }
-    
-    const etcText = patient.bestCaseETC && patient.worstCaseETC
-    ? `between ${format(parseISO(patient.bestCaseETC), 'hh:mm a')} and ${format(parseISO(patient.worstCaseETC), 'hh:mm a')}`
-    : `in ~${patient.estimatedWaitTime} minutes`;
 
     return (
         <Card>
@@ -179,9 +190,24 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
             </CardHeader>
             <CardContent>
                 <p className="text-4xl font-bold">{patient.name}</p>
-                <div className="text-muted-foreground mt-2 space-y-1">
+                <div className="text-muted-foreground mt-2 space-y-2">
                     <p className="flex items-center gap-2"><Ticket className="h-4 w-4"/> Token #{patient.tokenNo}</p>
-                    <p className="flex items-center gap-2"><Timer className="h-4 w-4"/> Estimated time: {etcText}</p>
+                    <div className="flex items-start gap-4 text-sm">
+                        <div className="flex-1 space-y-1">
+                            <p className="flex items-center gap-2 font-semibold text-green-600">
+                                <Timer className="h-4 w-4" /> Best ETC:
+                            </p>
+                            <p className="pl-6">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</p>
+                            <p className="text-xs pl-6">(If prior booked appointments don't check-in)</p>
+                        </div>
+                         <div className="flex-1 space-y-1">
+                            <p className="flex items-center gap-2 font-semibold text-orange-600">
+                                <Timer className="h-4 w-4" /> Worst ETC:
+                            </p>
+                            <p className="pl-6">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</p>
+                            <p className="text-xs pl-6">(If all booked appointments check-in on time)</p>
+                        </div>
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -223,7 +249,7 @@ export default function QueueStatusPage() {
     }
     startTransition(async () => {
         const appointments = await findPatientsByPhoneAction(phone);
-        const todaysAppointments = appointments.filter((p: Patient) => isToday(parseISO(p.appointmentTime)) && p.status !== 'Cancelled' && p.status !== 'Completed');
+        const todaysAppointments = appointments.filter((p: Patient) => isToday(parseISO(p.appointmentTime)) && p.status !== 'Cancelled');
 
         if (todaysAppointments.length === 0) {
             toast({ title: 'No active appointments found', description: 'No appointments for today were found for this phone number.'});
@@ -298,27 +324,6 @@ export default function QueueStatusPage() {
               <UpNextCard patient={upNext} />
             </div>
 
-            {liveQueue.length > 1 && (
-              <div className="mt-8">
-                <h2 className="text-2xl font-bold text-center mb-6">Next in Line</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {liveQueue.slice(1, 4).map((patient, index) => (
-                    <Card key={patient.id}>
-                      <CardContent className="p-4 flex items-center space-x-4">
-                        <div className="flex-shrink-0 text-lg font-bold text-primary">#{index + 2}</div>
-                        <div>
-                          <p className="font-semibold">{patient.name}</p>
-                           <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                            <Timer className="h-4 w-4" /> ~{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : `${patient.estimatedWaitTime} min`}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {allPatients.some(p => p.status === 'Waiting for Reports') && (
               <div className="mt-8">
                  <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
@@ -342,5 +347,7 @@ export default function QueueStatusPage() {
     </div>
   );
 }
+
+    
 
     
