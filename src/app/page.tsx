@@ -34,7 +34,7 @@ type TimeSlot = {
   isBooked: boolean;
   isReservedForWalkIn?: boolean;
   patient?: Patient;
-  patientDetails?: FamilyMember;
+  patientDetails?: Partial<FamilyMember>;
 }
 
 const statusConfig = {
@@ -190,13 +190,26 @@ export default function DashboardPage() {
                     }
                 }
 
+                let patientDetails: Partial<FamilyMember> | undefined;
+                if (patientForSlot) {
+                    patientDetails = familyMap.get(`${patientForSlot.phone}-${patientForSlot.name}`);
+                    // If not found in familyMap (e.g., new registration), create a partial object from patient data
+                    if (!patientDetails) {
+                        patientDetails = {
+                            name: patientForSlot.name,
+                            phone: patientForSlot.phone,
+                            gender: 'Other' // Default gender, as it's not on the patient object
+                        };
+                    }
+                }
+
 
                 generatedSlots.push({
                     time: timeString,
                     isBooked: isBooked,
                     isReservedForWalkIn: isReservedForWalkIn,
                     patient: patientForSlot,
-                    patientDetails: patientForSlot ? familyMap.get(`${patientForSlot.phone}-${patientForSlot.name}`) : undefined,
+                    patientDetails: patientDetails,
                 });
 
                 currentTime = addMinutes(currentTime, schedule.slotDuration);
@@ -410,8 +423,8 @@ export default function DashboardPage() {
         
         if (!slot.isBooked || !slot.patientDetails) return false;
         const lowerSearch = searchTerm.toLowerCase();
-        return slot.patientDetails.name.toLowerCase().includes(lowerSearch) ||
-               slot.patientDetails.phone.includes(lowerSearch) ||
+        return slot.patientDetails.name?.toLowerCase().includes(lowerSearch) ||
+               slot.patientDetails.phone?.includes(lowerSearch) ||
                (slot.patientDetails.clinicId && slot.patientDetails.clinicId.toLowerCase().includes(lowerSearch));
     });
 
@@ -585,7 +598,7 @@ export default function DashboardPage() {
                                                     <div className='flex items-center gap-2 font-semibold'>
                                                         {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={slot.patient.purpose} />}
                                                         {slot.patientDetails.name}
-                                                        {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : <FemaleIcon className="h-4 w-4 text-pink-500" />}
+                                                        {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : slot.patientDetails.gender === 'Female' ? <FemaleIcon className="h-4 w-4 text-pink-500" /> : null}
                                                         <Badge variant={slot.patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{slot.patient.type || 'Appointment'}</Badge>
                                                          {slot.patient.status === 'Priority' && <Badge variant="destructive">Priority</Badge>}
                                                     </div>
@@ -796,7 +809,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
-
-    
