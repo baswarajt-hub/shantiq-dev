@@ -7,7 +7,7 @@ import { findPatientsByPhoneAction, getDoctorStatusAction, getPatientsAction } f
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Search, Ticket, ArrowRight, UserCheck, PartyPopper } from 'lucide-react';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useCallback } from 'react';
 import { format, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -262,7 +262,7 @@ export default function QueueStatusPage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
       const [patientData, statusData] = await Promise.all([
         getPatientsAction(),
         getDoctorStatusAction()
@@ -271,26 +271,26 @@ export default function QueueStatusPage() {
       setDoctorStatus(statusData);
       setLastUpdated(new Date().toLocaleTimeString());
 
-      // If a patient has been searched for, check if their status has updated to 'Completed'
       if (foundAppointments.length > 0) {
-        const searchedPatientId = foundAppointments[0].id;
-        const updatedPatient = patientData.find((p: Patient) => p.id === searchedPatientId);
+        const foundIds = foundAppointments.map(f => f.id);
+        const updatedPatient = patientData.find((p: Patient) => foundIds.includes(p.id) && p.status === 'Completed');
 
-        if (updatedPatient && updatedPatient.status === 'Completed') {
+        if (updatedPatient) {
             setCompletedAppointmentForDisplay(updatedPatient);
             setFoundAppointments([]);
-        } else if (updatedPatient) {
-            // Also refresh the foundAppointments data with the latest from the server
-            setFoundAppointments([updatedPatient]);
+        } else {
+            const stillActive = patientData.filter((p: Patient) => foundIds.includes(p.id));
+            setFoundAppointments(stillActive);
         }
       }
-    };
+    }, [foundAppointments]);
+
 
   useEffect(() => {
     fetchData(); // Initial fetch
     const intervalId = setInterval(fetchData, 30000); // Poll every 30 seconds
     return () => clearInterval(intervalId);
-  }, []);
+  }, [fetchData]);
 
   const handleSearch = () => {
     if (!phone) {
@@ -423,5 +423,3 @@ export default function QueueStatusPage() {
     </div>
   );
 }
-
-    
