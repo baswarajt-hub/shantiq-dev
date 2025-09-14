@@ -8,7 +8,7 @@ import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Clock, FileClock, Hourglass, Shield, User, WifiOff, Timer, Search, Ticket, ArrowRight, UserCheck, AlertTriangle, PartyPopper } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
-import { format, parseISO, isToday } from 'date-fns';
+import { format, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -107,6 +107,7 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
 function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { patient: Patient, queuePosition: number, isUpNext: boolean, isNowServing: boolean }) {
 
     if (patient.status === 'Completed') {
+        const waitTime = (patient.checkInTime && patient.consultationStartTime) ? differenceInMinutes(parseISO(patient.consultationStartTime), parseISO(patient.checkInTime)) : null;
         return (
              <Card className="bg-green-100 border-green-400">
                 <CardHeader>
@@ -115,7 +116,20 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
                 </CardHeader>
                 <CardContent>
                     <p className="text-4xl font-bold">{patient.name}</p>
-                    <p className="text-muted-foreground mt-1">Your consultation is finished. Thank you for visiting.</p>
+                    <div className="text-muted-foreground mt-2 grid grid-cols-2 gap-4">
+                        {waitTime !== null && (
+                            <div className="font-semibold">
+                                <p>Your wait time:</p>
+                                <p className="text-2xl text-foreground">{waitTime} minutes</p>
+                            </div>
+                        )}
+                        {patient.consultationTime && (
+                            <div className="font-semibold">
+                                <p>Consultation took:</p>
+                                <p className="text-2xl text-foreground">{patient.consultationTime} minutes</p>
+                            </div>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
         )
@@ -177,6 +191,20 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
                     <p className="text-muted-foreground flex items-center gap-2 mt-1">
                         Appointment at {format(parseISO(patient.appointmentTime), 'hh:mm a')}
                     </p>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    if (queuePosition <= 0) {
+        return (
+            <Card className="bg-gray-100 border-gray-300">
+                <CardHeader>
+                    <CardTitle className="text-xl">Calculating your position...</CardTitle>
+                    <CardDescription>Your status is being updated. Please wait a moment.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-4xl font-bold">{patient.name}</p>
                 </CardContent>
             </Card>
         )
