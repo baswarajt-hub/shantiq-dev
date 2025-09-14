@@ -102,6 +102,9 @@ export type FamilyMember = {
   avatar?: string; // URL to avatar image
   clinicId?: string;
   phone: string;
+  isPrimary?: boolean;
+  location?: string;
+  city?: string;
 };
 
 export type Appointment = {

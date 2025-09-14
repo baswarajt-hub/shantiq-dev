@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, User, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, MessageSquare, HelpCircle, Stethoscope, Syringe, Ticket, UserCheck, Timer, Pencil, ArrowDown } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -40,7 +40,7 @@ type TimeSlot = {
 const statusConfig = {
     Waiting: { icon: Clock, color: 'text-blue-600' },
     'Booked': { icon: CalendarIcon, color: 'text-gray-500' },
-    'Confirmed': { icon: UserCheck, color: 'text-indigo-500' }, // This might be legacy, now 'Booked' is used
+    'Confirmed': { icon: CalendarIcon, color: 'text-gray-500' }, 
     'In-Consultation': { icon: Hourglass, color: 'text-yellow-600 animate-pulse' },
     Completed: { icon: CheckCircle, color: 'text-green-600' },
     Late: { icon: UserX, color: 'text-orange-600' },
@@ -82,6 +82,7 @@ export default function DashboardPage() {
 
     const loadData = async () => {
         startTransition(async () => {
+            await recalculateQueueWithETC();
             const [scheduleData, patientData, familyData, statusData] = await Promise.all([
                 getDoctorScheduleAction(),
                 getPatientsAction(),
@@ -216,19 +217,9 @@ export default function DashboardPage() {
     
     const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean, purpose: string) => {
         startTransition(async () => {
-             const result = await addPatientAction({
-                name: familyMember.name,
-                phone: familyMember.phone,
-                type: isWalkIn ? 'Walk-in' : 'Appointment',
-                appointmentTime: appointmentIsoString,
-                status: isWalkIn ? 'Waiting' : 'Booked',
-                purpose: purpose,
-             });
+             const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, isWalkIn);
 
-            if (result.success && result.patient) {
-                if (isWalkIn) {
-                    await checkInPatientAction(result.patient.id);
-                }
+            if (result.success) {
                 await loadData();
                 toast({ title: "Success", description: "Appointment booked successfully."});
             } else {
@@ -403,6 +394,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                await loadData();
             }
         });
     };
@@ -613,14 +605,15 @@ export default function DashboardPage() {
                                                     </div>
                                                     <div className="w-48 text-sm text-muted-foreground">
                                                         {slot.patient.checkInTime ? `Checked in: ${new Date(slot.patient.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
-                                                        : slot.patient.status === 'Completed' && slot.patient.consultationEndTime ? `Finished at ${new Date(slot.patient.consultationEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
-                                                        : 'Awaiting Check-in' }
+                                                        : (slot.patient.status === 'Completed' && slot.patient.consultationEndTime) ? `Finished at ${new Date(slot.patient.consultationEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
+                                                        : (slot.patient.status === 'Booked' || slot.patient.status === 'Confirmed') ? 'Awaiting Check-in'
+                                                        : '' }
                                                     </div>
                                                 </div>
                                             </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start">
-                                            {slot.patient.status === 'Booked' && (
+                                            {(slot.patient.status === 'Booked' || slot.patient.status === 'Confirmed') && (
                                                 <>
                                                     <DropdownMenuItem onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending}>
                                                         <LogIn className="mr-2 h-4 w-4" />

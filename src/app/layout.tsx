@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = {
   title: 'QueueWise',
   description: 'A smart queue management system for clinics.',
+  manifest: '/manifest.json'
 };
 
 export default function RootLayout({

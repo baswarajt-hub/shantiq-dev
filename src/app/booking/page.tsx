@@ -3,11 +3,10 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, User as UserIcon, Ticket } from 'lucide-react';
+import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, Ticket } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient } from '@/lib/types';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
@@ -17,9 +16,10 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction, getFamilyAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
+import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
 import { format, parseISO, parse as parseDate } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 
 const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
@@ -35,7 +35,15 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
       const now = new Date();
       const appointmentDate = parseISO(appointment.date);
       const dayOfWeek = format(appointmentDate, 'EEEE') as keyof DoctorSchedule['days'];
-      const daySchedule = schedule.days[dayOfWeek];
+      let daySchedule = schedule.days[dayOfWeek];
+
+      const todayOverride = schedule.specialClosures.find(c => c.date === format(appointmentDate, 'yyyy-MM-dd'));
+      if (todayOverride) {
+          daySchedule = {
+              morning: todayOverride.morningOverride ?? daySchedule.morning,
+              evening: todayOverride.eveningOverride ?? daySchedule.evening,
+          };
+      }
   
       let sessionStartTimeStr: string | null = null;
       let sessionEndTimeStr: string | null = null;
@@ -172,12 +180,24 @@ export default function BookingPage() {
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [currentDate, setCurrentDate] = useState('');
+  const [phone, setPhone] = useState<string|null>(null);
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
-  const loadData = async () => {
+
+  useEffect(() => {
+    const userPhone = localStorage.getItem('userPhone');
+    if (!userPhone) {
+      router.push('/login');
+    } else {
+        setPhone(userPhone);
+    }
+  }, [router]);
+
+  const loadData = async (userPhone: string) => {
     const [familyData, patientData, scheduleData] = await Promise.all([
-      getFamilyAction(),
+      getFamilyByPhoneAction(userPhone),
       getPatientsAction(),
       getDoctorScheduleAction(),
     ]);
@@ -188,15 +208,18 @@ export default function BookingPage() {
   };
 
   useEffect(() => {
-    startTransition(() => {
-        loadData();
-    });
+    if (phone) {
+        startTransition(() => {
+            loadData(phone);
+        });
+    }
     const today = new Date();
     setCurrentDate(today.toDateString());
-  }, []);
+  }, [phone]);
 
   useEffect(() => {
     const appointmentsFromPatients = patients
+        .filter(p => family.some(f => f.phone === p.phone))
         .map(p => {
             const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
             const appointmentDate = parseISO(p.appointmentTime);
@@ -252,14 +275,11 @@ export default function BookingPage() {
 
   const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
     startTransition(async () => {
-        // Since all family members share one phone number, we get it from the first existing member.
-        // In a real app with authentication, this would come from the logged-in user's profile.
-        const phone = family.length > 0 ? family[0].phone : '5551112222'; // Fallback for the very first member
-        
+        if (!phone) return;
         const result = await addNewPatientAction({ ...member, phone });
         if(result.success){
             toast({ title: "Success", description: "Family member added."});
-            await loadData();
+            if (phone) await loadData(phone);
         } else {
             toast({ title: "Error", description: result.error || "Could not add member", variant: 'destructive'});
         }
@@ -271,7 +291,7 @@ export default function BookingPage() {
         const result = await updateFamilyMemberAction(updatedMember);
          if(result.success){
             toast({ title: "Success", description: "Family member details updated."});
-            await loadData();
+            if (phone) await loadData(phone);
         } else {
             toast({ title: "Error", description: "Could not update member", variant: 'destructive'});
         }
@@ -287,7 +307,7 @@ export default function BookingPage() {
         const result = await addAppointmentAction(familyMember, appointmentTime, purpose, false);
         if (result.success) {
             toast({ title: "Success", description: "Appointment booked."});
-            await loadData();
+            if (phone) await loadData(phone);
         } else {
             toast({ title: "Error", description: result.error, variant: 'destructive'});
         }
@@ -299,7 +319,7 @@ export default function BookingPage() {
         const result = await cancelAppointmentAction(appointmentId);
         if (result.success) {
             toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
-            await loadData();
+            if (phone) await loadData(phone);
         } else {
             toast({ title: 'Error', description: result.error || "Could not cancel appointment", variant: 'destructive' });
         }
@@ -331,7 +351,7 @@ export default function BookingPage() {
         const result = await rescheduleAppointmentAction(selectedAppointment.id, appointmentTime, newPurpose);
         if(result.success) {
           toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
-          await loadData();
+          if (phone) await loadData(phone);
         } else {
           toast({ title: 'Error', description: result.error || "Could not reschedule", variant: 'destructive' });
         }
@@ -339,209 +359,197 @@ export default function BookingPage() {
     }
   };
   
-  const upcomingAppointments = appointments.filter(appt => ['Booked', 'Waiting', 'Late', 'Priority', 'In-Consultation', 'Waiting for Reports', 'Confirmed'].includes(appt.status as string) && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
+  const upcomingAppointments = appointments.filter(appt => !['Completed', 'Cancelled', 'Missed'].includes(appt.status as string) && parseISO(appt.date) >= new Date(new Date().setHours(0,0,0,0)));
   const pastAppointments = appointments.filter(appt => !upcomingAppointments.some(up => up.id === appt.id));
 
   const currentDaySchedule = todaySchedule();
 
+  if (!phone) {
+      return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
   return (
-    <div className="flex flex-col min-h-screen bg-muted/40">
-      <Header />
-      <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-        <div className="grid gap-8 md:grid-cols-3">
-          {/* Left Column */}
-          <div className="md:col-span-1 space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Today's Schedule</CardTitle>
-                <CardDescription>{currentDate}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {currentDaySchedule ? (
-                  <div className="space-y-4 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Morning:</span>
-                      <span className="font-semibold">{currentDaySchedule.morning}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Evening:</span>
-                      <span className="font-semibold">{currentDaySchedule.evening}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <p>Loading schedule...</p>
-                )}
-              </CardContent>
-            </Card>
+    <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
+    <div className="grid gap-8 md:grid-cols-3">
+      {/* Left Column */}
+      <div className="md:col-span-1 space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Today's Schedule</CardTitle>
+            <CardDescription>{currentDate}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {currentDaySchedule ? (
+              <div className="space-y-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Morning:</span>
+                  <span className="font-semibold">{currentDaySchedule.morning}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Evening:</span>
+                  <span className="font-semibold">{currentDaySchedule.evening}</span>
+                </div>
+              </div>
+            ) : (
+              <p>Loading schedule...</p>
+            )}
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Family Members</CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => setAddMemberOpen(true)}>
-                  <PlusCircle className="h-5 w-5" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Family Members</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setAddMemberOpen(true)}>
+              <PlusCircle className="h-5 w-5" />
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {family.map(member => (
+              <div key={member.id} className={cn("flex items-center justify-between p-2 rounded-lg transition-colors", "hover:bg-muted/50 cursor-pointer")}
+                onClick={() => handleOpenBookingForMember(member)}>
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
+                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{member.name}</p>
+                    <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditMember(member)}><Edit className="h-4 w-4" /></Button>
+                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Right Column */}
+      <div className="md:col-span-2 space-y-8">
+         <Card className="bg-gradient-to-br from-primary/20 to-background">
+            <CardHeader>
+              <CardTitle className="text-2xl">Book Your Next Visit</CardTitle>
+              <CardDescription>Select a family member and find a time that works for you.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button size="lg" onClick={() => setBookingOpen(true)} disabled={family.length === 0}>
+                {family.length === 0 ? "Add a family member to book" : "Book an Appointment"}
                 </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {family.map(member => (
-                  <div key={member.id} className={cn("flex items-center justify-between p-2 rounded-lg transition-colors", "hover:bg-muted/50 cursor-pointer")}
-                    onClick={() => handleOpenBookingForMember(member)}>
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">{member.name}</p>
-                        <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditMember(member)}><Edit className="h-4 w-4" /></Button>
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                    </div>
+            </CardContent>
+          </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Upcoming Appointments</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {upcomingAppointments.length > 0 ? upcomingAppointments.map(appt => (
+              <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                   <Avatar>
+                      <AvatarImage src={family.find(f=>f.id === appt.familyMemberId)?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />
+                      <AvatarFallback>{appt.familyMemberName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  <div>
+                     <p className="font-bold text-lg">{appt.familyMemberName}</p>
+                     <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                        <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
+                        <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
+                        {appt.tokenNo && <span className="flex items-center gap-1.5"><Ticket className="h-4 w-4" /> #{appt.tokenNo}</span>}
+                     </div>
+                     {appt.purpose && <p className="text-sm text-primary font-medium mt-1">{appt.purpose}</p>}
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
+                </div>
+                <div className="flex flex-col items-end gap-2 self-stretch justify-between">
+                   <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status as string)}`}>{appt.status}</p>
+                   <AppointmentActions 
+                      appointment={appt}
+                      schedule={schedule}
+                      onReschedule={handleOpenReschedule}
+                      onCancel={handleCancelAppointment}
+                    />
+                </div>
+              </div>
+            )) : (
+              <p className="text-muted-foreground text-center py-8">No upcoming appointments.</p>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Right Column */}
-          <div className="md:col-span-2 space-y-8">
-             <Card className="bg-gradient-to-br from-primary/20 to-background">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Book Your Next Visit</CardTitle>
-                  <CardDescription>Select a family member and find a time that works for you.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button size="lg" onClick={() => setBookingOpen(true)} disabled={family.length === 0}>
-                    {family.length === 0 ? "Add a family member to book" : "Book an Appointment"}
-                    </Button>
-                </CardContent>
-              </Card>
+         <Card>
+          <CardHeader>
+            <CardTitle>Past Appointments</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {pastAppointments.length > 0 ? pastAppointments.map(appt => {
+                let finalStatus: Appointment['status'] = appt.status;
+                if (finalStatus === 'Booked' && parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0))) {
+                    finalStatus = 'Missed';
+                }
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {upcomingAppointments.length > 0 ? upcomingAppointments.map(appt => (
-                  <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                       <Avatar>
-                          <AvatarImage src={family.find(f=>f.id === appt.familyMemberId)?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />
-                          <AvatarFallback>{appt.familyMemberName.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                      <div>
-                         <p className="font-bold text-lg">{appt.familyMemberName}</p>
-                         <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-                            <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
-                            <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
-                            {appt.tokenNo && <span className="flex items-center gap-1.5"><Ticket className="h-4 w-4" /> #{appt.tokenNo}</span>}
-                         </div>
-                         {appt.purpose && <p className="text-sm text-primary font-medium mt-1">{appt.purpose}</p>}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2 self-stretch justify-between">
-                       <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status as string)}`}>{appt.status}</p>
-                       <AppointmentActions 
-                          appointment={appt}
-                          schedule={schedule}
-                          onReschedule={handleOpenReschedule}
-                          onCancel={handleCancelAppointment}
-                        />
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-muted-foreground text-center py-8">No upcoming appointments.</p>
-                )}
-              </CardContent>
-            </Card>
-
-             <Card>
-              <CardHeader>
-                <CardTitle>Past Appointments</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {pastAppointments.length > 0 ? pastAppointments.map(appt => {
-                    let finalStatus: Appointment['status'] = appt.status;
-                    if (finalStatus === 'Booked' && parseISO(appt.date) < new Date(new Date().setHours(0,0,0,0))) {
-                        finalStatus = 'Missed';
-                    }
-
-                    return (
-                        <div key={appt.id} className="p-4 rounded-lg border bg-background/50 flex items-start justify-between gap-4 opacity-70">
-                            <div className="flex items-center gap-4">
-                                <Avatar>
-                                    <AvatarImage src={family.find(f=>f.id === appt.familyMemberId)?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />
-                                    <AvatarFallback>{appt.familyMemberName.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <p className="font-bold text-lg">{appt.familyMemberName}</p>
-                                    <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-                                        <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
-                                        <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
-                                    </div>
+                return (
+                    <div key={appt.id} className="p-4 rounded-lg border bg-background/50 flex items-start justify-between gap-4 opacity-70">
+                        <div className="flex items-center gap-4">
+                            <Avatar>
+                                <AvatarImage src={family.find(f=>f.id === appt.familyMemberId)?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />
+                                <AvatarFallback>{appt.familyMemberName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-bold text-lg">{appt.familyMemberName}</p>
+                                <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                                    <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
+                                    <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
                                 </div>
                             </div>
-                             <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(finalStatus as string)}`}>{finalStatus}</p>
                         </div>
-                    );
-                }) : (
-                  <p className="text-muted-foreground text-center py-8">No past appointments.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-        
-        <AddFamilyMemberDialog 
-          isOpen={isAddMemberOpen} 
-          onOpenChange={setAddMemberOpen}
-          onSave={handleAddFamilyMember} 
-        />
-        {selectedMember && (
-            <EditFamilyMemberDialog
-                isOpen={isEditMemberOpen}
-                onOpenChange={setEditMemberOpen}
-                member={selectedMember}
-                onSave={handleEditFamilyMember}
-            />
-        )}
-        <BookAppointmentDialog
-          isOpen={isBookingOpen}
-          onOpenChange={setBookingOpen}
-          familyMembers={family}
-          schedule={schedule}
-          onSave={handleBookAppointment}
-          bookedPatients={patients}
-          initialMemberId={selectedMember?.id}
-          onDialogClose={() => setSelectedMember(null)}
-        />
-        {selectedAppointment && schedule && (
-          <RescheduleAppointmentDialog
-            isOpen={isRescheduleOpen}
-            onOpenChange={setRescheduleOpen}
-            appointment={selectedAppointment}
-            schedule={schedule}
-            onSave={handleRescheduleAppointment}
-            bookedPatients={patients}
-          />
-        )}
-
-      </main>
+                         <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(finalStatus as string)}`}>{finalStatus}</p>
+                    </div>
+                );
+            }) : (
+              <p className="text-muted-foreground text-center py-8">No past appointments.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
+    
+    <AddFamilyMemberDialog 
+      isOpen={isAddMemberOpen} 
+      onOpenChange={setAddMemberOpen}
+      onSave={handleAddFamilyMember} 
+    />
+    {selectedMember && (
+        <EditFamilyMemberDialog
+            isOpen={isEditMemberOpen}
+            onOpenChange={setEditMemberOpen}
+            member={selectedMember}
+            onSave={handleEditFamilyMember}
+        />
+    )}
+    <BookAppointmentDialog
+      isOpen={isBookingOpen}
+      onOpenChange={setBookingOpen}
+      familyMembers={family}
+      schedule={schedule}
+      onSave={handleBookAppointment}
+      bookedPatients={patients}
+      initialMemberId={selectedMember?.id}
+      onDialogClose={() => setSelectedMember(null)}
+    />
+    {selectedAppointment && schedule && (
+      <RescheduleAppointmentDialog
+        isOpen={isRescheduleOpen}
+        onOpenChange={setRescheduleOpen}
+        appointment={selectedAppointment}
+        schedule={schedule}
+        onSave={handleRescheduleAppointment}
+        bookedPatients={patients}
+      />
+    )}
+
+  </main>
   );
 }
-
-
-  
-
-    
-
-    
-
-
-
-
-
-    

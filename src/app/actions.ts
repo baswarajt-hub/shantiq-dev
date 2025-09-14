@@ -3,7 +3,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -138,6 +138,8 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     purpose: purpose,
     tokenNo: tokenNo
   });
+
+  await recalculateQueueWithETC();
   
   revalidatePath('/');
   revalidatePath('/dashboard');
@@ -398,6 +400,8 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
     // --- End Calculation ---
     
     const newPatient = await addPatientData({...patientData, tokenNo });
+
+    await recalculateQueueWithETC();
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath('/booking');
@@ -419,6 +423,7 @@ export async function addNewPatientAction(familyMemberData: Omit<FamilyMember, '
     if (!newMember) {
         return { error: 'Failed to create a new family member.' };
     }
+    await recalculateQueueWithETC();
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath('/booking');
@@ -530,12 +535,9 @@ export async function recalculateQueueWithETC() {
 
             // Auto-mark late arrivals if they've checked in
             const currentUpdates = patientUpdates.get(p.id) || {};
-            if (p.checkInTime && p.status === 'Waiting' && p.type !== 'Walk-in') {
-                const lateCheckThreshold = max([toDate(p.slotTime)!, toDate(p.bestCaseETC) ?? new Date(0)]);
-                if (toDate(p.checkInTime)! > lateCheckThreshold) {
-                    const lateBy = differenceInMinutes(toDate(p.checkInTime)!, lateCheckThreshold);
-                    patientUpdates.set(p.id, { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
-                }
+            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && p.type === 'Appointment' && toDate(p.checkInTime)! > toDate(worstCaseETC)!) {
+                 const lateBy = differenceInMinutes(toDate(p.checkInTime)!, toDate(worstCaseETC)!);
+                 patientUpdates.set(p.id, { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
             }
         });
 
@@ -606,6 +608,15 @@ export async function recalculateQueueWithETC() {
 
             patientUpdates.set(p.id, finalUpdates);
         });
+
+        if (currentlyServing) {
+            const currentUpdates = patientUpdates.get(currentlyServing.id) || {};
+            const bestETC = currentUpdates.bestCaseETC || currentlyServing.bestCaseETC || currentlyServing.consultationStartTime;
+            if (bestETC) {
+                const worstETC = new Date(toDate(bestETC)!.getTime() + schedule.slotDuration * 60000).toISOString();
+                patientUpdates.set(currentlyServing.id, { ...currentUpdates, worstCaseETC: worstETC });
+            }
+        }
     }
 
     // 6. Apply all collected updates to the main patient list
@@ -657,6 +668,7 @@ export async function updatePatientPurposeAction(patientId: number, purpose: str
 
 export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedule>) {
     const updated = await updateDoctorSchedule(schedule);
+    await recalculateQueueWithETC();
     revalidatePath('/');
     revalidatePath('/admin');
     revalidatePath('/dashboard');
@@ -709,7 +721,7 @@ export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
 
 export async function updateFamilyMemberAction(member: FamilyMember) {
     await updateFamilyMember(member);
-    revalidatePath('/');
+revalidatePath('/');
     revalidatePath('/admin');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
@@ -868,6 +880,25 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   return { success: `Patient marked as late and pushed down by ${penalty} positions.` };
 }
 
+export async function checkUserAuthAction(phone: string) {
+    const user = await findPrimaryUserByPhone(phone);
+    if (user) {
+        return { userExists: true, user };
+    }
+    // Simulate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    return { userExists: false, otp };
+}
+
+export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'avatar'>) {
+    const newPrimaryMember: Omit<FamilyMember, 'id' | 'avatar'> = {
+        ...userData,
+        isPrimary: true
+    };
+    const newMember = await addFamilyMember(newPrimaryMember);
+    revalidatePath('/api/family');
+    return { success: true, user: newMember };
+}
     
 
   

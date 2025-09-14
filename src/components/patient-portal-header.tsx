@@ -1,0 +1,34 @@
+
+'use client';
+import Link from "next/link";
+import { StethoscopeIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+export function PatientPortalHeader() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // In a real app, you'd clear session/token here
+    localStorage.removeItem('userPhone');
+    router.push('/login');
+  };
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center">
+        <Link href="/booking" className="mr-6 flex items-center space-x-2">
+          <StethoscopeIcon className="h-6 w-6 text-primary-foreground fill-primary" />
+          <span className="font-bold sm:inline-block text-lg">QueueWise Portal</span>
+        </Link>
+        <div className="flex flex-1 items-center justify-end space-x-2">
+          <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+}
