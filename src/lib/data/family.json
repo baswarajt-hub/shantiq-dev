@@ -63,5 +63,63 @@
     "isPrimary": true,
     "location": "Nampally",
     "city": "Hyderabad"
+  },
+  {
+    "phone": "9391188021",
+    "name": "Suvarna",
+    "dob": "1990-10-18",
+    "gender": "Female",
+    "location": "Himayath Nagar",
+    "city": "Hyderabad",
+    "isPrimary": true,
+    "id": 7,
+    "avatar": "https://picsum.photos/seed/7/200/200"
+  },
+  {
+    "name": "Lakshmi",
+    "dob": "2021-01-15",
+    "gender": "Female",
+    "clinicId": "100",
+    "phone": "9391188021",
+    "id": 8,
+    "avatar": "https://picsum.photos/seed/8/200/200"
+  },
+  {
+    "name": "Nitya",
+    "dob": "2023-02-14",
+    "gender": "Female",
+    "clinicId": "101",
+    "phone": "9391188021",
+    "id": 9,
+    "avatar": "https://picsum.photos/seed/9/200/200"
+  },
+  {
+    "phone": "9440120081",
+    "name": "Dr Baswaraj Tandur",
+    "dob": "1985-09-15",
+    "gender": "Male",
+    "location": "Narayanaguda",
+    "city": "Hyderabad",
+    "isPrimary": true,
+    "id": 10,
+    "avatar": "https://picsum.photos/seed/10/200/200"
+  },
+  {
+    "name": "Aakash",
+    "dob": "2008-09-15",
+    "gender": "Male",
+    "clinicId": "200",
+    "phone": "9440120081",
+    "id": 11,
+    "avatar": "https://picsum.photos/seed/11/200/200"
+  },
+  {
+    "name": "Lakshmi ",
+    "dob": "2018-09-15",
+    "gender": "Female",
+    "clinicId": "202",
+    "phone": "9440120081",
+    "id": 12,
+    "avatar": "https://picsum.photos/seed/12/200/200"
   }
 ]
