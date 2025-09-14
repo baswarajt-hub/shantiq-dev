@@ -258,12 +258,12 @@ export default function QueueStatusPage() {
   }
   
   const todaysPatients = allPatients.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
-
-  const liveQueue = todaysPatients
-    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
-    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : a.tokenNo - b.tokenNo);
   
-  const nowServing = todaysPatients.find(p => p.status === 'In-Consultation');
+  const liveQueue = allPatients
+    .filter(p => !!p.bestCaseETC && p.status !== 'Completed' && p.status !== 'Cancelled')
+    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
+  
+  const nowServing = allPatients.find(p => p.status === 'In-Consultation');
   const upNext = liveQueue[0];
 
   return (
@@ -348,3 +348,5 @@ export default function QueueStatusPage() {
     </div>
   );
 }
+
+    

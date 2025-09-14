@@ -114,13 +114,11 @@ export default function TVDisplayPage() {
     return () => clearInterval(scrollInterval);
   }, [patients]);
 
-  const todaysPatients = patients.filter((p) => isToday(parseISO(p.appointmentTime)));
-
-  const nowServing = todaysPatients.find((p) => p.status === 'In-Consultation');
-  const waitingList = todaysPatients
-    .filter((p) => ['Waiting', 'Late', 'Priority'].includes(p.status))
-    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : a.tokenNo - b.tokenNo);
-  const waitingForReports = todaysPatients.filter(p => p.status === 'Waiting for Reports');
+  const nowServing = patients.find((p) => p.status === 'In-Consultation');
+  const waitingList = patients
+    .filter((p) => !!p.bestCaseETC && p.status !== 'Completed' && p.status !== 'Cancelled')
+    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
+  const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
 
   const upNext = waitingList[0];
   const queue = waitingList.slice(1);
@@ -312,3 +310,5 @@ export default function TVDisplayPage() {
     </div>
   );
 }
+
+    
