@@ -3,10 +3,10 @@
 
 import Header from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { findPatientsByPhoneAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
+import { findPatientsByPhoneAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, Shield, User, WifiOff, Timer, Search, Ticket, ArrowRight, UserCheck, AlertTriangle, PartyPopper } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Search, Ticket, ArrowRight, UserCheck, PartyPopper } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { format, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { Input } from '@/components/ui/input';
@@ -122,13 +122,13 @@ function CompletionSummary({ patient }: { patient: Patient }) {
                 {waitTime !== null && waitTime >= 0 && (
                     <div className="bg-muted/50 p-4 rounded-lg">
                         <p className="text-sm text-muted-foreground">Your wait time was</p>
-                        <p className="text-3xl font-bold">{waitTime} minutes</p>
+                        <p className="text-3xl font-bold">{waitTime} min</p>
                     </div>
                 )}
                  {patient.consultationTime && (
                     <div className="bg-muted/50 p-4 rounded-lg">
                         <p className="text-sm text-muted-foreground">Consultation took</p>
-                        <p className="text-3xl font-bold">{patient.consultationTime} minutes</p>
+                        <p className="text-3xl font-bold">{patient.consultationTime} min</p>
                     </div>
                 )}
             </div>
@@ -139,7 +139,7 @@ function CompletionSummary({ patient }: { patient: Patient }) {
 function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { patient: Patient, queuePosition: number, isUpNext: boolean, isNowServing: boolean }) {
 
     if (patient.status === 'Completed') {
-        // This case is now handled by the CompletionSummary component at the page level
+        // This case should be handled by the top-level component now, but as a fallback:
         return null;
     }
 
@@ -197,7 +197,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
                  <CardContent>
                     <p className="text-4xl font-bold">{patient.name}</p>
                     <p className="text-muted-foreground flex items-center gap-2 mt-1">
-                        Appointment at {format(parseISO(patient.appointmentTime), 'hh:mm a')}
+                        Appointment at {format(parseISO(patient.appointmentTime || patient.slotTime), 'hh:mm a')}
                     </p>
                 </CardContent>
             </Card>
@@ -257,11 +257,11 @@ export default function QueueStatusPage() {
   const [lastUpdated, setLastUpdated] = useState('');
   const [phone, setPhone] = useState('');
   const [foundAppointments, setFoundAppointments] = useState<Patient[]>([]);
+  const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const fetchData = async () => {
-      // No need to call recalculate here, it's called in the search action
       const [patientData, statusData] = await Promise.all([
         getPatientsAction(),
         getDoctorStatusAction()
@@ -284,16 +284,23 @@ export default function QueueStatusPage() {
     }
     startTransition(async () => {
         const appointments = await findPatientsByPhoneAction(phone);
-        const todaysAppointments = appointments.filter((p: Patient) => isToday(parseISO(p.appointmentTime || p.slotTime)) && p.status !== 'Cancelled');
-
-        if (todaysAppointments.length === 0) {
-            toast({ title: 'No active appointments found', description: 'No appointments for today were found for this phone number.'});
+        const todaysAppointments = appointments.filter((p: Patient) => isToday(parseISO(p.appointmentTime || p.slotTime)));
+        
+        const completed = todaysAppointments.find(p => p.status === 'Completed');
+        
+        if (completed) {
+            setCompletedAppointmentForDisplay(completed);
+            setFoundAppointments([]);
+        } else {
+            const activeAppointments = todaysAppointments.filter(p => p.status !== 'Cancelled');
+            if (activeAppointments.length === 0) {
+                 toast({ title: 'No active appointments found', description: 'No appointments for today were found for this phone number.'});
+            }
+            setFoundAppointments(activeAppointments);
+            setCompletedAppointmentForDisplay(null);
         }
-        setFoundAppointments(todaysAppointments);
     })
   }
-  
-  const todaysPatients = allPatients.filter((p: Patient) => isToday(parseISO(p.appointmentTime || p.slotTime)));
   
   const liveQueue = allPatients
     .filter(p => p.status !== 'Completed' && p.status !== 'Cancelled')
@@ -309,15 +316,13 @@ export default function QueueStatusPage() {
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
   const upNext = liveQueue.find(p => p.status !== 'In-Consultation');
 
-  const completedAppointment = foundAppointments.find(p => p.status === 'Completed');
-
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
         
-        {completedAppointment ? (
-             <CompletionSummary patient={completedAppointment} />
+        {completedAppointmentForDisplay ? (
+             <CompletionSummary patient={completedAppointmentForDisplay} />
         ) : (
           <>
             <div className="text-center mb-8">
@@ -353,7 +358,6 @@ export default function QueueStatusPage() {
                     >
                         <h2 className="text-2xl font-bold text-center">Your Status</h2>
                         {foundAppointments.map(patient => {
-                            if (patient.status === 'Completed') return null; // Handled by CompletionSummary
                              const queuePosition = liveQueue.findIndex(p => p.id === patient.id) + 1;
                              const isNowServing = nowServing?.id === patient.id;
                              const isUpNext = upNext?.id === patient.id;
@@ -376,12 +380,11 @@ export default function QueueStatusPage() {
                     <NowServingCard patient={nowServing} doctorStatus={doctorStatus} />
                     <UpNextCard patient={upNext} />
                     </div>
-
-                    {todaysPatients.some(p => p.status === 'Waiting for Reports') && (
+                    
                     <div className="mt-8">
                         <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {todaysPatients.filter(p => p.status === 'Waiting for Reports').map((patient) => (
+                        {allPatients.filter(p => isToday(parseISO(p.appointmentTime || p.slotTime)) && p.status === 'Waiting for Reports').map((patient) => (
                             <Card key={patient.id} className="bg-purple-100/50 border-purple-300">
                             <CardContent className="p-4 flex items-center space-x-4">
                                 <div className="flex-shrink-0 text-purple-700"><FileClock className="h-5 w-5" /></div>
@@ -393,8 +396,10 @@ export default function QueueStatusPage() {
                             </Card>
                         ))}
                         </div>
+                         {allPatients.filter(p => isToday(parseISO(p.appointmentTime || p.slotTime)) && p.status === 'Waiting for Reports').length === 0 && (
+                            <p className="text-center text-muted-foreground">No one is waiting for reports.</p>
+                        )}
                     </div>
-                    )}
                 </>
             </div>
           </>
@@ -404,3 +409,4 @@ export default function QueueStatusPage() {
   );
 }
 
+    
