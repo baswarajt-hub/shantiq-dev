@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
@@ -34,6 +35,7 @@ type TimeSlot = {
   isReservedForWalkIn?: boolean;
   patient?: Patient;
   patientDetails?: FamilyMember;
+  displayTokenNo?: number;
 }
 
 const statusConfig = {
@@ -406,14 +408,10 @@ export default function DashboardPage() {
         });
     };
 
-    let liveQueue = patients
-        .filter(p => ['Waiting', 'Late', 'In-Consultation', 'Priority'].includes(p.status))
-        .sort((a,b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
-
-    let bookedPatients = patients.filter(p => p.status === 'Booked');
-
     const todaysDateStr = format(selectedDate, 'yyyy-MM-dd');
-    let displayedTimeSlots = timeSlots.filter(slot => {
+    
+    // First, filter the slots to get what should be visible
+    const visibleSlots = timeSlots.filter(slot => {
         const patient = slot.patient;
         
         if (!patient) {
@@ -441,6 +439,15 @@ export default function DashboardPage() {
         return slot.patientDetails.name.toLowerCase().includes(lowerSearch) ||
                slot.patientDetails.phone.includes(lowerSearch) ||
                (slot.patientDetails.clinicId && slot.patientDetails.clinicId.toLowerCase().includes(lowerSearch));
+    });
+
+    // Now, create a new array with continuous display token numbers
+    let displayTokenCounter = 1;
+    const displayedTimeSlots = visibleSlots.map(slot => {
+        if (slot.isBooked && slot.patient) {
+            return { ...slot, displayTokenNo: displayTokenCounter++ };
+        }
+        return slot;
     });
 
 
@@ -605,7 +612,7 @@ export default function DashboardPage() {
                                                <div className="flex items-center gap-4">
                                                     <div className="w-12 text-center font-bold text-lg text-primary flex flex-col items-center">
                                                         <Ticket className="h-5 w-5 mb-1" />
-                                                        #{slot.patient.tokenNo}
+                                                        #{slot.displayTokenNo}
                                                     </div>
                                                     <div className="w-24 font-semibold">{slot.time}</div>
                                                 </div>
