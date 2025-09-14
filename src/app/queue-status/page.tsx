@@ -248,7 +248,7 @@ export default function QueueStatusPage() {
     }
     startTransition(async () => {
         const appointments = await findPatientsByPhoneAction(phone);
-        const todaysAppointments = appointments.filter((p: Patient) => isToday(parseISO(p.appointmentTime)) && p.status !== 'Cancelled');
+        const todaysAppointments = appointments.filter((p: Patient) => isToday(parseISO(p.appointmentTime || p.slotTime)) && p.status !== 'Cancelled');
 
         if (todaysAppointments.length === 0) {
             toast({ title: 'No active appointments found', description: 'No appointments for today were found for this phone number.'});
@@ -257,14 +257,18 @@ export default function QueueStatusPage() {
     })
   }
   
-  const todaysPatients = allPatients.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
+  const todaysPatients = allPatients.filter((p: Patient) => isToday(parseISO(p.appointmentTime || p.slotTime)));
   
   const liveQueue = allPatients
-    .filter(p => !!p.bestCaseETC && p.status !== 'Completed' && p.status !== 'Cancelled')
-    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
+    .filter(p => p.status !== 'Completed' && p.status !== 'Cancelled')
+    .sort((a, b) => {
+        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
+        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
+        return timeA - timeB;
+    });
   
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
-  const upNext = liveQueue[0];
+  const upNext = liveQueue.find(p => p.status !== 'In-Consultation');
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -348,5 +352,3 @@ export default function QueueStatusPage() {
     </div>
   );
 }
-
-    

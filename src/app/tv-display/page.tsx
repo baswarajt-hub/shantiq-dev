@@ -1,5 +1,4 @@
 
-
 'use client';
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
@@ -61,7 +60,7 @@ export default function TVDisplayPage() {
       setDoctorStatus(statusData);
       setSchedule(scheduleData);
       
-      const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
+      const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime || p.slotTime)));
       const completedWithTime = todaysPatients.filter(p => p.status === 'Completed' && p.consultationTime);
       if (completedWithTime.length > 0) {
         const totalWait = completedWithTime.reduce((acc, p) => acc + (p.consultationTime || 0), 0);
@@ -115,13 +114,20 @@ export default function TVDisplayPage() {
   }, [patients]);
 
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
+  
   const waitingList = patients
-    .filter((p) => !!p.bestCaseETC && p.status !== 'Completed' && p.status !== 'Cancelled')
-    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
+    .filter(p => p.status !== 'Completed' && p.status !== 'Cancelled')
+    .sort((a, b) => {
+        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
+        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
+        return timeA - timeB;
+    });
+
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
 
-  const upNext = waitingList[0];
-  const queue = waitingList.slice(1);
+  const upNext = waitingList.find(p => p.status !== 'In-Consultation');
+  const queue = waitingList.filter(p => p.id !== upNext?.id && p.id !== nowServing?.id);
+  
   const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
   const qualifications = schedule?.clinicDetails.qualifications || '';
   const clinicName = schedule?.clinicDetails.clinicName || 'Clinic';
@@ -310,5 +316,3 @@ export default function TVDisplayPage() {
     </div>
   );
 }
-
-    
