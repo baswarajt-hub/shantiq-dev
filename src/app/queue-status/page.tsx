@@ -117,7 +117,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
                 <CardContent>
                     <p className="text-4xl font-bold">{patient.name}</p>
                     <div className="text-muted-foreground mt-2 grid grid-cols-2 gap-4">
-                        {waitTime !== null && (
+                        {waitTime !== null && waitTime >= 0 && (
                             <div className="font-semibold">
                                 <p>Your wait time:</p>
                                 <p className="text-2xl text-foreground">{waitTime} minutes</p>
@@ -298,6 +298,8 @@ export default function QueueStatusPage() {
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
   const upNext = liveQueue.find(p => p.status !== 'In-Consultation');
 
+  const isPatientViewCompleted = foundAppointments.length > 0 && foundAppointments.every(p => p.status === 'Completed');
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -352,28 +354,32 @@ export default function QueueStatusPage() {
             )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <NowServingCard patient={nowServing} doctorStatus={doctorStatus} />
-              <UpNextCard patient={upNext} />
-            </div>
+            {!isPatientViewCompleted && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <NowServingCard patient={nowServing} doctorStatus={doctorStatus} />
+                  <UpNextCard patient={upNext} />
+                </div>
 
-            {todaysPatients.some(p => p.status === 'Waiting for Reports') && (
-              <div className="mt-8">
-                 <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                   {todaysPatients.filter(p => p.status === 'Waiting for Reports').map((patient) => (
-                     <Card key={patient.id} className="bg-purple-100/50 border-purple-300">
-                       <CardContent className="p-4 flex items-center space-x-4">
-                         <div className="flex-shrink-0 text-purple-700"><FileClock className="h-5 w-5" /></div>
-                         <div>
-                           <p className="font-semibold">{patient.name}</p>
-                           <p className="text-sm text-muted-foreground">Please wait to be called</p>
-                         </div>
-                       </CardContent>
-                     </Card>
-                   ))}
-                 </div>
-              </div>
+                {todaysPatients.some(p => p.status === 'Waiting for Reports') && (
+                  <div className="mt-8">
+                     <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                       {todaysPatients.filter(p => p.status === 'Waiting for Reports').map((patient) => (
+                         <Card key={patient.id} className="bg-purple-100/50 border-purple-300">
+                           <CardContent className="p-4 flex items-center space-x-4">
+                             <div className="flex-shrink-0 text-purple-700"><FileClock className="h-5 w-5" /></div>
+                             <div>
+                               <p className="font-semibold">{patient.name}</p>
+                               <p className="text-sm text-muted-foreground">Please wait to be called</p>
+                             </div>
+                           </CardContent>
+                         </Card>
+                       ))}
+                     </div>
+                  </div>
+                )}
+              </>
             )}
         </div>
       </main>
