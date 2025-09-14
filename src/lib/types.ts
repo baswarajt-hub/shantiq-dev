@@ -114,4 +114,5 @@ export type Appointment = {
   type?: 'Appointment' | 'Walk-in';
   purpose?: string;
   rescheduleCount?: number;
+  tokenNo?: number;
 };

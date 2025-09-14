@@ -7,7 +7,7 @@ import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, User as UserIcon } from 'lucide-react';
+import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, User as UserIcon, Ticket } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient } from '@/lib/types';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
@@ -213,6 +213,7 @@ export default function BookingPage() {
                 type: p.type,
                 purpose: p.purpose,
                 rescheduleCount: p.rescheduleCount,
+                tokenNo: p.tokenNo,
             }
         });
     setAppointments(appointmentsFromPatients as Appointment[]);
@@ -438,6 +439,7 @@ export default function BookingPage() {
                          <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
                             <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
                             <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
+                            {appt.tokenNo && <span className="flex items-center gap-1.5"><Ticket className="h-4 w-4" /> #{appt.tokenNo}</span>}
                          </div>
                          {appt.purpose && <p className="text-sm text-primary font-medium mt-1">{appt.purpose}</p>}
                       </div>
