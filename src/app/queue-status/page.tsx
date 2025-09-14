@@ -61,7 +61,10 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
          <CardDescription>Currently in consultation</CardDescription>
        </CardHeader>
        <CardContent>
-          <p className="text-3xl font-bold">{patient.name}</p>
+          <p className="text-3xl font-bold">
+            {patient.name}
+            {patient.subStatus === 'Reports' && <span className="text-2xl ml-2 font-semibold text-purple-600">(Reports)</span>}
+          </p>
           <p className="text-muted-foreground flex items-center gap-2 mt-1">
             <Ticket className="h-4 w-4"/> Token #{patient.tokenNo}
           </p>
