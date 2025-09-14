@@ -35,7 +35,6 @@ type TimeSlot = {
   isReservedForWalkIn?: boolean;
   patient?: Patient;
   patientDetails?: FamilyMember;
-  displayTokenNo?: number;
 }
 
 const statusConfig = {
@@ -410,46 +409,19 @@ export default function DashboardPage() {
 
     const todaysDateStr = format(selectedDate, 'yyyy-MM-dd');
     
-    // First, filter the slots to get what should be visible
-    const visibleSlots = timeSlots.filter(slot => {
-        const patient = slot.patient;
-        
-        if (!patient) {
-            // Hide empty slots that are in the past for the current day
-            if (isToday(selectedDate)) {
-                const now = new Date();
-                const slotTime = parse(slot.time, 'hh:mm a', selectedDate);
-                if (slotTime < now) {
-                    return false;
-                }
-            }
-            return !showCompleted;
+    const displayedTimeSlots = timeSlots.filter(slot => {
+        if (!showCompleted && slot.patient && (slot.patient.status === 'Completed' || slot.patient.status === 'Cancelled')) {
+            return false;
         }
+
+        if (!searchTerm) return true;
         
-        const patientDateStr = format(toZonedTime(parseISO(patient.appointmentTime), "Asia/Kolkata"), 'yyyy-MM-dd');
-        if (patientDateStr !== todaysDateStr) return false;
-
-        if (showCompleted) return true;
-
-        return patient.status !== 'Completed' && patient.status !== 'Cancelled';
-    }).filter(slot => {
-        if (!searchTerm.trim()) return true;
         if (!slot.isBooked || !slot.patientDetails) return false;
         const lowerSearch = searchTerm.toLowerCase();
         return slot.patientDetails.name.toLowerCase().includes(lowerSearch) ||
                slot.patientDetails.phone.includes(lowerSearch) ||
                (slot.patientDetails.clinicId && slot.patientDetails.clinicId.toLowerCase().includes(lowerSearch));
     });
-
-    // Now, create a new array with continuous display token numbers
-    let displayTokenCounter = 1;
-    const displayedTimeSlots = visibleSlots.map(slot => {
-        if (slot.isBooked && slot.patient) {
-            return { ...slot, displayTokenNo: displayTokenCounter++ };
-        }
-        return slot;
-    });
-
 
     const todaysPatients = patients.filter(p => isToday(parseISO(p.appointmentTime)));
     const canDoctorCheckIn = isToday(selectedDate);
@@ -612,7 +584,7 @@ export default function DashboardPage() {
                                                <div className="flex items-center gap-4">
                                                     <div className="w-12 text-center font-bold text-lg text-primary flex flex-col items-center">
                                                         <Ticket className="h-5 w-5 mb-1" />
-                                                        #{slot.displayTokenNo}
+                                                        #{slot.patient.tokenNo}
                                                     </div>
                                                     <div className="w-24 font-semibold">{slot.time}</div>
                                                 </div>
