@@ -58,7 +58,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     if (isOpen) {
       if (initialMemberId) {
         setSelectedMemberId(initialMemberId.toString());
-        setStep(2);
+        setStep(1);
       }
       const currentHour = new Date().getHours();
       if (currentHour >= 14) {
@@ -188,12 +188,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   
   const handleBack = () => {
     if (step > 1) {
-        // If an initial member was passed, going back from step 2 should close the dialog
-        if (step === 2 && initialMemberId) {
-            handleClose(false);
-        } else {
-            setStep(step - 1);
-        }
+        setStep(step - 1);
     }
   }
 
@@ -316,5 +311,3 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     </Dialog>
   );
 }
-
-    

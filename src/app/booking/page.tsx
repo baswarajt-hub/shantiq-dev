@@ -364,6 +364,8 @@ export default function BookingPage() {
 
   const currentDaySchedule = todaySchedule();
 
+  const familyPatients = family.filter(member => !member.isPrimary);
+
   if (!phone) {
       return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -404,7 +406,7 @@ export default function BookingPage() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            {family.map(member => (
+            {familyPatients.map(member => (
               <div key={member.id} className={cn("flex items-center justify-between p-2 rounded-lg transition-colors", "hover:bg-muted/50 cursor-pointer")}
                 onClick={() => handleOpenBookingForMember(member)}>
                 <div className="flex items-center gap-3">
@@ -435,8 +437,8 @@ export default function BookingPage() {
               <CardDescription>Select a family member and find a time that works for you.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button size="lg" onClick={() => setBookingOpen(true)} disabled={family.length === 0}>
-                {family.length === 0 ? "Add a family member to book" : "Book an Appointment"}
+              <Button size="lg" onClick={() => setBookingOpen(true)} disabled={familyPatients.length === 0}>
+                {familyPatients.length === 0 ? "Add a family member to book" : "Book an Appointment"}
                 </Button>
             </CardContent>
           </Card>
@@ -532,7 +534,7 @@ export default function BookingPage() {
     <BookAppointmentDialog
       isOpen={isBookingOpen}
       onOpenChange={setBookingOpen}
-      familyMembers={family}
+      familyMembers={familyPatients}
       schedule={schedule}
       onSave={handleBookAppointment}
       bookedPatients={patients}
