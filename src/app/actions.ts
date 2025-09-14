@@ -3,7 +3,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -267,6 +267,12 @@ export async function sendReminderAction(patientId: number) {
 export async function getPatientsAction() {
     return getPatientsData();
 }
+
+export async function findPatientsByPhoneAction(phone: string) {
+    await recalculateQueueWithETC();
+    return findPatientsByPhone(phone);
+}
+
 
 export async function getDoctorScheduleAction() {
     return getDoctorScheduleData();
@@ -855,3 +861,4 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
     
 
+    

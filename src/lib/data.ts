@@ -120,6 +120,10 @@ export async function findPatientById(id: number) {
   return patients.find(p => p.id === id);
 }
 
+export async function findPatientsByPhone(phone: string) {
+    return patients.filter(p => p.phone === phone);
+}
+
 export async function updateAllPatients(newPatients: Patient[]) {
   patients = newPatients;
 }
@@ -229,5 +233,7 @@ export async function cancelAppointment(appointmentId: number) {
 export async function getFamily() {
     return JSON.parse(JSON.stringify(family));
 }
+
+    
 
     
