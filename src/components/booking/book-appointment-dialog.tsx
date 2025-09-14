@@ -55,9 +55,17 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
 
   useEffect(() => {
-    if (isOpen && initialMemberId) {
+    if (isOpen) {
+      if (initialMemberId) {
         setSelectedMemberId(initialMemberId.toString());
         setStep(2);
+      }
+      const currentHour = new Date().getHours();
+      if (currentHour >= 14) {
+        setSelectedSession('evening');
+      } else {
+        setSelectedSession('morning');
+      }
     }
   }, [isOpen, initialMemberId]);
 
@@ -247,7 +255,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                 schedule={schedule}
               />
             </div>
-            <RadioGroup defaultValue="morning" onValueChange={(value) => { setSelectedSession(value); setSelectedSlot(''); }} className="flex justify-center gap-4">
+            <RadioGroup value={selectedSession} onValueChange={(value) => { setSelectedSession(value); setSelectedSlot(''); }} className="flex justify-center gap-4">
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="morning" id="r1" />
                     <Label htmlFor="r1">Morning</Label>
