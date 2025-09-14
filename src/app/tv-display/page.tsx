@@ -56,11 +56,12 @@ export default function TVDisplayPage() {
           getDoctorStatusAction(),
           getDoctorScheduleAction()
       ]);
-      const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
-      setPatients(todaysPatients);
+      
+      setPatients(patientData);
       setDoctorStatus(statusData);
       setSchedule(scheduleData);
       
+      const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
       const completedWithTime = todaysPatients.filter(p => p.status === 'Completed' && p.consultationTime);
       if (completedWithTime.length > 0) {
         const totalWait = completedWithTime.reduce((acc, p) => acc + (p.consultationTime || 0), 0);
@@ -113,12 +114,13 @@ export default function TVDisplayPage() {
     return () => clearInterval(scrollInterval);
   }, [patients]);
 
+  const todaysPatients = patients.filter((p) => isToday(parseISO(p.appointmentTime)));
 
-  const nowServing = patients.find((p) => p.status === 'In-Consultation');
-  const waitingList = patients
+  const nowServing = todaysPatients.find((p) => p.status === 'In-Consultation');
+  const waitingList = todaysPatients
     .filter((p) => ['Waiting', 'Late', 'Priority'].includes(p.status))
     .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
-  const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
+  const waitingForReports = todaysPatients.filter(p => p.status === 'Waiting for Reports');
 
   const upNext = waitingList[0];
   const queue = waitingList.slice(1);
@@ -310,3 +312,5 @@ export default function TVDisplayPage() {
     </div>
   );
 }
+
+    

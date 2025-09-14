@@ -230,8 +230,7 @@ export default function QueueStatusPage() {
         getPatientsAction(),
         getDoctorStatusAction()
       ]);
-      const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
-      setAllPatients(todaysPatients);
+      setAllPatients(patientData);
       setDoctorStatus(statusData);
       setLastUpdated(new Date().toLocaleTimeString());
     };
@@ -257,12 +256,14 @@ export default function QueueStatusPage() {
         setFoundAppointments(todaysAppointments);
     })
   }
+  
+  const todaysPatients = allPatients.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
 
-  const liveQueue = allPatients
+  const liveQueue = todaysPatients
     .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
     .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
   
-  const nowServing = allPatients.find(p => p.status === 'In-Consultation');
+  const nowServing = todaysPatients.find(p => p.status === 'In-Consultation');
   const upNext = liveQueue[0];
 
   return (
@@ -324,11 +325,11 @@ export default function QueueStatusPage() {
               <UpNextCard patient={upNext} />
             </div>
 
-            {allPatients.some(p => p.status === 'Waiting for Reports') && (
+            {todaysPatients.some(p => p.status === 'Waiting for Reports') && (
               <div className="mt-8">
                  <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                   {allPatients.filter(p => p.status === 'Waiting for Reports').map((patient) => (
+                   {todaysPatients.filter(p => p.status === 'Waiting for Reports').map((patient) => (
                      <Card key={patient.id} className="bg-purple-100/50 border-purple-300">
                        <CardContent className="p-4 flex items-center space-x-4">
                          <div className="flex-shrink-0 text-purple-700"><FileClock className="h-5 w-5" /></div>
@@ -347,6 +348,8 @@ export default function QueueStatusPage() {
     </div>
   );
 }
+
+    
 
     
 
