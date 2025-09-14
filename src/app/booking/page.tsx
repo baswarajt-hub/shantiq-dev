@@ -196,10 +196,7 @@ export default function BookingPage() {
   }, []);
 
   useEffect(() => {
-    const activeStatuses: Patient['status'][] = ['Booked', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Waiting for Reports', 'Confirmed'];
-    
     const appointmentsFromPatients = patients
-        .filter(p => activeStatuses.includes(p.status))
         .map(p => {
             const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
             const appointmentDate = parseISO(p.appointmentTime);
