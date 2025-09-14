@@ -3,21 +3,47 @@
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
 import { format, parse, parseISO } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import fs from 'fs';
+import path from 'path';
 
-let patients: Patient[] = [];
+const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
+const patientsFilePath = path.join(dataDir, 'patients.json');
+const familyFilePath = path.join(dataDir, 'family.json');
 
-let family: FamilyMember[] = [
+function readData<T>(filePath: string, defaultData: T): T {
+    try {
+        if (fs.existsSync(filePath)) {
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
+            return JSON.parse(fileContent);
+        }
+        fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2), 'utf-8');
+        return defaultData;
+    } catch (error) {
+        console.error(`Error reading or writing ${filePath}:`, error);
+        return defaultData;
+    }
+}
+
+function writeData<T>(filePath: string, data: T): void {
+    try {
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (error) {
+        console.error(`Error writing to ${filePath}:`, error);
+    }
+}
+
+let patients: Patient[] = readData<Patient[]>(patientsFilePath, []);
+let family: FamilyMember[] = readData<FamilyMember[]>(familyFilePath, [
     { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101', phone: '5551112222', isPrimary: true, location: 'Gowliguda', city: 'Hyderabad' },
     { id: 2, name: 'Jane Doe', dob: '1988-10-15', gender: 'Female', avatar: 'https://picsum.photos/id/238/200/200', phone: '5551112222' },
     { id: 3, name: 'Jimmy Doe', dob: '2015-02-25', gender: 'Male', avatar: 'https://picsum.photos/id/239/200/200', clinicId: 'C101', phone: '5551112222' },
     { id: 4, name: 'Alice Johnson', dob: '1990-01-01', gender: 'Female', avatar: 'https://picsum.photos/id/240/200/200', clinicId: 'C102', phone: '5550101010', isPrimary: true, location: 'Koti', city: 'Hyderabad' },
     { id: 5, name: 'Bob Williams', dob: '1992-02-02', gender: 'Male', avatar: 'https://picsum.photos/id/241/200/200', clinicId: 'C103', phone: '5550102020', isPrimary: true, location: 'Abids', city: 'Hyderabad' },
     { id: 6, name: 'Charlie Brown', dob: '1994-03-03', gender: 'Male', avatar: 'https://picsum.photos/id/242/200/200', clinicId: 'C104', phone: '5550103030', isPrimary: true, location: 'Nampally', city: 'Hyderabad' },
+]);
 
-];
-
-let nextPatientId = 1;
-let nextFamilyId = family.length + 1;
+let nextPatientId = patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1;
+let nextFamilyId = family.length > 0 ? Math.max(...family.map(f => f.id)) + 1 : 1;
 
 let doctorStatus: DoctorStatus = {
   isOnline: false,
@@ -83,7 +109,7 @@ let doctorSchedule: DoctorSchedule = {
 
 // This is a mock database. In a real app, you'd use a proper database.
 export async function getPatients() {
-  // Make sure to return a deep copy to avoid mutations affecting the "DB"
+  patients = readData<Patient[]>(patientsFilePath, []);
   return JSON.parse(JSON.stringify(patients));
 }
 
@@ -97,6 +123,7 @@ export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTim
         status: patient.status || 'Booked',
     };
   patients.push(newPatient);
+  writeData(patientsFilePath, patients);
   return newPatient;
 }
 
@@ -108,11 +135,13 @@ export async function addPatientData(patientData: Omit<Patient, 'id' | 'estimate
         slotTime: patientData.appointmentTime,
     };
     patients.push(newPatient);
+    writeData(patientsFilePath, patients);
     return newPatient;
 }
 
 export async function updatePatient(id: number, updates: Partial<Patient>) {
   patients = patients.map(p => (p.id === id ? { ...p, ...updates } : p));
+  writeData(patientsFilePath, patients);
   return patients.find(p => p.id === id);
 }
 
@@ -126,6 +155,7 @@ export async function findPatientsByPhone(phone: string) {
 
 export async function updateAllPatients(newPatients: Patient[]) {
   patients = newPatients;
+  writeData(patientsFilePath, patients);
 }
 
 export async function getDoctorStatus() {
@@ -190,15 +220,18 @@ export async function updateTodayScheduleOverrideData(override: SpecialClosure) 
 
 // Family / Member specific functions
 export async function getFamilyByPhone(phone: string) {
+    family = readData<FamilyMember[]>(familyFilePath, []);
     return family.filter(member => member.phone === phone);
 }
 
 export async function findPrimaryUserByPhone(phone: string): Promise<FamilyMember | null> {
+    family = readData<FamilyMember[]>(familyFilePath, []);
     const primaryUser = family.find(member => member.phone === phone && member.isPrimary);
     return primaryUser || null;
 }
 
 export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMember[]> {
+    family = readData<FamilyMember[]>(familyFilePath, []);
     if (!searchTerm.trim()) {
         return [];
     }
@@ -211,17 +244,22 @@ export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMem
 }
 
 export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember> {
+    family = readData<FamilyMember[]>(familyFilePath, []);
+    const newId = family.length > 0 ? Math.max(...family.map(f => f.id)) + 1 : 1;
     const newMember: FamilyMember = {
         ...memberData,
-        id: nextFamilyId++,
-        avatar: `https://picsum.photos/seed/${nextFamilyId}/200/200`,
+        id: newId,
+        avatar: `https://picsum.photos/seed/${newId}/200/200`,
     };
     family.push(newMember);
+    writeData(familyFilePath, family);
+    nextFamilyId = newId + 1;
     return newMember;
 }
 
 export async function updateFamilyMember(updatedMember: FamilyMember) {
     family = family.map(m => m.id === updatedMember.id ? updatedMember : m);
+    writeData(familyFilePath, family);
     return updatedMember;
 }
 
@@ -236,9 +274,6 @@ export async function cancelAppointment(appointmentId: number) {
 
 
 export async function getFamily() {
+    family = readData<FamilyMember[]>(familyFilePath, []);
     return JSON.parse(JSON.stringify(family));
 }
-
-    
-
-    
