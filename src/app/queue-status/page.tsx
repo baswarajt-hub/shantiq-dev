@@ -89,7 +89,7 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
             <CardHeader>
                  <CardTitle className="text-lg flex items-center gap-2">
                     {isPriority ? <Shield className="text-red-600" /> : <ArrowRight />}
-                    {isPriority ? 'Priority Patient Next' : 'Up Next'}
+                    Up Next
                  </CardTitle>
                 <CardDescription>Please proceed to the waiting area.</CardDescription>
             </CardHeader>
@@ -261,7 +261,7 @@ export default function QueueStatusPage() {
 
   const liveQueue = todaysPatients
     .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
-    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
+    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : a.tokenNo - b.tokenNo);
   
   const nowServing = todaysPatients.find(p => p.status === 'In-Consultation');
   const upNext = liveQueue[0];
@@ -348,9 +348,3 @@ export default function QueueStatusPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    

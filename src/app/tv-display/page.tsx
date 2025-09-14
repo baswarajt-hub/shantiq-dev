@@ -119,7 +119,7 @@ export default function TVDisplayPage() {
   const nowServing = todaysPatients.find((p) => p.status === 'In-Consultation');
   const waitingList = todaysPatients
     .filter((p) => ['Waiting', 'Late', 'Priority'].includes(p.status))
-    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : 0);
+    .sort((a, b) => (a.bestCaseETC && b.bestCaseETC) ? parseISO(a.bestCaseETC).getTime() - parseISO(b.bestCaseETC).getTime() : a.tokenNo - b.tokenNo);
   const waitingForReports = todaysPatients.filter(p => p.status === 'Waiting for Reports');
 
   const upNext = waitingList[0];
@@ -312,5 +312,3 @@ export default function TVDisplayPage() {
     </div>
   );
 }
-
-    
