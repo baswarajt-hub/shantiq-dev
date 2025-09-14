@@ -24,7 +24,9 @@ export default function LoginPage() {
   const handlePhoneSubmit = () => {
     startTransition(async () => {
       const result = await checkUserAuthAction(phone);
-      setGeneratedOtp(result.otp!);
+      if (result.otp) {
+        setGeneratedOtp(result.otp);
+      }
       setIsNewUser(!result.userExists);
       setStep('otp');
     });

@@ -887,7 +887,7 @@ export async function checkUserAuthAction(phone: string) {
     }
     // Simulate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    return { userExists: false, otp };
+    return { userExists: false, otp: otp };
 }
 
 export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'avatar'>) {
