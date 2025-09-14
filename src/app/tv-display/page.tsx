@@ -5,7 +5,7 @@ import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { parseISO, format, isToday, differenceInMinutes } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -48,7 +48,7 @@ export default function TVDisplayPage() {
 
   const listRef = useRef<HTMLDivElement>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
       await recalculateQueueWithETC();
       const [patientData, statusData, scheduleData] = await Promise.all([
           getPatientsAction(),
@@ -68,7 +68,7 @@ export default function TVDisplayPage() {
       } else {
         setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
       }
-  };
+  }, []);
 
   useEffect(() => {
     const updateClock = () => {
@@ -86,7 +86,7 @@ export default function TVDisplayPage() {
       clearInterval(dataIntervalId);
       clearInterval(clockIntervalId);
     };
-  }, []);
+  }, [fetchData]);
 
   // Scrolling logic
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function TVDisplayPage() {
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   
   const waitingList = patients
-    .filter(p => p.status !== 'Completed' && p.status !== 'Cancelled')
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
     .sort((a, b) => {
         const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
         const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
@@ -125,7 +125,7 @@ export default function TVDisplayPage() {
 
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
 
-  const upNext = waitingList.find(p => p.status !== 'In-Consultation');
+  const upNext = waitingList.find(p => p.id !== nowServing?.id);
   const queue = waitingList.filter(p => p.id !== upNext?.id && p.id !== nowServing?.id);
   
   const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
@@ -136,10 +136,10 @@ export default function TVDisplayPage() {
   const dayName = format(new Date(), 'EEEE') as keyof DoctorSchedule['days'];
   let todaySchedule = schedule?.days[dayName];
   const todayOverride = schedule?.specialClosures.find(c => c.date === todayStr);
-  if(todayOverride) {
+  if(todayOverride && schedule) {
     todaySchedule = {
-        morning: todayOverride.morningOverride ?? schedule!.days[dayName].morning,
-        evening: todayOverride.eveningOverride ?? schedule!.days[dayName].evening
+        morning: todayOverride.morningOverride ?? schedule.days[dayName].morning,
+        evening: todayOverride.eveningOverride ?? schedule.days[dayName].evening
     };
   }
   

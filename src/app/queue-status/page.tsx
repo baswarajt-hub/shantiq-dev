@@ -321,7 +321,7 @@ export default function QueueStatusPage() {
   }
   
   const liveQueue = allPatients
-    .filter(p => p.status !== 'Completed' && p.status !== 'Cancelled')
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
     .sort((a, b) => {
         const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
         const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;

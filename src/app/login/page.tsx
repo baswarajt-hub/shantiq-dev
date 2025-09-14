@@ -24,11 +24,16 @@ export default function LoginPage() {
   const handlePhoneSubmit = () => {
     startTransition(async () => {
       const result = await checkUserAuthAction(phone);
-      if (result.otp) {
-        setGeneratedOtp(result.otp);
+      if (result.userExists) {
+          // In a real app, OTP would be sent and verified for existing users too.
+          // For this simulation, we'll just log them in if they exist.
+          localStorage.setItem('userPhone', phone);
+          router.push('/booking');
+      } else {
+        setGeneratedOtp(result.otp!);
+        setIsNewUser(true);
+        setStep('otp');
       }
-      setIsNewUser(!result.userExists);
-      setStep('otp');
     });
   };
 
@@ -98,11 +103,11 @@ export default function LoginPage() {
           <CardFooter>
             {step === 'phone' ? (
               <Button onClick={handlePhoneSubmit} disabled={isPending || phone.length < 10} className="w-full">
-                {isPending ? 'Sending OTP...' : 'Send OTP'}
+                {isPending ? 'Checking...' : 'Login / Register'}
               </Button>
             ) : (
               <Button onClick={handleOtpSubmit} className="w-full">
-                Verify OTP &amp; Login
+                Verify OTP &amp; Continue
               </Button>
             )}
           </CardFooter>
