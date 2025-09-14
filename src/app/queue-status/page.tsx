@@ -139,7 +139,8 @@ function CompletionSummary({ patient }: { patient: Patient }) {
 function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { patient: Patient, queuePosition: number, isUpNext: boolean, isNowServing: boolean }) {
 
     if (patient.status === 'Completed') {
-        // This case should be handled by the top-level component now, but as a fallback:
+        // This case is now handled by the top-level CompletionSummary component.
+        // This return is a fallback, but shouldn't be hit with the new logic.
         return null;
     }
 
@@ -269,6 +270,20 @@ export default function QueueStatusPage() {
       setAllPatients(patientData);
       setDoctorStatus(statusData);
       setLastUpdated(new Date().toLocaleTimeString());
+
+      // If a patient has been searched for, check if their status has updated to 'Completed'
+      if (foundAppointments.length > 0) {
+        const searchedPatientId = foundAppointments[0].id;
+        const updatedPatient = patientData.find((p: Patient) => p.id === searchedPatientId);
+
+        if (updatedPatient && updatedPatient.status === 'Completed') {
+            setCompletedAppointmentForDisplay(updatedPatient);
+            setFoundAppointments([]);
+        } else if (updatedPatient) {
+            // Also refresh the foundAppointments data with the latest from the server
+            setFoundAppointments([updatedPatient]);
+        }
+      }
     };
 
   useEffect(() => {
@@ -314,7 +329,7 @@ export default function QueueStatusPage() {
     });
   
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
-  const upNext = liveQueue.find(p => p.status !== 'In-Consultation');
+  const upNext = liveQueue.find(p => p.id !== nowServing?.id);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
