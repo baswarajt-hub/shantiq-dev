@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/header';
@@ -416,7 +415,18 @@ export default function DashboardPage() {
     const todaysDateStr = format(selectedDate, 'yyyy-MM-dd');
     let displayedTimeSlots = timeSlots.filter(slot => {
         const patient = slot.patient;
-        if (!patient) return !showCompleted; // Show empty slots unless hiding completed
+        
+        if (!patient) {
+            // Hide empty slots that are in the past for the current day
+            if (isToday(selectedDate)) {
+                const now = new Date();
+                const slotTime = parse(slot.time, 'hh:mm a', selectedDate);
+                if (slotTime < now) {
+                    return false;
+                }
+            }
+            return !showCompleted;
+        }
         
         const patientDateStr = format(toZonedTime(parseISO(patient.appointmentTime), "Asia/Kolkata"), 'yyyy-MM-dd');
         if (patientDateStr !== todaysDateStr) return false;
@@ -814,5 +824,7 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
 
     
