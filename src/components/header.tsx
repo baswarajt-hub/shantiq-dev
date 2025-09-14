@@ -17,6 +17,12 @@ export default function Header() {
           <Button variant="ghost" asChild>
             <Link href="/admin">Admin</Link>
           </Button>
+           <Button variant="ghost" asChild>
+            <Link href="/queue-status">Queue Status</Link>
+          </Button>
+           <Button variant="ghost" asChild>
+            <Link href="/tv-display">TV Display</Link>
+          </Button>
         </nav>
         <div className="flex items-center justify-end space-x-2">
            <Button variant="outline" size="sm" asChild>
