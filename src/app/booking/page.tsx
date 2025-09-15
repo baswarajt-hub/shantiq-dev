@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -52,13 +52,9 @@ export default function BookingPage() {
     } else {
         setPhone(userPhone);
     }
-     const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Update time every minute
-    return () => clearInterval(timer);
   }, [router]);
-
-  const loadData = async (userPhone: string) => {
+  
+  const loadData = useCallback(async (userPhone: string) => {
     const [familyData, patientData, scheduleData, statusData] = await Promise.all([
       getFamilyByPhoneAction(userPhone),
       getPatientsAction(),
@@ -70,15 +66,23 @@ export default function BookingPage() {
     setPatients(patientData);
     setSchedule(scheduleData);
     setDoctorStatus(statusData);
-  };
+  }, []);
 
   useEffect(() => {
     if (phone) {
         startTransition(() => {
             loadData(phone);
         });
+        
+        const dataPoll = setInterval(() => loadData(phone), 30000); // Poll every 30 seconds
+        const timer = setInterval(() => setCurrentTime(new Date()), 60000); // Update time every minute
+        
+        return () => {
+            clearInterval(dataPoll);
+            clearInterval(timer);
+        };
     }
-  }, [phone]);
+  }, [phone, loadData]);
 
   useEffect(() => {
      if (!family.length || !patients.length) return;
@@ -136,27 +140,27 @@ export default function BookingPage() {
       
       let status = 'Upcoming';
       let statusColor = 'text-gray-500';
-
+      
+      let isSessionActive = false;
       if (sessionName === 'morning') {
-          if (today > endTime) {
-              status = 'Completed';
-              statusColor = 'text-green-600';
-          } else if (today >= startTime && today <= endTime) {
-              status = doctorStatus?.isOnline ? 'Online' : 'Offline';
-              statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
-          }
+          isSessionActive = today >= startTime;
       } else { // evening session
-          const morningEndTime = todaySch.morning.isOpen ? parseDate(todaySch.morning.end, 'HH:mm', today) : today;
-          
-          if (today > endTime) {
-              status = 'Completed';
-              statusColor = 'text-green-600';
-          } else if (today > morningEndTime) { // Only check evening status after morning is done
-              if (today >= startTime && today <= endTime) {
-                  status = doctorStatus?.isOnline ? 'Online' : 'Offline';
-                  statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
-              }
-          }
+          const morningEndTime = todaySch.morning.isOpen ? parseDate(todaySch.morning.end, 'HH:mm', today) : new Date(0);
+          isSessionActive = today > morningEndTime;
+      }
+
+      if (today > endTime) {
+          status = 'Completed';
+          statusColor = 'text-green-600';
+      } else if (isSessionActive && today >= startTime) {
+           if (doctorStatus?.isOnline) {
+                const onlineTime = doctorStatus.onlineTime ? format(parseISO(doctorStatus.onlineTime), 'hh:mm a') : '';
+                status = `Online (since ${onlineTime})`;
+                statusColor = 'text-green-600';
+           } else {
+                status = 'Offline';
+                statusColor = 'text-red-600';
+           }
       }
 
       return { time: timeStr, status, statusColor };
@@ -307,4 +311,5 @@ export default function BookingPage() {
     
 
     
+
 
