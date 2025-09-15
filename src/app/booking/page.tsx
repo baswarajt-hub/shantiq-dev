@@ -109,8 +109,8 @@ export default function BookingPage() {
 
     const today = currentTime;
     const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
-    let todaySch = schedule.days[dayOfWeek];
     const dateStr = format(today, 'yyyy-MM-dd');
+    let todaySch = schedule.days[dayOfWeek];
     const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
     
     if (todayOverride) {
@@ -119,43 +119,42 @@ export default function BookingPage() {
         evening: todayOverride.eveningOverride ?? todaySch.evening,
       };
     }
+    
+    const formatTime = (time: string) => {
+        try {
+            return format(parseDate(time, 'HH:mm', new Date()), 'hh:mm a');
+        } catch { return 'Invalid'; }
+    };
 
-    const processSession = (session: { start: string, end: string, isOpen: boolean }) => {
+    const processSession = (sessionName: 'morning' | 'evening') => {
+      const session = todaySch[sessionName];
       if (!session.isOpen) return { time: 'Closed', status: 'Closed', statusColor: 'text-gray-500' };
 
-      const formatTime = (time: string) => {
-        try {
-            const d = parseDate(time, 'HH:mm', new Date());
-            return format(d, 'hh:mm a');
-        } catch {
-            return 'Invalid';
-        }
-      };
-      
+      const timeStr = `${formatTime(session.start)} - ${formatTime(session.end)}`;
       const startTime = parseDate(session.start, 'HH:mm', today);
       const endTime = parseDate(session.end, 'HH:mm', today);
-      
+      const morningEndTime = todaySch.morning.isOpen ? parseDate(todaySch.morning.end, 'HH:mm', today) : today;
+
       let status = 'Upcoming';
       let statusColor = 'text-gray-500';
 
       if (today > endTime) {
-          status = 'Completed';
-          statusColor = 'text-green-600';
+        status = 'Completed';
+        statusColor = 'text-green-600';
       } else if (today >= startTime && today <= endTime) {
-          status = doctorStatus?.isOnline ? 'Online' : 'Offline';
-          statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
+        status = doctorStatus?.isOnline ? 'Online' : 'Offline';
+        statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
+      } else if (sessionName === 'evening' && today < startTime && today > morningEndTime) {
+        status = doctorStatus?.isOnline ? 'Online' : 'Offline';
+        statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
       }
-      
-      return {
-        time: `${formatTime(session.start)} - ${formatTime(session.end)}`,
-        status,
-        statusColor,
-      };
+
+      return { time: timeStr, status, statusColor };
     };
 
     return {
-      morning: processSession(todaySch.morning),
-      evening: processSession(todaySch.evening),
+      morning: processSession('morning'),
+      evening: processSession('evening'),
     };
   };
 
