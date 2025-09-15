@@ -4,15 +4,15 @@
 
 import { PatientPortalHeader } from '@/components/patient-portal-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { findPatientsByPhoneAction, getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
+import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, Home } from 'lucide-react';
-import { useEffect, useState, useTransition, useCallback } from 'react';
-import { format, parseISO, isToday, differenceInMinutes, parse as parseDate } from 'date-fns';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { format, parseISO, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { toZonedTime } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null }) {
   const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
@@ -277,48 +277,45 @@ export default function QueueStatusPage() {
   const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
   const router = useRouter();
+  const timeZone = "Asia/Kolkata";
 
-  const getSessionForTime = (appointmentUtcDate: Date, localSchedule: DoctorSchedule | null) => {
-      if (!localSchedule) return null;
-      
-      const timeZone = "Asia/Kolkata";
-      const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
-      const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
-      const dateStr = format(zonedAppt, 'yyyy-MM-dd');
+  const getSessionForTime = (appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
+    if (!localSchedule) return null;
 
-      let daySchedule = localSchedule.days[dayOfWeek];
-      const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
-      if (todayOverride) {
-          daySchedule = {
-          morning: todayOverride.morningOverride ?? daySchedule.morning,
-          evening: todayOverride.eveningOverride ?? daySchedule.evening,
-          };
-      }
+    const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
+    const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
+    const dateStr = format(zonedAppt, 'yyyy-MM-dd');
 
-      const checkSession = (session: Session) => {
-          if (!session.isOpen) return false;
-
-          let startUtc: Date;
-          if (/^\d{1,2}:\d{2}$/.test(session.start)) {
-            startUtc = toZonedTime(parseDate(`${dateStr} ${session.start}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
-          } else {
-            startUtc = toZonedTime(parseDate(`${dateStr} ${session.start}`, 'yyyy-MM-dd hh:mm a', new Date()), timeZone);
-          }
-
-          let endUtc: Date;
-          if (/^\d{1,2}:\d{2}$/.test(session.end)) {
-            endUtc = toZonedTime(parseDate(`${dateStr} ${session.end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
-          } else {
-            endUtc = toZonedTime(parseDate(`${dateStr} ${session.end}`, 'yyyy-MM-dd hh:mm a', new Date()), timeZone);
-          }
-          
-          const apptMs = appointmentUtcDate.getTime();
-          return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
+    let daySchedule = localSchedule.days[dayOfWeek];
+    const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
+    if (todayOverride) {
+      daySchedule = {
+        morning: todayOverride.morningOverride ?? daySchedule.morning,
+        evening: todayOverride.eveningOverride ?? daySchedule.evening,
       };
+    }
 
-      if (checkSession(daySchedule.morning)) return 'morning';
-      if (checkSession(daySchedule.evening)) return 'evening';
-      return null;
+    const sessionLocalToUtc = (sessionTime: string) => {
+        let localDate: Date;
+        if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+            localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+        } else {
+            localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
+        }
+        return fromZonedTime(localDate, timeZone);
+    }
+
+    const checkSession = (session: Session) => {
+      if (!session.isOpen) return false;
+      const startUtc = sessionLocalToUtc(session.start);
+      const endUtc = sessionLocalToUtc(session.end);
+      const apptMs = appointmentUtcDate.getTime();
+      return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
+    };
+
+    if (checkSession(daySchedule.morning)) return 'morning';
+    if (checkSession(daySchedule.evening)) return 'evening';
+    return null;
   };
 
   useEffect(() => {
@@ -337,30 +334,47 @@ export default function QueueStatusPage() {
         getDoctorScheduleAction()
       ]);
 
-      const now = new Date();
-      const currentSessionValue = getSessionForTime(now, scheduleData) || (now.getHours() < 14 ? 'morning' : 'evening');
-      setCurrentSession(currentSessionValue);
       setSchedule(scheduleData);
+      const now = new Date();
+      const currentSessionValue = getSessionForTime(now, scheduleData);
       
-      const sessionFilteredPatients = patientData.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === currentSessionValue);
+      let sessionToShow: 'morning' | 'evening' | null = null;
+      if (currentSessionValue) {
+        sessionToShow = currentSessionValue;
+      } else {
+        const morningEnd = scheduleData.days[format(now, 'EEEE') as keyof DoctorSchedule['days']].morning.end;
+        const morningEndTime = fromZonedTime(parseDateFn(`${format(now, 'yyyy-MM-dd')} ${morningEnd}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
+        if (now < morningEndTime) {
+           sessionToShow = 'morning';
+        } else {
+           sessionToShow = 'evening';
+        }
+      }
+      setCurrentSession(sessionToShow);
+      
+      const todayFilteredPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
+      const sessionFilteredPatients = todayFilteredPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
       
       setAllPatients(sessionFilteredPatients);
       setDoctorStatus(statusData);
       setLastUpdated(new Date().toLocaleTimeString());
 
       if (userPhone) {
-        const userAppointments = patientData.filter((p: Patient) => p.phone === userPhone && isToday(parseISO(p.appointmentTime)));
-        const completed = userAppointments.find(p => p.status === 'Completed');
+        const userAppointments = todayFilteredPatients.filter((p: Patient) => p.phone === userPhone);
+        const completed = userAppointments.find(p => p.status === 'Completed' && getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
         
         if (completed && (!completedAppointmentForDisplay || completed.id !== completedAppointmentForDisplay.id)) {
              setCompletedAppointmentForDisplay(completed);
              setFoundAppointments([]);
         } else if (!completed) {
-             setFoundAppointments(userAppointments.filter(p => p.status !== 'Cancelled'));
+             const activeUserAppointments = userAppointments.filter(p => p.status !== 'Cancelled' && getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+             setFoundAppointments(activeUserAppointments);
+             setCompletedAppointmentForDisplay(null);
+        } else if (foundAppointments.length === 0 && !completed) {
              setCompletedAppointmentForDisplay(null);
         }
       }
-    }, [completedAppointmentForDisplay]);
+    }, [completedAppointmentForDisplay, foundAppointments]);
 
 
   useEffect(() => {
@@ -462,3 +476,5 @@ export default function QueueStatusPage() {
     </div>
   );
 }
+
+    
