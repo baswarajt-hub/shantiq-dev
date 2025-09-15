@@ -597,23 +597,30 @@ export async function recalculateQueueWithETC() {
         }
         
         liveQueue.forEach((p, i) => {
-            let bestCaseETC: string;
+            let bestCaseETCValue: Date;
             if (i === 0) {
-                bestCaseETC = effectiveDoctorStartTime.toISOString();
+                bestCaseETCValue = effectiveDoctorStartTime;
             } else {
                 const previousPatientETC = patientUpdates.get(liveQueue[i - 1].id)?.bestCaseETC || liveQueue[i-1].bestCaseETC!;
-                bestCaseETC = new Date(
+                bestCaseETCValue = new Date(
                     toDate(previousPatientETC)!.getTime() + schedule.slotDuration * 60000
-                ).toISOString();
+                );
             }
             
             const currentUpdates = patientUpdates.get(p.id) || {};
-            let finalUpdates: Partial<Patient> = { ...currentUpdates, bestCaseETC };
+            let finalUpdates: Partial<Patient> = { ...currentUpdates, bestCaseETC: bestCaseETCValue.toISOString() };
 
             const worstETC = finalUpdates.worstCaseETC || p.worstCaseETC;
-            if (worstETC && bestCaseETC && toDate(worstETC)! < toDate(bestCaseETC)!) {
-                finalUpdates.worstCaseETC = bestCaseETC;
+             // Ensure best is not after worst, if so, align worst with best.
+            if (worstETC && bestCaseETCValue && toDate(worstETC)! < bestCaseETCValue) {
+                finalUpdates.worstCaseETC = bestCaseETCValue.toISOString();
             }
+            
+             // For the first patient in the queue, best and worst should be the same
+            if (i === 0) {
+                finalUpdates.worstCaseETC = bestCaseETCValue.toISOString();
+            }
+
 
             patientUpdates.set(p.id, finalUpdates);
         });
@@ -923,4 +930,3 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
     
 
     
-
