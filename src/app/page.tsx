@@ -560,7 +560,7 @@ export default function DashboardPage() {
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
-                                    <Switch id="pause-queue" checked={doctorStatus.isPaused} onCheckedChange={handleToggleQueuePause} disabled={isPending}/>
+                                    <Switch id="pause-queue" checked={doctorStatus.isPaused} onCheckedChange={handleToggleQueuePause} disabled={isPending || !doctorStatus.isOnline}/>
                                     <Label htmlFor="pause-queue" className='flex items-center text-sm'>
                                         {doctorStatus.isPaused ? <Pause className="mr-2 h-4 w-4 text-orange-500" /> : <Play className="mr-2 h-4 w-4 text-green-500" />}
                                         {doctorStatus.isPaused ? 'Queue Paused' : 'Queue Active'}
