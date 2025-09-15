@@ -2,18 +2,17 @@
 
 'use client';
 
-import Header from '@/components/header';
+import { PatientPortalHeader } from '@/components/patient-portal-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { findPatientsByPhoneAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
-import type { DoctorStatus, Patient } from '@/lib/types';
+import { findPatientsByPhoneAction, getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
+import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Search, Ticket, ArrowRight, UserCheck, PartyPopper, Pause } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, Home } from 'lucide-react';
 import { useEffect, useState, useTransition, useCallback } from 'react';
-import { format, parseISO, isToday, differenceInMinutes } from 'date-fns';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { format, parseISO, isToday, differenceInMinutes, parse as parseDate } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { toZonedTime } from 'date-fns-tz';
 
 function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null }) {
   const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
@@ -94,7 +93,7 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg">Queue is Empty</CardTitle>
-                    <CardDescription>There are no patients waiting.</CardDescription>
+                    <CardDescription>There are no patients waiting in this session.</CardDescription>
                 </CardHeader>
             </Card>
         )
@@ -157,8 +156,6 @@ function CompletionSummary({ patient }: { patient: Patient }) {
 function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { patient: Patient, queuePosition: number, isUpNext: boolean, isNowServing: boolean }) {
 
     if (patient.status === 'Completed') {
-        // This case is now handled by the top-level CompletionSummary component.
-        // This return is a fallback, but shouldn't be hit with the new logic.
         return null;
     }
 
@@ -273,67 +270,106 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
 export default function QueueStatusPage() {
   const [allPatients, setAllPatients] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
+  const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [lastUpdated, setLastUpdated] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState<string | null>(null);
   const [foundAppointments, setFoundAppointments] = useState<Patient[]>([]);
   const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
+  const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
+  const router = useRouter();
 
-  const fetchData = useCallback(async () => {
-      const [patientData, statusData] = await Promise.all([
+  const getSessionForTime = (appointmentUtcDate: Date, localSchedule: DoctorSchedule | null) => {
+      if (!localSchedule) return null;
+      
+      const timeZone = "Asia/Kolkata";
+      const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
+      const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
+      const dateStr = format(zonedAppt, 'yyyy-MM-dd');
+
+      let daySchedule = localSchedule.days[dayOfWeek];
+      const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
+      if (todayOverride) {
+          daySchedule = {
+          morning: todayOverride.morningOverride ?? daySchedule.morning,
+          evening: todayOverride.eveningOverride ?? daySchedule.evening,
+          };
+      }
+
+      const checkSession = (session: Session) => {
+          if (!session.isOpen) return false;
+
+          let startUtc: Date;
+          if (/^\d{1,2}:\d{2}$/.test(session.start)) {
+            startUtc = toZonedTime(parseDate(`${dateStr} ${session.start}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
+          } else {
+            startUtc = toZonedTime(parseDate(`${dateStr} ${session.start}`, 'yyyy-MM-dd hh:mm a', new Date()), timeZone);
+          }
+
+          let endUtc: Date;
+          if (/^\d{1,2}:\d{2}$/.test(session.end)) {
+            endUtc = toZonedTime(parseDate(`${dateStr} ${session.end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
+          } else {
+            endUtc = toZonedTime(parseDate(`${dateStr} ${session.end}`, 'yyyy-MM-dd hh:mm a', new Date()), timeZone);
+          }
+          
+          const apptMs = appointmentUtcDate.getTime();
+          return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
+      };
+
+      if (checkSession(daySchedule.morning)) return 'morning';
+      if (checkSession(daySchedule.evening)) return 'evening';
+      return null;
+  };
+
+  useEffect(() => {
+    const userPhone = localStorage.getItem('userPhone');
+    if (!userPhone) {
+      router.push('/login');
+    } else {
+      setPhone(userPhone);
+    }
+  }, [router]);
+  
+  const fetchData = useCallback(async (userPhone: string | null) => {
+      const [patientData, statusData, scheduleData] = await Promise.all([
         getPatientsAction(),
-        getDoctorStatusAction()
+        getDoctorStatusAction(),
+        getDoctorScheduleAction()
       ]);
-      setAllPatients(patientData);
+
+      const now = new Date();
+      const currentSessionValue = getSessionForTime(now, scheduleData) || (now.getHours() < 14 ? 'morning' : 'evening');
+      setCurrentSession(currentSessionValue);
+      setSchedule(scheduleData);
+      
+      const sessionFilteredPatients = patientData.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === currentSessionValue);
+      
+      setAllPatients(sessionFilteredPatients);
       setDoctorStatus(statusData);
       setLastUpdated(new Date().toLocaleTimeString());
 
-      if (foundAppointments.length > 0) {
-        const foundIds = foundAppointments.map(f => f.id);
-        const updatedPatient = patientData.find((p: Patient) => foundIds.includes(p.id) && p.status === 'Completed');
-
-        if (updatedPatient) {
-            setCompletedAppointmentForDisplay(updatedPatient);
-            setFoundAppointments([]);
-        } else {
-            const stillActive = patientData.filter((p: Patient) => foundIds.includes(p.id));
-            setFoundAppointments(stillActive);
+      if (userPhone) {
+        const userAppointments = patientData.filter((p: Patient) => p.phone === userPhone && isToday(parseISO(p.appointmentTime)));
+        const completed = userAppointments.find(p => p.status === 'Completed');
+        
+        if (completed && (!completedAppointmentForDisplay || completed.id !== completedAppointmentForDisplay.id)) {
+             setCompletedAppointmentForDisplay(completed);
+             setFoundAppointments([]);
+        } else if (!completed) {
+             setFoundAppointments(userAppointments.filter(p => p.status !== 'Cancelled'));
+             setCompletedAppointmentForDisplay(null);
         }
       }
-    }, [foundAppointments]);
+    }, [completedAppointmentForDisplay]);
 
 
   useEffect(() => {
-    fetchData(); // Initial fetch
-    const intervalId = setInterval(fetchData, 30000); // Poll every 30 seconds
-    return () => clearInterval(intervalId);
-  }, [fetchData]);
-
-  const handleSearch = () => {
-    if (!phone) {
-        toast({ title: 'Phone number is required', variant: 'destructive'});
-        return;
+    if (phone) {
+        fetchData(phone); // Initial fetch
+        const intervalId = setInterval(() => fetchData(phone), 15000); // Poll every 15 seconds
+        return () => clearInterval(intervalId);
     }
-    startTransition(async () => {
-        const appointments = await findPatientsByPhoneAction(phone);
-        const todaysAppointments = appointments.filter((p: Patient) => isToday(parseISO(p.appointmentTime || p.slotTime)));
-        
-        const completed = todaysAppointments.find(p => p.status === 'Completed');
-        
-        if (completed) {
-            setCompletedAppointmentForDisplay(completed);
-            setFoundAppointments([]);
-        } else {
-            const activeAppointments = todaysAppointments.filter(p => p.status !== 'Cancelled');
-            if (activeAppointments.length === 0) {
-                 toast({ title: 'No active appointments found', description: 'No appointments for today were found for this phone number.'});
-            }
-            setFoundAppointments(activeAppointments);
-            setCompletedAppointmentForDisplay(null);
-        }
-    })
-  }
+  }, [phone, fetchData]);
   
   const liveQueue = allPatients
     .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
@@ -350,8 +386,8 @@ export default function QueueStatusPage() {
   const upNext = liveQueue.find(p => p.id !== nowServing?.id);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
+    <div className="flex flex-col min-h-screen bg-muted/40">
+      <PatientPortalHeader />
       <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
         
         {completedAppointmentForDisplay ? (
@@ -361,26 +397,11 @@ export default function QueueStatusPage() {
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold tracking-tight">Live Queue Status</h1>
               <p className="text-lg text-muted-foreground mt-2">
-                Enter your phone number to see your personalized status.
+                Showing status for the {currentSession} session.
               </p>
               <p className="text-sm text-muted-foreground">Last updated: {lastUpdated}</p>
             </div>
             
-            <div className="max-w-md mx-auto space-y-4">
-                <div className="flex gap-2">
-                    <Input 
-                        type="tel"
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        placeholder="Enter your 10-digit phone number"
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                    <Button onClick={handleSearch} disabled={isPending}>
-                        {isPending ? 'Searching...' : <Search className="h-4 w-4" />}
-                    </Button>
-                </div>
-            </div>
-
             <div className="mt-8 max-w-4xl mx-auto space-y-8">
                 <AnimatePresence>
                 {foundAppointments.length > 0 && (

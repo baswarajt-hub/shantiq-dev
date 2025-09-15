@@ -18,7 +18,7 @@ export default function Header() {
             <Link href="/admin">Admin</Link>
           </Button>
            <Button variant="ghost" asChild>
-            <Link href="/queue-status">Queue Status</Link>
+            <Link href="/queue-status">Public Queue</Link>
           </Button>
            <Button variant="ghost" asChild>
             <Link href="/tv-display">TV Display</Link>

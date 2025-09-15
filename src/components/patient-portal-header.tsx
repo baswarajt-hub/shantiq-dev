@@ -4,18 +4,15 @@ import Link from "next/link";
 import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { LogOut, Home } from "lucide-react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export function PatientPortalHeader() {
   const router = useRouter();
-  const pathname = usePathname();
 
   const handleLogout = () => {
     localStorage.removeItem('userPhone');
     router.push('/login');
   };
-  
-  const showHomeButton = pathname !== '/booking';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -25,14 +22,12 @@ export function PatientPortalHeader() {
           <span className="font-bold sm:inline-block text-lg">QueueWise Portal</span>
         </Link>
         <div className="flex flex-1 items-center justify-end space-x-2">
-          {showHomeButton && (
-            <Button variant="ghost" size="sm" asChild>
+           <Button variant="ghost" size="sm" asChild>
               <Link href="/booking" className="gap-2">
                 <Home className="h-4 w-4" />
-                Home
+                Portal Home
               </Link>
             </Button>
-          )}
           <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
             <LogOut className="h-4 w-4" />
             Logout
