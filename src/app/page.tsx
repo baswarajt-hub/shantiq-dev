@@ -12,13 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, toggleQueuePauseAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -100,6 +100,35 @@ export default function DashboardPage() {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
 
+    const getSessionForTime = (appointmentUtcDate: Date) => {
+        if (!schedule) return null;
+        
+        const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
+        const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
+        const dateStr = format(zonedAppt, 'yyyy-MM-dd');
+
+        let daySchedule = schedule.days[dayOfWeek];
+        const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+        if (todayOverride) {
+            daySchedule = {
+            morning: todayOverride.morningOverride ?? daySchedule.morning,
+            evening: todayOverride.eveningOverride ?? daySchedule.evening,
+            };
+        }
+
+        const checkSession = (session: any) => { // Using `any` for session to bypass strict type checks for a moment.
+            if (!session.isOpen) return false;
+            const startUtc = sessionLocalToUtc(dateStr, session.start);
+            const endUtc = sessionLocalToUtc(dateStr, session.end);
+            const apptMs = appointmentUtcDate.getTime();
+            return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
+        };
+
+        if (checkSession(daySchedule.morning)) return 'morning';
+        if (checkSession(daySchedule.evening)) return 'evening';
+        return null;
+    };
+
     const loadData = async () => {
         startTransition(async () => {
             await recalculateQueueWithETC();
@@ -115,15 +144,6 @@ export default function DashboardPage() {
             setFamily(familyData);
             setDoctorStatus(statusData);
             setDoctorStartDelay(statusData.startDelay || 0);
-
-            const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
-            const completedWithTime = todaysPatients.filter(p => p.status === 'Completed' && typeof p.consultationTime === 'number');
-            if (completedWithTime.length > 0) {
-                const totalTime = completedWithTime.reduce((acc, p) => acc + p.consultationTime!, 0);
-                setAverageConsultationTime(Math.round(totalTime / completedWithTime.length));
-            } else {
-                setAverageConsultationTime(scheduleData.slotDuration);
-            }
         });
     }
 
@@ -142,6 +162,25 @@ export default function DashboardPage() {
             setDoctorOnlineTime('');
         }
     }, [doctorStatus]);
+
+    const sessionPatients = patients.filter(p => {
+        const apptDate = parseISO(p.appointmentTime);
+        if (!isToday(apptDate)) return false;
+        const apptSession = getSessionForTime(apptDate);
+        return apptSession === selectedSession;
+    });
+
+    useEffect(() => {
+        // Calculate average consultation time based on session-specific patients
+        const completedWithTime = sessionPatients.filter(p => p.status === 'Completed' && typeof p.consultationTime === 'number');
+        if (completedWithTime.length > 0) {
+            const totalTime = completedWithTime.reduce((acc, p) => acc + p.consultationTime!, 0);
+            setAverageConsultationTime(Math.round(totalTime / completedWithTime.length));
+        } else {
+            setAverageConsultationTime(schedule?.slotDuration || 0);
+        }
+
+    }, [sessionPatients, schedule?.slotDuration]);
 
 
     useEffect(() => {
@@ -385,6 +424,18 @@ export default function DashboardPage() {
         });
     }
 
+    const handleToggleQueuePause = () => {
+        startTransition(async () => {
+            const result = await toggleQueuePauseAction(!doctorStatus?.isPaused);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive'});
+            } else {
+                toast({ title: 'Success', description: result.success});
+                await loadData();
+            }
+        });
+    }
+
     const handleUpdateDelay = () => {
         startTransition(async () => {
             const result = await updateDoctorStartDelayAction(doctorStartDelay);
@@ -431,43 +482,6 @@ export default function DashboardPage() {
             }
         });
     };
-
-    const getSessionForTime = (appointmentUtcDate: Date) => {
-        if (!schedule) return null;
-        
-        const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
-        const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
-        const dateStr = format(zonedAppt, 'yyyy-MM-dd');
-
-        let daySchedule = schedule.days[dayOfWeek];
-        const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
-        if (todayOverride) {
-            daySchedule = {
-            morning: todayOverride.morningOverride ?? daySchedule.morning,
-            evening: todayOverride.eveningOverride ?? daySchedule.evening,
-            };
-        }
-
-        const checkSession = (session: any) => { // Using `any` for session to bypass strict type checks for a moment.
-            if (!session.isOpen) return false;
-            const startUtc = sessionLocalToUtc(dateStr, session.start);
-            const endUtc = sessionLocalToUtc(dateStr, session.end);
-            const apptMs = appointmentUtcDate.getTime();
-            return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
-        };
-
-        if (checkSession(daySchedule.morning)) return 'morning';
-        if (checkSession(daySchedule.evening)) return 'evening';
-        return null;
-    };
-
-
-    const todaysPatients = patients.filter(p => isToday(parseISO(p.appointmentTime)));
-    
-    const sessionPatients = todaysPatients.filter(p => {
-        const apptSession = getSessionForTime(parseISO(p.appointmentTime));
-        return apptSession === selectedSession;
-    });
 
     const displayedTimeSlots = timeSlots.filter(slot => {
         if (!showCompleted && slot.patient && (slot.patient.status === 'Completed' || slot.patient.status === 'Cancelled')) {
@@ -543,6 +557,13 @@ export default function DashboardPage() {
                                     <Label htmlFor="doctor-status" className={cn('flex items-center text-sm', !canDoctorCheckIn && 'text-muted-foreground')}>
                                         {doctorStatus.isOnline ? <LogIn className="mr-2 h-4 w-4 text-green-500" /> : <LogOut className="mr-2 h-4 w-4 text-red-500" />}
                                         {doctorStatus.isOnline ? `Online (since ${doctorOnlineTime})` : 'Offline'}
+                                    </Label>
+                                </div>
+                                <div className='flex items-center space-x-2'>
+                                    <Switch id="pause-queue" checked={doctorStatus.isPaused} onCheckedChange={handleToggleQueuePause} disabled={isPending}/>
+                                    <Label htmlFor="pause-queue" className='flex items-center text-sm'>
+                                        {doctorStatus.isPaused ? <Pause className="mr-2 h-4 w-4 text-orange-500" /> : <Play className="mr-2 h-4 w-4 text-green-500" />}
+                                        {doctorStatus.isPaused ? 'Queue Paused' : 'Queue Active'}
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
@@ -863,3 +884,4 @@ export default function DashboardPage() {
         </div>
     );
 }
+

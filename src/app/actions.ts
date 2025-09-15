@@ -308,6 +308,15 @@ export async function toggleDoctorStatusAction(isOnline: boolean, startDelayMinu
     return { success: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.` };
 }
 
+export async function toggleQueuePauseAction(isPaused: boolean) {
+    await updateDoctorStatus({ isPaused: isPaused });
+    revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath('/tv-display');
+    revalidatePath('/queue-status');
+    return { success: `Queue is now ${isPaused ? 'paused' : 'resumed'}.` };
+}
+
 export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
     await updateDoctorStatus({ startDelay: startDelayMinutes });
     await recalculateQueueWithETC();
@@ -914,3 +923,4 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
     
 
     
+

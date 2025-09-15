@@ -49,6 +49,7 @@ let doctorStatus: DoctorStatus = {
   isOnline: false,
   onlineTime: undefined,
   startDelay: 0,
+  isPaused: false,
 };
 
 let doctorSchedule: DoctorSchedule = {

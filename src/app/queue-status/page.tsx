@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Header from '@/components/header';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { findPatientsByPhoneAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
 import type { DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Search, Ticket, ArrowRight, UserCheck, PartyPopper } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Search, Ticket, ArrowRight, UserCheck, PartyPopper, Pause } from 'lucide-react';
 import { useEffect, useState, useTransition, useCallback } from 'react';
 import { format, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,20 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
           </CardHeader>
           <CardContent>
             <p className="text-xl font-bold">Please check back later.</p>
+          </CardContent>
+        </Card>
+    )
+  }
+  
+  if (doctorStatus?.isPaused) {
+    return (
+       <Card className="bg-yellow-100/50 border-yellow-300">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2"><Pause/>Queue Paused</CardTitle>
+            <CardDescription>The queue is temporarily paused.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-bold">Please wait for the queue to resume.</p>
           </CardContent>
         </Card>
     )

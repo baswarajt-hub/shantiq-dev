@@ -35,6 +35,7 @@ export type DoctorStatus = {
   isOnline: boolean;
   onlineTime?: string; // ISO string format
   startDelay: number; // in minutes
+  isPaused?: boolean;
 };
 
 export type Session = {

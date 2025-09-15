@@ -1,9 +1,10 @@
 
+
 'use client';
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield } from 'lucide-react';
+import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { parseISO, format, isToday, differenceInMinutes } from 'date-fns';
@@ -185,7 +186,20 @@ export default function TVDisplayPage() {
             <div className="bg-white rounded-2xl p-6 flex flex-col justify-between items-center shadow-lg border-2 border-sky-500">
                 <h2 className="text-3xl text-sky-600 font-semibold">NOW SERVING</h2>
                 <AnimatePresence mode="wait">
-                {nowServing ? (
+                {doctorStatus?.isPaused ? (
+                     <motion.div
+                        key="paused"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="text-center"
+                    >
+                        <Pause className="h-16 w-16 text-yellow-500 mx-auto mb-2" />
+                        <p className="text-5xl font-bold tracking-wider text-slate-900">
+                           Queue Paused
+                        </p>
+                    </motion.div>
+                ) : nowServing ? (
                     <motion.div
                         key={nowServing.id}
                         initial={{ opacity: 0, y: 20 }}
