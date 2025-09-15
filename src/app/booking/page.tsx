@@ -6,14 +6,15 @@ import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Eye, Ticket, User, Users } from 'lucide-react';
-import type { FamilyMember, Appointment, DoctorSchedule, Patient } from '@/lib/types';
+import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff } from 'lucide-react';
+import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
+import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
 import { format, parseISO, isToday, parse as parseDate } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 
 const getStatusBadgeClass = (status: string) => {
@@ -34,9 +35,10 @@ export default function BookingPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
+  const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [isBookingOpen, setBookingOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
-  const [currentDate, setCurrentDate] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [phone, setPhone] = useState<string|null>(null);
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -50,18 +52,24 @@ export default function BookingPage() {
     } else {
         setPhone(userPhone);
     }
+     const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update time every minute
+    return () => clearInterval(timer);
   }, [router]);
 
   const loadData = async (userPhone: string) => {
-    const [familyData, patientData, scheduleData] = await Promise.all([
+    const [familyData, patientData, scheduleData, statusData] = await Promise.all([
       getFamilyByPhoneAction(userPhone),
       getPatientsAction(),
       getDoctorScheduleAction(),
+      getDoctorStatusAction(),
     ]);
 
     setFamily(familyData);
     setPatients(patientData);
     setSchedule(scheduleData);
+    setDoctorStatus(statusData);
   };
 
   useEffect(() => {
@@ -70,8 +78,6 @@ export default function BookingPage() {
             loadData(phone);
         });
     }
-    const today = new Date();
-    setCurrentDate(today.toDateString());
   }, [phone]);
 
   useEffect(() => {
@@ -98,37 +104,56 @@ export default function BookingPage() {
     setAppointments(appointmentsFromPatients as Appointment[]);
   }, [patients, family]);
   
-  const todaySchedule = () => {
+  const getTodayScheduleDetails = () => {
     if (!schedule) return null;
+
     const today = new Date();
     const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
     let todaySch = schedule.days[dayOfWeek];
-
     const dateStr = format(today, 'yyyy-MM-dd');
     const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
-    if(todayOverride) {
-        todaySch = {
-            morning: todayOverride.morningOverride ?? todaySch.morning,
-            evening: todayOverride.eveningOverride ?? todaySch.evening,
-        };
+    
+    if (todayOverride) {
+      todaySch = {
+        morning: todayOverride.morningOverride ?? todaySch.morning,
+        evening: todayOverride.eveningOverride ?? todaySch.evening,
+      };
     }
 
-    const formatSession = (session: {start: string, end: string, isOpen: boolean}) => {
-        if (!session.isOpen) return 'Closed';
-        const formatTime = (time: string) => {
-            const [h, m] = time.split(':');
-            const d = new Date();
-            d.setHours(parseInt(h, 10), parseInt(m, 10));
-            return format(d, 'hh:mm a');
-        }
-        return `${formatTime(session.start)} - ${formatTime(session.end)}`;
-    }
+    const processSession = (session: { start: string, end: string, isOpen: boolean }) => {
+      if (!session.isOpen) return { time: 'Closed', status: 'Closed', statusColor: 'text-gray-500' };
+
+      const formatTime = (time: string) => {
+        const d = parseDate(time, 'HH:mm', new Date());
+        return format(d, 'hh:mm a');
+      };
+      
+      const startTime = parseDate(session.start, 'HH:mm', today);
+      const endTime = parseDate(session.end, 'HH:mm', today);
+      
+      let status = 'Upcoming';
+      let statusColor = 'text-gray-500';
+
+      if (currentTime > endTime) {
+          status = 'Completed';
+          statusColor = 'text-green-600';
+      } else if (currentTime >= startTime && currentTime <= endTime) {
+          status = doctorStatus?.isOnline ? 'Online' : 'Offline';
+          statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
+      }
+      
+      return {
+        time: `${formatTime(session.start)} - ${formatTime(session.end)}`,
+        status,
+        statusColor,
+      };
+    };
 
     return {
-        morning: formatSession(todaySch.morning),
-        evening: formatSession(todaySch.evening),
-    }
-  }
+      morning: processSession(todaySch.morning),
+      evening: processSession(todaySch.evening),
+    };
+  };
 
   const handleBookAppointment = (familyMember: FamilyMember, date: string, time: string, purpose: string) => {
      startTransition(async () => {
@@ -149,8 +174,7 @@ export default function BookingPage() {
   const activeAppointments = appointments.filter(appt => !['Completed', 'Cancelled', 'Missed'].includes(appt.status as string));
   const todaysAppointments = activeAppointments.filter(appt => isToday(parseISO(appt.date)));
 
-  const currentDaySchedule = todaySchedule();
-
+  const currentDaySchedule = getTodayScheduleDetails();
   const familyPatients = family.filter(member => !member.isPrimary);
 
   if (!phone || isPending) {
@@ -165,18 +189,28 @@ export default function BookingPage() {
         <Card>
           <CardHeader>
             <CardTitle>Today's Schedule</CardTitle>
-            <CardDescription>{currentDate}</CardDescription>
+            <CardDescription>{format(currentTime, 'EEEE, MMMM d')}</CardDescription>
           </CardHeader>
           <CardContent>
             {currentDaySchedule ? (
               <div className="space-y-4 text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Morning:</span>
-                  <span className="font-semibold">{currentDaySchedule.morning}</span>
+                  <div className="text-right">
+                    <span className="font-semibold">{currentDaySchedule.morning.time}</span>
+                    <p className={cn("font-bold text-xs", currentDaySchedule.morning.statusColor)}>
+                        {currentDaySchedule.morning.status}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Evening:</span>
-                  <span className="font-semibold">{currentDaySchedule.evening}</span>
+                   <div className="text-right">
+                    <span className="font-semibold">{currentDaySchedule.evening.time}</span>
+                    <p className={cn("font-bold text-xs", currentDaySchedule.evening.statusColor)}>
+                        {currentDaySchedule.evening.status}
+                    </p>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -256,3 +290,5 @@ export default function BookingPage() {
   </main>
   );
 }
+
+    
