@@ -105,9 +105,9 @@ export default function BookingPage() {
   }, [patients, family]);
   
   const getTodayScheduleDetails = () => {
-    if (!schedule) return null;
+    if (!schedule || !doctorStatus) return null;
 
-    const today = new Date();
+    const today = currentTime;
     const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
     let todaySch = schedule.days[dayOfWeek];
     const dateStr = format(today, 'yyyy-MM-dd');
@@ -124,8 +124,12 @@ export default function BookingPage() {
       if (!session.isOpen) return { time: 'Closed', status: 'Closed', statusColor: 'text-gray-500' };
 
       const formatTime = (time: string) => {
-        const d = parseDate(time, 'HH:mm', new Date());
-        return format(d, 'hh:mm a');
+        try {
+            const d = parseDate(time, 'HH:mm', new Date());
+            return format(d, 'hh:mm a');
+        } catch {
+            return 'Invalid';
+        }
       };
       
       const startTime = parseDate(session.start, 'HH:mm', today);
@@ -134,10 +138,10 @@ export default function BookingPage() {
       let status = 'Upcoming';
       let statusColor = 'text-gray-500';
 
-      if (currentTime > endTime) {
+      if (today > endTime) {
           status = 'Completed';
           statusColor = 'text-green-600';
-      } else if (currentTime >= startTime && currentTime <= endTime) {
+      } else if (today >= startTime && today <= endTime) {
           status = doctorStatus?.isOnline ? 'Online' : 'Offline';
           statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
       }
@@ -290,5 +294,7 @@ export default function BookingPage() {
   </main>
   );
 }
+
+    
 
     
