@@ -133,20 +133,30 @@ export default function BookingPage() {
       const timeStr = `${formatTime(session.start)} - ${formatTime(session.end)}`;
       const startTime = parseDate(session.start, 'HH:mm', today);
       const endTime = parseDate(session.end, 'HH:mm', today);
-      const morningEndTime = todaySch.morning.isOpen ? parseDate(todaySch.morning.end, 'HH:mm', today) : today;
-
+      
       let status = 'Upcoming';
       let statusColor = 'text-gray-500';
 
-      if (today > endTime) {
-        status = 'Completed';
-        statusColor = 'text-green-600';
-      } else if (today >= startTime && today <= endTime) {
-        status = doctorStatus?.isOnline ? 'Online' : 'Offline';
-        statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
-      } else if (sessionName === 'evening' && today < startTime && today > morningEndTime) {
-        status = doctorStatus?.isOnline ? 'Online' : 'Offline';
-        statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
+      if (sessionName === 'morning') {
+          if (today > endTime) {
+              status = 'Completed';
+              statusColor = 'text-green-600';
+          } else if (today >= startTime && today <= endTime) {
+              status = doctorStatus?.isOnline ? 'Online' : 'Offline';
+              statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
+          }
+      } else { // evening session
+          const morningEndTime = todaySch.morning.isOpen ? parseDate(todaySch.morning.end, 'HH:mm', today) : today;
+          
+          if (today > endTime) {
+              status = 'Completed';
+              statusColor = 'text-green-600';
+          } else if (today > morningEndTime) { // Only check evening status after morning is done
+              if (today >= startTime && today <= endTime) {
+                  status = doctorStatus?.isOnline ? 'Online' : 'Offline';
+                  statusColor = doctorStatus?.isOnline ? 'text-green-600' : 'text-red-600';
+              }
+          }
       }
 
       return { time: timeStr, status, statusColor };
@@ -297,3 +307,4 @@ export default function BookingPage() {
     
 
     
+
