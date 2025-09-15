@@ -6,7 +6,7 @@ import Header from '@/components/header';
 import Stats from '@/app/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, VisitPurpose } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +55,26 @@ const purposeIcons: { [key: string]: React.ElementType } = {
     'Vaccination': Syringe,
     'Others': HelpCircle,
 };
+
+const timeZone = "Asia/Kolkata";
+
+/**
+ * Helper: convert a session time string ("HH:mm" or "h:mm a") anchored to dateStr (yyyy-MM-dd)
+ * into a UTC Date (the instant when that local time occurs).
+ */
+function sessionLocalToUtc(dateStr: string, sessionTime: string) {
+  // Try 24-hour format first
+  let localDate: Date;
+  if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+    // "HH:mm" (24-hour)
+    localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+  } else {
+    // attempt 12-hour with AM/PM: "h:mm a" or "hh:mm a"
+    localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
+  }
+  // fromZonedTime will give us the UTC Date object corresponding to that wall-clock time in the specified zone.
+  return fromZonedTime(localDate, timeZone);
+}
 
 export default function DashboardPage() {
     const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -412,8 +432,43 @@ export default function DashboardPage() {
         });
     };
 
-    const todaysDateStr = format(selectedDate, 'yyyy-MM-dd');
+    const getSessionForTime = (appointmentUtcDate: Date) => {
+        if (!schedule) return null;
+        
+        const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
+        const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
+        const dateStr = format(zonedAppt, 'yyyy-MM-dd');
+
+        let daySchedule = schedule.days[dayOfWeek];
+        const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+        if (todayOverride) {
+            daySchedule = {
+            morning: todayOverride.morningOverride ?? daySchedule.morning,
+            evening: todayOverride.eveningOverride ?? daySchedule.evening,
+            };
+        }
+
+        const checkSession = (session: any) => { // Using `any` for session to bypass strict type checks for a moment.
+            if (!session.isOpen) return false;
+            const startUtc = sessionLocalToUtc(dateStr, session.start);
+            const endUtc = sessionLocalToUtc(dateStr, session.end);
+            const apptMs = appointmentUtcDate.getTime();
+            return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
+        };
+
+        if (checkSession(daySchedule.morning)) return 'morning';
+        if (checkSession(daySchedule.evening)) return 'evening';
+        return null;
+    };
+
+
+    const todaysPatients = patients.filter(p => isToday(parseISO(p.appointmentTime)));
     
+    const sessionPatients = todaysPatients.filter(p => {
+        const apptSession = getSessionForTime(parseISO(p.appointmentTime));
+        return apptSession === selectedSession;
+    });
+
     const displayedTimeSlots = timeSlots.filter(slot => {
         if (!showCompleted && slot.patient && (slot.patient.status === 'Completed' || slot.patient.status === 'Cancelled')) {
             return false;
@@ -428,7 +483,6 @@ export default function DashboardPage() {
                (slot.patientDetails.clinicId && slot.patientDetails.clinicId.toLowerCase().includes(lowerSearch));
     });
 
-    const todaysPatients = patients.filter(p => isToday(parseISO(p.appointmentTime)));
     const canDoctorCheckIn = isToday(selectedDate);
 
 
@@ -457,7 +511,7 @@ export default function DashboardPage() {
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
                     <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-                    <Stats patients={todaysPatients} averageConsultationTime={averageConsultationTime} />
+                    <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
                     
                     <Card>
                         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
