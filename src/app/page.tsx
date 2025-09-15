@@ -1,7 +1,7 @@
 
 
 'use client';
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import Header from '@/components/header';
 import Stats from '@/app/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, VisitPurpose } from '@/lib/types';
@@ -129,30 +129,36 @@ export default function DashboardPage() {
         return null;
     };
 
-    const loadData = async () => {
-        startTransition(async () => {
-            await recalculateQueueWithETC();
-            const [scheduleData, patientData, familyData, statusData] = await Promise.all([
-                getDoctorScheduleAction(),
-                getPatientsAction(),
-                getFamilyAction(),
-                getDoctorStatusAction()
-            ]);
-            
-            setSchedule(scheduleData);
-            setPatients(patientData);
-            setFamily(familyData);
-            setDoctorStatus(statusData);
-            setDoctorStartDelay(statusData.startDelay || 0);
-        });
-    }
+    const loadData = useCallback(async () => {
+        await recalculateQueueWithETC();
+        const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+            getDoctorScheduleAction(),
+            getPatientsAction(),
+            getFamilyAction(),
+            getDoctorStatusAction()
+        ]);
+        
+        setSchedule(scheduleData);
+        setPatients(patientData);
+        setFamily(familyData);
+        setDoctorStatus(statusData);
+        setDoctorStartDelay(statusData.startDelay || 0);
+    }, []);
+
+    useEffect(() => {
+        loadData(); // Initial load
+        const intervalId = setInterval(loadData, 15000); // Poll every 15 seconds
+
+        return () => clearInterval(intervalId); // Cleanup on unmount
+    }, [loadData]);
+
 
     useEffect(() => {
         const currentHour = new Date().getHours();
         if (currentHour >= 14) {
             setSelectedSession('evening');
         }
-        loadData();
+        
     }, []);
 
     useEffect(() => {
@@ -164,9 +170,11 @@ export default function DashboardPage() {
     }, [doctorStatus]);
 
     const sessionPatients = patients.filter(p => {
+        if (!isToday(parseISO(p.appointmentTime))) return false;
+        
         const apptDate = parseISO(p.appointmentTime);
-        if (!isToday(apptDate)) return false;
         const apptSession = getSessionForTime(apptDate);
+
         return apptSession === selectedSession;
     });
 
@@ -507,8 +515,11 @@ export default function DashboardPage() {
                 <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                     <div className="space-y-6">
                         <Skeleton className="h-12 w-1/3" />
-                        <div className="grid gap-4 md:grid-cols-3">
+                        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
                             <Skeleton className="h-28 w-full" />
+                            <Skeleton className="h-28 w-full" />
+                            <Skeleton className="h-28 w-full" />
+                             <Skeleton className="h-28 w-full" />
                             <Skeleton className="h-28 w-full" />
                             <Skeleton className="h-28 w-full" />
                         </div>
@@ -884,4 +895,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
 

@@ -70,5 +70,19 @@
     "consultationStartTime": "2025-09-14T20:34:42.985Z",
     "consultationEndTime": "2025-09-15T05:14:30.489Z",
     "consultationTime": 520
+  },
+  {
+    "name": "Aakash",
+    "phone": "9440120081",
+    "type": "Appointment",
+    "appointmentTime": "2025-09-15T13:25:00.000Z",
+    "status": "Booked",
+    "purpose": "Follow-up visit",
+    "tokenNo": 6,
+    "id": 3,
+    "estimatedWaitTime": 0,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-15T13:25:00.000Z",
+    "worstCaseETC": "2025-09-15T13:25:00.000Z"
   }
 ]
