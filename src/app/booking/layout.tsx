@@ -1,4 +1,3 @@
-
 import { PatientPortalHeader } from "@/components/patient-portal-header";
 
 export default function PatientPortalLayout({
