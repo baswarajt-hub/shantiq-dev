@@ -294,9 +294,9 @@ export default function DashboardPage() {
         }
     };
     
-    const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean, purpose: string) => {
+    const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
         startTransition(async () => {
-             const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, isWalkIn);
+             const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, checkIn);
 
             if (result.success) {
                 await loadData();
@@ -679,7 +679,7 @@ export default function DashboardPage() {
                                 const PurposeIcon = slot.patient?.purpose && purposeIcons[slot.patient.purpose] ? purposeIcons[slot.patient.purpose] : HelpCircle;
                                 
                                 const isNowServing = nowServing?.id === slot.patient?.id;
-                                const isUpNext = upNext?.id === slot.patient?.id;
+                                const isUpNext = upNext?.id === slot.patient?.id && upNext.status !== 'Booked';
 
 
                                 return (

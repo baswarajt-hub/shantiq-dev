@@ -58,7 +58,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
     setStep(2);
   }
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = (checkIn: boolean) => {
     if (selectedMember && selectedPurpose) {
         const [time, ampm] = timeSlot.split(' ');
         const [hours, minutes] = time.split(':');
@@ -72,7 +72,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
         const appointmentDate = new Date(selectedDate);
         appointmentDate.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
 
-        onSave(selectedMember, appointmentDate.toISOString(), true, selectedPurpose);
+        onSave(selectedMember, appointmentDate.toISOString(), checkIn, selectedPurpose);
         handleClose(false);
     }
   };
@@ -175,9 +175,12 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
                         </SelectContent>
                     </Select>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-0">
                     <Button variant="outline" onClick={goBackToSearch}>Back to Search</Button>
-                    <Button onClick={handleConfirmBooking} disabled={!selectedPurpose}>Confirm & Check-in</Button>
+                    <div className="flex gap-2">
+                        <Button onClick={() => handleConfirmBooking(false)} disabled={!selectedPurpose}>Book Only</Button>
+                        <Button onClick={() => handleConfirmBooking(true)} disabled={!selectedPurpose}>Book & Check-in</Button>
+                    </div>
                 </DialogFooter>
             </div>
         )}
