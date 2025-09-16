@@ -154,21 +154,8 @@ export default function TVDisplayPage() {
     }, [getSessionForTime]);
 
   useEffect(() => {
-    const fetchDataAndSetState = async () => {
-        await recalculateQueueWithETC();
-        const [patientData, statusData, scheduleData] = await Promise.all([
-            getPatientsAction(),
-            getDoctorStatusAction(),
-            getDoctorScheduleAction()
-        ]);
-
-        setPatients(patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime))));
-        setDoctorStatus(statusData);
-        setSchedule(scheduleData);
-    };
-
-    fetchDataAndSetState(); // Initial fetch
-    const dataIntervalId = setInterval(fetchDataAndSetState, 15000); // Poll every 15 seconds
+    fetchData(); // Initial fetch
+    const dataIntervalId = setInterval(fetchData, 15000); // Poll every 15 seconds
 
     const updateClock = () => {
         setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
@@ -180,7 +167,7 @@ export default function TVDisplayPage() {
         clearInterval(dataIntervalId);
         clearInterval(clockIntervalId);
     };
-}, []);
+}, [fetchData]);
 
   // Scrolling logic
   useEffect(() => {

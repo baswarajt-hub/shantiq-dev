@@ -56,6 +56,17 @@ const purposeIcons: { [key: string]: React.ElementType } = {
     'Others': HelpCircle,
 };
 
+const getPatientNameColorClass = (status: Patient['status'], type: Patient['type']) => {
+    if (status === 'Completed') return 'text-green-600';
+    if (['Waiting', 'Late', 'In-Consultation', 'Priority'].includes(status)) return 'text-blue-600';
+    if (status === 'Booked' || status === 'Confirmed') {
+        if (type === 'Walk-in') return 'text-amber-800'; // Brown/Amber for walk-ins
+        return 'text-foreground'; // Black/Default for appointments
+    }
+    return 'text-foreground'; // Default color
+};
+
+
 const timeZone = "Asia/Kolkata";
 
 /**
@@ -703,7 +714,10 @@ export default function DashboardPage() {
                                                 </div>
 
                                                 <div className="flex-1 flex flex-col gap-1">
-                                                    <div className='flex items-center gap-2 font-semibold'>
+                                                    <div className={cn(
+                                                        'flex items-center gap-2 font-semibold',
+                                                        getPatientNameColorClass(slot.patient.status, slot.patient.type)
+                                                    )}>
                                                         {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={slot.patient.purpose} />}
                                                         {slot.patientDetails.name}
                                                         {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : slot.patientDetails.gender === 'Female' ? <FemaleIcon className="h-4 w-4 text-pink-500" /> : null}
