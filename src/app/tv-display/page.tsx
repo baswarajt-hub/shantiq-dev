@@ -133,20 +133,68 @@ export default function TVDisplayPage() {
     }, [getSessionForTime]);
 
   useEffect(() => {
-    fetchData();
+    const fetchDataAndSetState = async () => {
+      await recalculateQueueWithETC();
+      const [patientData, statusData, scheduleData] = await Promise.all([
+          getPatientsAction(),
+          getDoctorStatusAction(),
+          getDoctorScheduleAction()
+      ]);
+
+      const now = new Date();
+      const timeZone = "Asia/Kolkata";
+
+      const realTimeSession = getSessionForTime(now, scheduleData);
+      let sessionToShow: 'morning' | 'evening' | null = realTimeSession;
+      
+      if (!sessionToShow) {
+        const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+        const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+        const morningSession = scheduleData.days[dayOfWeek].morning;
+        
+        if (morningSession.isOpen) {
+            const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+            const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+            if(now > morningEndUtc) {
+                sessionToShow = 'evening';
+            } else {
+                sessionToShow = 'morning';
+            }
+        } else {
+           sessionToShow = 'evening';
+        }
+      }
+      
+      const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
+      const sessionPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+
+      setPatients(sessionPatients);
+      setDoctorStatus(statusData);
+      setSchedule(scheduleData);
+      
+      const completedWithTime = sessionPatients.filter(p => p.status === 'Completed' && p.consultationTime);
+      if (completedWithTime.length > 0) {
+        const totalWait = completedWithTime.reduce((acc, p) => acc + (p.consultationTime || 0), 0);
+        setAverageWait(Math.round(totalWait / completedWithTime.length));
+      } else {
+        setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
+      }
+    };
+
+    fetchDataAndSetState();
+    const dataIntervalId = setInterval(fetchDataAndSetState, 15000);
+
     const updateClock = () => {
       setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
     };
     updateClock();
-
-    const dataIntervalId = setInterval(fetchData, 15000);
     const clockIntervalId = setInterval(updateClock, 1000); 
 
     return () => {
       clearInterval(dataIntervalId);
       clearInterval(clockIntervalId);
     };
-  }, [fetchData]);
+  }, [getSessionForTime]);
 
   // Scrolling logic
   useEffect(() => {

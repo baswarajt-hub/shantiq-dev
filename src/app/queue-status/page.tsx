@@ -324,17 +324,21 @@ export default function QueueStatusPage() {
     }
   }, [router]);
   
-  const fetchData = useCallback(async (userPhone: string | null) => {
+  const fetchData = useCallback(async (userPhone: string | null, currentSchedule: DoctorSchedule | null) => {
       const [patientData, statusData, scheduleData] = await Promise.all([
         getPatientsAction(),
         getDoctorStatusAction(),
-        getDoctorScheduleAction()
+        currentSchedule ? Promise.resolve(currentSchedule) : getDoctorScheduleAction()
       ]);
 
-      setSchedule(scheduleData);
+      if (!currentSchedule) {
+        setSchedule(scheduleData);
+      }
+      const effectiveSchedule = currentSchedule || scheduleData;
+
       const now = new Date();
       
-      const realTimeSession = getSessionForTime(now, scheduleData);
+      const realTimeSession = getSessionForTime(now, effectiveSchedule);
       
       let sessionToShow: 'morning' | 'evening' | null = realTimeSession;
       
@@ -343,7 +347,7 @@ export default function QueueStatusPage() {
         const timeZone = "Asia/Kolkata";
         const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
         const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-        const morningSession = scheduleData.days[dayOfWeek].morning;
+        const morningSession = effectiveSchedule.days[dayOfWeek].morning;
         
         if (morningSession.isOpen) {
             const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
@@ -362,7 +366,7 @@ export default function QueueStatusPage() {
       setCurrentSession(sessionToShow);
       
       const todayFilteredPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
-      const sessionFilteredPatients = todayFilteredPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+      const sessionFilteredPatients = todayFilteredPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), effectiveSchedule) === sessionToShow);
       
       setAllPatients(sessionFilteredPatients);
       setDoctorStatus(statusData);
@@ -370,29 +374,33 @@ export default function QueueStatusPage() {
 
       if (userPhone) {
         const userAppointments = todayFilteredPatients.filter((p: Patient) => p.phone === userPhone);
-        const completed = userAppointments.find(p => p.status === 'Completed' && getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+        const completed = userAppointments.find(p => p.status === 'Completed' && getSessionForTime(parseISO(p.appointmentTime), effectiveSchedule) === sessionToShow);
         
-        if (completed && (!completedAppointmentForDisplay || completed.id !== completedAppointmentForDisplay.id)) {
+        const currentCompletedId = localStorage.getItem('completedAppointmentId');
+        if (completed && completed.id.toString() !== currentCompletedId) {
              setCompletedAppointmentForDisplay(completed);
              setFoundAppointments([]);
+             localStorage.setItem('completedAppointmentId', completed.id.toString());
         } else if (!completed) {
-             const activeUserAppointments = userAppointments.filter(p => p.status !== 'Cancelled' && getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+             const activeUserAppointments = userAppointments.filter(p => p.status !== 'Cancelled' && getSessionForTime(parseISO(p.appointmentTime), effectiveSchedule) === sessionToShow);
              setFoundAppointments(activeUserAppointments);
              setCompletedAppointmentForDisplay(null);
+             localStorage.removeItem('completedAppointmentId');
         } else if (foundAppointments.length === 0 && !completed) {
              setCompletedAppointmentForDisplay(null);
+             localStorage.removeItem('completedAppointmentId');
         }
       }
-    }, [getSessionForTime, completedAppointmentForDisplay, foundAppointments]);
+    }, [getSessionForTime]);
 
 
   useEffect(() => {
     if (phone) {
-        fetchData(phone); // Initial fetch
-        const intervalId = setInterval(() => fetchData(phone), 15000); // Poll every 15 seconds
+        fetchData(phone, schedule); // Initial fetch
+        const intervalId = setInterval(() => fetchData(phone, schedule), 15000); // Poll every 15 seconds
         return () => clearInterval(intervalId);
     }
-  }, [phone, fetchData]);
+  }, [phone, fetchData, schedule]);
   
   const liveQueue = allPatients
     .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
