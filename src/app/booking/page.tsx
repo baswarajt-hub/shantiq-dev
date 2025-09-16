@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
@@ -143,7 +142,7 @@ export default function BookingPage() {
       
       let isSessionActive = false;
       if (sessionName === 'morning') {
-          isSessionActive = today >= startTime;
+          isSessionActive = true; 
       } else { // evening session
           const morningEndTime = todaySch.morning.isOpen ? parseDate(todaySch.morning.end, 'HH:mm', today) : new Date(0);
           isSessionActive = today > morningEndTime;
@@ -206,13 +205,13 @@ export default function BookingPage() {
         <Card>
           <CardHeader>
             <CardTitle>Today's Schedule</CardTitle>
-            <CardDescription className="font-semibold text-primary">{format(currentTime, 'EEEE, MMMM d')}</CardDescription>
+            <CardDescription className="font-bold text-lg text-blue-800">{format(currentTime, 'EEEE, MMMM d')}</CardDescription>
           </CardHeader>
           <CardContent>
             {currentDaySchedule ? (
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-semibold">Morning:</span>
+                  <span className="text-muted-foreground font-bold">Morning:</span>
                   <div className="text-right">
                     <span className="font-semibold">{currentDaySchedule.morning.time}</span>
                     <p className={cn("font-bold text-xs", currentDaySchedule.morning.statusColor)}>
@@ -221,7 +220,7 @@ export default function BookingPage() {
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-semibold">Evening:</span>
+                  <span className="text-muted-foreground font-bold">Evening:</span>
                    <div className="text-right">
                     <span className="font-semibold">{currentDaySchedule.evening.time}</span>
                     <p className={cn("font-bold text-xs", currentDaySchedule.evening.statusColor)}>
@@ -247,7 +246,7 @@ export default function BookingPage() {
               </Button>
             </CardContent>
         </Card>
-         <Button variant="secondary" asChild className="w-full">
+         <Button asChild className="w-full bg-amber-400 text-amber-900 hover:bg-amber-400/90">
             <Link href="/booking/my-appointments">
                 <Users className="mr-2 h-4 w-4" />
                 My Family & Appointments
@@ -307,10 +306,3 @@ export default function BookingPage() {
   </main>
   );
 }
-
-    
-
-    
-
-
-
