@@ -24,10 +24,10 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
   }, [initialDetails]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setDetails(prev => ({
       ...prev,
-      [name]: name === 'consultationFee' ? parseInt(value, 10) || 0 : value
+      [name]: type === 'number' ? parseInt(value, 10) || 0 : value
     }));
   };
   

@@ -1,0 +1,128 @@
+{
+  "clinicDetails": {
+    "doctorName": "Dr Baswaraj Tandur",
+    "qualifications": "MBBS, DCH, DNB (Paediatrics), MBA",
+    "clinicName": "Shanti Children's Clinic",
+    "tagLine": "Your child's health is in safe hands",
+    "address": "Dr Baswaraj Tandur Shanti Children's clinic Prajaymall complex Gowliguda Chaman, Hyderabad - 500012",
+    "contactNumber": "9000664833, 9398303183",
+    "email": "info@shantichildrensclinic.com",
+    "website": "shantichildrensclinic.com",
+    "consultationFee": 400,
+    "paymentQRCode": "https://picsum.photos/200",
+    "clinicLogo": ""
+  },
+  "slotDuration": 5,
+  "reserveFirstFive": true,
+  "walkInReservation": "alternateTwo",
+  "days": {
+    "Monday": {
+      "morning": {
+        "start": "10:30",
+        "end": "13:00",
+        "isOpen": true
+      },
+      "evening": {
+        "start": "18:30",
+        "end": "21:30",
+        "isOpen": true
+      }
+    },
+    "Tuesday": {
+      "morning": {
+        "start": "10:30",
+        "end": "13:00",
+        "isOpen": true
+      },
+      "evening": {
+        "start": "18:30",
+        "end": "21:30",
+        "isOpen": true
+      }
+    },
+    "Wednesday": {
+      "morning": {
+        "start": "10:30",
+        "end": "13:00",
+        "isOpen": true
+      },
+      "evening": {
+        "start": "18:30",
+        "end": "21:30",
+        "isOpen": true
+      }
+    },
+    "Thursday": {
+      "morning": {
+        "start": "10:30",
+        "end": "13:00",
+        "isOpen": true
+      },
+      "evening": {
+        "start": "18:30",
+        "end": "21:30",
+        "isOpen": true
+      }
+    },
+    "Friday": {
+      "morning": {
+        "start": "10:30",
+        "end": "13:00",
+        "isOpen": true
+      },
+      "evening": {
+        "start": "18:30",
+        "end": "21:30",
+        "isOpen": true
+      }
+    },
+    "Saturday": {
+      "morning": {
+        "start": "10:30",
+        "end": "13:00",
+        "isOpen": true
+      },
+      "evening": {
+        "start": "18:30",
+        "end": "21:30",
+        "isOpen": true
+      }
+    },
+    "Sunday": {
+      "morning": {
+        "start": "10:30",
+        "end": "13:00",
+        "isOpen": true
+      },
+      "evening": {
+        "start": "18:30",
+        "end": "21:30",
+        "isOpen": true
+      }
+    }
+  },
+  "specialClosures": [],
+  "visitPurposes": [
+    {
+      "id": "vp_1",
+      "name": "Consultation",
+      "enabled": true
+    },
+    {
+      "id": "vp_2",
+      "name": "Follow-up visit",
+      "enabled": true,
+      "description": "Next visit after paid consultation. Only one visit within 5 days of paid consultation."
+    },
+    {
+      "id": "vp_3",
+      "name": "Vaccination",
+      "enabled": true
+    },
+    {
+      "id": "vp_4",
+      "name": "Others",
+      "enabled": true
+    }
+  ]
+}

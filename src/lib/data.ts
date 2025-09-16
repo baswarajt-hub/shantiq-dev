@@ -9,11 +9,17 @@ import path from 'path';
 const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
 const patientsFilePath = path.join(dataDir, 'patients.json');
 const familyFilePath = path.join(dataDir, 'family.json');
+const scheduleFilePath = path.join(dataDir, 'schedule.json');
 
 function readData<T>(filePath: string, defaultData: T): T {
     try {
         if (fs.existsSync(filePath)) {
             const fileContent = fs.readFileSync(filePath, 'utf-8');
+            // Check for empty file
+            if (fileContent.trim() === '') {
+                fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2), 'utf-8');
+                return defaultData;
+            }
             return JSON.parse(fileContent);
         }
         fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2), 'utf-8');
@@ -33,15 +39,7 @@ function writeData<T>(filePath: string, data: T): void {
 }
 
 let patients: Patient[] = readData<Patient[]>(patientsFilePath, []);
-let family: FamilyMember[] = readData<FamilyMember[]>(familyFilePath, [
-    { id: 1, name: 'John Doe', dob: '1985-05-20', gender: 'Male', avatar: 'https://picsum.photos/id/237/200/200', clinicId: 'C101', phone: '5551112222', isPrimary: true, location: 'Gowliguda', city: 'Hyderabad' },
-    { id: 2, name: 'Jane Doe', dob: '1988-10-15', gender: 'Female', avatar: 'https://picsum.photos/id/238/200/200', phone: '5551112222' },
-    { id: 3, name: 'Jimmy Doe', dob: '2015-02-25', gender: 'Male', avatar: 'https://picsum.photos/id/239/200/200', clinicId: 'C101', phone: '5551112222' },
-    { id: 4, name: 'Alice Johnson', dob: '1990-01-01', gender: 'Female', avatar: 'https://picsum.photos/id/240/200/200', clinicId: 'C102', phone: '5550101010', isPrimary: true, location: 'Koti', city: 'Hyderabad' },
-    { id: 5, name: 'Bob Williams', dob: '1992-02-02', gender: 'Male', avatar: 'https://picsum.photos/id/241/200/200', clinicId: 'C103', phone: '5550102020', isPrimary: true, location: 'Abids', city: 'Hyderabad' },
-    { id: 6, name: 'Charlie Brown', dob: '1994-03-03', gender: 'Male', avatar: 'https://picsum.photos/id/242/200/200', clinicId: 'C104', phone: '5550103030', isPrimary: true, location: 'Nampally', city: 'Hyderabad' },
-]);
-
+let family: FamilyMember[] = readData<FamilyMember[]>(familyFilePath, []);
 let nextPatientId = patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1;
 let nextFamilyId = family.length > 0 ? Math.max(...family.map(f => f.id)) + 1 : 1;
 
@@ -52,7 +50,7 @@ let doctorStatus: DoctorStatus = {
   isPaused: false,
 };
 
-let doctorSchedule: DoctorSchedule = {
+const defaultSchedule: DoctorSchedule = {
   clinicDetails: {
     doctorName: 'Dr Baswaraj Tandur',
     qualifications: 'MBBS, DCH, DNB (Paediatrics), MBA',
@@ -70,34 +68,13 @@ let doctorSchedule: DoctorSchedule = {
   reserveFirstFive: true,
   walkInReservation: 'alternateTwo',
   days: {
-    Monday: {
-      morning: { start: '10:30', end: '13:00', isOpen: true },
-      evening: { start: '18:30', end: '21:30', isOpen: true },
-    },
-    Tuesday: {
-      morning: { start: '10:30', end: '13:00', isOpen: true },
-      evening: { start: '18:30', end: '21:30', isOpen: true },
-    },
-    Wednesday: {
-      morning: { start: '10:30', end: '13:00', isOpen: true },
-      evening: { start: '18:30', end: '21:30', isOpen: true },
-    },
-    Thursday: {
-      morning: { start: '10:30', end: '13:00', isOpen: true },
-      evening: { start: '18:30', end: '21:30', isOpen: true },
-    },
-    Friday: {
-      morning: { start: '10:30', end: '13:00', isOpen: true },
-      evening: { start: '18:30', end: '21:30', isOpen: true },
-    },
-    Saturday: {
-      morning: { start: '10:30', end: '13:00', isOpen: true },
-      evening: { start: '18:30', end: '21:30', isOpen: true },
-    },
-    Sunday: {
-      morning: { start: '10:30', end: '13:00', isOpen: true },
-      evening: { start: '18:30', end: '21:30', isOpen: true },
-    },
+    Monday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
+    Tuesday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
+    Wednesday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
+    Thursday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
+    Friday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
+    Saturday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
+    Sunday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
   },
   specialClosures: [],
   visitPurposes: [
@@ -107,7 +84,6 @@ let doctorSchedule: DoctorSchedule = {
     { id: 'vp_4', name: 'Others', enabled: true },
   ],
 };
-
 
 // This is a mock database. In a real app, you'd use a proper database.
 export async function getPatients() {
@@ -169,11 +145,13 @@ export async function updateDoctorStatus(status: Partial<DoctorStatus>) {
   return doctorStatus;
 }
 
-export async function getDoctorSchedule() {
-  return JSON.parse(JSON.stringify(doctorSchedule));
+export async function getDoctorSchedule(): Promise<DoctorSchedule> {
+  const schedule = readData<DoctorSchedule>(scheduleFilePath, defaultSchedule);
+  return JSON.parse(JSON.stringify(schedule));
 }
 
 export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedule>): Promise<DoctorSchedule> {
+  let doctorSchedule = await getDoctorSchedule();
   const newSchedule: DoctorSchedule = {
     ...doctorSchedule,
     ...scheduleUpdate,
@@ -181,32 +159,37 @@ export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedul
       ...doctorSchedule.days,
       ...scheduleUpdate.days,
     },
-    // Ensure nested objects that are not part of the partial update are preserved
     clinicDetails: scheduleUpdate.clinicDetails ?? doctorSchedule.clinicDetails,
     specialClosures: scheduleUpdate.specialClosures ?? doctorSchedule.specialClosures,
     visitPurposes: scheduleUpdate.visitPurposes ?? doctorSchedule.visitPurposes,
   };
-  doctorSchedule = newSchedule;
-  return JSON.parse(JSON.stringify(doctorSchedule));
+  writeData(scheduleFilePath, newSchedule);
+  return newSchedule;
 }
 
 export async function updateClinicDetailsData(details: ClinicDetails) {
+  let doctorSchedule = await getDoctorSchedule();
   doctorSchedule.clinicDetails = details;
+  writeData(scheduleFilePath, doctorSchedule);
   return doctorSchedule;
 }
 
 export async function updateVisitPurposesData(purposes: VisitPurpose[]) {
+    let doctorSchedule = await getDoctorSchedule();
     doctorSchedule.visitPurposes = purposes;
+    writeData(scheduleFilePath, doctorSchedule);
     return doctorSchedule;
 }
 
 export async function updateSpecialClosures(closures: SpecialClosure[]) {
-    // In a real DB, you'd likely update this differently
+    let doctorSchedule = await getDoctorSchedule();
     doctorSchedule.specialClosures = closures;
+    writeData(scheduleFilePath, doctorSchedule);
     return doctorSchedule;
 }
 
 export async function updateTodayScheduleOverrideData(override: SpecialClosure) {
+    let doctorSchedule = await getDoctorSchedule();
     const existingClosureIndex = doctorSchedule.specialClosures.findIndex(c => c.date === override.date);
     if (existingClosureIndex > -1) {
         doctorSchedule.specialClosures[existingClosureIndex] = {
@@ -216,6 +199,7 @@ export async function updateTodayScheduleOverrideData(override: SpecialClosure) 
     } else {
         doctorSchedule.specialClosures.push(override);
     }
+    writeData(scheduleFilePath, doctorSchedule);
     return doctorSchedule;
 }
 
