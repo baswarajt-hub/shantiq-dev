@@ -39,6 +39,27 @@ const purposeIcons: { [key: string]: React.ElementType } = {
 };
 
 
+const getPatientNameColorClass = (status: Patient['status'], type: Patient['type']) => {
+    switch (status) {
+        case 'Completed':
+            return 'text-green-600';
+        case 'Waiting':
+        case 'Late':
+        case 'Priority':
+        case 'In-Consultation':
+            return 'text-blue-600';
+        case 'Booked':
+        case 'Confirmed':
+            if (type === 'Walk-in') {
+                return 'text-amber-800'; // Brown for walk-in not checked-in
+            }
+            return 'text-slate-800'; // Black for portal bookings not checked-in
+        default:
+            return 'text-slate-800';
+    }
+}
+
+
 export default function TVDisplayPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
@@ -134,67 +155,32 @@ export default function TVDisplayPage() {
 
   useEffect(() => {
     const fetchDataAndSetState = async () => {
-      await recalculateQueueWithETC();
-      const [patientData, statusData, scheduleData] = await Promise.all([
-          getPatientsAction(),
-          getDoctorStatusAction(),
-          getDoctorScheduleAction()
-      ]);
+        await recalculateQueueWithETC();
+        const [patientData, statusData, scheduleData] = await Promise.all([
+            getPatientsAction(),
+            getDoctorStatusAction(),
+            getDoctorScheduleAction()
+        ]);
 
-      const now = new Date();
-      const timeZone = "Asia/Kolkata";
-
-      const realTimeSession = getSessionForTime(now, scheduleData);
-      let sessionToShow: 'morning' | 'evening' | null = realTimeSession;
-      
-      if (!sessionToShow) {
-        const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-        const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-        const morningSession = scheduleData.days[dayOfWeek].morning;
-        
-        if (morningSession.isOpen) {
-            const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-            const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-            if(now > morningEndUtc) {
-                sessionToShow = 'evening';
-            } else {
-                sessionToShow = 'morning';
-            }
-        } else {
-           sessionToShow = 'evening';
-        }
-      }
-      
-      const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
-      const sessionPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
-
-      setPatients(sessionPatients);
-      setDoctorStatus(statusData);
-      setSchedule(scheduleData);
-      
-      const completedWithTime = sessionPatients.filter(p => p.status === 'Completed' && p.consultationTime);
-      if (completedWithTime.length > 0) {
-        const totalWait = completedWithTime.reduce((acc, p) => acc + (p.consultationTime || 0), 0);
-        setAverageWait(Math.round(totalWait / completedWithTime.length));
-      } else {
-        setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
-      }
+        setPatients(patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime))));
+        setDoctorStatus(statusData);
+        setSchedule(scheduleData);
     };
 
-    fetchDataAndSetState();
-    const dataIntervalId = setInterval(fetchDataAndSetState, 15000);
+    fetchDataAndSetState(); // Initial fetch
+    const dataIntervalId = setInterval(fetchDataAndSetState, 15000); // Poll every 15 seconds
 
     const updateClock = () => {
-      setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+        setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
     };
     updateClock();
     const clockIntervalId = setInterval(updateClock, 1000); 
 
     return () => {
-      clearInterval(dataIntervalId);
-      clearInterval(clockIntervalId);
+        clearInterval(dataIntervalId);
+        clearInterval(clockIntervalId);
     };
-  }, [getSessionForTime]);
+}, []);
 
   // Scrolling logic
   useEffect(() => {
@@ -224,17 +210,23 @@ export default function TVDisplayPage() {
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   
   const waitingList = patients
-    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
+    .filter(p => ['Waiting', 'Late', 'Priority', 'Booked', 'Confirmed'].includes(p.status))
     .sort((a, b) => {
-        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
-        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
+        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
+        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : parseISO(b.slotTime).getTime();
         return timeA - timeB;
     });
 
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
+  const completedList = patients.filter(p => p.status === 'Completed');
 
-  const upNext = waitingList.find(p => p.id !== nowServing?.id);
-  const queue = waitingList.filter(p => p.id !== upNext?.id && p.id !== nowServing?.id);
+  const upNext = waitingList.find(p => p.id !== nowServing?.id && ['Waiting', 'Late', 'Priority'].includes(p.status));
+  const queue = [...completedList, ...waitingList].filter(p => p.id !== upNext?.id && p.id !== nowServing?.id)
+      .sort((a, b) => {
+        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
+        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : parseISO(b.slotTime).getTime();
+        return timeA - timeB;
+      });
   
   const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
   const qualifications = schedule?.clinicDetails.qualifications || '';
@@ -315,7 +307,10 @@ export default function TVDisplayPage() {
                         className="text-center"
                     >
                         <Hourglass className="h-16 w-16 text-sky-500 mx-auto animate-pulse mb-2" />
-                        <p className="text-6xl font-bold tracking-wider text-slate-900">
+                        <p className={cn(
+                           "text-6xl font-bold tracking-wider",
+                           getPatientNameColorClass(nowServing.status, nowServing.type)
+                         )}>
                            {anonymizeName(nowServing.name)}
                         </p>
                         {nowServing.subStatus === 'Reports' && <p className="text-2xl font-semibold text-purple-600">(Reports)</p>}
@@ -370,7 +365,12 @@ export default function TVDisplayPage() {
                          <Ticket className={cn("h-8 w-8", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-600')}/>
                          <span className="text-4xl font-bold text-slate-800">#{upNext.tokenNo}</span>
                     </div>
-                    <span className="text-4xl font-bold text-slate-800">{anonymizeName(upNext.name)}</span>
+                    <span className={cn(
+                        "text-4xl font-bold",
+                         getPatientNameColorClass(upNext.status, upNext.type)
+                    )}>
+                        {anonymizeName(upNext.name)}
+                    </span>
                 </div>
                 <div className="text-2xl font-semibold flex items-center gap-2">
                     <Timer className="h-7 w-7 text-slate-600" />
@@ -409,7 +409,12 @@ export default function TVDisplayPage() {
                             className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
                         >
                             <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
-                            <div className="font-medium text-3xl">{anonymizeName(patient.name)}</div>
+                            <div className={cn(
+                                "font-medium text-3xl",
+                                getPatientNameColorClass(patient.status, patient.type)
+                            )}>
+                                {anonymizeName(patient.name)}
+                            </div>
                             <div className="text-center text-slate-600 flex justify-center">
                                 <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
                             </div>
