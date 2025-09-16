@@ -278,7 +278,7 @@ export default function QueueStatusPage() {
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
   const router = useRouter();
 
-  const getSessionForTime = (appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
+  const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule) return null;
     const timeZone = "Asia/Kolkata";
     
@@ -313,7 +313,7 @@ export default function QueueStatusPage() {
     if (checkSession(daySchedule.morning)) return 'morning';
     if (checkSession(daySchedule.evening)) return 'evening';
     return null;
-  };
+  }, []);
 
   useEffect(() => {
     const userPhone = localStorage.getItem('userPhone');
@@ -333,7 +333,6 @@ export default function QueueStatusPage() {
 
       setSchedule(scheduleData);
       const now = new Date();
-      const timeZone = "Asia/Kolkata";
       
       const realTimeSession = getSessionForTime(now, scheduleData);
       
@@ -341,7 +340,7 @@ export default function QueueStatusPage() {
       
       if (!sessionToShow) {
         // If we are not in any session, decide which one to show.
-        // E.g. if it's after morning but before evening, show evening.
+        const timeZone = "Asia/Kolkata";
         const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
         const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
         const morningSession = scheduleData.days[dayOfWeek].morning;
@@ -384,7 +383,7 @@ export default function QueueStatusPage() {
              setCompletedAppointmentForDisplay(null);
         }
       }
-    }, [completedAppointmentForDisplay, foundAppointments]);
+    }, [getSessionForTime, completedAppointmentForDisplay, foundAppointments]);
 
 
   useEffect(() => {
@@ -486,5 +485,3 @@ export default function QueueStatusPage() {
     </div>
   );
 }
-
-    

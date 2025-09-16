@@ -5,7 +5,7 @@ import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { parseISO, format, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -48,7 +48,7 @@ export default function TVDisplayPage() {
 
   const listRef = useRef<HTMLDivElement>(null);
 
-  const getSessionForTime = (appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
+  const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule) return null;
     const timeZone = "Asia/Kolkata";
     
@@ -82,10 +82,9 @@ export default function TVDisplayPage() {
     if (checkSession(daySchedule.morning)) return 'morning';
     if (checkSession(daySchedule.evening)) return 'evening';
     return null;
-  };
+  }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
       await recalculateQueueWithETC();
       const [patientData, statusData, scheduleData] = await Promise.all([
           getPatientsAction(),
@@ -131,13 +130,13 @@ export default function TVDisplayPage() {
       } else {
         setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
       }
-    };
-    
+    }, [getSessionForTime]);
+
+  useEffect(() => {
+    fetchData();
     const updateClock = () => {
       setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
     };
-
-    fetchData();
     updateClock();
 
     const dataIntervalId = setInterval(fetchData, 15000);
@@ -147,7 +146,7 @@ export default function TVDisplayPage() {
       clearInterval(dataIntervalId);
       clearInterval(clockIntervalId);
     };
-  }, []);
+  }, [fetchData]);
 
   // Scrolling logic
   useEffect(() => {
@@ -390,5 +389,3 @@ export default function TVDisplayPage() {
     </div>
   );
 }
-
-    

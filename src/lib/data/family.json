@@ -139,5 +139,14 @@
     "phone": "9849094453",
     "id": 14,
     "avatar": "https://picsum.photos/seed/14/200/200"
+  },
+  {
+    "name": "Swati",
+    "dob": "2023-05-16",
+    "gender": "Female",
+    "clinicId": "",
+    "phone": "9849094454",
+    "id": 15,
+    "avatar": "https://picsum.photos/seed/15/200/200"
   }
 ]
