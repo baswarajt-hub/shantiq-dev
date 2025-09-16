@@ -206,13 +206,13 @@ export default function BookingPage() {
         <Card>
           <CardHeader>
             <CardTitle>Today's Schedule</CardTitle>
-            <CardDescription>{format(currentTime, 'EEEE, MMMM d')}</CardDescription>
+            <CardDescription className="font-semibold text-primary">{format(currentTime, 'EEEE, MMMM d')}</CardDescription>
           </CardHeader>
           <CardContent>
             {currentDaySchedule ? (
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Morning:</span>
+                  <span className="text-muted-foreground font-semibold">Morning:</span>
                   <div className="text-right">
                     <span className="font-semibold">{currentDaySchedule.morning.time}</span>
                     <p className={cn("font-bold text-xs", currentDaySchedule.morning.statusColor)}>
@@ -221,7 +221,7 @@ export default function BookingPage() {
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Evening:</span>
+                  <span className="text-muted-foreground font-semibold">Evening:</span>
                    <div className="text-right">
                     <span className="font-semibold">{currentDaySchedule.evening.time}</span>
                     <p className={cn("font-bold text-xs", currentDaySchedule.evening.statusColor)}>
@@ -247,8 +247,8 @@ export default function BookingPage() {
               </Button>
             </CardContent>
         </Card>
-         <Button variant="outline" asChild>
-            <Link href="/booking/my-appointments" className="w-full">
+         <Button variant="secondary" asChild className="w-full">
+            <Link href="/booking/my-appointments">
                 <Users className="mr-2 h-4 w-4" />
                 My Family & Appointments
             </Link>
@@ -311,5 +311,6 @@ export default function BookingPage() {
     
 
     
+
 
 
