@@ -5,7 +5,7 @@ import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { parseISO, format, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -391,4 +391,3 @@ export default function TVDisplayPage() {
   );
 }
 
-    
