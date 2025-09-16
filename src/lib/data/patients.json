@@ -194,14 +194,17 @@
     "phone": "9440120081",
     "type": "Appointment",
     "appointmentTime": "2025-09-16T05:25:00.000Z",
-    "status": "Booked",
+    "status": "In-Consultation",
     "purpose": "Consultation",
     "tokenNo": 6,
     "id": 10,
     "estimatedWaitTime": 60,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-16T05:25:00.000Z",
-    "worstCaseETC": "2025-09-16T05:25:00.000Z"
+    "slotTime": "2025-09-16T05:59:00.000Z",
+    "worstCaseETC": "2025-09-16T05:45:19.419Z",
+    "checkInTime": "2025-09-16T05:32:22.707Z",
+    "bestCaseETC": "2025-09-16T05:40:19.419Z",
+    "consultationStartTime": "2025-09-16T05:37:38.068Z"
   },
   {
     "name": "Nitya",
@@ -214,7 +217,25 @@
     "id": 11,
     "estimatedWaitTime": 60,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-16T05:30:00.000Z",
-    "worstCaseETC": "2025-09-16T05:30:00.000Z"
+    "slotTime": "2025-09-16T06:04:00.000Z",
+    "worstCaseETC": "2025-09-16T06:04:00.000Z"
+  },
+  {
+    "name": "John Doe",
+    "phone": "5551112222",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-16T05:00:00.000Z",
+    "status": "Completed",
+    "purpose": "Consultation",
+    "tokenNo": 1,
+    "id": 12,
+    "estimatedWaitTime": 75,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-16T05:34:00.000Z",
+    "worstCaseETC": "2025-09-16T05:34:00.000Z",
+    "bestCaseETC": "2025-09-16T05:35:16.790Z",
+    "consultationStartTime": "2025-09-16T05:35:19.419Z",
+    "consultationEndTime": "2025-09-16T05:37:38.067Z",
+    "consultationTime": 2
   }
 ]

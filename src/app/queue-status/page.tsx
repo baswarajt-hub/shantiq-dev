@@ -277,11 +277,11 @@ export default function QueueStatusPage() {
   const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
   const router = useRouter();
-  const timeZone = "Asia/Kolkata";
 
   const getSessionForTime = (appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule) return null;
-
+    const timeZone = "Asia/Kolkata";
+    
     const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
     const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
     const dateStr = format(zonedAppt, 'yyyy-MM-dd');
@@ -297,11 +297,8 @@ export default function QueueStatusPage() {
 
     const sessionLocalToUtc = (sessionTime: string) => {
         let localDate: Date;
-        if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
-            localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
-        } else {
-            localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
-        }
+        // The time is stored as 'HH:mm' format in the schedule
+        localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
         return fromZonedTime(localDate, timeZone);
     }
 
@@ -336,20 +333,33 @@ export default function QueueStatusPage() {
 
       setSchedule(scheduleData);
       const now = new Date();
-      const currentSessionValue = getSessionForTime(now, scheduleData);
+      const timeZone = "Asia/Kolkata";
       
-      let sessionToShow: 'morning' | 'evening' | null = null;
-      if (currentSessionValue) {
-        sessionToShow = currentSessionValue;
-      } else {
-        const morningEnd = scheduleData.days[format(now, 'EEEE') as keyof DoctorSchedule['days']].morning.end;
-        const morningEndTime = fromZonedTime(parseDateFn(`${format(now, 'yyyy-MM-dd')} ${morningEnd}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
-        if (now < morningEndTime) {
-           sessionToShow = 'morning';
+      const realTimeSession = getSessionForTime(now, scheduleData);
+      
+      let sessionToShow: 'morning' | 'evening' | null = realTimeSession;
+      
+      if (!sessionToShow) {
+        // If we are not in any session, decide which one to show.
+        // E.g. if it's after morning but before evening, show evening.
+        const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+        const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+        const morningSession = scheduleData.days[dayOfWeek].morning;
+        
+        if (morningSession.isOpen) {
+            const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+            const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+
+            if(now > morningEndUtc) {
+                sessionToShow = 'evening'; // Show evening queue after morning is done
+            } else {
+                sessionToShow = 'morning'; // Show morning queue before it starts
+            }
         } else {
-           sessionToShow = 'evening';
+           sessionToShow = 'evening'; // If morning is closed, default to evening
         }
       }
+      
       setCurrentSession(sessionToShow);
       
       const todayFilteredPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
