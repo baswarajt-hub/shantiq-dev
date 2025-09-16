@@ -286,5 +286,20 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-16T13:45:00.000Z",
     "worstCaseETC": "2025-09-16T13:45:00.000Z"
+  },
+  {
+    "name": "Jimmy Doe",
+    "phone": "5551112222",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-16T13:00:00.000Z",
+    "status": "Waiting",
+    "purpose": "Consultation",
+    "tokenNo": 1,
+    "id": 16,
+    "estimatedWaitTime": 60,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-16T13:00:00.000Z",
+    "worstCaseETC": "2025-09-16T13:00:00.000Z",
+    "bestCaseETC": "2025-09-16T13:00:00.000Z"
   }
 ]
