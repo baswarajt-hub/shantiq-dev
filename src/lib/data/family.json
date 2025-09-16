@@ -204,5 +204,16 @@
     "phone": "9849094454",
     "id": 21,
     "avatar": "https://picsum.photos/seed/21/200/200"
+  },
+  {
+    "phone": "9849094453",
+    "name": "Raj",
+    "dob": "2004-12-28",
+    "gender": "Male",
+    "location": "Charmina",
+    "city": "Hyderabad",
+    "isPrimary": true,
+    "id": 22,
+    "avatar": "https://picsum.photos/seed/22/200/200"
   }
 ]

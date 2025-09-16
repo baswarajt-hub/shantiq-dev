@@ -206,7 +206,7 @@ export default function TVDisplayPage() {
     });
 
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
-  const completedList = patients.filter(p => p.status === 'Completed');
+  const yetToArrive = patients.filter(p => p.status === 'Booked' || p.status === 'Confirmed');
 
   const upNext = waitingList.find(p => p.id !== nowServing?.id);
   const queue = waitingList.filter(p => p.id !== upNext?.id && p.id !== nowServing?.id);
@@ -271,7 +271,7 @@ export default function TVDisplayPage() {
 
       <main className="flex-1 flex flex-col gap-4 pt-4">
         {/* Top Row: Now Serving & Reports */}
-        <div className="grid grid-cols-2 gap-4 h-[250px]">
+        <div className="grid grid-cols-2 gap-4 h-[220px]">
             <div className="bg-white rounded-2xl p-6 flex flex-col justify-between items-center shadow-lg border-2 border-sky-500">
                 <h2 className="text-3xl text-sky-600 font-semibold">NOW SERVING</h2>
                 <AnimatePresence mode="wait">
@@ -324,21 +324,40 @@ export default function TVDisplayPage() {
                 </AnimatePresence>
                  <div></div>
             </div>
-            <div className="bg-white rounded-2xl p-6 flex flex-col items-center shadow-lg border border-slate-200">
-                <h2 className="text-3xl text-purple-600 font-semibold mb-4">WAITING FOR REPORTS</h2>
-                <div className="w-full space-y-3 overflow-y-auto">
-                    {waitingForReports.length > 0 ? (
-                        waitingForReports.map(patient => (
-                            <div key={patient.id} className="bg-purple-100 text-purple-800 p-3 rounded-lg flex items-center gap-4">
-                                <FileClock className="h-8 w-8 flex-shrink-0" />
-                                <span className="text-3xl font-medium">{anonymizeName(patient.name)}</span>
+            <div className="bg-white rounded-2xl p-6 flex flex-col shadow-lg border border-slate-200 overflow-hidden">
+                <div className="flex-1 flex flex-col h-1/2 border-b mb-2">
+                    <h2 className="text-xl text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
+                     <div className="w-full space-y-2 overflow-y-auto text-sm">
+                        {waitingForReports.length > 0 ? (
+                            waitingForReports.map(patient => (
+                                <div key={patient.id} className="bg-purple-100 text-purple-800 p-2 rounded-lg flex items-center gap-2">
+                                    <FileClock className="h-5 w-5 flex-shrink-0" />
+                                    <span className="font-medium">{anonymizeName(patient.name)}</span>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center h-full">
+                                <p className="text-slate-400">None</p>
                             </div>
-                        ))
-                    ) : (
-                        <div className="flex-1 flex items-center justify-center">
-                            <p className="text-2xl text-slate-400">No one is waiting for reports</p>
-                        </div>
-                    )}
+                        )}
+                    </div>
+                </div>
+                 <div className="flex-1 flex flex-col h-1/2">
+                    <h2 className="text-xl text-gray-600 font-semibold mb-2 text-center">YET TO ARRIVE</h2>
+                     <div className="w-full space-y-2 overflow-y-auto text-sm">
+                        {yetToArrive.length > 0 ? (
+                            yetToArrive.map(patient => (
+                                <div key={patient.id} className="bg-gray-100 text-gray-800 p-2 rounded-lg flex items-center gap-2">
+                                    <Calendar className="h-5 w-5 flex-shrink-0" />
+                                    <span className="font-medium">{anonymizeName(patient.name)}</span>
+                                </div>
+                            ))
+                        ) : (
+                             <div className="flex-1 flex items-center justify-center h-full">
+                                <p className="text-slate-400">None</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
