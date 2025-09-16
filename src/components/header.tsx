@@ -31,7 +31,7 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
             <Link href="/admin">Admin</Link>
           </Button>
            <Button variant="ghost" asChild>
-            <Link href="/queue-status">Public Queue</Link>
+            <Link href="/login">Public Queue</Link>
           </Button>
            <Button variant="ghost" asChild>
             <Link href="/tv-display">TV Display</Link>
