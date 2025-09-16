@@ -738,15 +738,15 @@ export default function DashboardPage() {
                                             </div>
                                             
                                             {isActionable && (
-                                                <>
+                                                <div className="flex items-center gap-2">
                                                     {['Booked', 'Confirmed'].includes(slot.patient.status) && (
-                                                        <Button size="sm" onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending}>Check-in</Button>
+                                                        <Button size="sm" onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending} className="bg-check-in text-check-in-foreground hover:bg-check-in/90">Check-in</Button>
                                                     )}
                                                     {['Waiting', 'Late', 'Priority'].includes(slot.patient.status) && (
-                                                        <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline}>Start Consultation</Button>
+                                                        <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline} className="bg-consultation-start text-consultation-start-foreground hover:bg-consultation-start/90">Start Consultation</Button>
                                                     )}
                                                     {slot.patient.status === 'In-Consultation' && (
-                                                        <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStatus(slot.patient!.id, 'Completed')} disabled={isPending}>Mark Completed</Button>
+                                                        <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'Completed')} disabled={isPending} className="bg-mark-complete text-mark-complete-foreground hover:bg-mark-complete/90">Mark Completed</Button>
                                                     )}
                                                     
                                                     <DropdownMenu>
@@ -836,7 +836,7 @@ export default function DashboardPage() {
                                                             </AlertDialog>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     </div>

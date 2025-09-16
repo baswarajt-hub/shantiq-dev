@@ -62,6 +62,18 @@ export default {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+        'check-in': {
+          DEFAULT: '#99fff7',
+          foreground: '#003d3a',
+        },
+        'consultation-start': {
+          DEFAULT: '#9bff99',
+          foreground: '#003d00',
+        },
+        'mark-complete': {
+          DEFAULT: '#eeccff',
+          foreground: '#38004d',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
