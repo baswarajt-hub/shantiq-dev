@@ -375,7 +375,7 @@ export default function TVDisplayPage() {
                 <h3 className="text-center">Token</h3>
                 <h3>Name</h3>
                 <h3 className="text-center">Purpose</h3>
-                <h3 className="text-center">Type</h3>
+                <h3>Type</h3>
                 <h3 className="text-center">Wait Time</h3>
                 <h3 className="text-center">Estimated Consultation Time</h3>
             </div>
@@ -383,7 +383,7 @@ export default function TVDisplayPage() {
                 <AnimatePresence>
                 {queue.length > 0 ? (
                     queue.map((patient, index) => {
-                        const waitTime = patient.checkInTime ? differenceInMinutes(new Date(), parseISO(patient.checkInTime)) : 0;
+                        const waitTime = patient.checkInTime ? differenceInMinutes(new Date(), parseISO(patient.checkInTime)) : null;
                         const PurposeIcon = patient.purpose && purposeIcons[patient.purpose] ? purposeIcons[patient.purpose] : HelpCircle;
 
                         return (
@@ -409,7 +409,7 @@ export default function TVDisplayPage() {
                                 {patient.type}
                             </div>
                             <div className="text-center font-semibold text-slate-600">
-                                {waitTime > 0 ? `${waitTime} min` : '-'}
+                                {waitTime !== null && waitTime > 0 ? `${waitTime} min` : '-'}
                             </div>
                             <div className="text-center font-semibold text-slate-600 flex items-center justify-center gap-1">
                                 <span className="font-bold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>

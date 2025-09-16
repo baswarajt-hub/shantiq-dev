@@ -557,5 +557,34 @@
     "consultationStartTime": "2025-09-16T14:55:30.972Z",
     "consultationEndTime": "2025-09-16T14:57:35.719Z",
     "consultationTime": 2
+  },
+  {
+    "name": "Jimmy Doe",
+    "phone": "5551112222",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-17T05:00:00.000Z",
+    "status": "Waiting",
+    "purpose": "Consultation",
+    "tokenNo": 1,
+    "id": 30,
+    "estimatedWaitTime": 60,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-17T05:00:00.000Z",
+    "worstCaseETC": "2025-09-17T05:00:00.000Z",
+    "bestCaseETC": "2025-09-17T05:00:00.000Z"
+  },
+  {
+    "name": "Bob Williams",
+    "phone": "5550102020",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-17T05:05:00.000Z",
+    "status": "Booked",
+    "purpose": "Vaccination",
+    "tokenNo": 2,
+    "id": 31,
+    "estimatedWaitTime": 75,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-17T05:05:00.000Z",
+    "worstCaseETC": "2025-09-17T05:05:00.000Z"
   }
 ]
