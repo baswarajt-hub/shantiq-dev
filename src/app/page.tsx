@@ -692,7 +692,7 @@ export default function DashboardPage() {
                                                 "p-3 grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-lg border bg-card shadow-sm",
                                                 isActionable ? "cursor-pointer hover:bg-muted/50" : "opacity-60",
                                                 isNowServing && "bg-green-200/60 border-green-400",
-                                                isUpNext && "bg-green-100/70 border-green-300"
+                                                isUpNext && "bg-yellow-100/70 border-yellow-300"
                                             )}>
                                                <div className="flex items-center gap-4">
                                                     <div className="w-12 text-center font-bold text-lg text-primary flex flex-col items-center">
