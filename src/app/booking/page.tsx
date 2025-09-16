@@ -284,7 +284,7 @@ export default function BookingPage() {
                 <div className="flex flex-col items-end gap-2 self-stretch justify-between">
                    <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status as string)}`}>{appt.status}</p>
                    <Button asChild variant="default" size="sm" className="h-8">
-                      <Link href={`/queue-status?id=${appt.id}`}><Eye className="h-3.5 w-3.5 mr-1.5" />View Queue</Link>
+                      <Link href={`/queue-status?id=${appt.id}`}><Bell className="h-3.5 w-3.5 mr-1.5" />View Queue</Link>
                    </Button>
                 </div>
               </div>

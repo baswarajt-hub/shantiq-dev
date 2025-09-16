@@ -5,7 +5,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, Ticket } from 'lucide-react';
+import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, Ticket, Bell } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient } from '@/lib/types';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -24,7 +24,8 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
   const [tooltipMessage, setTooltipMessage] = useState("You can view live queue status an hour before the doctor's session starts.");
 
   useEffect(() => {
-    if (appointment.status !== 'Booked' || !schedule) {
+    if (appointment.status !== 'Booked' || !schedule || !isToday(parseISO(appointment.date))) {
+      setQueueButtonActive(false);
       return;
     }
   
@@ -77,7 +78,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
             if (now < oneHourBeforeSession) {
               setTooltipMessage("You can view live queue status an hour before the doctor's session starts.");
             } else { // now >= sessionEndDate
-              setTooltipMessage("The doctor's session is over for today.");
+              setTooltipMessage("The doctor's session is over.");
             }
           }
       }
@@ -103,7 +104,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
             <span tabIndex={0}> 
               <Button asChild variant="default" size="sm" className="h-8" disabled={!isQueueButtonActive}>
                 <Link href={`/queue-status?id=${appointment.id}`} aria-disabled={!isQueueButtonActive} tabIndex={isQueueButtonActive ? 0 : -1} style={{ pointerEvents: isQueueButtonActive ? 'auto' : 'none' }}>
-                  <Eye className="h-3.5 w-3.5 mr-1.5" />
+                  <Bell className="h-3.5 w-3.5 mr-1.5" />
                   View Queue
                 </Link>
               </Button>
@@ -303,6 +304,7 @@ export default function MyAppointmentsPage() {
   };
   
   const activeAppointments = appointments.filter(appt => !['Completed', 'Cancelled', 'Missed'].includes(appt.status as string));
+  const todaysAppointments = activeAppointments.filter(appt => isToday(parseISO(appt.date)));
   const upcomingAppointments = activeAppointments.filter(appt => isFuture(parseISO(appt.date)) && !isToday(parseISO(appt.date)));
   const pastAppointments = appointments.filter(appt => !activeAppointments.some(up => up.id === appt.id));
 
@@ -353,6 +355,44 @@ export default function MyAppointmentsPage() {
 
         {/* Right Column */}
         <div className="md:col-span-2 space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Today's Appointments</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {todaysAppointments.length > 0 ? todaysAppointments.map(appt => (
+                <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                     <Avatar>
+                        <AvatarImage src={family.find(f=>f.id === appt.familyMemberId)?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />
+                        <AvatarFallback>{appt.familyMemberName.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    <div>
+                       <p className="font-bold text-lg">{appt.familyMemberName}</p>
+                       <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                          <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
+                          <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
+                          {appt.tokenNo && <span className="flex items-center gap-1.5"><Ticket className="h-4 w-4" /> #{appt.tokenNo}</span>}
+                       </div>
+                       {appt.purpose && <p className="text-sm text-primary font-medium mt-1">{appt.purpose}</p>}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 self-stretch justify-between">
+                     <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status as string)}`}>{appt.status}</p>
+                     <AppointmentActions 
+                        appointment={appt}
+                        schedule={schedule}
+                        onReschedule={handleOpenReschedule}
+                        onCancel={handleCancelAppointment}
+                      />
+                  </div>
+                </div>
+              )) : (
+                <p className="text-muted-foreground text-center py-8">No appointments for today.</p>
+              )}
+            </CardContent>
+          </Card>
+          
           <Card>
             <CardHeader>
               <CardTitle>Upcoming Appointments</CardTitle>
