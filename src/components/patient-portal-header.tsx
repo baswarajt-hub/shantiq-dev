@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { LogOut, Home } from "lucide-react";
+import { LogOut, Home, Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function PatientPortalHeader() {
@@ -26,6 +26,12 @@ export function PatientPortalHeader() {
               <Link href="/booking" className="gap-2">
                 <Home className="h-4 w-4" />
                 Portal Home
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/queue-status">
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">View Queue Status</span>
               </Link>
             </Button>
           <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
