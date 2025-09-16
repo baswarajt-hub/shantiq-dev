@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PatientPortalHeader } from '@/components/patient-portal-header';
@@ -208,7 +207,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
             <Card className="bg-blue-100 border-blue-400">
                 <CardHeader>
                     <CardTitle className="text-xl flex items-center gap-2"><Clock /> Appointment Booked</CardTitle>
-                    <CardDescription>You have not checked in yet. Please check in at the reception upon arrival.</CardDescription>
+                    <CardDescription>You have not checked in yet. Please check in at the reception upon arrival.</CardHeader>
                 </CardHeader>
                  <CardContent>
                     <p className="text-4xl font-bold">{patient.name}</p>
@@ -276,6 +275,7 @@ function QueueStatusPageContent() {
   const [foundAppointment, setFoundAppointment] = useState<Patient | null>(null);
   const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
+  const [hasTodaysAppointment, setHasTodaysAppointment] = useState<boolean | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const patientId = searchParams.get('id');
@@ -327,6 +327,9 @@ function QueueStatusPageContent() {
   }, [router]);
   
   const fetchData = useCallback(async () => {
+    const userPhone = localStorage.getItem('userPhone');
+    if (!userPhone) return;
+
     const [patientData, statusData, scheduleData] = await Promise.all([
       getPatientsAction(),
       getDoctorStatusAction(),
@@ -345,7 +348,15 @@ function QueueStatusPageContent() {
       const timeZone = "Asia/Kolkata";
       const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
       const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-      const morningSession = scheduleData.days[dayOfWeek].morning;
+      let daySchedule = scheduleData.days[dayOfWeek];
+      const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
+      if(todayOverride) {
+          daySchedule = {
+              morning: todayOverride.morningOverride ?? daySchedule.morning,
+              evening: todayOverride.eveningOverride ?? daySchedule.evening
+          };
+      }
+      const morningSession = daySchedule.morning;
       
       if (morningSession.isOpen) {
           const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
@@ -364,6 +375,17 @@ function QueueStatusPageContent() {
     setCurrentSession(sessionToShow);
     
     const todayFilteredPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
+    
+    const userHasTodaysAppointment = todayFilteredPatients.some((p: Patient) => p.phone === userPhone && p.status !== 'Cancelled');
+    setHasTodaysAppointment(userHasTodaysAppointment);
+    
+    if (!userHasTodaysAppointment) {
+        setAllPatients([]);
+        setFoundAppointment(null);
+        setCompletedAppointmentForDisplay(null);
+        return;
+    }
+
     const sessionFilteredPatients = todayFilteredPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     
     setAllPatients(sessionFilteredPatients);
@@ -371,7 +393,7 @@ function QueueStatusPageContent() {
 
     if (patientId) {
       const id = parseInt(patientId, 10);
-      const userAppointment = patientData.find((p: Patient) => p.id === id);
+      const userAppointment = patientData.find((p: Patient) => p.id === id && p.phone === userPhone);
 
       if (userAppointment) {
           const isSameSession = getSessionForTime(parseISO(userAppointment.appointmentTime), scheduleData) === sessionToShow;
@@ -404,10 +426,12 @@ function QueueStatusPageContent() {
 
 
   useEffect(() => {
-    fetchData();
-    const intervalId = setInterval(() => fetchData(), 15000);
-    return () => clearInterval(intervalId);
-  }, [fetchData]);
+    if (phone) {
+        fetchData();
+        const intervalId = setInterval(() => fetchData(), 15000);
+        return () => clearInterval(intervalId);
+    }
+  }, [fetchData, phone]);
   
   const liveQueue = allPatients
     .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
@@ -423,6 +447,17 @@ function QueueStatusPageContent() {
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
   const upNext = liveQueue.find(p => p.id !== nowServing?.id);
 
+  if (hasTodaysAppointment === null || !phone) {
+      return (
+          <div className="flex flex-col min-h-screen bg-muted/40">
+              <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
+              <div className="flex-1 flex items-center justify-center">
+                  <p>Loading...</p>
+              </div>
+          </div>
+      );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
       <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
@@ -430,6 +465,11 @@ function QueueStatusPageContent() {
         
         {completedAppointmentForDisplay ? (
              <CompletionSummary patient={completedAppointmentForDisplay} />
+        ) : !hasTodaysAppointment ? (
+             <div className="text-center mt-16">
+                 <h1 className="text-3xl font-bold">No Active Appointment</h1>
+                 <p className="text-lg text-muted-foreground mt-2">You do not have an appointment scheduled for today.</p>
+             </div>
         ) : (
           <>
             <div className="text-center mb-8">
@@ -508,3 +548,5 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
+
+    
