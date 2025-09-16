@@ -260,12 +260,11 @@ export default function DashboardPage() {
                 let patientDetails: Partial<FamilyMember> | undefined;
                 if (patientForSlot) {
                     patientDetails = familyMap.get(`${patientForSlot.phone}-${patientForSlot.name}`);
-                    // If not found in familyMap (e.g., new registration), create a partial object from patient data
                     if (!patientDetails) {
                         patientDetails = {
                             name: patientForSlot.name,
                             phone: patientForSlot.phone,
-                            gender: 'Other' // Default gender, as it's not on the patient object
+                            gender: 'Other' 
                         };
                     }
                 }
@@ -519,7 +518,7 @@ export default function DashboardPage() {
           return timeA - timeB;
       });
 
-    const upNext = waitingList.find(p => p.id !== nowServing?.id);
+    const upNext = waitingList.length > 0 ? waitingList[0] : undefined;
 
 
     if (!schedule || !doctorStatus) {

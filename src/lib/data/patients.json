@@ -301,5 +301,35 @@
     "slotTime": "2025-09-16T13:00:00.000Z",
     "worstCaseETC": "2025-09-16T13:00:00.000Z",
     "bestCaseETC": "2025-09-16T13:00:00.000Z"
+  },
+  {
+    "name": "John Doe",
+    "phone": "5551112222",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-16T13:05:00.000Z",
+    "status": "Waiting",
+    "purpose": "Follow-up visit",
+    "tokenNo": 2,
+    "id": 17,
+    "estimatedWaitTime": 75,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-16T13:05:00.000Z",
+    "worstCaseETC": "2025-09-16T13:05:00.000Z",
+    "bestCaseETC": "2025-09-16T13:05:00.000Z"
+  },
+  {
+    "name": "Bob Williams",
+    "phone": "5550102020",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-16T13:10:00.000Z",
+    "status": "Waiting",
+    "purpose": "Consultation",
+    "tokenNo": 3,
+    "id": 18,
+    "estimatedWaitTime": 90,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-16T13:10:00.000Z",
+    "worstCaseETC": "2025-09-16T13:10:00.000Z",
+    "bestCaseETC": "2025-09-16T13:10:00.000Z"
   }
 ]
