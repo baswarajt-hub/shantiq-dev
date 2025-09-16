@@ -184,5 +184,25 @@
     "phone": "9849094458",
     "id": 19,
     "avatar": "https://picsum.photos/seed/19/200/200"
+  },
+  {
+    "phone": "9849094454",
+    "name": "Avinash",
+    "dob": "2000-01-01",
+    "gender": "Male",
+    "location": "Ameerpet",
+    "city": "Hyderabad",
+    "isPrimary": true,
+    "id": 20,
+    "avatar": "https://picsum.photos/seed/20/200/200"
+  },
+  {
+    "name": "Shankar",
+    "dob": "2025-09-01",
+    "gender": "Male",
+    "clinicId": "100",
+    "phone": "9849094454",
+    "id": 21,
+    "avatar": "https://picsum.photos/seed/21/200/200"
   }
 ]

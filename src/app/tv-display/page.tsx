@@ -207,13 +207,8 @@ export default function TVDisplayPage() {
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
   const completedList = patients.filter(p => p.status === 'Completed');
 
-  const upNext = waitingList.find(p => p.id !== nowServing?.id && ['Waiting', 'Late', 'Priority'].includes(p.status));
-  const queue = [...waitingList].filter(p => p.id !== upNext?.id && p.id !== nowServing?.id)
-      .sort((a, b) => {
-        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
-        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : parseISO(b.slotTime).getTime();
-        return timeA - timeB;
-      });
+  const upNext = waitingList.find(p => p.id !== nowServing?.id);
+  const queue = waitingList.filter(p => p.id !== upNext?.id && p.id !== nowServing?.id);
   
   const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
   const qualifications = schedule?.clinicDetails.qualifications || '';
