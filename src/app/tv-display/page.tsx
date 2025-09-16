@@ -84,7 +84,8 @@ export default function TVDisplayPage() {
     return null;
   };
 
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
+    const fetchData = async () => {
       await recalculateQueueWithETC();
       const [patientData, statusData, scheduleData] = await Promise.all([
           getPatientsAction(),
@@ -130,9 +131,8 @@ export default function TVDisplayPage() {
       } else {
         setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
       }
-  }, []);
-
-  useEffect(() => {
+    };
+    
     const updateClock = () => {
       setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
     };
@@ -147,7 +147,7 @@ export default function TVDisplayPage() {
       clearInterval(dataIntervalId);
       clearInterval(clockIntervalId);
     };
-  }, [fetchData]);
+  }, []);
 
   // Scrolling logic
   useEffect(() => {
@@ -390,3 +390,5 @@ export default function TVDisplayPage() {
     </div>
   );
 }
+
+    
