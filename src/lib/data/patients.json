@@ -631,5 +631,20 @@
     "slotTime": "2025-09-17T05:15:00.000Z",
     "worstCaseETC": "2025-09-17T05:15:00.000Z",
     "bestCaseETC": "2025-09-17T05:10:00.000Z"
+  },
+  {
+    "name": "Suvarna",
+    "phone": "9391188021",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-17T05:20:00.000Z",
+    "status": "Waiting",
+    "purpose": "Consultation",
+    "tokenNo": 5,
+    "id": 34,
+    "estimatedWaitTime": 105,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-17T05:20:00.000Z",
+    "worstCaseETC": "2025-09-17T05:20:00.000Z",
+    "bestCaseETC": "2025-09-17T05:15:00.000Z"
   }
 ]

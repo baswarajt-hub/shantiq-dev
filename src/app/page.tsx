@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -697,162 +697,149 @@ export default function DashboardPage() {
                                 return (
                                 <div key={slot.time}>
                                 {slot.isBooked && slot.patient && slot.patientDetails ? (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild disabled={!isActionable}>
-                                            <div className={cn(
-                                                "p-3 grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-lg border bg-card shadow-sm",
-                                                isActionable ? "cursor-pointer hover:bg-muted/50" : "opacity-60",
-                                                isNowServing && "bg-green-200/60 border-green-400",
-                                                isUpNext && "bg-yellow-100/70 border-yellow-300"
-                                            )}>
-                                               <div className="flex items-center gap-4">
-                                                    <div className="w-12 text-center font-bold text-lg text-primary flex flex-col items-center">
-                                                        <Ticket className="h-5 w-5 mb-1" />
-                                                        #{slot.patient.tokenNo}
-                                                    </div>
-                                                    <div className="w-24 font-semibold">{slot.time}</div>
-                                                </div>
-
-                                                <div className="flex-1 flex flex-col gap-1">
-                                                    <div className={cn(
-                                                        'flex items-center gap-2 font-semibold',
-                                                        getPatientNameColorClass(slot.patient.status, slot.patient.type)
-                                                    )}>
-                                                        {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={slot.patient.purpose} />}
-                                                        {slot.patientDetails.name}
-                                                        {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : slot.patientDetails.gender === 'Female' ? <FemaleIcon className="h-4 w-4 text-pink-500" /> : null}
-                                                        <Badge variant={slot.patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{slot.patient.type}</Badge>
-                                                         {slot.patient.status === 'Priority' && <Badge variant="destructive">Priority</Badge>}
-                                                    </div>
-                                                    <div className='flex items-center gap-2 text-xs text-muted-foreground'>
-                                                        <Timer className="h-4 w-4" />
-                                                        ETC:
-                                                        <span className="font-semibold text-green-600">{slot.patient.bestCaseETC ? format(parseISO(slot.patient.bestCaseETC), 'hh:mm a') : '-'}</span>
-                                                        -
-                                                        <span className="font-semibold text-orange-600">{slot.patient.worstCaseETC ? format(parseISO(slot.patient.worstCaseETC), 'hh:mm a') : '-'}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-40 flex items-center gap-2">
-                                                    {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
-                                                    <span className={cn("font-medium", statusColor)}>{slot.patient.status} {slot.patient.lateBy ? `(${slot.patient.lateBy} min)` : ''}</span>
-                                                    </div>
-                                                    <div className="w-48 text-sm text-muted-foreground">
-                                                        {slot.patient.checkInTime ? `Checked in: ${new Date(slot.patient.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
-                                                        : (slot.patient.status === 'Completed' && slot.patient.consultationEndTime) ? `Finished at ${new Date(slot.patient.consultationEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
-                                                        : (slot.patient.status === 'Booked' || slot.patient.status === 'Confirmed') ? 'Awaiting Check-in'
-                                                        : '' }
-                                                    </div>
-                                                </div>
+                                    <div className={cn(
+                                        "p-3 grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 rounded-lg border bg-card shadow-sm",
+                                        !isActionable && "opacity-60",
+                                        isNowServing && "bg-green-200/60 border-green-400",
+                                        isUpNext && "bg-yellow-100/70 border-yellow-300"
+                                    )}>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 text-center font-bold text-lg text-primary flex flex-col items-center">
+                                                <Ticket className="h-5 w-5 mb-1" />
+                                                #{slot.patient.tokenNo}
                                             </div>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start">
-                                            {(slot.patient.status === 'Booked' || slot.patient.status === 'Confirmed') && (
+                                            <div className="w-24 font-semibold">{slot.time}</div>
+                                        </div>
+
+                                        <div className="flex-1 flex flex-col gap-1">
+                                            <div className={cn(
+                                                'flex items-center gap-2 font-semibold',
+                                                getPatientNameColorClass(slot.patient.status, slot.patient.type)
+                                            )}>
+                                                {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={slot.patient.purpose} />}
+                                                {slot.patientDetails.name}
+                                                {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : slot.patientDetails.gender === 'Female' ? <FemaleIcon className="h-4 w-4 text-pink-500" /> : null}
+                                                <Badge variant={slot.patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{slot.patient.type}</Badge>
+                                                    {slot.patient.status === 'Priority' && <Badge variant="destructive">Priority</Badge>}
+                                            </div>
+                                            <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                                                <Timer className="h-4 w-4" />
+                                                ETC:
+                                                <span className="font-semibold text-green-600">{slot.patient.bestCaseETC ? format(parseISO(slot.patient.bestCaseETC), 'hh:mm a') : '-'}</span>
+                                                -
+                                                <span className="font-semibold text-orange-600">{slot.patient.worstCaseETC ? format(parseISO(slot.patient.worstCaseETC), 'hh:mm a') : '-'}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-40 flex items-center gap-2">
+                                                {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
+                                                <span className={cn("font-medium", statusColor)}>{slot.patient.status} {slot.patient.lateBy ? `(${slot.patient.lateBy} min)` : ''}</span>
+                                            </div>
+                                            
+                                            {isActionable && (
                                                 <>
-                                                    <DropdownMenuItem onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending}>
-                                                        <LogIn className="mr-2 h-4 w-4" />
-                                                        Check-in Patient
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSub>
-                                                        <DropdownMenuSubTrigger>
-                                                            <Hourglass className="mr-2 h-4 w-4" />
-                                                            Mark as Late
-                                                        </DropdownMenuSubTrigger>
-                                                        <DropdownMenuSubContent>
-                                                            <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
-                                                            <DropdownMenuSeparator />
-                                                            {[1, 2, 3, 5, 8].map(penalty => (
-                                                                <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(slot.patient!.id, penalty)}>
-                                                                    {`${penalty} position${penalty > 1 ? 's' : ''}`}
+                                                    {['Booked', 'Confirmed'].includes(slot.patient.status) && (
+                                                        <Button size="sm" onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending}>Check-in</Button>
+                                                    )}
+                                                    {['Waiting', 'Late', 'Priority'].includes(slot.patient.status) && (
+                                                        <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline}>Start Consultation</Button>
+                                                    )}
+                                                    {slot.patient.status === 'In-Consultation' && (
+                                                        <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStatus(slot.patient!.id, 'Completed')} disabled={isPending}>Mark Completed</Button>
+                                                    )}
+                                                    
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                                                                <MoreVertical className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                             {(slot.patient.status === 'Booked' || slot.patient.status === 'Confirmed') && (
+                                                                <DropdownMenuSub>
+                                                                    <DropdownMenuSubTrigger>
+                                                                        <Hourglass className="mr-2 h-4 w-4" />
+                                                                        Mark as Late
+                                                                    </DropdownMenuSubTrigger>
+                                                                    <DropdownMenuSubContent>
+                                                                        <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
+                                                                        <DropdownMenuSeparator />
+                                                                        {[1, 2, 3, 5, 8].map(penalty => (
+                                                                            <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(slot.patient!.id, penalty)}>
+                                                                                {`${penalty} position${penalty > 1 ? 's' : ''}`}
+                                                                            </DropdownMenuItem>
+                                                                        ))}
+                                                                    </DropdownMenuSubContent>
+                                                                </DropdownMenuSub>
+                                                            )}
+                                                            {slot.patient.status === 'In-Consultation' && (
+                                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Waiting for Reports')} disabled={isPending}>
+                                                                    <FileClock className="mr-2 h-4 w-4" />
+                                                                    Waiting for Reports
                                                                 </DropdownMenuItem>
-                                                            ))}
-                                                        </DropdownMenuSubContent>
-                                                    </DropdownMenuSub>
+                                                            )}
+                                                            {slot.patient.status === 'Waiting for Reports' && (
+                                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline}>
+                                                                    <ChevronsRight className="mr-2 h-4 w-4" />
+                                                                    Consult (Reports)
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late') && (
+                                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Priority')} disabled={isPending} className="text-red-600 focus:text-red-600 focus:bg-red-50">
+                                                                    <Shield className="mr-2 h-4 w-4" />
+                                                                    Consult Now (Priority)
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuSub>
+                                                                <DropdownMenuSubTrigger>
+                                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                                    Change Purpose
+                                                                </DropdownMenuSubTrigger>
+                                                                <DropdownMenuSubContent>
+                                                                    <DropdownMenuRadioGroup value={slot.patient.purpose} onValueChange={(value) => handleUpdatePurpose(slot.patient!.id, value)}>
+                                                                        {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
+                                                                            <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
+                                                                        ))}
+                                                                    </DropdownMenuRadioGroup>
+                                                                </DropdownMenuSubContent>
+                                                            </DropdownMenuSub>
+                                                            <DropdownMenuItem onClick={() => handleOpenReschedule(slot.patient!)}>
+                                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                Reschedule
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleSendReminder(slot.patient!.id)} disabled={isPending}>
+                                                                <Send className="mr-2 h-4 w-4" />
+                                                                Send Reminder
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <div className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
+                                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                                        Cancel Appointment
+                                                                    </div>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                                        <AlertDialogDescription>
+                                                                            This action cannot be undone. This will permanently cancel the appointment.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel>Go Back</AlertDialogCancel>
+                                                                        <AlertDialogAction onClick={() => handleCancelAppointment(slot.patient!.id)}>Confirm Cancellation</AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 </>
                                             )}
-                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late' || slot.patient.status === 'Priority') && (
-                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline}>
-                                                    <ChevronsRight className="mr-2 h-4 w-4" />
-                                                    Start Consultation
-                                                </DropdownMenuItem>
-                                            )}
-                                            {slot.patient.status === 'In-Consultation' && (
-                                                <>
-                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Completed')} disabled={isPending}>
-                                                        <CheckCircle className="mr-2 h-4 w-4" />
-                                                        Mark as Completed
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Waiting for Reports')} disabled={isPending}>
-                                                        <FileClock className="mr-2 h-4 w-4" />
-                                                        Waiting for Reports
-                                                    </DropdownMenuItem>
-                                                </>
-                                            )}
-                                            {slot.patient.status === 'Waiting for Reports' && (
-                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline}>
-                                                    <ChevronsRight className="mr-2 h-4 w-4" />
-                                                    Start Consultation (Reports)
-                                                </DropdownMenuItem>
-                                            )}
-                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Booked') && (
-                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Late')} disabled={isPending}>
-                                                    <Hourglass className="mr-2 h-4 w-4" />
-                                                    Mark as Late
-                                                </DropdownMenuItem>
-                                            )}
-                                           
-                                            {(slot.patient.status === 'Waiting' || slot.patient.status === 'Late') && (
-                                                <DropdownMenuItem onClick={() => handleUpdateStatus(slot.patient!.id, 'Priority')} disabled={isPending} className="text-red-600 focus:text-red-600 focus:bg-red-50">
-                                                    <Shield className="mr-2 h-4 w-4" />
-                                                    Consult Now (Priority)
-                                                </DropdownMenuItem>
-                                            )}
-                                            {isActionable && <DropdownMenuSeparator />}
-                                            <DropdownMenuSub>
-                                                <DropdownMenuSubTrigger>
-                                                    <Pencil className="mr-2 h-4 w-4" />
-                                                    Change Purpose
-                                                </DropdownMenuSubTrigger>
-                                                <DropdownMenuSubContent>
-                                                     <DropdownMenuRadioGroup value={slot.patient.purpose} onValueChange={(value) => handleUpdatePurpose(slot.patient!.id, value)}>
-                                                        {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
-                                                            <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
-                                                        ))}
-                                                    </DropdownMenuRadioGroup>
-                                                </DropdownMenuSubContent>
-                                            </DropdownMenuSub>
-                                            <DropdownMenuItem onClick={() => handleOpenReschedule(slot.patient!)}>
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                Reschedule
-                                            </DropdownMenuItem>
-                                             <DropdownMenuItem onClick={() => handleSendReminder(slot.patient!.id)} disabled={isPending}>
-                                                <Send className="mr-2 h-4 w-4" />
-                                                Send Reminder
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <div className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Cancel Appointment
-                                                    </div>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently cancel the appointment.
-                                                    </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                    <AlertDialogCancel>Go Back</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleCancelAppointment(slot.patient!.id)}>Confirm Cancellation</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div 
                                       className={cn(
