@@ -507,6 +507,20 @@ export default function DashboardPage() {
 
     const canDoctorCheckIn = isToday(selectedDate);
 
+    const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
+    const waitingList = sessionPatients
+      .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
+      .sort((a, b) => {
+          const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
+          const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
+          if (timeA === Infinity && timeB === Infinity) {
+              return (a.tokenNo || 0) - (b.tokenNo || 0);
+          }
+          return timeA - timeB;
+      });
+
+    const upNext = waitingList.find(p => p.id !== nowServing?.id);
+
 
     if (!schedule || !doctorStatus) {
         return (
@@ -665,13 +679,21 @@ export default function DashboardPage() {
                                 const statusColor = slot.isBooked && slot.patient && statusConfig[slot.patient.status] ? statusConfig[slot.patient.status].color : '';
                                 const PurposeIcon = slot.patient?.purpose && purposeIcons[slot.patient.purpose] ? purposeIcons[slot.patient.purpose] : HelpCircle;
                                 
+                                const isNowServing = nowServing?.id === slot.patient?.id;
+                                const isUpNext = upNext?.id === slot.patient?.id;
+
 
                                 return (
                                 <div key={slot.time}>
                                 {slot.isBooked && slot.patient && slot.patientDetails ? (
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild disabled={!isActionable}>
-                                            <div className={cn("p-3 grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-lg border bg-card shadow-sm", isActionable ? "cursor-pointer hover:bg-muted/50" : "opacity-60")}>
+                                            <div className={cn(
+                                                "p-3 grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-lg border bg-card shadow-sm",
+                                                isActionable ? "cursor-pointer hover:bg-muted/50" : "opacity-60",
+                                                isNowServing && "bg-green-200/60 border-green-400",
+                                                isUpNext && "bg-green-100/70 border-green-300"
+                                            )}>
                                                <div className="flex items-center gap-4">
                                                     <div className="w-12 text-center font-bold text-lg text-primary flex flex-col items-center">
                                                         <Ticket className="h-5 w-5 mb-1" />
@@ -895,8 +917,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-
-
-
-    
