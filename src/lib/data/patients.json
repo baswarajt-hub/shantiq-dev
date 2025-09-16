@@ -586,5 +586,20 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T05:05:00.000Z",
     "worstCaseETC": "2025-09-17T05:05:00.000Z"
+  },
+  {
+    "name": "Swati",
+    "phone": "9849094454",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-17T05:10:00.000Z",
+    "status": "Waiting",
+    "purpose": "Consultation",
+    "tokenNo": 3,
+    "id": 32,
+    "estimatedWaitTime": 75,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-17T05:10:00.000Z",
+    "worstCaseETC": "2025-09-17T05:10:00.000Z",
+    "bestCaseETC": "2025-09-17T05:05:00.000Z"
   }
 ]

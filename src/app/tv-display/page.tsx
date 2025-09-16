@@ -208,7 +208,7 @@ export default function TVDisplayPage() {
   const completedList = patients.filter(p => p.status === 'Completed');
 
   const upNext = waitingList.find(p => p.id !== nowServing?.id && ['Waiting', 'Late', 'Priority'].includes(p.status));
-  const queue = [...completedList, ...waitingList].filter(p => p.id !== upNext?.id && p.id !== nowServing?.id)
+  const queue = [...waitingList].filter(p => p.id !== upNext?.id && p.id !== nowServing?.id)
       .sort((a, b) => {
         const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
         const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : parseISO(b.slotTime).getTime();
@@ -356,7 +356,7 @@ export default function TVDisplayPage() {
                         "text-4xl font-bold",
                          getPatientNameColorClass(upNext.status, upNext.type)
                     )}>
-                        {anonymizeName(upNext.name)}
+                        {anonymizeName(upNext.name)} {upNext.status === 'Late' && '(Late)'}
                     </span>
                 </div>
                 <div className="text-2xl font-semibold flex items-center gap-2">
@@ -400,7 +400,7 @@ export default function TVDisplayPage() {
                                 "font-medium text-3xl",
                                 getPatientNameColorClass(patient.status, patient.type)
                             )}>
-                                {anonymizeName(patient.name)}
+                                {anonymizeName(patient.name)} {patient.status === 'Late' && '(Late)'}
                             </div>
                             <div className="text-center text-slate-600 flex justify-center">
                                 <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
