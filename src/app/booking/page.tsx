@@ -53,7 +53,10 @@ export default function BookingPage() {
     }
   }, [router]);
   
-  const loadData = useCallback(async (userPhone: string) => {
+  const loadData = useCallback(async () => {
+    const userPhone = localStorage.getItem('userPhone');
+    if (!userPhone) return;
+
     const [familyData, patientData, scheduleData, statusData] = await Promise.all([
       getFamilyByPhoneAction(userPhone),
       getPatientsAction(),
@@ -70,10 +73,10 @@ export default function BookingPage() {
   useEffect(() => {
     if (phone) {
         startTransition(() => {
-            loadData(phone);
+            loadData();
         });
         
-        const dataPoll = setInterval(() => loadData(phone), 30000); // Poll every 30 seconds
+        const dataPoll = setInterval(() => loadData(), 30000); // Poll every 30 seconds
         const timer = setInterval(() => setCurrentTime(new Date()), 60000); // Update time every minute
         
         return () => {
@@ -180,7 +183,7 @@ export default function BookingPage() {
         const result = await addAppointmentAction(familyMember, appointmentTime, purpose, false);
         if (result.success) {
             toast({ title: "Success", description: "Appointment booked."});
-            if (phone) await loadData(phone);
+            if (phone) await loadData();
         } else {
             toast({ title: "Error", description: result.error, variant: 'destructive'});
         }
@@ -281,7 +284,7 @@ export default function BookingPage() {
                 <div className="flex flex-col items-end gap-2 self-stretch justify-between">
                    <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status as string)}`}>{appt.status}</p>
                    <Button asChild variant="default" size="sm" className="h-8">
-                      <Link href="/queue-status"><Eye className="h-3.5 w-3.5 mr-1.5" />View Queue</Link>
+                      <Link href={`/queue-status?id=${appt.id}`}><Eye className="h-3.5 w-3.5 mr-1.5" />View Queue</Link>
                    </Button>
                 </div>
               </div>

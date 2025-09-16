@@ -102,7 +102,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
           <TooltipTrigger asChild>
             <span tabIndex={0}> 
               <Button asChild variant="default" size="sm" className="h-8" disabled={!isQueueButtonActive}>
-                <Link href="/queue-status" aria-disabled={!isQueueButtonActive} tabIndex={isQueueButtonActive ? 0 : -1} style={{ pointerEvents: isQueueButtonActive ? 'auto' : 'none' }}>
+                <Link href={`/queue-status?id=${appointment.id}`} aria-disabled={!isQueueButtonActive} tabIndex={isQueueButtonActive ? 0 : -1} style={{ pointerEvents: isQueueButtonActive ? 'auto' : 'none' }}>
                   <Eye className="h-3.5 w-3.5 mr-1.5" />
                   View Queue
                 </Link>
