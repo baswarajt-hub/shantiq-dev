@@ -1,13 +1,25 @@
+
 import Link from "next/link";
 import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
-export default function Header() {
+type HeaderProps = {
+  logoSrc?: string | null;
+};
+
+export default function Header({ logoSrc }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <Link href="/" className="mr-6 flex items-center space-x-2">
-          <StethoscopeIcon className="h-6 w-6 text-primary-foreground fill-primary" />
+          {logoSrc ? (
+            <div className="relative h-8 w-8">
+              <Image src={logoSrc} alt="Clinic Logo" fill className="object-contain" />
+            </div>
+          ) : (
+             <StethoscopeIcon className="h-6 w-6 text-primary-foreground fill-primary" />
+          )}
           <span className="font-bold sm:inline-block text-lg">QueueWise</span>
         </Link>
         <nav className="flex flex-1 items-center space-x-4">

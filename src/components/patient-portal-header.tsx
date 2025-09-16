@@ -5,10 +5,15 @@ import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { LogOut, Home, Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
-export function PatientPortalHeader() {
+type PatientPortalHeaderProps = {
+  logoSrc?: string | null;
+}
+
+export function PatientPortalHeader({ logoSrc }: PatientPortalHeaderProps) {
   const router = useRouter();
-
+  
   const handleLogout = () => {
     localStorage.removeItem('userPhone');
     router.push('/login');
@@ -18,7 +23,13 @@ export function PatientPortalHeader() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <Link href="/booking" className="mr-6 flex items-center space-x-2">
-          <StethoscopeIcon className="h-6 w-6 text-primary-foreground fill-primary" />
+           {logoSrc ? (
+            <div className="relative h-8 w-8">
+              <Image src={logoSrc} alt="Clinic Logo" fill className="object-contain" />
+            </div>
+          ) : (
+             <StethoscopeIcon className="h-6 w-6 text-primary-foreground fill-primary" />
+          )}
           <span className="font-bold sm:inline-block text-lg">QueueWise Portal</span>
         </Link>
         <div className="flex flex-1 items-center justify-end space-x-2">

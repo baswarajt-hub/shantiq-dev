@@ -75,6 +75,7 @@ export type ClinicDetails = {
     website: string;
     consultationFee: number;
     paymentQRCode?: string;
+    clinicLogo?: string;
 };
 
 export type DoctorSchedule = {

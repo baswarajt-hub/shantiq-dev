@@ -75,7 +75,7 @@ export default function AdminPage() {
   if (!schedule) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
-        <Header />
+        <Header logoSrc={null} />
         <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
            <div className="space-y-8">
             <Skeleton className="h-12 w-1/3" />
@@ -89,7 +89,7 @@ export default function AdminPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header />
+      <Header logoSrc={schedule.clinicDetails.clinicLogo} />
       <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
         <div className="space-y-8">
           <div>

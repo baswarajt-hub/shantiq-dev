@@ -63,7 +63,8 @@ let doctorSchedule: DoctorSchedule = {
     email: 'info@shantichildrensclinic.com',
     website: 'shantichildrensclinic.com',
     consultationFee: 400,
-    paymentQRCode: 'https://picsum.photos/200'
+    paymentQRCode: 'https://picsum.photos/200',
+    clinicLogo: '',
   },
   slotDuration: 5,
   reserveFirstFive: true,

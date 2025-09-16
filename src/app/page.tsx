@@ -536,7 +536,7 @@ export default function DashboardPage() {
     if (!schedule || !doctorStatus) {
         return (
             <div className="flex flex-col min-h-screen bg-background">
-                <Header />
+                <Header logoSrc={schedule?.clinicDetails?.clinicLogo} />
                 <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                     <div className="space-y-6">
                         <Skeleton className="h-12 w-1/3" />
@@ -557,7 +557,7 @@ export default function DashboardPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
-            <Header />
+            <Header logoSrc={schedule.clinicDetails.clinicLogo}/>
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
                     <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>

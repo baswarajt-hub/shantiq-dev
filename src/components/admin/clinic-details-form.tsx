@@ -31,12 +31,12 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
     }));
   };
   
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'paymentQRCode' | 'clinicLogo') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setDetails(prev => ({...prev, paymentQRCode: reader.result as string}));
+        setDetails(prev => ({...prev, [field]: reader.result as string}));
       }
       reader.readAsDataURL(file);
     }
@@ -100,9 +100,21 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
                 </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="clinicLogo">Clinic Logo</Label>
+              <div className="flex items-center gap-4">
+                <Input id="clinicLogo" type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'clinicLogo')} className="max-w-xs" />
+                {details.clinicLogo && (
+                  <div className="w-16 h-16 relative border rounded-md p-1">
+                    <Image src={details.clinicLogo} alt="Clinic Logo Preview" layout="fill" objectFit="contain" />
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Recommended: Square image (e.g., 100x100 pixels)</p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="paymentQRCode">Payment QR Code</Label>
               <div className="flex items-center gap-4">
-                <Input id="paymentQRCode" type="file" accept="image/*" onChange={handleImageUpload} className="max-w-xs" />
+                <Input id="paymentQRCode" type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'paymentQRCode')} className="max-w-xs" />
                 {details.paymentQRCode && (
                   <div className="w-24 h-24 relative border rounded-md">
                     <Image src={details.paymentQRCode} alt="Payment QR Code Preview" layout="fill" objectFit="contain" />

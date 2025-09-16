@@ -1,13 +1,17 @@
 import { PatientPortalHeader } from "@/components/patient-portal-header";
+import { getDoctorScheduleAction } from "../actions";
 
-export default function PatientPortalLayout({
+export default async function PatientPortalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const schedule = await getDoctorScheduleAction();
+  const logoSrc = schedule?.clinicDetails?.clinicLogo;
+
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
-      <PatientPortalHeader />
+      <PatientPortalHeader logoSrc={logoSrc} />
       {children}
     </div>
   );
