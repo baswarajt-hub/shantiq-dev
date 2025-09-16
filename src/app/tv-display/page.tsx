@@ -271,8 +271,16 @@ export default function TVDisplayPage() {
 
       <main className="flex-1 flex flex-col gap-4 pt-4">
         {/* Top Row: Now Serving, Reports, Yet to Arrive */}
-        <div className="grid grid-cols-3 gap-4 h-[220px]">
-            <div className="bg-white rounded-2xl p-6 flex flex-col justify-between items-center shadow-lg border-2 border-sky-500">
+        <div className="grid grid-cols-4 gap-4 h-[220px]">
+            <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border border-slate-200 col-span-1">
+                <h2 className="text-xl text-gray-600 font-semibold mb-2 text-center">Booked patients yet to arrive</h2>
+                <div className="flex items-center justify-center text-8xl font-bold text-slate-800">
+                    <Calendar className="h-20 w-20 mr-4 text-gray-400"/>
+                    {yetToArrive.length}
+                </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 flex flex-col justify-between items-center shadow-lg border-2 border-sky-500 col-span-2">
                 <h2 className="text-3xl text-sky-600 font-semibold">NOW SERVING</h2>
                 <AnimatePresence mode="wait">
                 {doctorStatus?.isPaused ? (
@@ -324,7 +332,8 @@ export default function TVDisplayPage() {
                 </AnimatePresence>
                  <div></div>
             </div>
-            <div className="bg-white rounded-2xl p-6 flex flex-col shadow-lg border border-slate-200 overflow-hidden">
+
+            <div className="bg-white rounded-2xl p-6 flex flex-col shadow-lg border border-slate-200 overflow-hidden col-span-1">
                 <h2 className="text-xl text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
                 <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
                     {waitingForReports.length > 0 ? (
@@ -339,13 +348,6 @@ export default function TVDisplayPage() {
                             <p className="text-slate-400 text-lg">None</p>
                         </div>
                     )}
-                </div>
-            </div>
-             <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border border-slate-200">
-                <h2 className="text-xl text-gray-600 font-semibold mb-2 text-center">YET TO ARRIVE</h2>
-                <div className="flex items-center justify-center text-8xl font-bold text-slate-800">
-                    <Calendar className="h-20 w-20 mr-4 text-gray-400"/>
-                    {yetToArrive.length}
                 </div>
             </div>
         </div>
