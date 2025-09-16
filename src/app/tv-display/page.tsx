@@ -1,5 +1,4 @@
 
-
 'use client';
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
@@ -7,7 +6,8 @@ import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { parseISO, format, isToday, differenceInMinutes } from 'date-fns';
+import { parseISO, format, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const anonymizeName = (name: string) => {
@@ -44,10 +44,45 @@ export default function TVDisplayPage() {
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [time, setTime] = useState('');
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [averageWait, setAverageWait] = useState(0);
 
   const listRef = useRef<HTMLDivElement>(null);
+
+  const getSessionForTime = (appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
+    if (!localSchedule) return null;
+    const timeZone = "Asia/Kolkata";
+    
+    const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
+    const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
+    const dateStr = format(zonedAppt, 'yyyy-MM-dd');
+
+    let daySchedule = localSchedule.days[dayOfWeek];
+    const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
+    if (todayOverride) {
+      daySchedule = {
+        morning: todayOverride.morningOverride ?? daySchedule.morning,
+        evening: todayOverride.eveningOverride ?? daySchedule.evening,
+      };
+    }
+
+    const sessionLocalToUtc = (sessionTime: string) => {
+        let localDate: Date;
+        localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+        return fromZonedTime(localDate, timeZone);
+    }
+
+    const checkSession = (session: Session) => {
+      if (!session.isOpen) return false;
+      const startUtc = sessionLocalToUtc(session.start);
+      const endUtc = sessionLocalToUtc(session.end);
+      const apptMs = appointmentUtcDate.getTime();
+      return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
+    };
+
+    if (checkSession(daySchedule.morning)) return 'morning';
+    if (checkSession(daySchedule.evening)) return 'evening';
+    return null;
+  };
 
   const fetchData = useCallback(async () => {
       await recalculateQueueWithETC();
@@ -57,12 +92,38 @@ export default function TVDisplayPage() {
           getDoctorScheduleAction()
       ]);
       
-      setPatients(patientData);
+      const now = new Date();
+      const timeZone = "Asia/Kolkata";
+      
+      const realTimeSession = getSessionForTime(now, scheduleData);
+      let sessionToShow: 'morning' | 'evening' | null = realTimeSession;
+      
+      if (!sessionToShow) {
+        const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+        const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+        const morningSession = scheduleData.days[dayOfWeek].morning;
+        
+        if (morningSession.isOpen) {
+            const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+            const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+            if(now > morningEndUtc) {
+                sessionToShow = 'evening';
+            } else {
+                sessionToShow = 'morning';
+            }
+        } else {
+           sessionToShow = 'evening';
+        }
+      }
+      
+      const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
+      const sessionPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+
+      setPatients(sessionPatients);
       setDoctorStatus(statusData);
       setSchedule(scheduleData);
       
-      const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime || p.slotTime)));
-      const completedWithTime = todaysPatients.filter(p => p.status === 'Completed' && p.consultationTime);
+      const completedWithTime = sessionPatients.filter(p => p.status === 'Completed' && p.consultationTime);
       if (completedWithTime.length > 0) {
         const totalWait = completedWithTime.reduce((acc, p) => acc + (p.consultationTime || 0), 0);
         setAverageWait(Math.round(totalWait / completedWithTime.length));
@@ -74,7 +135,6 @@ export default function TVDisplayPage() {
   useEffect(() => {
     const updateClock = () => {
       setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-      setCurrentTime(new Date());
     };
 
     fetchData();
@@ -289,7 +349,7 @@ export default function TVDisplayPage() {
                 <AnimatePresence>
                 {queue.length > 0 ? (
                     queue.map((patient, index) => {
-                        const waitTime = patient.checkInTime ? differenceInMinutes(currentTime, parseISO(patient.checkInTime)) : 0;
+                        const waitTime = patient.checkInTime ? differenceInMinutes(new Date(), parseISO(patient.checkInTime)) : 0;
                         const PurposeIcon = patient.purpose && purposeIcons[patient.purpose] ? purposeIcons[patient.purpose] : HelpCircle;
 
                         return (
