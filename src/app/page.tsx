@@ -680,7 +680,7 @@ export default function DashboardPage() {
                                 const PurposeIcon = slot.patient?.purpose && purposeIcons[slot.patient.purpose] ? purposeIcons[slot.patient.purpose] : HelpCircle;
                                 
                                 const isNowServing = nowServing?.id === slot.patient?.id;
-                                const isUpNext = upNext?.id === slot.patient?.id && upNext.status !== 'Booked';
+                                const isUpNext = upNext?.id === slot.patient?.id && upNext?.status !== 'Booked';
 
 
                                 return (
