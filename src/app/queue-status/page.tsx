@@ -207,7 +207,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
             <Card className="bg-blue-100 border-blue-400">
                 <CardHeader>
                     <CardTitle className="text-xl flex items-center gap-2"><Clock /> Appointment Booked</CardTitle>
-                    <CardDescription>You have not checked in yet. Please check in at the reception upon arrival.</CardHeader>
+                    <CardDescription>You have not checked in yet. Please check in at the reception upon arrival.</CardDescription>
                 </CardHeader>
                  <CardContent>
                     <p className="text-4xl font-bold">{patient.name}</p>
