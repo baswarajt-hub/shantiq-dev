@@ -197,7 +197,7 @@ export default function TVDisplayPage() {
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   
   const waitingList = patients
-    .filter(p => ['Waiting', 'Late', 'Priority', 'Booked', 'Confirmed'].includes(p.status))
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
     .sort((a, b) => {
         const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
         const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : parseISO(b.slotTime).getTime();
@@ -409,7 +409,7 @@ export default function TVDisplayPage() {
                                 {patient.type}
                             </div>
                             <div className="text-center font-semibold text-slate-600">
-                                {waitTime !== null && waitTime > 0 ? `${waitTime} min` : '-'}
+                                {waitTime !== null && waitTime >= 0 ? `${waitTime} min` : '-'}
                             </div>
                             <div className="text-center font-semibold text-slate-600 flex items-center justify-center gap-1">
                                 <span className="font-bold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>
