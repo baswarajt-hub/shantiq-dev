@@ -337,7 +337,7 @@
     "phone": "5551112222",
     "type": "Appointment",
     "appointmentTime": "2025-09-16T13:15:00.000Z",
-    "status": "Booked",
+    "status": "Cancelled",
     "purpose": "Others",
     "tokenNo": 4,
     "id": 19,
@@ -345,5 +345,34 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-16T13:15:00.000Z",
     "worstCaseETC": "2025-09-16T13:15:00.000Z"
+  },
+  {
+    "name": "Jane Doe",
+    "phone": "5551112222",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-16T13:15:00.000Z",
+    "status": "Booked",
+    "purpose": "Consultation",
+    "tokenNo": 4,
+    "id": 20,
+    "estimatedWaitTime": 105,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-16T13:15:00.000Z",
+    "worstCaseETC": "2025-09-16T13:15:00.000Z"
+  },
+  {
+    "name": "Taimur",
+    "phone": "9849094453",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-16T13:20:00.000Z",
+    "status": "Waiting",
+    "purpose": "Vaccination",
+    "tokenNo": 5,
+    "id": 21,
+    "estimatedWaitTime": 105,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-16T13:20:00.000Z",
+    "worstCaseETC": "2025-09-16T13:20:00.000Z",
+    "bestCaseETC": "2025-09-16T13:15:00.000Z"
   }
 ]

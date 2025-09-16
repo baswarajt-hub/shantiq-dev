@@ -314,6 +314,7 @@ export default function DashboardPage() {
             toast({ title: "Success", description: result.success});
             return result.patient;
         }
+        toast({ title: "Error", description: result.error, variant: 'destructive'});
         return null;
     };
 
@@ -885,11 +886,11 @@ export default function DashboardPage() {
                     onSave={handleAddNewPatient}
                     phoneToPreFill={phoneToPreFill}
                     onClose={() => setPhoneToPreFill('')}
-                    afterSave={(newPatient, purpose) => {
+                    afterSave={(newPatient, purpose, checkIn) => {
                         if (selectedSlot && purpose) {
                             const date = new Date(selectedDate);
                             const time = parse(selectedSlot, 'hh:mm a', date);
-                            handleBookAppointment(newPatient, time.toISOString(), true, purpose);
+                            handleBookAppointment(newPatient, time.toISOString(), checkIn, purpose);
                         }
                     }}
                     visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
@@ -916,3 +917,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    

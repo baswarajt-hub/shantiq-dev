@@ -130,5 +130,14 @@
     "phone": "9391188021",
     "id": 13,
     "avatar": "https://picsum.photos/seed/13/200/200"
+  },
+  {
+    "name": "Taimur",
+    "dob": "2022-01-02",
+    "gender": "Male",
+    "clinicId": "",
+    "phone": "9849094453",
+    "id": 14,
+    "avatar": "https://picsum.photos/seed/14/200/200"
   }
 ]

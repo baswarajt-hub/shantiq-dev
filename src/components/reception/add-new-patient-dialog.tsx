@@ -92,7 +92,7 @@ type AddNewPatientDialogProps = {
   onSave: (member: Omit<FamilyMember, 'id' | 'avatar'>) => Promise<FamilyMember | null>;
   phoneToPreFill?: string;
   onClose?: () => void;
-  afterSave?: (newPatient: FamilyMember, purpose: string) => void;
+  afterSave?: (newPatient: FamilyMember, purpose: string, checkIn: boolean) => void;
   visitPurposes: VisitPurpose[];
 };
 
@@ -149,7 +149,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     onOpenChange(open);
   }
 
-  const handleSave = () => {
+  const handleSave = (checkIn: boolean) => {
     if (!phone || !name || !dob || !gender || !purpose) {
         toast({ title: "Error", description: "Please fill all required fields.", variant: 'destructive'});
         return;
@@ -159,7 +159,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
         const newPatient = await onSave(newPatientData);
         if (newPatient) {
           if (afterSave) {
-            afterSave(newPatient, purpose);
+            afterSave(newPatient, purpose, checkIn);
           }
           handleClose(false);
         }
@@ -227,9 +227,10 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
                 />
                 <DialogFooter>
                     <Button variant="outline" onClick={() => { setStep(1); setFoundFamily(null); }}>Back</Button>
-                    <Button onClick={handleSave} disabled={isPending}>
-                        {isPending ? "Saving..." : (foundFamily.length > 0 ? "Save Member" : "Save Patient")}
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button onClick={() => handleSave(false)} disabled={isPending}>Save & Book Only</Button>
+                        <Button onClick={() => handleSave(true)} disabled={isPending}>Save & Check-in</Button>
+                    </div>
                 </DialogFooter>
              </div>
         )}
@@ -238,3 +239,5 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     </Dialog>
   );
 }
+
+    
