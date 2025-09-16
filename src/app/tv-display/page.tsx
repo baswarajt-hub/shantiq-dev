@@ -9,6 +9,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { parseISO, format, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
+import Image from 'next/image';
 
 const anonymizeName = (name: string) => {
   if (!name) return '';
@@ -210,6 +211,7 @@ export default function TVDisplayPage() {
   const upNext = waitingList.find(p => p.id !== nowServing?.id);
   const queue = waitingList.filter(p => p.id !== upNext?.id && p.id !== nowServing?.id);
   
+  const clinicLogo = schedule?.clinicDetails.clinicLogo;
   const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
   const qualifications = schedule?.clinicDetails.qualifications || '';
   const clinicName = schedule?.clinicDetails.clinicName || 'Clinic';
@@ -229,7 +231,13 @@ export default function TVDisplayPage() {
     <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col p-6 font-body">
       <header className="grid grid-cols-3 items-center pb-4 border-b-2 border-slate-200">
         <div className="flex items-center space-x-4">
-          <StethoscopeIcon className="h-12 w-12 text-sky-500" />
+          {clinicLogo ? (
+              <div className="relative h-16 w-16">
+                <Image src={clinicLogo} alt="Clinic Logo" fill className="object-contain" />
+              </div>
+          ) : (
+             <StethoscopeIcon className="h-12 w-12 text-sky-500" />
+          )}
           <div>
             <h1 className="text-3xl font-bold text-slate-900">{clinicName}</h1>
             {todaySchedule && (

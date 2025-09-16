@@ -1,15 +1,16 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { checkUserAuthAction } from '@/app/actions';
+import { checkUserAuthAction, getDoctorScheduleAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { StethoscopeIcon } from '@/components/icons';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -20,6 +21,15 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isNewUser, setIsNewUser] = useState(false);
+  const [logo, setLogo] = useState<string | null | undefined>(null);
+
+  useEffect(() => {
+    async function fetchLogo() {
+      const schedule = await getDoctorScheduleAction();
+      setLogo(schedule?.clinicDetails?.clinicLogo);
+    }
+    fetchLogo();
+  }, []);
 
   const handlePhoneSubmit = () => {
     startTransition(async () => {
@@ -59,7 +69,13 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
-            <StethoscopeIcon className="h-12 w-12 text-primary" />
+            {logo ? (
+              <div className="relative h-16 w-16">
+                <Image src={logo} alt="Clinic Logo" fill className="object-contain" />
+              </div>
+            ) : (
+              <StethoscopeIcon className="h-12 w-12 text-primary" />
+            )}
         </div>
         <Card>
           <CardHeader className="text-center">
