@@ -296,7 +296,7 @@ export default function DashboardPage() {
     
     const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
         startTransition(async () => {
-             const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, checkIn);
+             const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn);
 
             if (result.success) {
                 await loadData();
@@ -706,7 +706,7 @@ export default function DashboardPage() {
                                                         {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={slot.patient.purpose} />}
                                                         {slot.patientDetails.name}
                                                         {slot.patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : slot.patientDetails.gender === 'Female' ? <FemaleIcon className="h-4 w-4 text-pink-500" /> : null}
-                                                        <Badge variant={slot.patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{slot.patient.type || 'Appointment'}</Badge>
+                                                        <Badge variant={slot.patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{slot.patient.type}</Badge>
                                                          {slot.patient.status === 'Priority' && <Badge variant="destructive">Priority</Badge>}
                                                     </div>
                                                     <div className='flex items-center gap-2 text-xs text-muted-foreground'>

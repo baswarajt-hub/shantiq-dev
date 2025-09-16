@@ -71,7 +71,7 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
 
 
 
-export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string, isWalkIn: boolean) {
+export async function addAppointmentAction(familyMember: FamilyMember, appointmentTime: string, purpose: string, isWalkIn: boolean, checkIn: boolean = false) {
 
   const allPatients = await getPatientsData();
   const schedule = await getDoctorScheduleData();
@@ -134,7 +134,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     phone: familyMember.phone,
     type: isWalkIn ? 'Walk-in' : 'Appointment',
     appointmentTime: appointmentTime,
-    status: isWalkIn ? 'Waiting' : 'Booked',
+    status: checkIn ? 'Waiting' : 'Booked',
     purpose: purpose,
     tokenNo: tokenNo
   });
@@ -516,9 +516,9 @@ export async function recalculateQueueWithETC() {
             }
         } else {
             const now = new Date();
-            const morningStartUtc = sessionLocalToUtc(todayStr, daySchedule.morning.start);
-            const eveningStartUtc = sessionLocalToUtc(todayStr, daySchedule.evening.start);
-            
+            const morningStartUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.start) : new Date(8.64e15); // Far future
+            const eveningStartUtc = daySchedule.evening.isOpen ? sessionLocalToUtc(todayStr, daySchedule.evening.start) : new Date(8.64e15); // Far future
+
             let delayAppliesToSession: 'morning' | 'evening' | null = null;
             if (now < morningStartUtc) {
                 delayAppliesToSession = 'morning'; 
