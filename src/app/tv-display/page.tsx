@@ -253,12 +253,18 @@ function TVDisplayPageContent() {
                      <div className="text-center">
                         <h2 className="text-3xl font-bold text-slate-900">{doctorName}</h2>
                         <p className="text-md text-slate-500">{qualifications}</p>
-                        <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                        {todaySchedule && (
+                            <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200">
+                                <p className="font-semibold text-sky-800"><span className="font-bold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
+                                <p className="font-semibold text-sky-800"><span className="font-bold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
+                            </div>
+                        )}
+                        <div className={cn("text-md px-3 py-0.5 mt-2 rounded-full inline-flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
                             {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
                             {doctorStatus?.isOnline ? `Online` : 'Offline'}
                         </div>
                     </div>
-                     <div className="text-right flex flex-col items-end gap-2">
+                     <div className="text-center flex flex-col items-center gap-2">
                        <div className="text-4xl font-semibold text-slate-900">{time}</div>
                         <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
                             <div className="flex items-center gap-2 font-semibold text-amber-800">
@@ -267,33 +273,19 @@ function TVDisplayPageContent() {
                             </div>
                         </div>
                     </div>
-                    {todaySchedule && (
-                        <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200">
-                            <p className="font-semibold text-sky-800"><span className="font-bold">M:</span> {formatSessionTime(todaySchedule.morning)}</p>
-                            <p className="font-semibold text-sky-800"><span className="font-bold">E:</span> {formatSessionTime(todaySchedule.evening)}</p>
-                        </div>
-                    )}
                 </header>
 
-                <div className="bg-white rounded-2xl p-4 flex flex-col justify-center items-center shadow-lg border border-slate-200 col-span-1">
-                    <h2 className="text-lg text-gray-600 font-semibold mb-2 text-center">Booked patients yet to arrive</h2>
-                    <div className="flex items-center justify-center text-7xl font-bold text-slate-800">
-                        <Calendar className="h-16 w-16 mr-4 text-gray-400"/>
-                        {yetToArrive.length}
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-2xl p-4 flex flex-col justify-between items-center shadow-lg border-2 border-sky-500 flex-1">
-                    <h2 className="text-2xl text-sky-600 font-semibold">NOW SERVING</h2>
+                <div className="bg-green-100 rounded-2xl p-4 flex flex-col justify-center items-center shadow-lg border-2 border-green-300">
+                    <h2 className="text-2xl text-green-800 font-semibold">NOW SERVING</h2>
                     <AnimatePresence mode="wait">
                     {doctorStatus?.isPaused ? (
-                        <motion.div key="paused" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center">
+                        <motion.div key="paused" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
                             <Pause className="h-12 w-12 text-yellow-500 mx-auto mb-2" />
                             <p className="text-4xl font-bold tracking-wider text-slate-900">Queue Paused</p>
                         </motion.div>
                     ) : nowServing ? (
-                        <motion.div key={nowServing.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center">
-                            <Hourglass className="h-12 w-12 text-sky-500 mx-auto animate-pulse mb-2" />
+                        <motion.div key={nowServing.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
+                            <Hourglass className="h-12 w-12 text-green-700 mx-auto animate-pulse mb-2" />
                             <p className={cn("text-5xl font-bold tracking-wider", getPatientNameColorClass(nowServing.status, nowServing.type))}>
                                {anonymizeName(nowServing.name)}
                             </p>
@@ -301,29 +293,13 @@ function TVDisplayPageContent() {
                             <p className="text-2xl text-slate-500 mt-2 flex items-center justify-center gap-3"><Ticket className="h-7 w-7"/>#{nowServing.tokenNo}</p>
                         </motion.div>
                     ) : (
-                        <motion.div key="no-one" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center">
-                            <p className="text-3xl font-semibold text-slate-400">{doctorStatus?.isOnline ? 'Ready for next' : 'Doctor is Offline'}</p>
+                        <motion.div key="no-one" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
+                            <p className="text-3xl font-semibold text-green-700">{doctorStatus?.isOnline ? 'Ready for next' : 'Doctor is Offline'}</p>
                         </motion.div>
                     )}
                     </AnimatePresence>
-                     <div></div>
                 </div>
-
-                {upNext && (
-                    <div className={cn("rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg text-center", upNext.status === 'Priority' ? 'bg-red-200 border-2 border-red-500' : 'bg-amber-100 border-2 border-amber-400')}>
-                        <h2 className={cn("text-2xl font-bold flex items-center gap-2", upNext.status === 'Priority' ? 'text-red-800' : 'text-amber-700')}>
-                            {upNext.status === 'Priority' ? <Shield /> : <ChevronRight />}
-                            {upNext.status === 'Priority' ? 'PRIORITY' : 'UP NEXT'}
-                        </h2>
-                        <div className="flex items-center gap-2 mt-2">
-                             <Ticket className={cn("h-6 w-6", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-600')}/>
-                             <span className="text-3xl font-bold text-slate-800">#{upNext.tokenNo}</span>
-                        </div>
-                        <span className={cn("text-3xl font-bold mt-1", getPatientNameColorClass(upNext.status, upNext.type))}>
-                            {anonymizeName(upNext.name)} {upNext.status === 'Late' && '(Late)'}
-                        </span>
-                    </div>
-                )}
+                
                  <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden flex-1">
                     <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
                     <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
@@ -339,10 +315,43 @@ function TVDisplayPageContent() {
                         )}
                     </div>
                 </div>
+                 <div className="bg-white rounded-2xl p-4 flex shadow-lg border border-slate-200">
+                    <div className="w-1/2 flex flex-col items-center justify-center border-r pr-2">
+                        <h3 className="text-center text-gray-600 font-semibold">In Queue</h3>
+                        <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
+                            <Users className="h-12 w-12 text-gray-400" />
+                            {waitingList.length}
+                        </div>
+                    </div>
+                     <div className="w-1/2 flex flex-col items-center justify-center pl-2">
+                        <h3 className="text-center text-gray-600 font-semibold">Booked patients yet to arrive</h3>
+                        <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
+                           <Calendar className="h-12 w-12 text-gray-400" />
+                           {yetToArrive.length}
+                        </div>
+                    </div>
+                </div>
 
             </div>
             {/* Right Column (75%) */}
             <div className="w-3/4 flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
+                {upNext && (
+                    <div className={cn("rounded-xl p-4 mb-4 flex items-center justify-between shadow-md", upNext.status === 'Priority' ? 'bg-red-200 border-2 border-red-500' : 'bg-amber-100 border-2 border-amber-400')}>
+                        <div className="flex items-center gap-4">
+                            <h2 className={cn("text-2xl font-bold flex items-center gap-3", upNext.status === 'Priority' ? 'text-red-800' : 'text-amber-700')}>
+                                {upNext.status === 'Priority' ? <Shield /> : <ChevronRight />}
+                                {upNext.status === 'Priority' ? 'PRIORITY' : 'UP NEXT'}
+                            </h2>
+                            <div className="flex items-center gap-3">
+                                <Ticket className={cn("h-7 w-7", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-600')}/>
+                                <span className="text-3xl font-bold text-slate-800">#{upNext.tokenNo}</span>
+                            </div>
+                            <span className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
+                                {anonymizeName(upNext.name)} {upNext.status === 'Late' && '(Late)'}
+                            </span>
+                        </div>
+                    </div>
+                )}
                 <div className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
                     <h3 className="text-center">Token</h3>
                     <h3>Name</h3>
@@ -438,7 +447,7 @@ function TVDisplayPageContent() {
       <main className="flex-1 flex flex-col gap-4 pt-4">
         {/* Top Row: Now Serving, Reports, Yet to Arrive */}
         <div className="grid grid-cols-4 gap-4 h-[220px]">
-            <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border border-slate-200 col-span-1">
+             <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border border-slate-200 col-span-1">
                 <h2 className="text-xl text-gray-600 font-semibold mb-2 text-center">Booked patients yet to arrive</h2>
                 <div className="flex items-center justify-center text-8xl font-bold text-slate-800">
                     <Calendar className="h-20 w-20 mr-4 text-gray-400"/>
