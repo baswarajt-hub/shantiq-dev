@@ -273,8 +273,8 @@
     "estimatedWaitTime": 75,
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T06:05:00.000Z",
-    "worstCaseETC": "2025-09-17T22:29:00.272Z",
-    "bestCaseETC": "2025-09-17T22:29:00.272Z"
+    "worstCaseETC": "2025-09-17T22:31:19.702Z",
+    "bestCaseETC": "2025-09-17T22:31:19.702Z"
   },
   {
     "name": "Ridhi",
@@ -289,6 +289,6 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T06:10:00.000Z",
     "worstCaseETC": "2025-09-18T06:10:00.000Z",
-    "bestCaseETC": "2025-09-17T22:34:00.272Z"
+    "bestCaseETC": "2025-09-17T22:36:19.702Z"
   }
 ]
