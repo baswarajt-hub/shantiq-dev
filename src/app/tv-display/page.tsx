@@ -246,18 +246,19 @@ function TVDisplayPageContent() {
             )}
             <div>
               <h1 className="text-3xl font-bold text-slate-900">{clinicName}</h1>
+               {todaySchedule && (
+                  <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200 inline-block">
+                      <p className="font-semibold text-sky-800"><span className="font-bold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
+                      <p className="font-semibold text-sky-800"><span className="font-bold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
+                  </div>
+              )}
             </div>
           </div>
 
           <div className="text-center">
               <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
               <p className="text-lg text-slate-500">{qualifications}</p>
-              {todaySchedule && (
-                  <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200 inline-block">
-                      <p className="font-semibold text-sky-800"><span className="font-bold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
-                      <p className="font-semibold text-sky-800"><span className="font-bold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
-                  </div>
-              )}
+              
               <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
                   {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
                   {doctorStatus?.isOnline ? `Online` : 'Offline'}
@@ -270,7 +271,7 @@ function TVDisplayPageContent() {
               )}
           </div>
 
-          <div className="text-right flex flex-col items-end gap-2">
+          <div className="text-right flex flex-col items-center justify-center gap-2">
             <div className="text-5xl font-semibold text-slate-900">{time}</div>
               <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
                   <div className="flex items-center gap-2 font-semibold text-amber-800">
@@ -309,22 +310,7 @@ function TVDisplayPageContent() {
                     </AnimatePresence>
                 </div>
                 
-                 <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden flex-1">
-                    <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
-                    <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
-                        {waitingForReports.length > 0 ? (
-                            waitingForReports.map(patient => (
-                                <div key={patient.id} className="bg-purple-100 text-purple-800 p-2 rounded-lg flex items-center gap-2">
-                                    <FileClock className="h-5 w-5 flex-shrink-0" />
-                                    <span className="font-medium">{anonymizeName(patient.name)}</span>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flex-1 flex items-center justify-center h-full"><p className="text-slate-400">None</p></div>
-                        )}
-                    </div>
-                </div>
-                 <div className="bg-white rounded-2xl p-4 flex shadow-lg border border-slate-200">
+                <div className="bg-white rounded-2xl p-4 flex shadow-lg border border-slate-200">
                     <div className="w-1/2 flex flex-col items-center justify-center border-r pr-2">
                         <h3 className="text-center text-gray-600 font-semibold">In Queue</h3>
                         <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
@@ -338,6 +324,22 @@ function TVDisplayPageContent() {
                            <Calendar className="h-12 w-12 text-gray-400" />
                            {yetToArrive.length}
                         </div>
+                    </div>
+                </div>
+                
+                 <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden flex-1">
+                    <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
+                    <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
+                        {waitingForReports.length > 0 ? (
+                            waitingForReports.map(patient => (
+                                <div key={patient.id} className="bg-purple-100 text-purple-800 p-2 rounded-lg flex items-center gap-2">
+                                    <FileClock className="h-5 w-5 flex-shrink-0" />
+                                    <span className="font-medium">{anonymizeName(patient.name)}</span>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center h-full"><p className="text-slate-400">None</p></div>
+                        )}
                     </div>
                 </div>
 
@@ -426,7 +428,7 @@ function TVDisplayPageContent() {
           <div>
             <h1 className="text-3xl font-bold text-slate-900">{clinicName}</h1>
             {todaySchedule && (
-                <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200">
+                <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200 inline-block">
                     <p className="font-semibold text-sky-800"><span className="font-bold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
                     <p className="font-semibold text-sky-800"><span className="font-bold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
                 </div>
@@ -449,7 +451,7 @@ function TVDisplayPageContent() {
             )}
         </div>
 
-        <div className="text-right flex flex-col items-end gap-2">
+        <div className="text-right flex flex-col items-center justify-center gap-2">
            <div className="text-5xl font-semibold text-slate-900">{time}</div>
             <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
                 <div className="flex items-center gap-2 font-semibold text-amber-800">
@@ -463,7 +465,7 @@ function TVDisplayPageContent() {
       <main className="flex-1 flex flex-col gap-4 pt-4">
         {/* Top Row: Now Serving, Reports, Yet to Arrive */}
         <div className="grid grid-cols-4 gap-4 h-[220px]">
-             <div className="bg-white rounded-2xl p-4 flex shadow-lg border border-slate-200 col-span-1">
+            <div className="bg-white rounded-2xl p-4 flex shadow-lg border border-slate-200 col-span-1">
                 <div className="w-1/2 flex flex-col items-center justify-center border-r pr-2">
                     <h3 className="text-center text-gray-600 font-semibold">In Queue</h3>
                     <div className="text-7xl font-bold text-slate-800 flex items-center gap-2">
@@ -479,7 +481,6 @@ function TVDisplayPageContent() {
                     </div>
                 </div>
             </div>
-
             <div className="bg-white rounded-2xl p-6 flex flex-col justify-between items-center shadow-lg border-2 border-sky-500 col-span-2">
                 <h2 className="text-3xl text-sky-600 font-semibold">NOW SERVING</h2>
                 <AnimatePresence mode="wait">
@@ -649,5 +650,7 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    
 
     
