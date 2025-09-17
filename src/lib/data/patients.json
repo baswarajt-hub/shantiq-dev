@@ -660,5 +660,49 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T05:45:00.000Z",
     "worstCaseETC": "2025-09-17T05:45:00.000Z"
+  },
+  {
+    "name": "Alice Johnson",
+    "phone": "5550101010",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-17T13:00:00.000Z",
+    "status": "Waiting",
+    "purpose": "Vaccination",
+    "tokenNo": 1,
+    "id": 36,
+    "estimatedWaitTime": 120,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-17T13:00:00.000Z",
+    "worstCaseETC": "2025-09-17T13:00:00.000Z",
+    "bestCaseETC": "2025-09-17T13:00:00.000Z"
+  },
+  {
+    "name": "Jimmy Doe",
+    "phone": "5551112222",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-17T13:05:00.000Z",
+    "status": "Waiting",
+    "purpose": "Consultation",
+    "tokenNo": 2,
+    "id": 37,
+    "estimatedWaitTime": 135,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-17T13:05:00.000Z",
+    "worstCaseETC": "2025-09-17T13:05:00.000Z",
+    "bestCaseETC": "2025-09-17T13:05:00.000Z"
+  },
+  {
+    "name": "Aakash",
+    "phone": "9440120081",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-17T13:10:00.000Z",
+    "status": "Booked",
+    "purpose": "Consultation",
+    "tokenNo": 3,
+    "id": 38,
+    "estimatedWaitTime": 150,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-17T13:10:00.000Z",
+    "worstCaseETC": "2025-09-17T13:10:00.000Z"
   }
 ]

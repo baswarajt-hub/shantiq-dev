@@ -447,11 +447,20 @@ function TVDisplayPageContent() {
       <main className="flex-1 flex flex-col gap-4 pt-4">
         {/* Top Row: Now Serving, Reports, Yet to Arrive */}
         <div className="grid grid-cols-4 gap-4 h-[220px]">
-             <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border border-slate-200 col-span-1">
-                <h2 className="text-xl text-gray-600 font-semibold mb-2 text-center">Booked patients yet to arrive</h2>
-                <div className="flex items-center justify-center text-8xl font-bold text-slate-800">
-                    <Calendar className="h-20 w-20 mr-4 text-gray-400"/>
-                    {yetToArrive.length}
+             <div className="bg-white rounded-2xl p-4 flex shadow-lg border border-slate-200 col-span-1">
+                <div className="w-1/2 flex flex-col items-center justify-center border-r pr-2">
+                    <h3 className="text-center text-gray-600 font-semibold">In Queue</h3>
+                    <div className="text-7xl font-bold text-slate-800 flex items-center gap-2">
+                        <Users className="h-16 w-16 text-gray-400" />
+                        {waitingList.length}
+                    </div>
+                </div>
+                <div className="w-1/2 flex flex-col items-center justify-center pl-2">
+                    <h3 className="text-center text-gray-600 font-semibold">Booked patients yet to arrive</h3>
+                    <div className="text-7xl font-bold text-slate-800 flex items-center gap-2">
+                        <Calendar className="h-16 w-16 text-gray-400" />
+                        {yetToArrive.length}
+                    </div>
                 </div>
             </div>
 
