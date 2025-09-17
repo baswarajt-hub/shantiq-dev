@@ -535,7 +535,7 @@ export default function DashboardPage() {
     const upNext = sessionPatients.find(p => p.status === 'Up-Next');
     
     const waitingList = sessionPatients
-      .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
+      .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.status !== 'Up-Next')
       .sort((a, b) => {
           const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
           const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
@@ -709,7 +709,7 @@ export default function DashboardPage() {
                                 const isNowServing = nowServing?.id === slot.patient?.id;
                                 const isUpNext = upNext?.id === slot.patient?.id;
                                 const isNextInLine = nextInLine?.id === slot.patient?.id;
-                                const isWaiting = slot.patient && ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(slot.patient.status);
+                                const isWaiting = slot.patient && ['Waiting', 'Late', 'Priority'].includes(slot.patient.status);
 
 
                                 return (
@@ -949,4 +949,3 @@ export default function DashboardPage() {
     
 
     
-
