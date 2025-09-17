@@ -5,11 +5,13 @@ import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { parseISO, format, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+
 
 const anonymizeName = (name: string) => {
   if (!name) return '';
@@ -61,12 +63,15 @@ const getPatientNameColorClass = (status: Patient['status'], type: Patient['type
 }
 
 
-export default function TVDisplayPage() {
+function TVDisplayPageContent() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [time, setTime] = useState('');
   const [averageWait, setAverageWait] = useState(0);
+  const searchParams = useSearchParams();
+  const layout = searchParams.get('layout') || '1';
+
 
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -193,7 +198,7 @@ export default function TVDisplayPage() {
     }, 200); // Adjust speed of scroll
 
     return () => clearInterval(scrollInterval);
-  }, [patients]);
+  }, [patients, layout]);
 
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   
@@ -227,6 +232,167 @@ export default function TVDisplayPage() {
     };
   }
   
+  if (layout === '2') {
+    return (
+        <div className="bg-slate-50 text-slate-800 min-h-screen flex font-body p-4 gap-4">
+            {/* Left Column (25%) */}
+            <div className="w-1/4 flex flex-col gap-4">
+                <header className="flex flex-col gap-4 p-4 border-2 border-slate-200 rounded-2xl bg-white shadow-lg">
+                    <div className="flex items-center space-x-4">
+                      {clinicLogo ? (
+                          <div className="relative h-16 w-16">
+                            <Image src={clinicLogo} alt="Clinic Logo" fill className="object-contain" />
+                          </div>
+                      ) : (
+                         <StethoscopeIcon className="h-12 w-12 text-sky-500" />
+                      )}
+                      <div>
+                        <h1 className="text-2xl font-bold text-slate-900">{clinicName}</h1>
+                      </div>
+                    </div>
+                     <div className="text-center">
+                        <h2 className="text-3xl font-bold text-slate-900">{doctorName}</h2>
+                        <p className="text-md text-slate-500">{qualifications}</p>
+                        <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                            {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+                            {doctorStatus?.isOnline ? `Online` : 'Offline'}
+                        </div>
+                    </div>
+                     <div className="text-right flex flex-col items-end gap-2">
+                       <div className="text-4xl font-semibold text-slate-900">{time}</div>
+                        <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
+                            <div className="flex items-center gap-2 font-semibold text-amber-800">
+                                <Activity className="h-5 w-5" />
+                                Avg. Wait: <span className="font-bold">{averageWait} min</span>
+                            </div>
+                        </div>
+                    </div>
+                    {todaySchedule && (
+                        <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200">
+                            <p className="font-semibold text-sky-800"><span className="font-bold">M:</span> {formatSessionTime(todaySchedule.morning)}</p>
+                            <p className="font-semibold text-sky-800"><span className="font-bold">E:</span> {formatSessionTime(todaySchedule.evening)}</p>
+                        </div>
+                    )}
+                </header>
+
+                <div className="bg-white rounded-2xl p-4 flex flex-col justify-center items-center shadow-lg border border-slate-200 col-span-1">
+                    <h2 className="text-lg text-gray-600 font-semibold mb-2 text-center">Booked patients yet to arrive</h2>
+                    <div className="flex items-center justify-center text-7xl font-bold text-slate-800">
+                        <Calendar className="h-16 w-16 mr-4 text-gray-400"/>
+                        {yetToArrive.length}
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-4 flex flex-col justify-between items-center shadow-lg border-2 border-sky-500 flex-1">
+                    <h2 className="text-2xl text-sky-600 font-semibold">NOW SERVING</h2>
+                    <AnimatePresence mode="wait">
+                    {doctorStatus?.isPaused ? (
+                        <motion.div key="paused" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center">
+                            <Pause className="h-12 w-12 text-yellow-500 mx-auto mb-2" />
+                            <p className="text-4xl font-bold tracking-wider text-slate-900">Queue Paused</p>
+                        </motion.div>
+                    ) : nowServing ? (
+                        <motion.div key={nowServing.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center">
+                            <Hourglass className="h-12 w-12 text-sky-500 mx-auto animate-pulse mb-2" />
+                            <p className={cn("text-5xl font-bold tracking-wider", getPatientNameColorClass(nowServing.status, nowServing.type))}>
+                               {anonymizeName(nowServing.name)}
+                            </p>
+                            {nowServing.subStatus === 'Reports' && <p className="text-xl font-semibold text-purple-600">(Reports)</p>}
+                            <p className="text-2xl text-slate-500 mt-2 flex items-center justify-center gap-3"><Ticket className="h-7 w-7"/>#{nowServing.tokenNo}</p>
+                        </motion.div>
+                    ) : (
+                        <motion.div key="no-one" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center">
+                            <p className="text-3xl font-semibold text-slate-400">{doctorStatus?.isOnline ? 'Ready for next' : 'Doctor is Offline'}</p>
+                        </motion.div>
+                    )}
+                    </AnimatePresence>
+                     <div></div>
+                </div>
+
+                {upNext && (
+                    <div className={cn("rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg text-center", upNext.status === 'Priority' ? 'bg-red-200 border-2 border-red-500' : 'bg-amber-100 border-2 border-amber-400')}>
+                        <h2 className={cn("text-2xl font-bold flex items-center gap-2", upNext.status === 'Priority' ? 'text-red-800' : 'text-amber-700')}>
+                            {upNext.status === 'Priority' ? <Shield /> : <ChevronRight />}
+                            {upNext.status === 'Priority' ? 'PRIORITY' : 'UP NEXT'}
+                        </h2>
+                        <div className="flex items-center gap-2 mt-2">
+                             <Ticket className={cn("h-6 w-6", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-600')}/>
+                             <span className="text-3xl font-bold text-slate-800">#{upNext.tokenNo}</span>
+                        </div>
+                        <span className={cn("text-3xl font-bold mt-1", getPatientNameColorClass(upNext.status, upNext.type))}>
+                            {anonymizeName(upNext.name)} {upNext.status === 'Late' && '(Late)'}
+                        </span>
+                    </div>
+                )}
+                 <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden flex-1">
+                    <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
+                    <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
+                        {waitingForReports.length > 0 ? (
+                            waitingForReports.map(patient => (
+                                <div key={patient.id} className="bg-purple-100 text-purple-800 p-2 rounded-lg flex items-center gap-2">
+                                    <FileClock className="h-5 w-5 flex-shrink-0" />
+                                    <span className="font-medium">{anonymizeName(patient.name)}</span>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center h-full"><p className="text-slate-400">None</p></div>
+                        )}
+                    </div>
+                </div>
+
+            </div>
+            {/* Right Column (75%) */}
+            <div className="w-3/4 flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
+                <div className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
+                    <h3 className="text-center">Token</h3>
+                    <h3>Name</h3>
+                    <h3 className="text-center">Purpose</h3>
+                    <h3>Type</h3>
+                    <h3 className="text-center">Wait Time</h3>
+                    <h3 className="text-center">Estimated Consultation Time</h3>
+                </div>
+                <div ref={listRef} className="flex-1 overflow-y-scroll no-scrollbar">
+                    <AnimatePresence>
+                    {queue.length > 0 ? (
+                        queue.map((patient) => {
+                            const waitTime = patient.checkInTime ? differenceInMinutes(new Date(), parseISO(patient.checkInTime)) : null;
+                            const PurposeIcon = patient.purpose && purposeIcons[patient.purpose] ? purposeIcons[patient.purpose] : HelpCircle;
+
+                            return (
+                            <motion.div
+                                key={patient.id}
+                                layout
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: -50 }}
+                                className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
+                            >
+                                <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
+                                <div className={cn("font-medium text-3xl", getPatientNameColorClass(patient.status, patient.type))}>
+                                    {anonymizeName(patient.name)} {patient.status === 'Late' && '(Late)'}
+                                </div>
+                                <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
+                                <div className="text-center font-medium text-slate-600">{patient.type}</div>
+                                <div className="text-center font-semibold text-slate-600">{waitTime !== null && waitTime >= 0 ? `${waitTime} min` : '-'}</div>
+                                <div className="text-center font-semibold text-slate-600 flex items-center justify-center gap-1">
+                                    <span className="font-bold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>
+                                    <span>-</span>
+                                    <span className="font-bold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
+                                </div>
+                            </motion.div>
+                            )
+                        })
+                    ) : (
+                        !upNext && <p className="text-center text-slate-400 text-2xl pt-16">The waiting queue is empty.</p>
+                    )}
+                    </AnimatePresence>
+                </div>
+            </div>
+        </div>
+    );
+  }
+
+  // Default Layout 1
   return (
     <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col p-6 font-body">
       <header className="grid grid-cols-3 items-center pb-4 border-b-2 border-slate-200">
@@ -440,4 +606,12 @@ export default function TVDisplayPage() {
       </main>
     </div>
   );
+}
+
+export default function TVDisplayPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <TVDisplayPageContent />
+        </Suspense>
+    )
 }
