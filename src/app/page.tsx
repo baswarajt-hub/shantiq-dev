@@ -542,8 +542,8 @@ export default function DashboardPage() {
           return timeA - timeB;
       });
 
-    const upNext = waitingList.length > 0 ? waitingList[0] : undefined;
-    const nextInLine = waitingList.length > 1 ? waitingList[1] : undefined;
+    const upNext = waitingList[0];
+    const nextInLine = waitingList[1];
 
 
     if (!schedule || !doctorStatus) {
@@ -704,8 +704,9 @@ export default function DashboardPage() {
                                 const PurposeIcon = slot.patient?.purpose && purposeIcons[slot.patient.purpose] ? purposeIcons[slot.patient.purpose] : HelpCircle;
                                 
                                 const isNowServing = nowServing?.id === slot.patient?.id;
-                                const isUpNext = upNext?.id === slot.patient?.id && upNext?.status !== 'Booked';
+                                const isUpNext = upNext?.id === slot.patient?.id;
                                 const isNextInLine = nextInLine?.id === slot.patient?.id;
+                                const isWaiting = slot.patient && ['Waiting', 'Late', 'Priority'].includes(slot.patient.status);
 
 
                                 return (
@@ -756,12 +757,12 @@ export default function DashboardPage() {
                                                     {['Booked', 'Confirmed'].includes(slot.patient.status) && (
                                                         <Button size="sm" onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending} className="bg-check-in text-check-in-foreground hover:bg-check-in/90">Check-in</Button>
                                                     )}
-                                                    {isNextInLine && upNext && !nowServing && (
+                                                     {isNextInLine && (
                                                         <Button size="sm" onClick={() => handleAdvanceQueue(slot.patient!.id)} disabled={isPending || !doctorStatus.isOnline}>
                                                             <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                                         </Button>
                                                     )}
-                                                     {upNext && slot.patient.id === upNext.id && (
+                                                     {upNext && slot.patient.id === upNext.id && !nowServing && (
                                                          <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline} className="bg-consultation-start text-consultation-start-foreground hover:bg-consultation-start/90">Patient-in</Button>
                                                      )}
                                                     {slot.patient.status === 'In-Consultation' && (
@@ -775,6 +776,11 @@ export default function DashboardPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
+                                                            {isWaiting && !isUpNext && !isNextInLine && (
+                                                                 <DropdownMenuItem onClick={() => handleAdvanceQueue(slot.patient!.id)} disabled={isPending || !doctorStatus.isOnline}>
+                                                                    <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
+                                                                </DropdownMenuItem>
+                                                            )}
                                                              {(slot.patient.status === 'Booked' || slot.patient.status === 'Confirmed') && (
                                                                 <DropdownMenuSub>
                                                                     <DropdownMenuSubTrigger>
@@ -937,4 +943,6 @@ export default function DashboardPage() {
         </div>
     );
 }
+    
+
     
