@@ -3,6 +3,7 @@ import Link from "next/link";
 import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 type HeaderProps = {
   logoSrc?: string | null;
@@ -33,9 +34,19 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
            <Button variant="ghost" asChild>
             <Link href="/login">Public Queue</Link>
           </Button>
-           <Button variant="ghost" asChild>
-            <Link href="/tv-display">TV Display</Link>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost">TV Display</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem asChild>
+                <Link href="/tv-display" target="_blank">Layout 1</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/tv-display?layout=2" target="_blank">Layout 2</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
         <div className="flex items-center justify-end space-x-2">
            <Button variant="outline" size="sm" asChild>
