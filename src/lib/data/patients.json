@@ -570,8 +570,8 @@
     "estimatedWaitTime": 60,
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T05:00:00.000Z",
-    "worstCaseETC": "2025-09-17T14:05:49.591Z",
-    "bestCaseETC": "2025-09-17T14:05:49.591Z"
+    "worstCaseETC": "2025-09-17T14:10:06.839Z",
+    "bestCaseETC": "2025-09-17T14:10:06.839Z"
   },
   {
     "name": "Bob Williams",
@@ -599,8 +599,8 @@
     "estimatedWaitTime": 75,
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T05:10:00.000Z",
-    "worstCaseETC": "2025-09-17T14:10:49.591Z",
-    "bestCaseETC": "2025-09-17T14:10:49.591Z"
+    "worstCaseETC": "2025-09-17T14:15:06.839Z",
+    "bestCaseETC": "2025-09-17T14:15:06.839Z"
   },
   {
     "name": "Suman",
@@ -614,8 +614,8 @@
     "estimatedWaitTime": 90,
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T05:15:00.000Z",
-    "worstCaseETC": "2025-09-17T14:20:49.591Z",
-    "bestCaseETC": "2025-09-17T14:20:49.591Z"
+    "worstCaseETC": "2025-09-17T14:25:06.839Z",
+    "bestCaseETC": "2025-09-17T14:25:06.839Z"
   },
   {
     "name": "Suman",
@@ -629,8 +629,8 @@
     "estimatedWaitTime": 90,
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T05:15:00.000Z",
-    "worstCaseETC": "2025-09-17T14:20:49.591Z",
-    "bestCaseETC": "2025-09-17T14:20:49.591Z"
+    "worstCaseETC": "2025-09-17T14:25:06.839Z",
+    "bestCaseETC": "2025-09-17T14:25:06.839Z"
   },
   {
     "name": "Suvarna",
@@ -644,8 +644,8 @@
     "estimatedWaitTime": 105,
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T05:20:00.000Z",
-    "worstCaseETC": "2025-09-17T14:25:49.591Z",
-    "bestCaseETC": "2025-09-17T14:25:49.591Z"
+    "worstCaseETC": "2025-09-17T14:30:06.839Z",
+    "bestCaseETC": "2025-09-17T14:30:06.839Z"
   },
   {
     "name": "Aakash",
@@ -709,12 +709,12 @@
     "estimatedWaitTime": 150,
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T13:41:00.000Z",
-    "worstCaseETC": "2025-09-17T14:38:48.696Z",
+    "worstCaseETC": "2025-09-17T14:40:06.850Z",
     "checkInTime": "2025-09-17T13:53:21.580Z",
     "latePenalty": 2,
     "lateBy": 12,
     "latePosition": 3,
-    "bestCaseETC": "2025-09-17T14:38:48.696Z"
+    "bestCaseETC": "2025-09-17T14:40:06.850Z"
   },
   {
     "name": "Taimur",
@@ -747,10 +747,10 @@
     "estimatedWaitTime": 150,
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T13:51:00.000Z",
-    "worstCaseETC": "2025-09-17T14:33:48.696Z",
+    "worstCaseETC": "2025-09-17T14:35:06.850Z",
     "checkInTime": "2025-09-17T13:58:39.329Z",
     "lateBy": 2,
-    "bestCaseETC": "2025-09-17T14:33:48.696Z"
+    "bestCaseETC": "2025-09-17T14:35:06.850Z"
   },
   {
     "name": "Shiva",
@@ -783,10 +783,10 @@
     "estimatedWaitTime": 150,
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T13:51:00.000Z",
-    "worstCaseETC": "2025-09-17T14:33:48.696Z",
+    "worstCaseETC": "2025-09-17T14:35:06.850Z",
     "checkInTime": "2025-09-17T13:58:39.329Z",
     "lateBy": 2,
-    "bestCaseETC": "2025-09-17T14:33:48.696Z"
+    "bestCaseETC": "2025-09-17T14:35:06.850Z"
   },
   {
     "name": "Suman",
@@ -836,8 +836,8 @@
     "estimatedWaitTime": 210,
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T14:16:00.000Z",
-    "worstCaseETC": "2025-09-17T14:08:48.696Z",
-    "bestCaseETC": "2025-09-17T14:08:48.696Z"
+    "worstCaseETC": "2025-09-17T14:10:06.850Z",
+    "bestCaseETC": "2025-09-17T14:10:06.850Z"
   },
   {
     "name": "Shankar",
@@ -852,7 +852,7 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T14:21:00.000Z",
     "worstCaseETC": "2025-09-17T14:21:00.000Z",
-    "bestCaseETC": "2025-09-17T14:13:48.696Z"
+    "bestCaseETC": "2025-09-17T14:15:06.850Z"
   },
   {
     "name": "Lakshmi",
@@ -881,7 +881,7 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T14:31:00.000Z",
     "worstCaseETC": "2025-09-17T14:31:00.000Z",
-    "bestCaseETC": "2025-09-17T14:18:48.696Z"
+    "bestCaseETC": "2025-09-17T14:20:06.850Z"
   },
   {
     "name": "Dr Baswaraj Tandur",
@@ -896,6 +896,6 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-17T14:36:00.000Z",
     "worstCaseETC": "2025-09-17T14:36:00.000Z",
-    "bestCaseETC": "2025-09-17T14:23:48.696Z"
+    "bestCaseETC": "2025-09-17T14:25:06.850Z"
   }
 ]
