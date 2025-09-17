@@ -532,19 +532,21 @@ export default function DashboardPage() {
     const canDoctorCheckIn = isToday(selectedDate);
 
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
+    const upNext = sessionPatients.find(p => p.status === 'Up-Next');
+    
     const waitingList = sessionPatients
-      .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
+      .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
       .sort((a, b) => {
           const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
           const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
           if (timeA === Infinity && timeB === Infinity) {
+              // Fallback to token number if ETC is not available (e.g., before session start)
               return (a.tokenNo || 0) - (b.tokenNo || 0);
           }
           return timeA - timeB;
       });
 
-    const upNext = sessionPatients.find(p => p.status === 'Up-Next');
-    const nextInLine = waitingList.find(p => p.status === 'Waiting');
+    const nextInLine = waitingList[0];
 
 
     if (!schedule || !doctorStatus) {
@@ -763,7 +765,7 @@ export default function DashboardPage() {
                                                             <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                                         </Button>
                                                     )}
-                                                     {upNext && slot.patient.id === upNext.id && (
+                                                     {isUpNext && (
                                                          <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline} className="bg-consultation-start text-consultation-start-foreground hover:bg-consultation-start/90">Patient-in</Button>
                                                      )}
                                                     {slot.patient.status === 'In-Consultation' && (
@@ -947,3 +949,4 @@ export default function DashboardPage() {
     
 
     
+

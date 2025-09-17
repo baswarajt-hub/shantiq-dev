@@ -556,7 +556,7 @@ export async function recalculateQueueWithETC() {
             }
         });
 
-        const updatedSessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
+        let updatedSessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
 
         // Clear Up-Next status from anyone who has it, it will be reassigned.
         updatedSessionPatients.forEach(p => {
@@ -565,9 +565,11 @@ export async function recalculateQueueWithETC() {
                 patientUpdates.set(p.id, { ...currentUpdates, status: 'Waiting' });
             }
         });
-
+        // Important: map again after clearing Up-Next to ensure subsequent logic uses the correct status
+        updatedSessionPatients = updatedSessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
 
         const inConsultation = updatedSessionPatients.find(p => p.status === 'In-Consultation');
+        
         const normalWaiting = updatedSessionPatients
           .filter(p => ['Waiting', 'Priority'].includes(p.status) && !p.lateLocked)
           .sort((a, b) => {
@@ -575,6 +577,7 @@ export async function recalculateQueueWithETC() {
               if (a.status !== 'Priority' && b.status === 'Priority') return 1;
               return (a.tokenNo || 0) - (b.tokenNo || 0);
           });
+          
         const penalized = updatedSessionPatients
           .filter(p => p.lateLocked)
           .sort((a, b) => new Date(a.lateLockedAt || 0).getTime() - new Date(b.lateLockedAt || 0).getTime());
@@ -602,13 +605,13 @@ export async function recalculateQueueWithETC() {
         const liveQueue = inConsultation ? fullQueue.slice(1) : [...fullQueue];
         
         // Designate the new "Up-Next" patient
-        if (liveQueue.length > 0 && liveQueue[0].status !== 'Priority') {
-             const upNextPatient = liveQueue[0];
-             const currentUpdates = patientUpdates.get(upNextPatient.id) || {};
-             // Only set to Up-Next if they are currently Waiting
-             if (upNextPatient.status === 'Waiting') {
+        if (liveQueue.length > 0) {
+            const upNextPatient = liveQueue[0];
+            const currentUpdates = patientUpdates.get(upNextPatient.id) || {};
+            // Only set to Up-Next if they are currently Waiting or Late (and not already Priority)
+            if (['Waiting', 'Late'].includes(upNextPatient.status)) {
                 patientUpdates.set(upNextPatient.id, { ...currentUpdates, status: 'Up-Next' });
-             }
+            }
         }
         
         let now = new Date();
@@ -990,6 +993,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
     
 
     
+
 
 
 
