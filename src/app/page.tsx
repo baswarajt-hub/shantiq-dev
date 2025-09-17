@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, toggleQueuePauseAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, toggleQueuePauseAction, advanceQueueAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -364,6 +364,18 @@ export default function DashboardPage() {
         });
     };
 
+    const handleAdvanceQueue = (patientId: number) => {
+      startTransition(async () => {
+          const result = await advanceQueueAction(patientId);
+          if (result?.error) {
+              toast({ title: 'Error', description: result.error, variant: 'destructive' });
+          } else {
+              toast({ title: 'Success', description: result.success });
+              await loadData();
+          }
+      });
+  };
+
     const handleUpdatePurpose = (patientId: number, purpose: string) => {
         startTransition(async () => {
             const result = await updatePatientPurposeAction(patientId, purpose);
@@ -531,6 +543,7 @@ export default function DashboardPage() {
       });
 
     const upNext = waitingList.length > 0 ? waitingList[0] : undefined;
+    const nextInLine = waitingList.length > 1 ? waitingList[1] : undefined;
 
 
     if (!schedule || !doctorStatus) {
@@ -692,6 +705,7 @@ export default function DashboardPage() {
                                 
                                 const isNowServing = nowServing?.id === slot.patient?.id;
                                 const isUpNext = upNext?.id === slot.patient?.id && upNext?.status !== 'Booked';
+                                const isNextInLine = nextInLine?.id === slot.patient?.id;
 
 
                                 return (
@@ -742,9 +756,14 @@ export default function DashboardPage() {
                                                     {['Booked', 'Confirmed'].includes(slot.patient.status) && (
                                                         <Button size="sm" onClick={() => handleCheckIn(slot.patient!.id)} disabled={isPending} className="bg-check-in text-check-in-foreground hover:bg-check-in/90">Check-in</Button>
                                                     )}
-                                                    {['Waiting', 'Late', 'Priority'].includes(slot.patient.status) && (
-                                                        <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline} className="bg-consultation-start text-consultation-start-foreground hover:bg-consultation-start/90">Patient-in</Button>
+                                                    {isNextInLine && upNext && !nowServing && (
+                                                        <Button size="sm" onClick={() => handleAdvanceQueue(slot.patient!.id)} disabled={isPending || !doctorStatus.isOnline}>
+                                                            <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
+                                                        </Button>
                                                     )}
+                                                     {upNext && slot.patient.id === upNext.id && (
+                                                         <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline} className="bg-consultation-start text-consultation-start-foreground hover:bg-consultation-start/90">Patient-in</Button>
+                                                     )}
                                                     {slot.patient.status === 'In-Consultation' && (
                                                         <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'Completed')} disabled={isPending} className="bg-mark-complete text-mark-complete-foreground hover:bg-mark-complete/90">Mark Completed</Button>
                                                     )}

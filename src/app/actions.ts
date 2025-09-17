@@ -915,8 +915,73 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
 }
     
 
+export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
+  const allPatients = await getPatientsData();
+  const schedule = await getDoctorScheduleData();
+
+  const patientToBecomeUpNext = allPatients.find(p => p.id === patientIdToBecomeUpNext);
+  if (!patientToBecomeUpNext) {
+    return { error: 'Patient to move up next not found.' };
+  }
   
+  const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
+  const currentSession = getSessionForTime(schedule, parseISO(patientToBecomeUpNext.appointmentTime));
 
+  const sessionPatients = allPatients.filter(p => {
+    const apptDate = parseISO(p.appointmentTime);
+    if (format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') !== todayStr) return false;
+    const apptSession = getSessionForTime(schedule, apptDate);
+    return apptSession === currentSession;
+  });
+
+  const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
+  const upNext = sessionPatients
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
+    .sort((a, b) => {
+        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
+        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
+        return timeA - timeB;
+    })[0];
+
+  // 1. Complete the current 'In-Consultation' patient
+  if (nowServing && nowServing.consultationStartTime) {
+    const startTime = toDate(nowServing.consultationStartTime)!;
+    const endTime = new Date();
+    await updatePatient(nowServing.id, {
+      status: 'Completed',
+      consultationEndTime: endTime.toISOString(),
+      consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)),
+      subStatus: undefined,
+      lateLocked: false,
+    });
+  }
+
+  // 2. Move the current 'Up Next' patient to 'In-Consultation'
+  if (upNext) {
+    await updatePatient(upNext.id, {
+      status: 'In-Consultation',
+      consultationStartTime: new Date().toISOString(),
+      lateLocked: false,
+    });
+  }
+
+  // 3. Set the selected patient to 'Priority' to make them the new 'Up Next'
+  await updatePatient(patientIdToBecomeUpNext, { status: 'Priority' });
+
+  // Recalculate the entire queue with the new statuses
+  await recalculateQueueWithETC();
+
+  // Revalidate all paths
+  revalidatePath('/');
+  revalidatePath('/dashboard');
+  revalidatePath('/booking');
+  revalidatePath('/patient-portal');
+  revalidatePath('/queue-status');
+  revalidatePath('/tv-display');
+  revalidatePath('/api/patients');
+
+  return { success: 'Queue advanced successfully.' };
+}
     
 
 
@@ -928,4 +993,5 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
     
 
     
+
 
