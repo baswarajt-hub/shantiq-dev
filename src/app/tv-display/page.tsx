@@ -75,7 +75,7 @@ function TVDisplayPageContent() {
 
   const listRef = useRef<HTMLDivElement>(null);
 
-  const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
+  const getSessionForTime = (appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule) return null;
     const timeZone = "Asia/Kolkata";
     
@@ -109,9 +109,9 @@ function TVDisplayPageContent() {
     if (checkSession(daySchedule.morning)) return 'morning';
     if (checkSession(daySchedule.evening)) return 'evening';
     return null;
-  }, []);
+  };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = async () => {
       await recalculateQueueWithETC();
       const [patientData, statusData, scheduleData] = await Promise.all([
           getPatientsAction(),
@@ -157,7 +157,7 @@ function TVDisplayPageContent() {
       } else {
         setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
       }
-    }, [getSessionForTime]);
+    };
 
   useEffect(() => {
     fetchData(); // Initial fetch
@@ -173,7 +173,7 @@ function TVDisplayPageContent() {
         clearInterval(dataIntervalId);
         clearInterval(clockIntervalId);
     };
-}, [fetchData]);
+}, []);
 
   // Scrolling logic
   useEffect(() => {
