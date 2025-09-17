@@ -234,53 +234,56 @@ function TVDisplayPageContent() {
   
   if (layout === '2') {
     return (
-        <div className="bg-slate-50 text-slate-800 min-h-screen flex font-body p-4 gap-4">
+      <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-body p-4 gap-4">
+        <header className="grid grid-cols-3 items-center pb-4 border-b-2 border-slate-200">
+          <div className="flex items-center space-x-4">
+            {clinicLogo ? (
+                <div className="relative h-16 w-16">
+                  <Image src={clinicLogo} alt="Clinic Logo" fill className="object-contain" />
+                </div>
+            ) : (
+              <StethoscopeIcon className="h-12 w-12 text-sky-500" />
+            )}
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">{clinicName}</h1>
+            </div>
+          </div>
+
+          <div className="text-center">
+              <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
+              <p className="text-lg text-slate-500">{qualifications}</p>
+              {todaySchedule && (
+                  <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200 inline-block">
+                      <p className="font-semibold text-sky-800"><span className="font-bold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
+                      <p className="font-semibold text-sky-800"><span className="font-bold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
+                  </div>
+              )}
+              <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                  {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+                  {doctorStatus?.isOnline ? `Online` : 'Offline'}
+              </div>
+              {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && (
+                  <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
+                      <AlertTriangle className="h-4 w-4" />
+                      Doctor is running late by {doctorStatus.startDelay} minutes.
+                  </div>
+              )}
+          </div>
+
+          <div className="text-right flex flex-col items-end gap-2">
+            <div className="text-5xl font-semibold text-slate-900">{time}</div>
+              <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
+                  <div className="flex items-center gap-2 font-semibold text-amber-800">
+                      <Activity className="h-6 w-6" />
+                      Avg. Wait: <span className="font-bold">{averageWait} min</span>
+                  </div>
+              </div>
+          </div>
+        </header>
+
+        <main className="flex-1 flex gap-4 overflow-hidden">
             {/* Left Column (25%) */}
             <div className="w-1/4 flex flex-col gap-4">
-                <header className="flex flex-col gap-4 p-4 border-2 border-slate-200 rounded-2xl bg-white shadow-lg">
-                    <div className="flex items-center space-x-4">
-                      {clinicLogo ? (
-                          <div className="relative h-16 w-16">
-                            <Image src={clinicLogo} alt="Clinic Logo" fill className="object-contain" />
-                          </div>
-                      ) : (
-                         <StethoscopeIcon className="h-12 w-12 text-sky-500" />
-                      )}
-                      <div>
-                        <h1 className="text-2xl font-bold text-slate-900">{clinicName}</h1>
-                      </div>
-                    </div>
-                     <div className="text-center">
-                        <h2 className="text-3xl font-bold text-slate-900">{doctorName}</h2>
-                        <p className="text-md text-slate-500">{qualifications}</p>
-                        {todaySchedule && (
-                            <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200">
-                                <p className="font-semibold text-sky-800"><span className="font-bold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
-                                <p className="font-semibold text-sky-800"><span className="font-bold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
-                            </div>
-                        )}
-                        <div className={cn("text-md px-3 py-0.5 mt-2 rounded-full inline-flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                            {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-                            {doctorStatus?.isOnline ? `Online` : 'Offline'}
-                        </div>
-                         {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && (
-                            <div className="text-md px-3 py-0.5 mt-2 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700">
-                                <AlertTriangle className="h-4 w-4" />
-                                Delayed by {doctorStatus.startDelay} min
-                            </div>
-                        )}
-                    </div>
-                     <div className="text-center flex flex-col items-center gap-2">
-                       <div className="text-4xl font-semibold text-slate-900">{time}</div>
-                        <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
-                            <div className="flex items-center gap-2 font-semibold text-amber-800">
-                                <Activity className="h-5 w-5" />
-                                Avg. Wait: <span className="font-bold">{averageWait} min</span>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
                 <div className="bg-green-100 rounded-2xl p-4 flex flex-col justify-center items-center shadow-lg border-2 border-green-300">
                     <h2 className="text-2xl text-green-800 font-semibold">NOW SERVING</h2>
                     <AnimatePresence mode="wait">
@@ -403,7 +406,8 @@ function TVDisplayPageContent() {
                     </AnimatePresence>
                 </div>
             </div>
-        </div>
+        </main>
+      </div>
     );
   }
 
