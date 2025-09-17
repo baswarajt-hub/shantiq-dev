@@ -994,8 +994,8 @@
     "estimatedWaitTime": 135,
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T05:05:00.000Z",
-    "worstCaseETC": "2025-09-17T21:34:51.890Z",
-    "bestCaseETC": "2025-09-17T21:34:51.890Z"
+    "worstCaseETC": "2025-09-17T21:37:40.016Z",
+    "bestCaseETC": "2025-09-17T21:37:40.016Z"
   },
   {
     "name": "Jimmy Doe",
@@ -1010,7 +1010,7 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T05:10:00.000Z",
     "worstCaseETC": "2025-09-18T05:10:00.000Z",
-    "bestCaseETC": "2025-09-17T21:39:51.890Z"
+    "bestCaseETC": "2025-09-17T21:42:40.016Z"
   },
   {
     "name": "Alice Johnson",
@@ -1025,7 +1025,7 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T05:15:00.000Z",
     "worstCaseETC": "2025-09-18T05:15:00.000Z",
-    "bestCaseETC": "2025-09-17T21:44:51.890Z"
+    "bestCaseETC": "2025-09-17T21:47:40.016Z"
   },
   {
     "name": "Bob Williams",
@@ -1054,7 +1054,7 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T05:25:00.000Z",
     "worstCaseETC": "2025-09-18T05:25:00.000Z",
-    "bestCaseETC": "2025-09-17T21:49:51.890Z"
+    "bestCaseETC": "2025-09-17T21:52:40.016Z"
   },
   {
     "name": "Lakshmi",
@@ -1069,7 +1069,7 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T05:30:00.000Z",
     "worstCaseETC": "2025-09-18T05:30:00.000Z",
-    "bestCaseETC": "2025-09-17T21:54:51.890Z"
+    "bestCaseETC": "2025-09-17T21:57:40.016Z"
   },
   {
     "name": "Shankar",
@@ -1084,7 +1084,7 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T05:35:00.000Z",
     "worstCaseETC": "2025-09-18T05:35:00.000Z",
-    "bestCaseETC": "2025-09-17T21:59:51.890Z"
+    "bestCaseETC": "2025-09-17T22:02:40.016Z"
   },
   {
     "name": "Dr Baswaraj Tandur",
@@ -1099,6 +1099,6 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T05:40:00.000Z",
     "worstCaseETC": "2025-09-18T05:40:00.000Z",
-    "bestCaseETC": "2025-09-17T22:04:51.890Z"
+    "bestCaseETC": "2025-09-17T22:07:40.016Z"
   }
 ]

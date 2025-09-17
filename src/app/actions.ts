@@ -96,7 +96,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     const existingSession = getSessionForTime(schedule, existingDate);
     const isSameSession = existingSession === newAppointmentSession;
 
-    const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late', 'Priority'].includes(p.status);
+    const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Up-Next'].includes(p.status);
     return isSameSession && isActive;
   });
 
@@ -342,7 +342,7 @@ export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
 
 export async function emergencyCancelAction() {
     const patients = await getPatientsData();
-    const activePatients = patients.filter(p => ['Waiting', 'Confirmed', 'Booked', 'In-Consultation', 'Priority'].includes(p.status));
+    const activePatients = patients.filter(p => ['Waiting', 'Confirmed', 'Booked', 'In-Consultation', 'Priority', 'Up-Next'].includes(p.status));
 
     for (const patient of activePatients) {
         await updatePatient(patient.id, { status: 'Cancelled' });
@@ -387,7 +387,7 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
         const existingSession = getSessionForTime(schedule, existingDate);
         const isSameSession = existingSession === newAppointmentSession;
 
-        const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late', 'Priority'].includes(p.status);
+        const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Up-Next'].includes(p.status);
         return isSameSession && isActive;
     });
 
@@ -504,7 +504,7 @@ export async function recalculateQueueWithETC() {
         const sessionTimes = daySchedule[session];
         if (!sessionTimes?.isOpen) continue;
 
-        const sessionPatients = allPatients.filter(p => {
+        let sessionPatients = allPatients.filter(p => {
             const apptDate = parseISO(p.appointmentTime);
             if (format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') !== todayStr) return false;
             const apptSession = getSessionForTime(schedule, apptDate);
@@ -558,6 +558,15 @@ export async function recalculateQueueWithETC() {
 
         const updatedSessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
 
+        // Clear Up-Next status from anyone who has it, it will be reassigned.
+        updatedSessionPatients.forEach(p => {
+            if (p.status === 'Up-Next') {
+                const currentUpdates = patientUpdates.get(p.id) || {};
+                patientUpdates.set(p.id, { ...currentUpdates, status: 'Waiting' });
+            }
+        });
+
+
         const inConsultation = updatedSessionPatients.find(p => p.status === 'In-Consultation');
         const normalWaiting = updatedSessionPatients
           .filter(p => ['Waiting', 'Priority'].includes(p.status) && !p.lateLocked)
@@ -591,6 +600,16 @@ export async function recalculateQueueWithETC() {
         }
         
         const liveQueue = inConsultation ? fullQueue.slice(1) : [...fullQueue];
+        
+        // Designate the new "Up-Next" patient
+        if (liveQueue.length > 0 && liveQueue[0].status !== 'Priority') {
+             const upNextPatient = liveQueue[0];
+             const currentUpdates = patientUpdates.get(upNextPatient.id) || {};
+             // Only set to Up-Next if they are currently Waiting
+             if (upNextPatient.status === 'Waiting') {
+                patientUpdates.set(upNextPatient.id, { ...currentUpdates, status: 'Up-Next' });
+             }
+        }
         
         let now = new Date();
         let effectiveDoctorStartTime: Date;
@@ -857,12 +876,12 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
   const waitingSnapshot = allPatients
     .filter((p: Patient) => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === todayStr)
-    .filter((p: Patient) => p.id !== patientId && p.status === 'Waiting')   // exclude In-Consultation
+    .filter((p: Patient) => p.id !== patientId && ['Waiting', 'Up-Next'].includes(p.status))
     .sort((a: Patient, b: Patient) => {
-       // use same comparator as recalc (priority -> latePosition/late -> tokenNo)
        if (a.status === 'Priority' && b.status !== 'Priority') return -1;
        if (a.status !== 'Priority' && b.status === 'Priority') return 1;
-       // fallback to token number
+       if (a.status === 'Up-Next' && b.status !== 'Up-Next') return -1;
+       if (a.status !== 'Up-Next' && b.status === 'Up-Next') return 1;
        return (a.tokenNo || 0) - (b.tokenNo || 0);
     });
 
@@ -880,10 +899,8 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
   await updatePatient(patientId, updates);
 
-  // Now recalc queue
   await recalculateQueueWithETC();
 
-  // Revalidate UI paths as needed
   revalidatePath('/');
   revalidatePath('/dashboard');
   revalidatePath('/tv-display');
@@ -917,33 +934,9 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
 
 export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
   const allPatients = await getPatientsData();
-  const schedule = await getDoctorScheduleData();
-
-  const patientToBecomeUpNext = allPatients.find(p => p.id === patientIdToBecomeUpNext);
-  if (!patientToBecomeUpNext) {
-    return { error: 'Patient to move up next not found.' };
-  }
   
-  const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
-  const currentSession = getSessionForTime(schedule, parseISO(patientToBecomeUpNext.appointmentTime));
-
-  const sessionPatients = allPatients.filter(p => {
-    const apptDate = parseISO(p.appointmentTime);
-    if (format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') !== todayStr) return false;
-    const apptSession = getSessionForTime(schedule, apptDate);
-    return apptSession === currentSession;
-  });
-
-  const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
-  const upNext = sessionPatients
-    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
-    .sort((a, b) => {
-        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
-        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
-        return timeA - timeB;
-    })[0];
-
   // 1. Complete the current 'In-Consultation' patient
+  const nowServing = allPatients.find(p => p.status === 'In-Consultation');
   if (nowServing && nowServing.consultationStartTime) {
     const startTime = toDate(nowServing.consultationStartTime)!;
     const endTime = new Date();
@@ -957,6 +950,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
   }
 
   // 2. Move the current 'Up Next' patient to 'In-Consultation'
+  const upNext = allPatients.find(p => p.status === 'Up-Next');
   if (upNext) {
     await updatePatient(upNext.id, {
       status: 'In-Consultation',
@@ -965,8 +959,8 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
     });
   }
 
-  // 3. Set the selected patient to 'Priority' to make them the new 'Up Next'
-  await updatePatient(patientIdToBecomeUpNext, { status: 'Priority' });
+  // 3. Set the selected patient to 'Up-Next'
+  await updatePatient(patientIdToBecomeUpNext, { status: 'Up-Next' });
 
   // Recalculate the entire queue with the new statuses
   await recalculateQueueWithETC();
@@ -993,5 +987,6 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
     
 
     
+
 
 

@@ -39,9 +39,10 @@ type TimeSlot = {
 
 const statusConfig = {
     Waiting: { icon: Clock, color: 'text-blue-600' },
+    'Up-Next': { icon: ChevronsRight, color: 'text-yellow-600' },
     'Booked': { icon: CalendarIcon, color: 'text-gray-500' },
     'Confirmed': { icon: CalendarIcon, color: 'text-gray-500' }, 
-    'In-Consultation': { icon: Hourglass, color: 'text-yellow-600 animate-pulse' },
+    'In-Consultation': { icon: Hourglass, color: 'text-green-600 animate-pulse' },
     Completed: { icon: CheckCircle, color: 'text-green-600' },
     Late: { icon: UserX, color: 'text-orange-600' },
     Cancelled: { icon: XCircle, color: 'text-red-600' },
@@ -58,7 +59,7 @@ const purposeIcons: { [key: string]: React.ElementType } = {
 
 const getPatientNameColorClass = (status: Patient['status'], type: Patient['type']) => {
     if (status === 'Completed') return 'text-green-600';
-    if (['Waiting', 'Late', 'In-Consultation', 'Priority'].includes(status)) return 'text-blue-600';
+    if (['Waiting', 'Late', 'In-Consultation', 'Priority', 'Up-Next'].includes(status)) return 'text-blue-600';
     if (status === 'Booked' || status === 'Confirmed') {
         if (type === 'Walk-in') return 'text-amber-800'; // Brown/Amber for walk-ins
         return 'text-foreground'; // Black/Default for appointments
@@ -532,7 +533,7 @@ export default function DashboardPage() {
 
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
     const waitingList = sessionPatients
-      .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
+      .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
       .sort((a, b) => {
           const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
           const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
@@ -542,8 +543,8 @@ export default function DashboardPage() {
           return timeA - timeB;
       });
 
-    const upNext = waitingList[0];
-    const nextInLine = waitingList[1];
+    const upNext = sessionPatients.find(p => p.status === 'Up-Next');
+    const nextInLine = waitingList.find(p => p.status === 'Waiting');
 
 
     if (!schedule || !doctorStatus) {
@@ -706,7 +707,7 @@ export default function DashboardPage() {
                                 const isNowServing = nowServing?.id === slot.patient?.id;
                                 const isUpNext = upNext?.id === slot.patient?.id;
                                 const isNextInLine = nextInLine?.id === slot.patient?.id;
-                                const isWaiting = slot.patient && ['Waiting', 'Late', 'Priority'].includes(slot.patient.status);
+                                const isWaiting = slot.patient && ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(slot.patient.status);
 
 
                                 return (
@@ -762,7 +763,7 @@ export default function DashboardPage() {
                                                             <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                                         </Button>
                                                     )}
-                                                     {upNext && slot.patient.id === upNext.id && !nowServing && (
+                                                     {upNext && slot.patient.id === upNext.id && (
                                                          <Button size="sm" onClick={() => handleUpdateStatus(slot.patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus.isOnline} className="bg-consultation-start text-consultation-start-foreground hover:bg-consultation-start/90">Patient-in</Button>
                                                      )}
                                                     {slot.patient.status === 'In-Consultation' && (
