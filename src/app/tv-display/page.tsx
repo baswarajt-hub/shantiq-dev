@@ -3,7 +3,7 @@
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause } from 'lucide-react';
+import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause, AlertTriangle } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { parseISO, format, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
@@ -263,6 +263,12 @@ function TVDisplayPageContent() {
                             {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
                             {doctorStatus?.isOnline ? `Online` : 'Offline'}
                         </div>
+                         {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && (
+                            <div className="text-md px-3 py-0.5 mt-2 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700">
+                                <AlertTriangle className="h-4 w-4" />
+                                Delayed by {doctorStatus.startDelay} min
+                            </div>
+                        )}
                     </div>
                      <div className="text-center flex flex-col items-center gap-2">
                        <div className="text-4xl font-semibold text-slate-900">{time}</div>
@@ -431,6 +437,12 @@ function TVDisplayPageContent() {
                 {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
                 {doctorStatus?.isOnline ? `Online since ${doctorStatus.onlineTime ? format(parseISO(doctorStatus.onlineTime), 'hh:mm a') : ''}` : 'Doctor is Offline'}
             </div>
+             {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && (
+                <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
+                    <AlertTriangle className="h-4 w-4" />
+                    Doctor is running late by {doctorStatus.startDelay} minutes.
+                </div>
+            )}
         </div>
 
         <div className="text-right flex flex-col items-end gap-2">
@@ -633,3 +645,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    
