@@ -23,6 +23,10 @@ export type Patient = {
   lateBy?: number; // in minutes
   latePenalty?: number;    // set by receptionist
   latePosition?: number;  // fixed position after penalty applied
+  // Anchor-based late handling
+  lateLocked?: boolean;
+  lateLockedAt?: string; // ISO timestamp
+  lateAnchors?: number[]; // Array of patient IDs
 };
 
 export type AIPatientData = {
