@@ -429,7 +429,7 @@
     "phone": "9391188021",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T13:20:00.000Z",
-    "status": "Booked",
+    "status": "Waiting",
     "purpose": "Follow-up visit",
     "tokenNo": 5,
     "subType": "Booked Walk-in",
@@ -437,6 +437,23 @@
     "estimatedWaitTime": 30,
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T13:20:00.000Z",
-    "worstCaseETC": "2025-09-18T13:20:00.000Z"
+    "worstCaseETC": "2025-09-18T13:20:00.000Z",
+    "checkInTime": "2025-09-18T10:13:33.147Z",
+    "bestCaseETC": "2025-09-18T13:15:00.000Z"
+  },
+  {
+    "name": "Shankar",
+    "phone": "9849094454",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-18T13:25:00.000Z",
+    "status": "Waiting",
+    "purpose": "Vaccination",
+    "tokenNo": 6,
+    "id": 24,
+    "estimatedWaitTime": 30,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-18T13:25:00.000Z",
+    "worstCaseETC": "2025-09-18T13:25:00.000Z",
+    "bestCaseETC": "2025-09-18T13:20:00.000Z"
   }
 ]

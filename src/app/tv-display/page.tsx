@@ -414,7 +414,7 @@ function TVDisplayPageContent() {
                                 <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                                 <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
                                     {anonymizeName(patient.name)}
-                                    {patient.subType === 'Booked Walk-in' && <sup className="font-bold text-blue-500">B</sup>}
+                                    {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
                                     {patient.status === 'Late' && '(Late)'}
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
@@ -631,7 +631,7 @@ function TVDisplayPageContent() {
                                 getPatientNameColorClass(patient.status, patient.type)
                             )}>
                                 {anonymizeName(patient.name)}
-                                {patient.subType === 'Booked Walk-in' && <sup className="font-bold text-blue-500">B</sup>}
+                                {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
                                 {patient.status === 'Late' && '(Late)'}
                             </div>
                             <div className="text-center text-slate-600 flex justify-center">
@@ -669,5 +669,3 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
-
-    
