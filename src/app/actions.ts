@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -137,6 +138,10 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     purpose: purpose,
     tokenNo: tokenNo
   };
+
+  if (checkIn) {
+    newPatientData.checkInTime = new Date().toISOString();
+  }
 
   // Only set subType for walk-ins that are "Book Only", not "Book & Check-in"
   if (isWalkIn && !checkIn) {
@@ -1027,5 +1032,4 @@ export async function startLastConsultationAction(patientId: number) {
 
   return { success: 'Started final consultation.' };
 }
-
     

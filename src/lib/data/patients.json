@@ -455,5 +455,35 @@
     "slotTime": "2025-09-18T13:25:00.000Z",
     "worstCaseETC": "2025-09-18T13:25:00.000Z",
     "bestCaseETC": "2025-09-18T13:20:00.000Z"
+  },
+  {
+    "name": "Aakash",
+    "phone": "9440120081",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-18T13:30:00.000Z",
+    "status": "Waiting",
+    "purpose": "Consultation",
+    "tokenNo": 7,
+    "id": 25,
+    "estimatedWaitTime": 60,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-18T13:30:00.000Z",
+    "worstCaseETC": "2025-09-18T13:30:00.000Z",
+    "bestCaseETC": "2025-09-18T13:25:00.000Z"
+  },
+  {
+    "name": "Ridhi",
+    "phone": "9391188021",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-18T13:35:00.000Z",
+    "status": "Waiting",
+    "purpose": "Follow-up visit",
+    "tokenNo": 8,
+    "id": 26,
+    "estimatedWaitTime": 75,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-18T13:35:00.000Z",
+    "worstCaseETC": "2025-09-18T13:35:00.000Z",
+    "bestCaseETC": "2025-09-18T13:30:00.000Z"
   }
 ]
