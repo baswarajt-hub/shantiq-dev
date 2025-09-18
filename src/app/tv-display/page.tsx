@@ -129,8 +129,8 @@ function TVDisplayPageContent() {
     const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
     if (todayOverride) {
         daySchedule = {
-            morning: todayOverride.morningOverride ?? daySchedule.morning,
-            evening: todayOverride.eveningOverride ?? daySchedule.evening,
+            morning: todayOverride.morningOverride ?? scheduleData.days[dayName].morning,
+            evening: todayOverride.eveningOverride ?? scheduleData.days[dayName].evening,
         };
     }
     
@@ -178,7 +178,7 @@ function TVDisplayPageContent() {
             return acc + (wait > 0 ? wait : 0);
         }, 0);
         setAverageWait(Math.round(totalWaitMinutes / currentlyWaiting.length));
-    } else {
+    } else if (scheduleData) {
         setAverageWait(scheduleData.slotDuration); // Default if no one is waiting
     }
   };
@@ -382,7 +382,7 @@ function TVDisplayPageContent() {
                                 <span className="text-3xl font-bold text-slate-800">#{upNext.tokenNo}</span>
                             </div>
                             <span className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
-                                {anonymizeName(upNext.name)} {upNext.status === 'Late' && '(Late)'}
+                                {anonymizeName(upNext.name)} {patient.status === 'Late' && `(Late by ${patient.lateBy} min)`}
                             </span>
                         </div>
                     </div>
@@ -414,8 +414,8 @@ function TVDisplayPageContent() {
                                 <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                                 <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
                                     {anonymizeName(patient.name)}
-                                    {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
-                                    {patient.status === 'Late' && '(Late)'}
+                                    {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
+                                    {patient.status === 'Late' && `(Late by ${patient.lateBy} min)`}
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
                                 <div className="text-center font-medium text-slate-600">{patient.type}</div>
@@ -631,8 +631,8 @@ function TVDisplayPageContent() {
                                 getPatientNameColorClass(patient.status, patient.type)
                             )}>
                                 {anonymizeName(patient.name)}
-                                {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
-                                {patient.status === 'Late' && '(Late)'}
+                                {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
+                                {patient.status === 'Late' && `(Late by ${patient.lateBy} min)`}
                             </div>
                             <div className="text-center text-slate-600 flex justify-center">
                                 <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
@@ -669,3 +669,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    
