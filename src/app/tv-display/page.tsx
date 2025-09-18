@@ -128,18 +128,35 @@ function TVDisplayPageContent() {
       if (!sessionToShow) {
         const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
         const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-        const morningSession = scheduleData.days[dayOfWeek].morning;
-        
-        if (morningSession.isOpen) {
-            const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-            const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-            if(now > morningEndUtc) {
-                sessionToShow = 'evening';
-            } else {
-                sessionToShow = 'morning';
-            }
+        let daySchedule = scheduleData.days[dayOfWeek];
+        const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
+         if(todayOverride) {
+            daySchedule = {
+                morning: todayOverride.morningOverride ?? daySchedule.morning,
+                evening: todayOverride.eveningOverride ?? daySchedule.evening
+            };
+        }
+
+        if (statusData.isOnline) {
+             const morningStartLocal = daySchedule.morning.isOpen ? parseDateFn(`${dateStr} ${daySchedule.morning.start}`, 'yyyy-MM-dd HH:mm', new Date()) : null;
+             if (morningStartLocal && now < morningStartLocal) {
+                 sessionToShow = 'morning';
+             } else {
+                 sessionToShow = 'evening';
+             }
         } else {
-           sessionToShow = 'evening';
+            const morningSession = daySchedule.morning;
+            if (morningSession.isOpen) {
+                const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+                const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+                if(now > morningEndUtc) {
+                    sessionToShow = 'evening';
+                } else {
+                    sessionToShow = 'morning';
+                }
+            } else {
+               sessionToShow = 'evening';
+            }
         }
       }
       
@@ -157,7 +174,7 @@ function TVDisplayPageContent() {
       } else {
         setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
       }
-    }, [getSessionForTime]);
+    }, []);
 
   useEffect(() => {
     fetchData(); // Initial fetch
