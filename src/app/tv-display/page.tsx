@@ -112,7 +112,7 @@ function TVDisplayPageContent() {
     return null;
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = async () => {
     await recalculateQueueWithETC();
     const [patientData, statusData, scheduleData] = await Promise.all([
         getPatientsAction(),
@@ -134,31 +134,29 @@ function TVDisplayPageContent() {
         };
     }
     
-    let sessionToShow: 'morning' | 'evening' | null = getSessionForTime(now, scheduleData);
+    let sessionToShow: 'morning' | 'evening' | null = null;
+    
+    // 1. Try to determine session from current time
+    sessionToShow = getSessionForTime(now, scheduleData);
 
+    // 2. If outside hours, check doctor's online time
+    if (!sessionToShow && statusData.isOnline && statusData.onlineTime) {
+        sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
+    }
+
+    // 3. If still no session, infer based on time of day (fallback)
     if (!sessionToShow) {
-        // If doctor is online, their session is the active one
-        if (statusData.isOnline && statusData.onlineTime) {
-            const onlineSession = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
-            if (onlineSession) {
-                sessionToShow = onlineSession;
-            }
-        }
-        
-        // If still no session, determine based on time of day
-        if (!sessionToShow) {
-            const morningSession = daySchedule.morning;
-            if (morningSession.isOpen) {
-                const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-                const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-                if (now > morningEndUtc) {
-                    sessionToShow = 'evening';
-                } else {
-                    sessionToShow = 'morning';
-                }
+        const morningSession = daySchedule.morning;
+        if (morningSession.isOpen) {
+            const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+            const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+            if (now > morningEndUtc) {
+                sessionToShow = 'evening'; // After morning session, show evening.
             } else {
-                sessionToShow = 'evening'; // Default to evening if morning is closed
+                sessionToShow = 'morning'; // Before/during morning session.
             }
+        } else {
+            sessionToShow = 'evening'; // If morning is closed, must be evening.
         }
     }
     
@@ -183,7 +181,7 @@ function TVDisplayPageContent() {
     } else {
         setAverageWait(scheduleData.slotDuration); // Default if no one is waiting
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchData(); // Initial fetch
@@ -199,7 +197,7 @@ function TVDisplayPageContent() {
         clearInterval(dataIntervalId);
         clearInterval(clockIntervalId);
     };
-}, [fetchData]);
+}, []);
 
   // Scrolling logic
   useEffect(() => {
@@ -232,7 +230,7 @@ function TVDisplayPageContent() {
     .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
     .sort((a, b) => {
         const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
-        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : parseISO(b.slotTime).getTime();
+        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
         return timeA - timeB;
     });
 
@@ -415,10 +413,9 @@ function TVDisplayPageContent() {
                             >
                                 <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                                 <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
-                                    {patient.subType === 'Booked Walk-in' && (
-                                        <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">B</div>
-                                    )}
-                                    {anonymizeName(patient.name)} {patient.status === 'Late' && '(Late)'}
+                                    {anonymizeName(patient.name)}
+                                    {patient.subType === 'Booked Walk-in' && <sup className="font-bold text-blue-500">B</sup>}
+                                    {patient.status === 'Late' && '(Late)'}
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
                                 <div className="text-center font-medium text-slate-600">{patient.type}</div>
@@ -633,10 +630,9 @@ function TVDisplayPageContent() {
                                 "font-medium text-3xl flex items-center gap-2",
                                 getPatientNameColorClass(patient.status, patient.type)
                             )}>
-                                {patient.subType === 'Booked Walk-in' && (
-                                    <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold">B</div>
-                                )}
-                                {anonymizeName(patient.name)} {patient.status === 'Late' && '(Late)'}
+                                {anonymizeName(patient.name)}
+                                {patient.subType === 'Booked Walk-in' && <sup className="font-bold text-blue-500">B</sup>}
+                                {patient.status === 'Late' && '(Late)'}
                             </div>
                             <div className="text-center text-slate-600 flex justify-center">
                                 <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
@@ -673,3 +669,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    

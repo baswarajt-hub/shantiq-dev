@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -139,7 +138,8 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     tokenNo: tokenNo
   };
 
-  if (isWalkIn) {
+  // Only set subType for walk-ins that are "Book Only", not "Book & Check-in"
+  if (isWalkIn && !checkIn) {
       newPatientData.subType = 'Booked Walk-in';
   }
   
@@ -1028,15 +1028,4 @@ export async function startLastConsultationAction(patientId: number) {
   return { success: 'Started final consultation.' };
 }
 
-
     
-
-    
-
-
-
-
-
-
-
-
