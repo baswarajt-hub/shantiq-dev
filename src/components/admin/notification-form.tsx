@@ -9,7 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '../ui/switch';
-import { formatISO, parseISO } from 'date-fns';
+import { format, parseISO, setHours, setMinutes, parse } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from '../ui/calendar';
+import { cn } from '@/lib/utils';
 
 type NotificationFormProps = {
   initialNotification?: Notification;
@@ -33,32 +37,82 @@ export function NotificationForm({ initialNotification, onSave }: NotificationFo
     setNotification(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    // value is in "yyyy-MM-ddThh:mm" format, which is ISO 8601 compatible
-    setNotification(prev => ({ ...prev, [name]: value ? new Date(value).toISOString() : undefined }));
+  const handleDateTimeChange = (field: 'startTime' | 'endTime', date?: Date, time?: string) => {
+    setNotification(prev => {
+        const currentISO = prev[field];
+        let workingDate = currentISO ? parseISO(currentISO) : new Date();
+
+        if (date) {
+            workingDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+        }
+
+        if (time) {
+            try {
+                const parsedTime = parse(time, 'HH:mm', new Date());
+                workingDate = setHours(workingDate, parsedTime.getHours());
+                workingDate = setMinutes(workingDate, parsedTime.getMinutes());
+            } catch (e) {
+                console.error("Invalid time format", time);
+            }
+        }
+        
+        return { ...prev, [field]: workingDate.toISOString() };
+    });
   }
+
 
   const handleSwitchChange = (checked: boolean) => {
     setNotification(prev => ({ ...prev, enabled: checked }));
   };
   
-  const formatDateTimeLocal = (isoString?: string) => {
-    if (!isoString) return '';
-    try {
-        // Just slice the ISO string to fit the datetime-local input format
-        return isoString.slice(0, 16);
-    } catch (e) {
-        return '';
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
       await onSave(notification);
     });
   };
+  
+  const DateTimePicker = ({ label, isoString, onDateChange, onTimeChange }: { label: string, isoString?: string, onDateChange: (date: Date) => void, onTimeChange: (time: string) => void }) => {
+    const dateValue = isoString ? parseISO(isoString) : undefined;
+    const timeValue = dateValue ? format(dateValue, 'HH:mm') : '';
+    
+    return (
+       <div className="space-y-2">
+            <Label>{label}</Label>
+            <div className="flex gap-2">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant={"outline"}
+                        className={cn(
+                            "w-[200px] justify-start text-left font-normal",
+                            !dateValue && "text-muted-foreground"
+                        )}
+                        >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateValue ? format(dateValue, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                        mode="single"
+                        selected={dateValue}
+                        onSelect={(day) => day && onDateChange(day)}
+                        initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+                <Input
+                    type="time"
+                    className="w-[120px]"
+                    value={timeValue}
+                    onChange={(e) => onTimeChange(e.target.value)}
+                />
+            </div>
+       </div>
+    );
+  }
+
 
   return (
     <Card>
@@ -79,26 +133,18 @@ export function NotificationForm({ initialNotification, onSave }: NotificationFo
             />
           </div>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="startTime">Display From</Label>
-              <Input
-                id="startTime"
-                name="startTime"
-                type="datetime-local"
-                value={formatDateTimeLocal(notification.startTime)}
-                onChange={handleDateChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endTime">Display Until</Label>
-              <Input
-                id="endTime"
-                name="endTime"
-                type="datetime-local"
-                value={formatDateTimeLocal(notification.endTime)}
-                onChange={handleDateChange}
-              />
-            </div>
+             <DateTimePicker 
+                label="Display From"
+                isoString={notification.startTime}
+                onDateChange={(date) => handleDateTimeChange('startTime', date)}
+                onTimeChange={(time) => handleDateTimeChange('startTime', undefined, time)}
+             />
+             <DateTimePicker 
+                label="Display Until"
+                isoString={notification.endTime}
+                onDateChange={(date) => handleDateTimeChange('endTime', date)}
+                onTimeChange={(time) => handleDateTimeChange('endTime', undefined, time)}
+             />
           </div>
           <div className="flex items-center space-x-2">
             <Switch
