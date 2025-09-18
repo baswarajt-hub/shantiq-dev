@@ -382,7 +382,7 @@ function TVDisplayPageContent() {
                                 <span className="text-3xl font-bold text-slate-800">#{upNext.tokenNo}</span>
                             </div>
                             <span className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
-                                {anonymizeName(upNext.name)} {patient.status === 'Late' && `(Late by ${patient.lateBy} min)`}
+                                {anonymizeName(upNext.name)} {upNext.status === 'Late' && `(Late by ${upNext.lateBy} min)`}
                             </span>
                         </div>
                     </div>
