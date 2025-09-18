@@ -128,8 +128,8 @@
         "isOpen": true
       },
       "morningOverride": {
-        "start": "02:05",
-        "end": "03:30",
+        "start": "10:30",
+        "end": "13:00",
         "isOpen": true
       }
     },

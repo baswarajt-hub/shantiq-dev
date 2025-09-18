@@ -5,7 +5,7 @@ import { useState, useTransition, useEffect } from 'react';
 import type { SpecialClosure, DoctorSchedule } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { type DayContentProps } from 'react-day-picker';
-import { format } from 'date-fns';
+import { format, isPast } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -25,6 +25,8 @@ function CustomDayContent(props: DayContentProps) {
     const closure = closures.find(c => c.date === dateStr);
     const dayName = dayOfWeek[props.date.getDay()] as keyof DoctorSchedule['days'];
     const daySchedule = schedule.days[dayName];
+    
+    const isPastDate = isPast(props.date) && !format(props.date, 'yyyy-MM-dd').includes(format(new Date(), 'yyyy-MM-dd'));
 
     const isMorningClosedBySpecial = closure?.isMorningClosed ?? false;
     const isEveningClosedBySpecial = closure?.isEveningClosed ?? false;
@@ -38,28 +40,28 @@ function CustomDayContent(props: DayContentProps) {
             <div className="flex gap-1 absolute bottom-1">
                 <div 
                     onClick={(e) => { 
-                        if (isMorningClosedByWeekly) return;
+                        if (isMorningClosedByWeekly || isPastDate) return;
                         e.stopPropagation(); 
                         onSessionToggle(props.date, 'morning'); 
                     }}
                     className={cn(
                         "h-5 w-5 text-xs flex items-center justify-center font-bold rounded-sm",
-                        isMorningClosedByWeekly ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'cursor-pointer',
-                        !isMorningClosedByWeekly && (isMorningClosedBySpecial ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20')
+                        (isMorningClosedByWeekly || isPastDate) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'cursor-pointer',
+                        !isMorningClosedByWeekly && !isPastDate && (isMorningClosedBySpecial ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20')
                     )}
                 >
                     M
                 </div>
                 <div 
                     onClick={(e) => { 
-                        if (isEveningClosedByWeekly) return;
+                        if (isEveningClosedByWeekly || isPastDate) return;
                         e.stopPropagation(); 
                         onSessionToggle(props.date, 'evening'); 
                     }}
                      className={cn(
                         "h-5 w-5 text-xs flex items-center justify-center font-bold rounded-sm",
-                        isEveningClosedByWeekly ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'cursor-pointer',
-                        !isEveningClosedByWeekly && (isEveningClosedBySpecial ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20')
+                        (isEveningClosedByWeekly || isPastDate) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'cursor-pointer',
+                        !isEveningClosedByWeekly && !isPastDate && (isEveningClosedBySpecial ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted-foreground/20')
                     )}
                 >
                     E
@@ -84,6 +86,9 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }:
       .filter(([, daySchedule]) => !daySchedule.morning.isOpen && !daySchedule.evening.isOpen)
       .map(([dayName]) => dayOfWeek.indexOf(dayName))
       .map(dayIndex => ({ dayOfWeek: [dayIndex] as any[] }));
+      
+    // Disable all past dates
+    disabledDays.push({ before: new Date() } as any);
 
 
     return (
@@ -162,7 +167,7 @@ export function SpecialClosures({ schedule, onSave }: SpecialClosuresProps) {
       <CardHeader>
         <CardTitle>Closures & Overrides</CardTitle>
         <CardDescription>
-          Manage one-off closures or override standard hours for specific dates.
+          Manage one-off closures or override standard hours for specific dates. Past dates cannot be edited.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center">

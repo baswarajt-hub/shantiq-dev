@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import {
@@ -6,6 +7,8 @@ import {
   endOfWeek,
   format,
   startOfWeek,
+  isPast,
+  set
 } from 'date-fns';
 import { Button } from '../ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -88,23 +91,27 @@ export function WeekView({ schedule, closures, onOverrideSave }: WeekViewProps) 
               {hours.map(hour => {
                 const sessionInfo = getSessionForHour(day, hour);
                 const isTopCell = sessionInfo && hour === parseInt(sessionInfo.session.start.split(':')[0], 10);
+                const hourDate = set(day, { hours: hour, minutes: 0 });
+                const isPastHour = isPast(hourDate);
 
                 return (
                   <EditTimeDialog 
                     key={hour}
                     sessionInfo={sessionInfo}
                     onSave={onOverrideSave}
+                    disabled={isPastHour}
                   >
                     <div
                       className={cn(
-                        "h-12 border-t cursor-pointer",
-                        sessionInfo?.isClosed && "bg-destructive/20 hover:bg-destructive/30",
-                        sessionInfo && !sessionInfo.isClosed && "bg-primary/20 hover:bg-primary/30",
-                        !sessionInfo && "hover:bg-muted/50"
+                        "h-12 border-t",
+                        isPastHour ? "bg-gray-100 cursor-not-allowed" : "cursor-pointer",
+                        sessionInfo?.isClosed && !isPastHour && "bg-destructive/20 hover:bg-destructive/30",
+                        sessionInfo && !sessionInfo.isClosed && !isPastHour && "bg-primary/20 hover:bg-primary/30",
+                        !sessionInfo && !isPastHour && "hover:bg-muted/50"
                       )}
                     >
                         {isTopCell && (
-                            <div className={cn("text-xs p-1 text-primary-foreground rounded-t-sm", sessionInfo?.isClosed ? 'bg-destructive' : 'bg-primary')}>
+                            <div className={cn("text-xs p-1 text-primary-foreground rounded-t-sm", sessionInfo?.isClosed ? 'bg-destructive' : 'bg-primary', isPastHour && 'bg-gray-400')}>
                                 {sessionInfo.session.start} - {sessionInfo.session.end}
                             </div>
                         )}

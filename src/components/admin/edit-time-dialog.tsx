@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -25,9 +26,10 @@ type EditTimeDialogProps = {
     date: Date;
   } | null;
   onSave: (override: SpecialClosure) => void;
+  disabled?: boolean;
 };
 
-export function EditTimeDialog({ children, sessionInfo, onSave }: EditTimeDialogProps) {
+export function EditTimeDialog({ children, sessionInfo, onSave, disabled }: EditTimeDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSessionOpen, setSessionOpen] = useState(true);
   const [startTime, setStartTime] = useState('');
@@ -41,7 +43,7 @@ export function EditTimeDialog({ children, sessionInfo, onSave }: EditTimeDialog
     }
   }, [sessionInfo, isOpen]);
 
-  if (!sessionInfo) {
+  if (!sessionInfo || disabled) {
     return <>{children}</>;
   }
 
