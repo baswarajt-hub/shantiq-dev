@@ -63,12 +63,12 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
   return (
     <div className="space-y-4">
       {visibleNotifications.map(notification => (
-        <Card key={notification.id} className="bg-blue-50 border-blue-200">
+        <Card key={notification.id} className="bg-accent/20 border-accent/50">
           <CardHeader className="flex flex-row items-start gap-4 space-y-0">
-            <Megaphone className="h-6 w-6 text-blue-600 mt-1" />
+            <Megaphone className="h-6 w-6 text-accent-foreground mt-1" />
             <div className="flex-1">
-              <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
-              <CardDescription className="text-base text-blue-700 mt-1">
+              <CardTitle className="text-lg text-accent-foreground">Important Announcement</CardTitle>
+              <CardDescription className="text-base text-accent-foreground/90 mt-1">
                 {notification.message}
               </CardDescription>
             </div>
@@ -244,8 +244,19 @@ export default function BookingPage() {
   const currentDaySchedule = getTodayScheduleDetails();
   const familyPatients = family.filter(member => !member.isPrimary);
   
-  const currentHour = currentTime.getHours();
-  const relevantSessionDetails = (currentHour < 14 || !currentDaySchedule?.evening) ? currentDaySchedule?.morning : currentDaySchedule?.evening;
+  const relevantSession = (() => {
+    if (!currentDaySchedule) return null;
+    const now = new Date();
+    const morningEndTime = currentDaySchedule.morning.time.includes('-') ? parseDate(currentDaySchedule.morning.time.split(' - ')[1], 'hh:mm a', now) : null;
+    
+    // If it's past morning session or morning session is closed, default to evening
+    if ( (morningEndTime && now > morningEndTime) || currentDaySchedule.morning.status === 'Closed' ) {
+        return 'evening';
+    }
+    return 'morning';
+  })();
+  
+  const relevantSessionDetails = relevantSession === 'evening' ? currentDaySchedule?.evening : currentDaySchedule?.morning;
 
 
   if (!phone || isPending) {
