@@ -983,16 +983,50 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
   return { success: 'Queue advanced successfully.' };
 }
     
+export async function startLastConsultationAction(patientId: number) {
+  // Step 1: Complete any currently serving patient
+  let allPatients = await getPatientsData();
+  const nowServing = allPatients.find(p => p.status === 'In-Consultation');
+  
+  if (nowServing && nowServing.consultationStartTime) {
+    const startTime = toDate(nowServing.consultationStartTime)!;
+    const endTime = new Date();
+    await updatePatient(nowServing.id, {
+      status: 'Completed',
+      consultationEndTime: endTime.toISOString(),
+      consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)),
+      subStatus: undefined,
+      lateLocked: false,
+    });
+  }
 
+  // Step 2: Move the target patient (who was Up-Next) to In-Consultation
+  await updatePatient(patientId, {
+    status: 'In-Consultation',
+    consultationStartTime: new Date().toISOString(),
+    lateLocked: false,
+  });
 
+  // Recalculate the queue to reflect the final state
+  await recalculateQueueWithETC();
 
+  // Revalidate all paths
+  revalidatePath('/');
+  revalidatePath('/dashboard');
+  revalidatePath('/booking');
+  revalidatePath('/patient-portal');
+  revalidatePath('/queue-status');
+  revalidatePath('/tv-display');
+  revalidatePath('/api/patients');
 
-
+  return { success: 'Started final consultation.' };
+}
 
 
     
 
     
+
 
 
 

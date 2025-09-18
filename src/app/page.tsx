@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, toggleQueuePauseAction, advanceQueueAction } from '@/app/actions';
+import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, toggleQueuePauseAction, advanceQueueAction, startLastConsultationAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -364,6 +364,18 @@ export default function DashboardPage() {
             }
         });
     };
+    
+    const handleStartLastConsultation = (patientId: number) => {
+        startTransition(async () => {
+            const result = await startLastConsultationAction(patientId);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.success });
+                await loadData();
+            }
+        });
+    };
 
     const handleAdvanceQueue = (patientId: number) => {
       startTransition(async () => {
@@ -583,6 +595,7 @@ export default function DashboardPage() {
         const isUpNext = upNext?.id === patient.id;
         const isNextInLine = nextInLine?.id === patient.id;
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
+        const isLastInQueue = isUpNext && waitingList.length === 0;
 
         return (
             <div className={cn(
@@ -631,6 +644,11 @@ export default function DashboardPage() {
                              {isNextInLine && !isUpNext && (
                                 <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus.isOnline}>
                                     <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
+                                </Button>
+                            )}
+                            {isLastInQueue && (
+                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus.isOnline}>
+                                     <LogIn className="mr-2 h-4 w-4" /> Start Consultation
                                 </Button>
                             )}
                             <DropdownMenu>
@@ -981,3 +999,4 @@ export default function DashboardPage() {
     
 
     
+
