@@ -316,17 +316,8 @@ export async function getDoctorStatusAction() {
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
     await updateDoctorStatus(status);
     await recalculateQueueWithETC();
+    revalidatePath('/api/status');
     return { success: `Doctor status updated.` };
-}
-
-export async function toggleQueuePauseAction(isPaused: boolean) {
-    await updateDoctorStatus({ isPaused: isPaused });
-    await recalculateQueueWithETC();
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    return { success: `Queue is now ${isPaused ? 'paused' : 'resumed'}.` };
 }
 
 export async function updateDoctorStartDelayAction(startDelayMinutes: number) {

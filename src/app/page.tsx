@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, toggleQueuePauseAction, advanceQueueAction, startLastConsultationAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, advanceQueueAction, startLastConsultationAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -478,11 +478,12 @@ export default function DashboardPage() {
 
     const handleToggleQueuePause = () => {
         startTransition(async () => {
-            const result = await toggleQueuePauseAction(!doctorStatus?.isPaused);
+            const newStatus = { isPaused: !doctorStatus?.isPaused };
+            const result = await setDoctorStatusAction(newStatus);
             if (result?.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
-                toast({ title: 'Success', description: result.success});
+                toast({ title: 'Success', description: `Queue is now ${newStatus.isPaused ? 'paused' : 'resumed'}.`});
                 await loadData();
             }
         });
@@ -1007,6 +1008,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
