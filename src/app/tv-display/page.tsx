@@ -50,6 +50,7 @@ const getPatientNameColorClass = (status: Patient['status'], type: Patient['type
         case 'Late':
         case 'Priority':
         case 'In-Consultation':
+        case 'Up-Next':
             return 'text-blue-600';
         case 'Booked':
         case 'Confirmed':
@@ -168,12 +169,19 @@ function TVDisplayPageContent() {
     setDoctorStatus(statusData);
     setSchedule(scheduleData);
     
-    const completedWithTime = sessionPatients.filter(p => p.status === 'Completed' && p.consultationTime);
-    if (completedWithTime.length > 0) {
-      const totalWait = completedWithTime.reduce((acc, p) => acc + (p.consultationTime || 0), 0);
-      setAverageWait(Math.round(totalWait / completedWithTime.length));
+    const currentlyWaiting = sessionPatients.filter(p => 
+        ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status) && p.checkInTime
+    );
+
+    if (currentlyWaiting.length > 0) {
+        const now = new Date();
+        const totalWaitMinutes = currentlyWaiting.reduce((acc, p) => {
+            const wait = differenceInMinutes(now, parseISO(p.checkInTime!));
+            return acc + (wait > 0 ? wait : 0);
+        }, 0);
+        setAverageWait(Math.round(totalWaitMinutes / currentlyWaiting.length));
     } else {
-      setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
+        setAverageWait(scheduleData.slotDuration); // Default if no one is waiting
     }
   };
 
