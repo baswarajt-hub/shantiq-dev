@@ -7,16 +7,65 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
 import type { DoctorSchedule, DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, AlertTriangle } from 'lucide-react';
 import { useEffect, useState, useCallback, Suspense } from 'react';
-import { format, parseISO, isToday, differenceInMinutes } from 'date-fns';
+import { format, parseISO, isToday, differenceInMinutes, parse as parseDate } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null }) {
-  if (!doctorStatus?.isOnline) {
+const timeZone = "Asia/Kolkata";
+
+function sessionLocalToUtc(dateStr: string, sessionTime: string) {
+  let localDate: Date;
+  if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+    localDate = parseDate(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+  } else {
+    localDate = parseDate(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
+  }
+  return fromZonedTime(localDate, timeZone);
+}
+
+function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null, schedule: DoctorSchedule | null }) {
+  if (!doctorStatus) return null;
+  
+  const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
+  const dayName = format(toZonedTime(new Date(), timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+
+  let daySchedule;
+  if (schedule) {
+    const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+    daySchedule = todayOverride 
+        ? {
+            morning: todayOverride.morningOverride ?? schedule.days[dayName].morning,
+            evening: todayOverride.eveningOverride ?? schedule.days[dayName].evening
+          }
+        : schedule.days[dayName];
+  }
+  
+  const now = new Date();
+  const currentHour = now.getHours();
+  
+  const sessionToCheck = (currentHour < 14 || !daySchedule?.evening.isOpen) ? daySchedule?.morning : daySchedule?.evening;
+  const isSessionOver = sessionToCheck ? now > sessionLocalToUtc(todayStr, sessionToCheck.end) : false;
+
+  if (!doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver) {
     return (
        <Card className="bg-orange-100/50 border-orange-300">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2"><AlertTriangle/>Doctor is Running Late</CardTitle>
+            <CardDescription>The session will begin with a delay.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-bold">Starts approx. {doctorStatus.startDelay} min late</p>
+          </CardContent>
+        </Card>
+    )
+  }
+  
+  if (!doctorStatus.isOnline) {
+    return (
+       <Card className="bg-slate-100/50 border-slate-300">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2"><WifiOff/>Doctor Offline</CardTitle>
             <CardDescription>The doctor is currently unavailable.</CardDescription>
@@ -28,7 +77,7 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
     )
   }
   
-  if (doctorStatus?.isPaused) {
+  if (doctorStatus.isPaused) {
     return (
        <Card className="bg-yellow-100/50 border-yellow-300">
           <CardHeader>
@@ -268,23 +317,33 @@ function QueueStatusPageContent() {
   const searchParams = useSearchParams();
   const patientId = searchParams.get('id');
 
-  const getSessionForTime = useCallback((appointmentTime: string, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
+  const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule) return null;
     
-    const dayOfWeek = format(new Date(appointmentTime), 'EEEE') as keyof DoctorSchedule['days'];
-    const sessionTimes = localSchedule.days[dayOfWeek];
-    
-    const appointmentDate = new Date(appointmentTime);
-    const appointmentHour = appointmentDate.getHours();
+    const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
+    const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
+    const dateStr = format(zonedAppt, 'yyyy-MM-dd');
 
-    const morningEndHour = parseInt(sessionTimes.morning.end.split(':')[0], 10);
-    
-    if (appointmentHour < morningEndHour && sessionTimes.morning.isOpen) {
-        return 'morning';
-    } else if (sessionTimes.evening.isOpen) {
-        return 'evening';
+    let daySchedule = localSchedule.days[dayOfWeek];
+    const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
+    if (todayOverride) {
+      daySchedule = {
+        morning: todayOverride.morningOverride ?? daySchedule.morning,
+        evening: todayOverride.eveningOverride ?? daySchedule.evening,
+      };
     }
     
+    const checkSession = (sessionName: 'morning' | 'evening') => {
+      const session = daySchedule[sessionName];
+      if (!session.isOpen) return false;
+      const startUtc = sessionLocalToUtc(dateStr, session.start);
+      const endUtc = sessionLocalToUtc(dateStr, session.end);
+      const apptMs = appointmentUtcDate.getTime();
+      return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
+    };
+
+    if (checkSession('morning')) return 'morning';
+    if (checkSession('evening')) return 'evening';
     return null;
   }, []);
 
@@ -311,12 +370,23 @@ function QueueStatusPageContent() {
     setDoctorStatus(statusData);
 
     const now = new Date();
-    const realTimeSession = getSessionForTime(now.toISOString(), scheduleData);
+    let realTimeSession = getSessionForTime(now, scheduleData);
+
+    if (!realTimeSession && statusData.isOnline && statusData.onlineTime) {
+      realTimeSession = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
+    }
+
+    if (!realTimeSession) {
+      const currentHour = now.getHours();
+      realTimeSession = currentHour < 14 ? 'morning' : 'evening';
+    }
+
+
     setCurrentSession(realTimeSession);
     
     const todaysPatients = patientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
     
-    const filteredPatients = todaysPatients.filter((p: Patient) => getSessionForTime(p.appointmentTime, scheduleData) === realTimeSession);
+    const filteredPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === realTimeSession);
     
     setAllPatients(filteredPatients);
     setLastUpdated(new Date().toLocaleTimeString());
@@ -326,7 +396,7 @@ function QueueStatusPageContent() {
       const userAppointment = todaysPatients.find((p: Patient) => p.id === id && p.phone === userPhone);
 
       if (userAppointment) {
-          const isSameSession = getSessionForTime(userAppointment.appointmentTime, scheduleData) === realTimeSession;
+          const isSameSession = getSessionForTime(parseISO(userAppointment.appointmentTime), scheduleData) === realTimeSession;
 
           if (userAppointment.status === 'Completed' && isSameSession) {
               const lastCompletedId = localStorage.getItem('completedAppointmentId');
@@ -443,7 +513,7 @@ function QueueStatusPageContent() {
 
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <NowServingCard patient={nowServing} doctorStatus={doctorStatus} />
+                    <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule} />
                     <UpNextCard patient={upNext} />
                     </div>
                     

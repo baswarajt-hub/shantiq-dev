@@ -623,7 +623,7 @@
     "phone": "5551112222",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T13:55:00.000Z",
-    "status": "In-Consultation",
+    "status": "Completed",
     "purpose": "Consultation",
     "tokenNo": 12,
     "subType": "Booked Walk-in",
@@ -631,7 +631,7 @@
     "estimatedWaitTime": 90,
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T14:26:00.000Z",
-    "worstCaseETC": "2025-09-18T15:13:20.733Z",
+    "worstCaseETC": "2025-09-18T14:26:00.000Z",
     "checkInTime": "2025-09-18T14:56:30.547Z",
     "lateBy": 31,
     "latePenalty": 2,
@@ -642,7 +642,9 @@
     ],
     "lateLockedAt": "2025-09-18T14:56:30.547Z",
     "bestCaseETC": "2025-09-18T15:08:20.733Z",
-    "consultationStartTime": "2025-09-18T15:08:30.217Z"
+    "consultationStartTime": "2025-09-18T15:08:30.217Z",
+    "consultationEndTime": "2025-09-18T15:14:45.892Z",
+    "consultationTime": 6
   },
   {
     "name": "Raj",
@@ -689,7 +691,7 @@
     "phone": "9849094458",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T14:15:00.000Z",
-    "status": "Up-Next",
+    "status": "Completed",
     "purpose": "Vaccination",
     "tokenNo": 16,
     "checkInTime": "2025-09-18T14:08:31.250Z",
@@ -697,15 +699,19 @@
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T14:46:00.000Z",
-    "worstCaseETC": "2025-09-18T15:13:30.217Z",
-    "bestCaseETC": "2025-09-18T15:13:30.217Z"
+    "worstCaseETC": "2025-09-18T14:46:00.000Z",
+    "bestCaseETC": "2025-09-18T15:14:44.900Z",
+    "consultationStartTime": "2025-09-18T15:14:45.893Z",
+    "lateLocked": false,
+    "consultationEndTime": "2025-09-18T15:23:55.047Z",
+    "consultationTime": 9
   },
   {
     "name": "Shankar",
     "phone": "9849094454",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T14:20:00.000Z",
-    "status": "Waiting",
+    "status": "In-Consultation",
     "purpose": "Consultation",
     "tokenNo": 17,
     "checkInTime": "2025-09-18T14:29:58.994Z",
@@ -713,15 +719,17 @@
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T14:51:00.000Z",
-    "worstCaseETC": "2025-09-18T15:18:30.217Z",
-    "bestCaseETC": "2025-09-18T15:18:30.217Z"
+    "worstCaseETC": "2025-09-18T15:28:51.647Z",
+    "bestCaseETC": "2025-09-18T15:23:51.647Z",
+    "consultationStartTime": "2025-09-18T15:23:55.048Z",
+    "lateLocked": false
   },
   {
     "name": "Avinash",
     "phone": "9849094454",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T14:25:00.000Z",
-    "status": "Waiting",
+    "status": "Up-Next",
     "purpose": "Consultation",
     "tokenNo": 18,
     "checkInTime": "2025-09-18T14:30:53.108Z",
@@ -729,7 +737,7 @@
     "estimatedWaitTime": 60,
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T14:56:00.000Z",
-    "worstCaseETC": "2025-09-18T15:23:30.217Z",
-    "bestCaseETC": "2025-09-18T15:23:30.217Z"
+    "worstCaseETC": "2025-09-18T18:29:35.872Z",
+    "bestCaseETC": "2025-09-18T18:29:35.872Z"
   }
 ]

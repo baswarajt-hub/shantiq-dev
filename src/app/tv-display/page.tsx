@@ -136,27 +136,24 @@ function TVDisplayPageContent() {
     
     let sessionToShow: 'morning' | 'evening' | null = null;
     
-    // 1. Try to determine session from current time
     sessionToShow = getSessionForTime(now, scheduleData);
 
-    // 2. If outside hours, check doctor's online time
     if (!sessionToShow && statusData.isOnline && statusData.onlineTime) {
         sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
     }
 
-    // 3. If still no session, infer based on time of day (fallback)
     if (!sessionToShow) {
         const morningSession = daySchedule.morning;
         if (morningSession.isOpen) {
             const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
             const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
             if (now > morningEndUtc) {
-                sessionToShow = 'evening'; // After morning session, show evening.
+                sessionToShow = 'evening';
             } else {
-                sessionToShow = 'morning'; // Before/during morning session.
+                sessionToShow = 'morning';
             }
         } else {
-            sessionToShow = 'evening'; // If morning is closed, must be evening.
+            sessionToShow = 'evening';
         }
     }
     
@@ -255,6 +252,13 @@ function TVDisplayPageContent() {
         evening: todayOverride.eveningOverride ?? schedule.days[dayName].evening
     };
   }
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  
+  const sessionToCheck = (currentHour < 14 || !todaySchedule?.evening.isOpen) ? todaySchedule?.morning : todaySchedule?.evening;
+  const isSessionOver = sessionToCheck ? now > parseDateFn(`${todayStr} ${sessionToCheck.end}`, 'yyyy-MM-dd HH:mm', new Date()) : false;
+
   
   if (layout === '2') {
     return (
@@ -287,7 +291,7 @@ function TVDisplayPageContent() {
                   {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
                   {doctorStatus?.isOnline ? 'Online' : 'Offline'}
               </div>
-              {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && (
+              {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
                   <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
                       <AlertTriangle className="h-4 w-4" />
                       Doctor is running late by {doctorStatus.startDelay} minutes.
@@ -469,7 +473,7 @@ function TVDisplayPageContent() {
                 {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
                 {doctorStatus?.isOnline ? 'Online' : 'Offline'}
             </div>
-             {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && (
+             {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
                 <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
                     <AlertTriangle className="h-4 w-4" />
                     Doctor is running late by {doctorStatus.startDelay} minutes.

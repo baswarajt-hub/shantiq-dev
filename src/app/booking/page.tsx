@@ -5,7 +5,7 @@ import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell } from 'lucide-react';
+import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell, AlertTriangle } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoc
 import { format, parseISO, isToday, parse as parseDate } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 const getStatusBadgeClass = (status: string) => {
@@ -134,21 +135,22 @@ export default function BookingPage() {
 
     const processSession = (sessionName: 'morning' | 'evening') => {
       const session = todaySch[sessionName];
-      if (!session.isOpen) return { time: 'Closed', status: 'Closed', statusColor: 'text-gray-500' };
+      if (!session.isOpen) return { time: 'Closed', status: 'Closed', statusColor: 'text-gray-500', isOver: true };
 
       const timeStr = `${formatTime(session.start)} - ${formatTime(session.end)}`;
       const startTime = parseDate(session.start, 'HH:mm', today);
       const endTime = parseDate(session.end, 'HH:mm', today);
+      const isOver = today > endTime;
       
       let status = 'Upcoming';
       let statusColor = 'text-gray-500';
 
-      if (today > endTime) {
+      if (isOver) {
           status = 'Completed';
           statusColor = 'text-green-600';
       } else if (today >= startTime) {
            if (doctorStatus?.isOnline) {
-                status = `Online`;
+                status = `Online (since ${format(parseISO(doctorStatus.onlineTime!), 'hh:mm a')})`;
                 statusColor = 'text-green-600';
            } else {
                 status = 'Offline';
@@ -156,7 +158,7 @@ export default function BookingPage() {
            }
       }
 
-      return { time: timeStr, status, statusColor };
+      return { time: timeStr, status, statusColor, isOver };
     };
 
     return {
@@ -186,6 +188,10 @@ export default function BookingPage() {
 
   const currentDaySchedule = getTodayScheduleDetails();
   const familyPatients = family.filter(member => !member.isPrimary);
+  
+  const currentHour = currentTime.getHours();
+  const relevantSessionDetails = (currentHour < 14 || !currentDaySchedule?.evening) ? currentDaySchedule?.morning : currentDaySchedule?.evening;
+
 
   if (!phone || isPending) {
       return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -209,7 +215,7 @@ export default function BookingPage() {
                   <div className="text-right">
                     <span className="font-semibold">{currentDaySchedule.morning.time}</span>
                     <p className={cn("font-bold text-xs", currentDaySchedule.morning.statusColor)}>
-                        {currentDaySchedule.morning.status === 'Online' ? <span className="flex items-center justify-end gap-1"><Wifi /> Online</span> : currentDaySchedule.morning.status === 'Offline' ? <span className="flex items-center justify-end gap-1"><WifiOff /> Offline</span> : currentDaySchedule.morning.status}
+                        {currentDaySchedule.morning.status.startsWith('Online') ? <span className="flex items-center justify-end gap-1"><Wifi /> Online</span> : currentDaySchedule.morning.status === 'Offline' ? <span className="flex items-center justify-end gap-1"><WifiOff /> Offline</span> : currentDaySchedule.morning.status}
                     </p>
                   </div>
                 </div>
@@ -218,10 +224,19 @@ export default function BookingPage() {
                    <div className="text-right">
                     <span className="font-semibold">{currentDaySchedule.evening.time}</span>
                     <p className={cn("font-bold text-xs", currentDaySchedule.evening.statusColor)}>
-                        {currentDaySchedule.evening.status === 'Online' ? <span className="flex items-center justify-end gap-1"><Wifi /> Online</span> : currentDaySchedule.evening.status === 'Offline' ? <span className="flex items-center justify-end gap-1"><WifiOff /> Offline</span> : currentDaySchedule.evening.status}
+                        {currentDaySchedule.evening.status.startsWith('Online') ? <span className="flex items-center justify-end gap-1"><Wifi /> Online</span> : currentDaySchedule.evening.status === 'Offline' ? <span className="flex items-center justify-end gap-1"><WifiOff /> Offline</span> : currentDaySchedule.evening.status}
                     </p>
                   </div>
                 </div>
+                 {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && relevantSessionDetails && !relevantSessionDetails.isOver && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Heads Up!</AlertTitle>
+                    <AlertDescription>
+                      The doctor is running late and will start the session approximately {doctorStatus.startDelay} minutes behind schedule.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             ) : (
               <p>Loading schedule...</p>
