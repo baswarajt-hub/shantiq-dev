@@ -731,7 +731,7 @@
     "phone": "9849094454",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T14:25:00.000Z",
-    "status": "In-Consultation",
+    "status": "Completed",
     "purpose": "Consultation",
     "tokenNo": 18,
     "checkInTime": "2025-09-18T14:30:53.108Z",
@@ -742,39 +742,43 @@
     "worstCaseETC": "2025-09-18T18:29:35.872Z",
     "bestCaseETC": "2025-09-18T18:29:35.872Z",
     "consultationStartTime": "2025-09-18T20:44:42.486Z",
-    "lateLocked": false
+    "lateLocked": false,
+    "consultationEndTime": "2025-09-18T21:04:54.700Z",
+    "consultationTime": 20
   },
   {
     "name": "Alice Johnson",
     "phone": "5550101010",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T20:35:00.000Z",
-    "status": "Up-Next",
+    "status": "In-Consultation",
     "purpose": "Consultation",
     "tokenNo": 1,
     "checkInTime": "2025-09-18T20:34:20.510Z",
     "id": 46,
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:25:00.000Z",
-    "worstCaseETC": "2025-09-18T21:23:11.161Z",
-    "bestCaseETC": "2025-09-18T21:23:11.161Z"
+    "slotTime": "2025-09-18T21:28:00.000Z",
+    "worstCaseETC": "2025-09-18T21:29:50.738Z",
+    "bestCaseETC": "2025-09-18T21:24:50.738Z",
+    "consultationStartTime": "2025-09-18T21:04:54.701Z",
+    "lateLocked": false
   },
   {
     "name": "John Doe",
     "phone": "5551112222",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T20:40:00.000Z",
-    "status": "Waiting",
+    "status": "Up-Next",
     "purpose": "Follow-up visit",
     "tokenNo": 2,
     "checkInTime": "2025-09-18T20:34:33.043Z",
     "id": 47,
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:30:00.000Z",
-    "worstCaseETC": "2025-09-18T21:30:00.000Z",
-    "bestCaseETC": "2025-09-18T21:28:11.161Z"
+    "slotTime": "2025-09-18T21:33:00.000Z",
+    "worstCaseETC": "2025-09-18T21:24:54.701Z",
+    "bestCaseETC": "2025-09-18T21:24:54.701Z"
   },
   {
     "name": "Charlie Brown",
@@ -788,9 +792,9 @@
     "id": 48,
     "estimatedWaitTime": 15,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:10:00.000Z",
-    "worstCaseETC": "2025-09-18T21:13:11.161Z",
-    "bestCaseETC": "2025-09-18T21:13:11.161Z"
+    "slotTime": "2025-09-18T21:13:00.000Z",
+    "worstCaseETC": "2025-09-18T21:14:54.701Z",
+    "bestCaseETC": "2025-09-18T21:14:54.701Z"
   },
   {
     "name": "Suvarna",
@@ -804,8 +808,8 @@
     "id": 49,
     "estimatedWaitTime": 30,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:15:00.000Z",
-    "worstCaseETC": "2025-09-18T21:15:00.000Z"
+    "slotTime": "2025-09-18T21:18:00.000Z",
+    "worstCaseETC": "2025-09-18T21:18:00.000Z"
   },
   {
     "name": "Taimur",
@@ -819,39 +823,41 @@
     "id": 50,
     "estimatedWaitTime": 30,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:20:00.000Z",
-    "worstCaseETC": "2025-09-18T21:20:00.000Z",
-    "bestCaseETC": "2025-09-18T21:18:11.161Z"
+    "slotTime": "2025-09-18T21:23:00.000Z",
+    "worstCaseETC": "2025-09-18T21:23:00.000Z",
+    "bestCaseETC": "2025-09-18T21:19:54.701Z"
   },
   {
     "name": "Lakshmi ",
     "phone": "9440120081",
     "type": "Appointment",
     "appointmentTime": "2025-09-18T21:00:00.000Z",
-    "status": "Up-Next",
+    "status": "In-Consultation",
     "purpose": "Consultation",
     "tokenNo": 6,
     "id": 46,
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:25:00.000Z",
-    "worstCaseETC": "2025-09-18T21:23:11.161Z",
-    "bestCaseETC": "2025-09-18T21:23:11.161Z"
+    "slotTime": "2025-09-18T21:28:00.000Z",
+    "worstCaseETC": "2025-09-18T21:29:50.738Z",
+    "bestCaseETC": "2025-09-18T21:24:50.738Z",
+    "consultationStartTime": "2025-09-18T21:04:54.701Z",
+    "lateLocked": false
   },
   {
     "name": "Nitya",
     "phone": "9391188021",
     "type": "Appointment",
     "appointmentTime": "2025-09-18T21:05:00.000Z",
-    "status": "Waiting",
+    "status": "Up-Next",
     "purpose": "Vaccination",
     "tokenNo": 7,
     "id": 47,
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:30:00.000Z",
-    "worstCaseETC": "2025-09-18T21:30:00.000Z",
-    "bestCaseETC": "2025-09-18T21:28:11.161Z"
+    "slotTime": "2025-09-18T21:33:00.000Z",
+    "worstCaseETC": "2025-09-18T21:24:54.701Z",
+    "bestCaseETC": "2025-09-18T21:24:54.701Z"
   },
   {
     "name": "Shankar",
@@ -865,8 +871,8 @@
     "id": 51,
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:35:00.000Z",
-    "worstCaseETC": "2025-09-18T21:35:00.000Z"
+    "slotTime": "2025-09-18T21:38:00.000Z",
+    "worstCaseETC": "2025-09-18T21:38:00.000Z"
   },
   {
     "name": "Ayesha",
@@ -880,9 +886,9 @@
     "id": 52,
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:40:00.000Z",
-    "worstCaseETC": "2025-09-18T21:40:00.000Z",
-    "bestCaseETC": "2025-09-18T21:33:11.161Z"
+    "slotTime": "2025-09-18T21:43:00.000Z",
+    "worstCaseETC": "2025-09-18T21:43:00.000Z",
+    "bestCaseETC": "2025-09-18T21:29:54.701Z"
   },
   {
     "name": "Suman",
@@ -896,9 +902,9 @@
     "id": 53,
     "estimatedWaitTime": 60,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:45:00.000Z",
-    "worstCaseETC": "2025-09-18T21:45:00.000Z",
-    "bestCaseETC": "2025-09-18T21:38:11.161Z"
+    "slotTime": "2025-09-18T21:48:00.000Z",
+    "worstCaseETC": "2025-09-18T21:48:00.000Z",
+    "bestCaseETC": "2025-09-18T21:34:54.701Z"
   },
   {
     "name": "Avinash",
@@ -912,7 +918,7 @@
     "id": 54,
     "estimatedWaitTime": 75,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T21:50:00.000Z",
-    "worstCaseETC": "2025-09-18T21:50:00.000Z"
+    "slotTime": "2025-09-18T21:53:00.000Z",
+    "worstCaseETC": "2025-09-18T21:53:00.000Z"
   }
 ]

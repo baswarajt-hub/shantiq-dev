@@ -24,10 +24,12 @@ const anonymizeName = (name: string) => {
 
 const formatSessionTime = (session: Session) => {
     if (!session.isOpen) return 'Closed';
+    const timeZone = "Asia/Kolkata";
     const formatTime = (time: string) => {
         if (!time) return '';
         try {
-            return format(parseDateFn(time, 'HH:mm', new Date()), 'hh:mm a');
+            const date = parseDateFn(time, 'HH:mm', new Date());
+            return format(toZonedTime(date, timeZone), 'hh:mm a');
         } catch {
             return time; // Fallback for already formatted times
         }
@@ -134,7 +136,7 @@ function TVDisplayPageContent() {
         sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
     }
 
-    if (!sessionToShow) {
+    if (!sessionToShow && scheduleData) {
         const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
         const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
@@ -252,8 +254,9 @@ function TVDisplayPageContent() {
   const qualifications = schedule.clinicDetails.qualifications || '';
   const clinicName = schedule.clinicDetails.clinicName || 'Clinic';
   
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const dayName = format(new Date(), 'EEEE') as keyof DoctorSchedule['days'];
+  const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
+  const dayName = format(toZonedTime(new Date(), timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+
   let todaySchedule = schedule.days[dayName];
   const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
   if(todayOverride) {
@@ -267,7 +270,8 @@ function TVDisplayPageContent() {
   const currentHour = now.getHours();
   
   const sessionToCheck = (currentHour < 14 || !todaySchedule?.evening.isOpen) ? todaySchedule?.morning : todaySchedule?.evening;
-  const isSessionOver = sessionToCheck ? now > parseDateFn(`${todayStr} ${sessionToCheck.end}`, 'yyyy-MM-dd HH:mm', new Date()) : false;
+  const sessionEndUTC = sessionToCheck?.isOpen ? fromZonedTime(parseDateFn(`${todayStr} ${sessionToCheck.end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone) : null;
+  const isSessionOver = sessionEndUTC ? now > sessionEndUTC : false;
 
   
   if (layout === '2') {
@@ -428,6 +432,7 @@ function TVDisplayPageContent() {
                                 <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                                 <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
                                     {anonymizeName(patient.name)}
+                                    {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
                                     {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
                                     {patient.status === 'Late' && `(Late by ${patient.lateBy} min)`}
                                 </div>
@@ -645,6 +650,7 @@ function TVDisplayPageContent() {
                                 getPatientNameColorClass(patient.status, patient.type)
                             )}>
                                 {anonymizeName(patient.name)}
+                                {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
                                 {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
                                 {patient.status === 'Late' && `(Late by ${patient.lateBy} min)`}
                             </div>
