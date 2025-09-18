@@ -56,16 +56,17 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       
       let daySchedule = schedule.days[dayOfWeek];
-      const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+      const closure = schedule.specialClosures.find(c => c.date === dateStr);
 
-      if (todayOverride) {
+      if (closure) {
           daySchedule = {
-              morning: todayOverride.morningOverride ?? daySchedule.morning,
-              evening: todayOverride.eveningOverride ?? daySchedule.evening
+              morning: closure.morningOverride ?? daySchedule.morning,
+              evening: closure.eveningOverride ?? daySchedule.evening
           }
       }
 
       const sessionSchedule = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
+      const isSessionClosed = selectedSession === 'morning' ? closure?.isMorningClosed : closure?.isEveningClosed;
 
       const timeZone = "Asia/Kolkata";
       const bookedSlotsForDay = bookedPatients
@@ -77,7 +78,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
         .map(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'hh:mm a'));
 
 
-      if (sessionSchedule.isOpen) {
+      if (sessionSchedule.isOpen && !isSessionClosed) {
         const [startHour, startMinute] = sessionSchedule.start.split(':').map(Number);
         const [endHour, endMinute] = sessionSchedule.end.split(':').map(Number);
         

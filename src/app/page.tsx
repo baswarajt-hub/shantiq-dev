@@ -213,18 +213,19 @@ export default function DashboardPage() {
         const generatedSlots: TimeSlot[] = [];
 
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
-        const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+        const closure = schedule.specialClosures.find(c => c.date === dateStr);
 
-        if (todayOverride) {
+        if (closure) {
             daySchedule = {
-                morning: todayOverride.morningOverride ?? daySchedule.morning,
-                evening: todayOverride.eveningOverride ?? daySchedule.evening
+                morning: closure.morningOverride ?? daySchedule.morning,
+                evening: closure.eveningOverride ?? daySchedule.evening
             }
         }
         
         const sessionToGenerate = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
+        const isSessionClosed = selectedSession === 'morning' ? closure?.isMorningClosed : closure?.isEveningClosed;
 
-        if (sessionToGenerate.isOpen && sessionToGenerate.start && sessionToGenerate.end) {
+        if (sessionToGenerate.isOpen && !isSessionClosed) {
             const [startHour, startMinute] = sessionToGenerate.start.split(':').map(Number);
             const [endHour, endMinute] = sessionToGenerate.end.split(':').map(Number);
             
@@ -999,5 +1000,6 @@ export default function DashboardPage() {
     
 
     
+
 
 

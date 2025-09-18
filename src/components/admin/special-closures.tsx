@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -82,7 +83,7 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }:
     const disabledDays = Object.entries(schedule.days)
       .filter(([, daySchedule]) => !daySchedule.morning.isOpen && !daySchedule.evening.isOpen)
       .map(([dayName]) => dayOfWeek.indexOf(dayName))
-      .map(dayIndex => ({ dayOfWeek: [dayIndex] }));
+      .map(dayIndex => ({ dayOfWeek: [dayIndex] as any[] }));
 
 
     return (

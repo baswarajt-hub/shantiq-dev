@@ -101,7 +101,13 @@
       }
     }
   },
-  "specialClosures": [],
+  "specialClosures": [
+    {
+      "date": "2025-09-19",
+      "isMorningClosed": true,
+      "isEveningClosed": false
+    }
+  ],
   "visitPurposes": [
     {
       "id": "vp_1",
