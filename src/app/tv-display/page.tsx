@@ -400,7 +400,10 @@ function TVDisplayPageContent() {
                                 <span className="text-3xl font-bold text-slate-800">#{upNext.tokenNo}</span>
                             </div>
                             <span className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
-                                {anonymizeName(upNext.name)} {upNext.status === 'Late' && `(Late by ${upNext.lateBy} min)`}
+                                {anonymizeName(upNext.name)}
+                                {patient.status === 'Late' && (
+                                    <sup className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                )}
                             </span>
                         </div>
                     </div>
@@ -434,7 +437,9 @@ function TVDisplayPageContent() {
                                     {anonymizeName(patient.name)}
                                     {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
                                     {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
-                                    {patient.status === 'Late' && `(Late by ${patient.lateBy} min)`}
+                                    {patient.status === 'Late' && (
+                                        <sup className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                    )}
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
                                 <div className="text-center font-medium text-slate-600">{patient.type}</div>
@@ -652,7 +657,9 @@ function TVDisplayPageContent() {
                                 {anonymizeName(patient.name)}
                                 {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
                                 {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
-                                {patient.status === 'Late' && `(Late by ${patient.lateBy} min)`}
+                                {patient.status === 'Late' && (
+                                    <sup className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                )}
                             </div>
                             <div className="text-center text-slate-600 flex justify-center">
                                 <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
