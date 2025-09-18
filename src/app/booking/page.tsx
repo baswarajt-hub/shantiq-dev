@@ -275,20 +275,20 @@ export default function BookingPage() {
           </CardHeader>
           <CardContent>
             {currentDaySchedule ? (
-              <div className="space-y-4 text-sm">
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-bold">Morning:</span>
+                  <span className="text-muted-foreground font-bold text-base">Morning:</span>
                   <div className="text-right">
-                    <span className="font-semibold">{currentDaySchedule.morning.time}</span>
+                    <span className="font-semibold text-base">{currentDaySchedule.morning.time}</span>
                     <p className={cn("font-bold text-xs", currentDaySchedule.morning.statusColor)}>
                         {currentDaySchedule.morning.status.startsWith('Online') ? <span className="flex items-center justify-end gap-1"><Wifi /> Online</span> : currentDaySchedule.morning.status === 'Offline' ? <span className="flex items-center justify-end gap-1"><WifiOff /> Offline</span> : currentDaySchedule.morning.status}
                     </p>
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-bold">Evening:</span>
+                  <span className="text-muted-foreground font-bold text-base">Evening:</span>
                    <div className="text-right">
-                    <span className="font-semibold">{currentDaySchedule.evening.time}</span>
+                    <span className="font-semibold text-base">{currentDaySchedule.evening.time}</span>
                     <p className={cn("font-bold text-xs", currentDaySchedule.evening.statusColor)}>
                         {currentDaySchedule.evening.status.startsWith('Online') ? <span className="flex items-center justify-end gap-1"><Wifi /> Online</span> : currentDaySchedule.evening.status === 'Offline' ? <span className="flex items-center justify-end gap-1"><WifiOff /> Offline</span> : currentDaySchedule.evening.status}
                     </p>
