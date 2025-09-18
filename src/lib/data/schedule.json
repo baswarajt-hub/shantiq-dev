@@ -19,6 +19,13 @@
       "enabled": true,
       "startTime": "2025-09-18T18:30:00.000Z",
       "endTime": "2025-09-19T18:30:00.000Z"
+    },
+    {
+      "message": "Clinic will remain closed from 20/09/2025 to 20/09/2025.",
+      "startTime": "2025-09-18T19:48:18.591Z",
+      "endTime": "2025-09-19T03:50:00.000Z",
+      "enabled": true,
+      "id": "notif_1758225151598"
     }
   ],
   "slotDuration": 5,
@@ -113,7 +120,7 @@
   "specialClosures": [
     {
       "date": "2025-09-19",
-      "isMorningClosed": true,
+      "isMorningClosed": false,
       "isEveningClosed": false,
       "eveningOverride": {
         "start": "17:30",
