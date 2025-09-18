@@ -459,7 +459,7 @@ export default function DashboardPage() {
 
     const handleToggleDoctorStatus = () => {
         startTransition(async () => {
-            const result = await toggleDoctorStatusAction(!doctorStatus?.isOnline, doctorStatus?.startDelay);
+            const result = await toggleDoctorStatusAction(!doctorStatus?.isOnline, doctorStartDelay);
             if (result?.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
@@ -1000,6 +1000,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
