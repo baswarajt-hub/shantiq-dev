@@ -26,10 +26,11 @@ const formatSessionTime = (session: Session) => {
     if (!session.isOpen) return 'Closed';
     const formatTime = (time: string) => {
         if (!time) return '';
-        const [h, m] = time.split(':');
-        const d = new Date();
-        d.setHours(parseInt(h, 10), parseInt(m, 10));
-        return format(d, 'hh:mm a');
+        try {
+            return format(parseDateFn(time, 'HH:mm', new Date()), 'hh:mm a');
+        } catch {
+            return time; // Fallback for already formatted times
+        }
     }
     return `${formatTime(session.start)} - ${formatTime(session.end)}`;
 }
@@ -75,10 +76,10 @@ function TVDisplayPageContent() {
 
 
   const listRef = useRef<HTMLDivElement>(null);
+  const timeZone = "Asia/Kolkata";
 
-  const getSessionForTime = (appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
+  const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule) return null;
-    const timeZone = "Asia/Kolkata";
     
     const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
     const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
@@ -110,9 +111,9 @@ function TVDisplayPageContent() {
     if (checkSession(daySchedule.morning)) return 'morning';
     if (checkSession(daySchedule.evening)) return 'evening';
     return null;
-  };
+  }, [timeZone]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     await recalculateQueueWithETC();
     const [patientData, statusRes, scheduleData] = await Promise.all([
         getPatientsAction(),
@@ -121,21 +122,10 @@ function TVDisplayPageContent() {
     ]);
     
     const statusData = await statusRes.json();
+    setSchedule(scheduleData);
+    setDoctorStatus(statusData);
 
     const now = new Date();
-    const timeZone = "Asia/Kolkata";
-    const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-    const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-
-    let daySchedule = scheduleData.days[dayName];
-    const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
-    if (todayOverride) {
-        daySchedule = {
-            morning: todayOverride.morningOverride ?? scheduleData.days[dayName].morning,
-            evening: todayOverride.eveningOverride ?? scheduleData.days[dayName].evening,
-        };
-    }
-    
     let sessionToShow: 'morning' | 'evening' | null = null;
     
     sessionToShow = getSessionForTime(now, scheduleData);
@@ -145,9 +135,21 @@ function TVDisplayPageContent() {
     }
 
     if (!sessionToShow) {
+        const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+        const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+
+        let daySchedule = scheduleData.days[dayName];
+        const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
+        if (todayOverride) {
+            daySchedule = {
+                morning: todayOverride.morningOverride ?? scheduleData.days[dayName].morning,
+                evening: todayOverride.eveningOverride ?? scheduleData.days[dayName].evening,
+            };
+        }
+        
         const morningSession = daySchedule.morning;
         if (morningSession.isOpen) {
-            const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+            const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
             const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
             if (now > morningEndUtc) {
                 sessionToShow = 'evening';
@@ -163,8 +165,6 @@ function TVDisplayPageContent() {
     const sessionPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
 
     setPatients(sessionPatients);
-    setDoctorStatus(statusData);
-    setSchedule(scheduleData);
     
     const currentlyWaiting = sessionPatients.filter(p => 
         ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status) && p.checkInTime
@@ -180,7 +180,7 @@ function TVDisplayPageContent() {
     } else if (scheduleData) {
         setAverageWait(scheduleData.slotDuration); // Default if no one is waiting
     }
-  };
+  }, [getSessionForTime, timeZone]);
 
   useEffect(() => {
     fetchData(); // Initial fetch
@@ -196,7 +196,7 @@ function TVDisplayPageContent() {
         clearInterval(dataIntervalId);
         clearInterval(clockIntervalId);
     };
-}, []);
+}, [fetchData]);
 
   // Scrolling logic
   useEffect(() => {
@@ -223,6 +223,14 @@ function TVDisplayPageContent() {
     return () => clearInterval(scrollInterval);
   }, [patients, layout]);
 
+  if (!schedule || !doctorStatus) {
+    return (
+      <div className="bg-slate-50 text-slate-800 min-h-screen flex justify-center items-center">
+        <p className="text-2xl font-semibold animate-pulse">Loading Clinic Display...</p>
+      </div>
+    );
+  }
+
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   
   const waitingList = patients
@@ -239,16 +247,16 @@ function TVDisplayPageContent() {
   const upNext = waitingList.find(p => p.status === 'Up-Next');
   const queue = waitingList.filter(p => p.id !== upNext?.id);
   
-  const clinicLogo = schedule?.clinicDetails.clinicLogo;
-  const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
-  const qualifications = schedule?.clinicDetails.qualifications || '';
-  const clinicName = schedule?.clinicDetails.clinicName || 'Clinic';
+  const clinicLogo = schedule.clinicDetails.clinicLogo;
+  const doctorName = schedule.clinicDetails.doctorName || 'Doctor';
+  const qualifications = schedule.clinicDetails.qualifications || '';
+  const clinicName = schedule.clinicDetails.clinicName || 'Clinic';
   
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const dayName = format(new Date(), 'EEEE') as keyof DoctorSchedule['days'];
-  let todaySchedule = schedule?.days[dayName];
-  const todayOverride = schedule?.specialClosures.find(c => c.date === todayStr);
-  if(todayOverride && schedule) {
+  let todaySchedule = schedule.days[dayName];
+  const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+  if(todayOverride) {
     todaySchedule = {
         morning: todayOverride.morningOverride ?? schedule.days[dayName].morning,
         evening: todayOverride.eveningOverride ?? schedule.days[dayName].evening
@@ -289,9 +297,9 @@ function TVDisplayPageContent() {
               <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
               <p className="text-lg text-slate-500">{qualifications}</p>
               
-              <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                  {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-                  {doctorStatus?.isOnline ? 'Online' : 'Offline'}
+              <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                  {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+                  {doctorStatus.isOnline ? 'Online' : 'Offline'}
               </div>
               {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
                   <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
@@ -318,7 +326,7 @@ function TVDisplayPageContent() {
                 <div className="bg-green-100 rounded-2xl p-4 flex flex-col justify-center items-center shadow-lg border-2 border-green-300">
                     <h2 className="text-2xl text-green-800 font-semibold">NOW SERVING</h2>
                     <AnimatePresence mode="wait">
-                    {doctorStatus?.isPaused ? (
+                    {doctorStatus.isPaused ? (
                         <motion.div key="paused" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
                             <Pause className="h-12 w-12 text-yellow-500 mx-auto mb-2" />
                             <p className="text-4xl font-bold tracking-wider text-slate-900">Queue Paused</p>
@@ -334,7 +342,7 @@ function TVDisplayPageContent() {
                         </motion.div>
                     ) : (
                         <motion.div key="no-one" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
-                            <p className="text-3xl font-semibold text-green-700">{doctorStatus?.isOnline ? 'Ready for next' : 'Doctor is Offline'}</p>
+                            <p className="text-3xl font-semibold text-green-700">{doctorStatus.isOnline ? 'Ready for next' : 'Doctor is Offline'}</p>
                         </motion.div>
                     )}
                     </AnimatePresence>
@@ -471,9 +479,9 @@ function TVDisplayPageContent() {
         <div className="text-center">
             <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
             <p className="text-lg text-slate-500">{qualifications}</p>
-            <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus?.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                {doctorStatus?.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-                {doctorStatus?.isOnline ? 'Online' : 'Offline'}
+            <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+                {doctorStatus.isOnline ? 'Online' : 'Offline'}
             </div>
              {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
                 <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
@@ -500,7 +508,7 @@ function TVDisplayPageContent() {
             <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border-2 border-sky-500 col-span-1">
                 <h2 className="text-3xl text-sky-600 font-semibold">NOW SERVING</h2>
                 <AnimatePresence mode="wait">
-                {doctorStatus?.isPaused ? (
+                {doctorStatus.isPaused ? (
                      <motion.div
                         key="paused"
                         initial={{ opacity: 0, y: 20 }}
@@ -542,7 +550,7 @@ function TVDisplayPageContent() {
                         className="text-center"
                     >
                         <p className="text-4xl font-semibold text-slate-400">
-                           {doctorStatus?.isOnline ? 'Ready for next patient' : 'Doctor is Offline'}
+                           {doctorStatus.isOnline ? 'Ready for next patient' : 'Doctor is Offline'}
                         </p>
                     </motion.div>
                 )}
@@ -675,5 +683,3 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
-
-    
