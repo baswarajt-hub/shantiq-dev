@@ -137,9 +137,13 @@ export default function BookingPage() {
       const session = todaySch[sessionName];
       const isClosedByOverride = sessionName === 'morning' ? todayOverride?.isMorningClosed : todayOverride?.isEveningClosed;
 
-      if (!session.isOpen || isClosedByOverride) {
+      if (!session.isOpen) {
         return { time: 'Closed', status: 'Closed', statusColor: 'text-gray-500', isOver: true };
       }
+      if (isClosedByOverride) {
+        return { time: 'Doctor Not Available', status: 'Closed', statusColor: 'text-red-600', isOver: true };
+      }
+
 
       const timeStr = `${formatTime(session.start)} - ${formatTime(session.end)}`;
       const startTime = parseDate(session.start, 'HH:mm', today);
