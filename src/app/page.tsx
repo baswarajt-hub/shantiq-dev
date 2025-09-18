@@ -519,7 +519,7 @@ export default function DashboardPage() {
     const upNext = sessionPatients.find(p => p.status === 'Up-Next');
     
     const waitingList = sessionPatients
-      .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.status !== 'Up-Next')
+      .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.id !== upNext?.id)
       .sort((a, b) => {
           const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
           const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
@@ -869,10 +869,23 @@ export default function DashboardPage() {
                                              <div className="flex-1 flex flex-col gap-1">
                                                 <div className="flex items-center gap-2 font-semibold text-blue-600">
                                                     {nowServing.name}
+                                                    {nowServing.subStatus === 'Reports' && <span className="text-sm ml-2 font-semibold text-purple-600">(Reports)</span>}
                                                 </div>
                                              </div>
                                              <div className="flex items-center gap-2">
-                                                <Button size="sm" onClick={() => handleUpdateStatus(nowServing!.id, 'Completed')} disabled={isPending} className="bg-mark-complete text-mark-complete-foreground hover:bg-mark-complete/90">Mark Completed</Button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="outline" size="sm" className="h-8">Actions</Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Completed')} disabled={isPending}>
+                                                            Mark Completed
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Waiting for Reports')} disabled={isPending}>
+                                                            Waiting for Reports
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                              </div>
                                          </div>
                                     </div>
@@ -968,4 +981,3 @@ export default function DashboardPage() {
     
 
     
-
