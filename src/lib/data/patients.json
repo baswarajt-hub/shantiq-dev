@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "name": "Aakash",
+    "phone": "9440120081",
+    "type": "Appointment",
+    "appointmentTime": "2025-09-18T05:25:00.000Z",
+    "status": "Booked",
+    "purpose": "Consultation",
+    "tokenNo": 6,
+    "id": 1,
+    "estimatedWaitTime": 0,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-18T05:25:00.000Z",
+    "worstCaseETC": "2025-09-18T05:25:00.000Z"
+  }
+]
