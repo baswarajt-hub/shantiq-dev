@@ -10,8 +10,8 @@
     "id": 1,
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:25:00.000Z",
-    "worstCaseETC": "2025-09-18T05:25:00.000Z"
+    "slotTime": "2025-09-18T05:56:00.000Z",
+    "worstCaseETC": "2025-09-18T05:56:00.000Z"
   },
   {
     "name": "Nitya",
@@ -24,8 +24,8 @@
     "id": 2,
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:30:00.000Z",
-    "worstCaseETC": "2025-09-18T05:30:00.000Z"
+    "slotTime": "2025-09-18T06:01:00.000Z",
+    "worstCaseETC": "2025-09-18T06:01:00.000Z"
   },
   {
     "name": "Ridhi",
@@ -38,38 +38,40 @@
     "id": 3,
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:45:00.000Z",
-    "worstCaseETC": "2025-09-18T05:45:00.000Z"
+    "slotTime": "2025-09-18T06:16:00.000Z",
+    "worstCaseETC": "2025-09-18T06:16:00.000Z"
   },
   {
     "name": "Jimmy Doe",
     "phone": "5551112222",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T05:00:00.000Z",
-    "status": "Up-Next",
+    "status": "In-Consultation",
     "purpose": "Consultation",
     "tokenNo": 1,
     "id": 4,
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:00:00.000Z",
-    "worstCaseETC": "2025-09-18T05:00:00.000Z",
-    "bestCaseETC": "2025-09-18T05:00:00.000Z"
+    "slotTime": "2025-09-18T05:31:00.000Z",
+    "worstCaseETC": "2025-09-18T05:38:08.581Z",
+    "bestCaseETC": "2025-09-18T05:33:08.581Z",
+    "consultationStartTime": "2025-09-18T05:33:23.084Z",
+    "lateLocked": false
   },
   {
     "name": "Alice Johnson",
     "phone": "5550101010",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T05:05:00.000Z",
-    "status": "Waiting",
+    "status": "Up-Next",
     "purpose": "Follow-up visit",
     "tokenNo": 2,
     "id": 5,
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:05:00.000Z",
-    "worstCaseETC": "2025-09-18T05:05:00.000Z",
-    "bestCaseETC": "2025-09-18T05:05:00.000Z"
+    "slotTime": "2025-09-18T05:36:00.000Z",
+    "worstCaseETC": "2025-09-18T05:38:23.084Z",
+    "bestCaseETC": "2025-09-18T05:38:23.084Z"
   },
   {
     "name": "John Doe",
@@ -82,9 +84,9 @@
     "id": 6,
     "estimatedWaitTime": 15,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:10:00.000Z",
-    "worstCaseETC": "2025-09-18T05:10:00.000Z",
-    "bestCaseETC": "2025-09-18T05:10:00.000Z"
+    "slotTime": "2025-09-18T05:41:00.000Z",
+    "worstCaseETC": "2025-09-18T05:43:23.084Z",
+    "bestCaseETC": "2025-09-18T05:43:23.084Z"
   },
   {
     "name": "Shiva",
@@ -97,8 +99,8 @@
     "id": 7,
     "estimatedWaitTime": 30,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:15:00.000Z",
-    "worstCaseETC": "2025-09-18T05:15:00.000Z"
+    "slotTime": "2025-09-18T05:46:00.000Z",
+    "worstCaseETC": "2025-09-18T05:46:00.000Z"
   },
   {
     "name": "Swati",
@@ -111,9 +113,9 @@
     "id": 8,
     "estimatedWaitTime": 30,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:20:00.000Z",
-    "worstCaseETC": "2025-09-18T05:20:00.000Z",
-    "bestCaseETC": "2025-09-18T05:15:00.000Z"
+    "slotTime": "2025-09-18T05:51:00.000Z",
+    "worstCaseETC": "2025-09-18T05:51:00.000Z",
+    "bestCaseETC": "2025-09-18T05:48:23.084Z"
   },
   {
     "name": "Ayesha",
@@ -126,9 +128,9 @@
     "id": 9,
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:35:00.000Z",
-    "worstCaseETC": "2025-09-18T05:35:00.000Z",
-    "bestCaseETC": "2025-09-18T05:20:00.000Z"
+    "slotTime": "2025-09-18T06:06:00.000Z",
+    "worstCaseETC": "2025-09-18T06:06:00.000Z",
+    "bestCaseETC": "2025-09-18T05:53:23.084Z"
   },
   {
     "name": "Bob Williams",
@@ -141,9 +143,9 @@
     "id": 10,
     "estimatedWaitTime": 60,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:40:00.000Z",
-    "worstCaseETC": "2025-09-18T05:40:00.000Z",
-    "bestCaseETC": "2025-09-18T05:25:00.000Z"
+    "slotTime": "2025-09-18T06:11:00.000Z",
+    "worstCaseETC": "2025-09-18T06:11:00.000Z",
+    "bestCaseETC": "2025-09-18T05:58:23.084Z"
   },
   {
     "name": "Ameer",
@@ -156,9 +158,9 @@
     "id": 11,
     "estimatedWaitTime": 75,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:50:00.000Z",
-    "worstCaseETC": "2025-09-18T05:50:00.000Z",
-    "bestCaseETC": "2025-09-18T05:30:00.000Z"
+    "slotTime": "2025-09-18T06:21:00.000Z",
+    "worstCaseETC": "2025-09-18T06:21:00.000Z",
+    "bestCaseETC": "2025-09-18T06:03:23.084Z"
   },
   {
     "name": "Suman",
@@ -171,9 +173,9 @@
     "id": 12,
     "estimatedWaitTime": 90,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T05:55:00.000Z",
-    "worstCaseETC": "2025-09-18T05:55:00.000Z",
-    "bestCaseETC": "2025-09-18T05:35:00.000Z"
+    "slotTime": "2025-09-18T06:26:00.000Z",
+    "worstCaseETC": "2025-09-18T06:26:00.000Z",
+    "bestCaseETC": "2025-09-18T06:08:23.084Z"
   },
   {
     "name": "Shankar",
@@ -186,8 +188,8 @@
     "id": 13,
     "estimatedWaitTime": 105,
     "rescheduleCount": 0,
-    "slotTime": "2025-09-18T06:00:00.000Z",
-    "worstCaseETC": "2025-09-18T06:00:00.000Z",
-    "bestCaseETC": "2025-09-18T05:40:00.000Z"
+    "slotTime": "2025-09-18T06:31:00.000Z",
+    "worstCaseETC": "2025-09-18T06:31:00.000Z",
+    "bestCaseETC": "2025-09-18T06:13:23.084Z"
   }
 ]

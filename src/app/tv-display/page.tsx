@@ -111,7 +111,8 @@ function TVDisplayPageContent() {
     return null;
   };
 
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
+    const fetchData = async () => {
       await recalculateQueueWithETC();
       const [patientData, statusData, scheduleData] = await Promise.all([
           getPatientsAction(),
@@ -127,13 +128,14 @@ function TVDisplayPageContent() {
       
       if (!sessionToShow) {
         const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+        const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
         const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
         let daySchedule = scheduleData.days[dayOfWeek];
         const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
          if(todayOverride) {
             daySchedule = {
-                morning: todayOverride.morningOverride ?? daySchedule.morning,
-                evening: todayOverride.eveningOverride ?? daySchedule.evening
+                morning: todayOverride.morningOverride ?? scheduleData.days[dayName].morning,
+                evening: todayOverride.eveningOverride ?? scheduleData.days[dayName].evening
             };
         }
 
@@ -174,9 +176,8 @@ function TVDisplayPageContent() {
       } else {
         setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
       }
-    }, []);
+    };
 
-  useEffect(() => {
     fetchData(); // Initial fetch
     const dataIntervalId = setInterval(fetchData, 15000); // Poll every 15 seconds
 
@@ -190,7 +191,7 @@ function TVDisplayPageContent() {
         clearInterval(dataIntervalId);
         clearInterval(clockIntervalId);
     };
-}, [fetchData]);
+}, []);
 
   // Scrolling logic
   useEffect(() => {
@@ -658,5 +659,3 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
-
-    
