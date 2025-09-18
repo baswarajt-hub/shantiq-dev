@@ -135,5 +135,11 @@
       "name": "Others",
       "enabled": true
     }
-  ]
+  ],
+  "notification": {
+    "message": "Please note: Today for morning session Doctor is not available and evening session has extended timing. ",
+    "enabled": true,
+    "startTime": "2025-09-18T19:52:00.000Z",
+    "endTime": "2025-09-19T18:30:00.000Z"
+  }
 }

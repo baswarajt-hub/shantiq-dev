@@ -50,7 +50,7 @@ function NotificationCard({ notification }: { notification?: Notification }) {
     }
   }, [notification]);
 
-  if (!isVisible || !notification?.message) {
+  if (!notification?.enabled || !isVisible || !notification?.message) {
     return null;
   }
 
