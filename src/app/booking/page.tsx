@@ -143,19 +143,11 @@ export default function BookingPage() {
       
       let status = 'Upcoming';
       let statusColor = 'text-gray-500';
-      
-      let isSessionActive = false;
-      if (sessionName === 'morning') {
-          isSessionActive = true; 
-      } else { // evening session
-          const morningEndTime = todaySch.morning.isOpen ? parseDate(todaySch.morning.end, 'HH:mm', today) : new Date(0);
-          isSessionActive = today > morningEndTime;
-      }
 
       if (today > endTime) {
           status = 'Completed';
           statusColor = 'text-green-600';
-      } else if (isSessionActive && today >= startTime) {
+      } else if (today >= startTime) {
            if (doctorStatus?.isOnline) {
                 const onlineTime = doctorStatus.onlineTime ? format(parseISO(doctorStatus.onlineTime), 'hh:mm a') : '';
                 status = `Online (since ${onlineTime})`;

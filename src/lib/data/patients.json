@@ -544,5 +544,20 @@
     "slotTime": "2025-09-18T14:15:00.000Z",
     "worstCaseETC": "2025-09-18T14:15:00.000Z",
     "bestCaseETC": "2025-09-18T14:00:00.000Z"
+  },
+  {
+    "name": "Jane Doe",
+    "phone": "5551112222",
+    "type": "Walk-in",
+    "appointmentTime": "2025-09-18T13:55:00.000Z",
+    "status": "Booked",
+    "purpose": "Consultation",
+    "tokenNo": 12,
+    "subType": "Booked Walk-in",
+    "id": 40,
+    "estimatedWaitTime": 90,
+    "rescheduleCount": 0,
+    "slotTime": "2025-09-18T14:25:00.000Z",
+    "worstCaseETC": "2025-09-18T14:25:00.000Z"
   }
 ]
