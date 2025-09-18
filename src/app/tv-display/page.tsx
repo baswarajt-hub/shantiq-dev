@@ -111,7 +111,7 @@ function TVDisplayPageContent() {
     return null;
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
       await recalculateQueueWithETC();
       const [patientData, statusData, scheduleData] = await Promise.all([
           getPatientsAction(),
@@ -157,7 +157,7 @@ function TVDisplayPageContent() {
       } else {
         setAverageWait(scheduleData.slotDuration); // Default to slot duration if no data
       }
-    };
+    }, [getSessionForTime]);
 
   useEffect(() => {
     fetchData(); // Initial fetch
@@ -173,7 +173,7 @@ function TVDisplayPageContent() {
         clearInterval(dataIntervalId);
         clearInterval(clockIntervalId);
     };
-}, []);
+}, [fetchData]);
 
   // Scrolling logic
   useEffect(() => {
@@ -203,7 +203,7 @@ function TVDisplayPageContent() {
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   
   const waitingList = patients
-    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
+    .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
     .sort((a, b) => {
         const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
         const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : parseISO(b.slotTime).getTime();
@@ -213,8 +213,8 @@ function TVDisplayPageContent() {
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
   const yetToArrive = patients.filter(p => p.status === 'Booked' || p.status === 'Confirmed');
 
-  const upNext = waitingList.find(p => p.id !== nowServing?.id);
-  const queue = waitingList.filter(p => p.id !== upNext?.id && p.id !== nowServing?.id);
+  const upNext = waitingList.find(p => p.status === 'Up-Next');
+  const queue = waitingList.filter(p => p.status !== 'Up-Next');
   
   const clinicLogo = schedule?.clinicDetails.clinicLogo;
   const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
