@@ -315,10 +315,11 @@ export async function getDoctorStatusAction() {
 
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
     await updateDoctorStatus(status);
-    await recalculateQueueWithETC();
-    revalidatePath('/api/status');
+    revalidatePath('/api/status', 'page');
+    revalidatePath('/', 'layout');
     return { success: `Doctor status updated.` };
 }
+
 
 export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
     await updateDoctorStatus({ startDelay: startDelayMinutes });

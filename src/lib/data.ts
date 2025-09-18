@@ -10,12 +10,12 @@ const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
 const patientsFilePath = path.join(dataDir, 'patients.json');
 const familyFilePath = path.join(dataDir, 'family.json');
 const scheduleFilePath = path.join(dataDir, 'schedule.json');
+const statusFilePath = path.join(dataDir, 'status.json');
 
 function readData<T>(filePath: string, defaultData: T): T {
     try {
         if (fs.existsSync(filePath)) {
             const fileContent = fs.readFileSync(filePath, 'utf-8');
-            // Check for empty file
             if (fileContent.trim() === '') {
                 fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2), 'utf-8');
                 return defaultData;
@@ -43,7 +43,7 @@ let family: FamilyMember[] = readData<FamilyMember[]>(familyFilePath, []);
 let nextPatientId = patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1;
 let nextFamilyId = family.length > 0 ? Math.max(...family.map(f => f.id)) + 1 : 1;
 
-let doctorStatus: DoctorStatus = {
+const defaultStatus: DoctorStatus = {
   isOnline: false,
   onlineTime: undefined,
   startDelay: 0,
@@ -134,16 +134,19 @@ export async function findPatientsByPhone(phone: string) {
 
 export async function updateAllPatients(newPatients: Patient[]) {
   patients = newPatients;
-  writeData(patientsFilePath, patients);
+  writeData(patientsFilePath, newPatients);
 }
 
-export async function getDoctorStatus() {
-  return doctorStatus;
+export async function getDoctorStatus(): Promise<DoctorStatus> {
+  const status = readData<DoctorStatus>(statusFilePath, defaultStatus);
+  return JSON.parse(JSON.stringify(status));
 }
 
-export async function updateDoctorStatus(status: Partial<DoctorStatus>) {
-  doctorStatus = { ...doctorStatus, ...status };
-  return doctorStatus;
+export async function updateDoctorStatus(statusUpdate: Partial<DoctorStatus>): Promise<DoctorStatus> {
+  const currentStatus = await getDoctorStatus();
+  const newStatus = { ...currentStatus, ...statusUpdate };
+  writeData(statusFilePath, newStatus);
+  return newStatus;
 }
 
 export async function getDoctorSchedule(): Promise<DoctorSchedule> {
