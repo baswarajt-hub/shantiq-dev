@@ -373,13 +373,8 @@ function QueueStatusPageContent() {
       }
       
       // If doctor is online, it must be for an upcoming session
-      if (statusData.isOnline) {
-          const morningStartLocal = daySchedule.morning.isOpen ? parseDateFn(`${dateStr} ${daySchedule.morning.start}`, 'yyyy-MM-dd HH:mm', new Date()) : null;
-          if (morningStartLocal && now < morningStartLocal) {
-              sessionToShow = 'morning';
-          } else {
-              sessionToShow = 'evening';
-          }
+      if (statusData.isOnline && statusData.onlineTime) {
+          sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
       } else {
         // If doctor is offline, show morning if we are before morning end, otherwise show evening
         const morningSession = daySchedule.morning;
@@ -577,3 +572,4 @@ export default function QueueStatusPage() {
 }
 
     
+
