@@ -123,43 +123,38 @@ function TVDisplayPageContent() {
     const now = new Date();
     const timeZone = "Asia/Kolkata";
     
-    const realTimeSession = getSessionForTime(now, scheduleData);
-    let sessionToShow: 'morning' | 'evening' | null = realTimeSession;
+    let sessionToShow: 'morning' | 'evening' | null = getSessionForTime(now, scheduleData);
     
     if (!sessionToShow) {
-      const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-      const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-      const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-      let daySchedule = scheduleData.days[dayOfWeek];
-      const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
-        if(todayOverride) {
-          daySchedule = {
-              morning: todayOverride.morningOverride ?? scheduleData.days[dayName].morning,
-              evening: todayOverride.eveningOverride ?? scheduleData.days[dayName].evening
-          };
-      }
+        if (statusData.isOnline && statusData.onlineTime) {
+            sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
+        }
+        
+        if(!sessionToShow) {
+            const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+            const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+            let daySchedule = scheduleData.days[dayName];
+            const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
+            if(todayOverride) {
+                daySchedule = {
+                    morning: todayOverride.morningOverride ?? scheduleData.days[dayName].morning,
+                    evening: todayOverride.eveningOverride ?? scheduleData.days[dayName].evening
+                };
+            }
 
-      if (statusData.isOnline) {
-            const morningStartLocal = daySchedule.morning.isOpen ? parseDateFn(`${dateStr} ${daySchedule.morning.start}`, 'yyyy-MM-dd HH:mm', new Date()) : null;
-            if (morningStartLocal && now < morningStartLocal) {
-                sessionToShow = 'morning';
+            const morningSession = daySchedule.morning;
+            if (morningSession.isOpen) {
+                const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+                const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+                if (now > morningEndUtc) {
+                    sessionToShow = 'evening';
+                } else {
+                    sessionToShow = 'morning';
+                }
             } else {
                 sessionToShow = 'evening';
             }
-      } else {
-          const morningSession = daySchedule.morning;
-          if (morningSession.isOpen) {
-              const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-              const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-              if(now > morningEndUtc) {
-                  sessionToShow = 'evening';
-              } else {
-                  sessionToShow = 'morning';
-              }
-          } else {
-              sessionToShow = 'evening';
-          }
-      }
+        }
     }
     
     const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));

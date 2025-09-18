@@ -348,16 +348,18 @@
     "phone": "5551112222",
     "type": "Walk-in",
     "appointmentTime": "2025-09-18T06:25:00.000Z",
-    "status": "In-Consultation",
+    "status": "Completed",
     "purpose": "Consultation",
     "tokenNo": 18,
     "id": 18,
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T08:34:00.000Z",
-    "worstCaseETC": "2025-09-18T07:14:07.591Z",
+    "worstCaseETC": "2025-09-18T08:34:00.000Z",
     "bestCaseETC": "2025-09-18T07:09:07.591Z",
     "consultationStartTime": "2025-09-18T07:09:10.154Z",
-    "lateLocked": false
+    "lateLocked": false,
+    "consultationEndTime": "2025-09-18T07:11:58.192Z",
+    "consultationTime": 3
   }
 ]
