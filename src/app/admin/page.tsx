@@ -10,7 +10,7 @@ import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
 import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose, Notification } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { updateDoctorScheduleAction, updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction, updateNotificationAction } from '../actions';
+import { updateDoctorScheduleAction, updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction, updateNotificationsAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { VisitPurposeForm } from '@/components/admin/visit-purpose-form';
 import { ClinicDetailsForm } from '@/components/admin/clinic-details-form';
@@ -39,13 +39,13 @@ export default function AdminPage() {
     }
   };
 
-  const handleNotificationSave = async (updatedNotification: Notification) => {
-    const result = await updateNotificationAction(updatedNotification);
+  const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
+    const result = await updateNotificationsAction(updatedNotifications);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
-      setSchedule(prev => prev ? { ...prev, notification: updatedNotification } : null);
+      setSchedule(prev => prev ? { ...prev, notifications: updatedNotifications } : null);
     }
   };
 
@@ -115,8 +115,8 @@ export default function AdminPage() {
             />
             <Separator />
             <NotificationForm 
-              initialNotification={schedule.notification}
-              onSave={handleNotificationSave}
+              initialNotifications={schedule.notifications}
+              onSave={handleNotificationsSave}
             />
             <Separator />
             <ScheduleForm 

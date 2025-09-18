@@ -1033,12 +1033,12 @@ export async function startLastConsultationAction(patientId: number) {
   return { success: 'Started final consultation.' };
 }
 
-export async function updateNotificationAction(notification: Notification) {
-    await updateNotificationData(notification);
+export async function updateNotificationsAction(notifications: Notification[]) {
+    await updateNotificationData(notifications);
     revalidatePath('/');
     revalidatePath('/admin');
     revalidatePath('/booking');
     revalidatePath('/patient-portal');
-    return { success: 'Notification updated successfully.' };
+    return { success: 'Notifications updated successfully.' };
 }
     

@@ -30,42 +30,52 @@ const getStatusBadgeClass = (status: string) => {
     }
 }
 
-function NotificationCard({ notification }: { notification?: Notification }) {
-  const [isVisible, setIsVisible] = useState(false);
+function NotificationCard({ notifications }: { notifications?: Notification[] }) {
+  const [visibleNotifications, setVisibleNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    if (notification?.enabled && notification.startTime && notification.endTime) {
+    if (notifications) {
       const checkVisibility = () => {
         const now = new Date();
-        const start = parseISO(notification.startTime!);
-        const end = parseISO(notification.endTime!);
-        setIsVisible(isWithinInterval(now, { start, end }));
+        const active = notifications.filter(notification => {
+          if (!notification.enabled || !notification.startTime || !notification.endTime) {
+            return false;
+          }
+          const start = parseISO(notification.startTime);
+          const end = parseISO(notification.endTime);
+          return isWithinInterval(now, { start, end });
+        });
+        setVisibleNotifications(active);
       };
 
       checkVisibility();
       const interval = setInterval(checkVisibility, 60000); // Check every minute
       return () => clearInterval(interval);
     } else {
-      setIsVisible(false);
+      setVisibleNotifications([]);
     }
-  }, [notification]);
+  }, [notifications]);
 
-  if (!notification?.enabled || !isVisible || !notification?.message) {
+  if (visibleNotifications.length === 0) {
     return null;
   }
 
   return (
-    <Card className="bg-blue-50 border-blue-200">
-      <CardHeader className="flex flex-row items-start gap-4 space-y-0">
-        <Megaphone className="h-6 w-6 text-blue-600 mt-1" />
-        <div className="flex-1">
-          <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
-          <CardDescription className="text-base text-blue-700 mt-1">
-            {notification.message}
-          </CardDescription>
-        </div>
-      </CardHeader>
-    </Card>
+    <div className="space-y-4">
+      {visibleNotifications.map(notification => (
+        <Card key={notification.id} className="bg-blue-50 border-blue-200">
+          <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+            <Megaphone className="h-6 w-6 text-blue-600 mt-1" />
+            <div className="flex-1">
+              <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
+              <CardDescription className="text-base text-blue-700 mt-1">
+                {notification.message}
+              </CardDescription>
+            </div>
+          </CardHeader>
+        </Card>
+      ))}
+    </div>
   );
 }
 
@@ -289,7 +299,7 @@ export default function BookingPage() {
           </CardContent>
         </Card>
         
-        <NotificationCard notification={schedule?.notification} />
+        <NotificationCard notifications={schedule?.notifications} />
 
         <Card className="bg-gradient-to-br from-primary/20 to-background">
             <CardHeader>

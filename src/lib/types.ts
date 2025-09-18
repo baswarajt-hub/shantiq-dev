@@ -84,6 +84,7 @@ export type ClinicDetails = {
 };
 
 export type Notification = {
+  id: string;
   message: string;
   startTime?: string; // ISO string
   endTime?: string; // ISO string
@@ -92,7 +93,7 @@ export type Notification = {
 
 export type DoctorSchedule = {
   clinicDetails: ClinicDetails;
-  notification?: Notification;
+  notifications: Notification[];
   slotDuration: number;
   reserveFirstFive: boolean;
   walkInReservation: 'none' | 'alternateOne' | 'alternateTwo';

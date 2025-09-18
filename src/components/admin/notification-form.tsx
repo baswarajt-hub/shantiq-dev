@@ -1,49 +1,56 @@
 
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
 import type { Notification } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '../ui/switch';
 import { format, parseISO, setHours, setMinutes, parse } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { cn } from '@/lib/utils';
+import { Separator } from '../ui/separator';
 
-type NotificationFormProps = {
-  initialNotification?: Notification;
-  onSave: (notification: Notification) => Promise<void>;
+const BLANK_NOTIFICATION: Omit<Notification, 'id'> = {
+    message: '',
+    startTime: new Date().toISOString(),
+    endTime: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    enabled: true
 };
 
-export function NotificationForm({ initialNotification, onSave }: NotificationFormProps) {
-  const [notification, setNotification] = useState<Notification>(
-    initialNotification || { message: '', enabled: false }
-  );
+type NotificationFormProps = {
+  initialNotifications: Notification[];
+  onSave: (notifications: Notification[]) => Promise<void>;
+};
+
+export function NotificationForm({ initialNotifications, onSave }: NotificationFormProps) {
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [currentNotification, setCurrentNotification] = useState<Notification | Omit<Notification, 'id'>>(() => ({...BLANK_NOTIFICATION}));
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (initialNotification) {
-      setNotification(initialNotification);
-    }
-  }, [initialNotification]);
+    setNotifications(initialNotifications);
+  }, [initialNotifications]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setNotification(prev => ({ ...prev, [name]: value }));
+    setCurrentNotification(prev => ({ ...prev, [name]: value }));
   };
-
+  
   const handleDateTimeChange = (field: 'startTime' | 'endTime', date?: Date, time?: string) => {
-    setNotification(prev => {
+    setCurrentNotification(prev => {
         const currentISO = prev[field];
         let workingDate = currentISO ? parseISO(currentISO) : new Date();
 
         if (date) {
-            workingDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+            workingDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), workingDate.getHours(), workingDate.getMinutes());
         }
 
         if (time) {
@@ -60,19 +67,50 @@ export function NotificationForm({ initialNotification, onSave }: NotificationFo
     });
   }
 
-
   const handleSwitchChange = (checked: boolean) => {
-    setNotification(prev => ({ ...prev, enabled: checked }));
+    setCurrentNotification(prev => ({ ...prev, enabled: checked }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveOrUpdate = () => {
     startTransition(async () => {
-      await onSave(notification);
+        let updatedNotifications: Notification[];
+        if (editingId) {
+            // Update existing notification
+            updatedNotifications = notifications.map(n => 
+                n.id === editingId ? { ...n, ...currentNotification, id: editingId } : n
+            );
+        } else {
+            // Add new notification
+            const newId = `notif_${Date.now()}`;
+            updatedNotifications = [...notifications, { ...currentNotification, id: newId }];
+        }
+        await onSave(updatedNotifications);
+        setEditingId(null);
+        setCurrentNotification({...BLANK_NOTIFICATION});
     });
   };
+
+  const handleEdit = (id: string) => {
+    const notificationToEdit = notifications.find(n => n.id === id);
+    if (notificationToEdit) {
+        setEditingId(id);
+        setCurrentNotification(notificationToEdit);
+    }
+  }
+
+  const handleDelete = (id: string) => {
+    startTransition(async () => {
+        const updatedNotifications = notifications.filter(n => n.id !== id);
+        await onSave(updatedNotifications);
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setCurrentNotification({...BLANK_NOTIFICATION});
+  }
   
-  const DateTimePicker = ({ label, isoString, onDateChange, onTimeChange }: { label: string, isoString?: string, onDateChange: (date: Date) => void, onTimeChange: (time: string) => void }) => {
+  const DateTimePicker = ({ label, isoString, onDateChange, onTimeChange, disabled }: { label: string, isoString?: string, onDateChange: (date: Date) => void, onTimeChange: (time: string) => void, disabled?: boolean }) => {
     const dateValue = isoString ? parseISO(isoString) : undefined;
     const timeValue = dateValue ? format(dateValue, 'HH:mm') : '';
     
@@ -83,22 +121,23 @@ export function NotificationForm({ initialNotification, onSave }: NotificationFo
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button
-                        variant={"outline"}
-                        className={cn(
-                            "w-[200px] justify-start text-left font-normal",
-                            !dateValue && "text-muted-foreground"
-                        )}
+                          variant={"outline"}
+                          disabled={disabled}
+                          className={cn(
+                              "w-[200px] justify-start text-left font-normal",
+                              !dateValue && "text-muted-foreground"
+                          )}
                         >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateValue ? format(dateValue, "PPP") : <span>Pick a date</span>}
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateValue ? format(dateValue, "PPP") : <span>Pick a date</span>}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
                         <Calendar
-                        mode="single"
-                        selected={dateValue}
-                        onSelect={(day) => day && onDateChange(day)}
-                        initialFocus
+                          mode="single"
+                          selected={dateValue}
+                          onSelect={(day) => day && onDateChange(day)}
+                          initialFocus
                         />
                     </PopoverContent>
                 </Popover>
@@ -107,60 +146,88 @@ export function NotificationForm({ initialNotification, onSave }: NotificationFo
                     className="w-[120px]"
                     value={timeValue}
                     onChange={(e) => onTimeChange(e.target.value)}
+                    disabled={disabled}
                 />
             </div>
        </div>
     );
   }
 
-
   return (
     <Card>
-      <form onSubmit={handleSubmit}>
         <CardHeader>
-          <CardTitle>Patient Portal Notification</CardTitle>
-          <CardDescription>Display a temporary announcement on the main patient portal page.</CardDescription>
+          <CardTitle>Patient Portal Notifications</CardTitle>
+          <CardDescription>Manage temporary announcements on the main patient portal page.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="message">Notification Message</Label>
-            <Textarea
-              id="message"
-              name="message"
-              value={notification.message}
-              onChange={handleInputChange}
-              placeholder="e.g. The clinic will be closed from 2 PM to 4 PM today."
-            />
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-             <DateTimePicker 
-                label="Display From"
-                isoString={notification.startTime}
-                onDateChange={(date) => handleDateTimeChange('startTime', date)}
-                onTimeChange={(time) => handleDateTimeChange('startTime', undefined, time)}
-             />
-             <DateTimePicker 
-                label="Display Until"
-                isoString={notification.endTime}
-                onDateChange={(date) => handleDateTimeChange('endTime', date)}
-                onTimeChange={(time) => handleDateTimeChange('endTime', undefined, time)}
-             />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="enabled"
-              checked={notification.enabled}
-              onCheckedChange={handleSwitchChange}
-            />
-            <Label htmlFor="enabled">Enable Notification</Label>
-          </div>
+            <div className="p-4 border rounded-lg space-y-4">
+                <h3 className="font-semibold text-lg">{editingId ? 'Edit Notification' : 'Add New Notification'}</h3>
+                 <div className="space-y-2">
+                    <Label htmlFor="message">Notification Message</Label>
+                    <Textarea
+                    id="message"
+                    name="message"
+                    value={currentNotification.message}
+                    onChange={handleInputChange}
+                    placeholder="e.g. The clinic will be closed from 2 PM to 4 PM today."
+                    />
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <DateTimePicker 
+                        label="Display From"
+                        isoString={currentNotification.startTime}
+                        onDateChange={(date) => handleDateTimeChange('startTime', date)}
+                        onTimeChange={(time) => handleDateTimeChange('startTime', undefined, time)}
+                    />
+                    <DateTimePicker 
+                        label="Display Until"
+                        isoString={currentNotification.endTime}
+                        onDateChange={(date) => handleDateTimeChange('endTime', date)}
+                        onTimeChange={(time) => handleDateTimeChange('endTime', undefined, time)}
+                    />
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Switch
+                    id="enabled"
+                    checked={currentNotification.enabled}
+                    onCheckedChange={handleSwitchChange}
+                    />
+                    <Label htmlFor="enabled">Enable Notification</Label>
+                </div>
+                 <div className="flex gap-2">
+                    <Button type="button" onClick={handleSaveOrUpdate} disabled={isPending || !currentNotification.message}>
+                        {isPending ? 'Saving...' : (editingId ? 'Update Notification' : 'Save Notification')}
+                    </Button>
+                    {editingId && (
+                        <Button type="button" variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                    )}
+                 </div>
+            </div>
+            
+            <Separator />
+
+            <div>
+                <h3 className="font-semibold text-lg mb-4">Saved Notifications</h3>
+                <div className="space-y-4">
+                    {notifications.length > 0 ? notifications.map(notif => (
+                        <div key={notif.id} className="p-4 border rounded-lg flex justify-between items-start gap-4">
+                            <div>
+                                <p className={cn("font-semibold", !notif.enabled && "text-muted-foreground line-through")}>{notif.message}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {notif.startTime && format(parseISO(notif.startTime), 'MMM d, h:mm a')} - {notif.endTime && format(parseISO(notif.endTime), 'MMM d, h:mm a')}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <Button variant="ghost" size="icon" onClick={() => handleEdit(notif.id)}><Edit className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDelete(notif.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                        </div>
+                    )) : (
+                        <p className="text-sm text-muted-foreground text-center">No notifications saved.</p>
+                    )}
+                </div>
+            </div>
         </CardContent>
-        <CardFooter>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? 'Saving...' : 'Save Notification'}
-          </Button>
-        </CardFooter>
-      </form>
     </Card>
   );
 }
