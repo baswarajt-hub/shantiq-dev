@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, AlertTriangle } from 'lucide-react';
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { format, parseISO, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -27,6 +27,19 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
 
 
   if (!doctorStatus?.isOnline) {
+    if (doctorStatus?.startDelay && doctorStatus.startDelay > 0) {
+      return (
+        <Card className="bg-orange-100/50 border-orange-300">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2"><AlertTriangle />Doctor is Running Late</CardTitle>
+            <CardDescription>We apologize for the inconvenience.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-bold">The doctor is late by {doctorStatus.startDelay} minutes.</p>
+          </CardContent>
+        </Card>
+      );
+    }
     return (
        <Card className="bg-orange-100/50 border-orange-300">
           <CardHeader>
