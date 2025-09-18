@@ -112,7 +112,7 @@ function TVDisplayPageContent() {
     return null;
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     await recalculateQueueWithETC();
     const [patientData, statusData, scheduleData] = await Promise.all([
         getPatientsAction(),
@@ -122,26 +122,31 @@ function TVDisplayPageContent() {
     
     const now = new Date();
     const timeZone = "Asia/Kolkata";
+    const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+    const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+
+    let daySchedule = scheduleData.days[dayName];
+    const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
+    if (todayOverride) {
+        daySchedule = {
+            morning: todayOverride.morningOverride ?? daySchedule.morning,
+            evening: todayOverride.eveningOverride ?? daySchedule.evening,
+        };
+    }
     
     let sessionToShow: 'morning' | 'evening' | null = getSessionForTime(now, scheduleData);
-    
+
     if (!sessionToShow) {
+        // If doctor is online, their session is the active one
         if (statusData.isOnline && statusData.onlineTime) {
-            sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
+            const onlineSession = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
+            if (onlineSession) {
+                sessionToShow = onlineSession;
+            }
         }
         
-        if(!sessionToShow) {
-            const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-            const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-            let daySchedule = scheduleData.days[dayName];
-            const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
-            if(todayOverride) {
-                daySchedule = {
-                    morning: todayOverride.morningOverride ?? scheduleData.days[dayName].morning,
-                    evening: todayOverride.eveningOverride ?? scheduleData.days[dayName].evening
-                };
-            }
-
+        // If still no session, determine based on time of day
+        if (!sessionToShow) {
             const morningSession = daySchedule.morning;
             if (morningSession.isOpen) {
                 const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
@@ -152,7 +157,7 @@ function TVDisplayPageContent() {
                     sessionToShow = 'morning';
                 }
             } else {
-                sessionToShow = 'evening';
+                sessionToShow = 'evening'; // Default to evening if morning is closed
             }
         }
     }
@@ -178,7 +183,7 @@ function TVDisplayPageContent() {
     } else {
         setAverageWait(scheduleData.slotDuration); // Default if no one is waiting
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData(); // Initial fetch
@@ -194,7 +199,7 @@ function TVDisplayPageContent() {
         clearInterval(dataIntervalId);
         clearInterval(clockIntervalId);
     };
-}, []);
+}, [fetchData]);
 
   // Scrolling logic
   useEffect(() => {
@@ -409,7 +414,10 @@ function TVDisplayPageContent() {
                                 className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
                             >
                                 <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
-                                <div className={cn("font-medium text-3xl", getPatientNameColorClass(patient.status, patient.type))}>
+                                <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
+                                    {patient.subType === 'Booked Walk-in' && (
+                                        <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">B</div>
+                                    )}
                                     {anonymizeName(patient.name)} {patient.status === 'Late' && '(Late)'}
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
@@ -622,9 +630,12 @@ function TVDisplayPageContent() {
                         >
                             <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                             <div className={cn(
-                                "font-medium text-3xl",
+                                "font-medium text-3xl flex items-center gap-2",
                                 getPatientNameColorClass(patient.status, patient.type)
                             )}>
+                                {patient.subType === 'Booked Walk-in' && (
+                                    <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold">B</div>
+                                )}
                                 {anonymizeName(patient.name)} {patient.status === 'Late' && '(Late)'}
                             </div>
                             <div className="text-center text-slate-600 flex justify-center">

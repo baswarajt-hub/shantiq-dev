@@ -129,7 +129,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     // --- End Calculation ---
 
 
-  const newPatient = await addPatientData({
+  const newPatientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'> = {
     name: familyMember.name,
     phone: familyMember.phone,
     type: isWalkIn ? 'Walk-in' : 'Appointment',
@@ -137,7 +137,13 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     status: checkIn ? 'Waiting' : 'Booked',
     purpose: purpose,
     tokenNo: tokenNo
-  });
+  };
+
+  if (isWalkIn) {
+      newPatientData.subType = 'Booked Walk-in';
+  }
+  
+  const newPatient = await addPatientData(newPatientData);
 
   await recalculateQueueWithETC();
   
@@ -1026,6 +1032,7 @@ export async function startLastConsultationAction(patientId: number) {
     
 
     
+
 
 
 
