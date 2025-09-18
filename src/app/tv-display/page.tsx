@@ -401,7 +401,7 @@ function TVDisplayPageContent() {
                             </div>
                             <span className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
                                 {anonymizeName(upNext.name)}
-                                {patient.status === 'Late' && (
+                                {upNext.status === 'Late' && (
                                     <sup className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
                                 )}
                             </span>
@@ -583,6 +583,9 @@ function TVDisplayPageContent() {
                            getPatientNameColorClass(upNext.status, upNext.type)
                          )}>
                            {anonymizeName(upNext.name)}
+                           {upNext.status === 'Late' && (
+                                <sup className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                           )}
                         </p>
                          <p className="text-3xl text-slate-500 mt-2 flex items-center justify-center gap-3">
                            <Ticket className="h-8 w-8"/>#{upNext.tokenNo}

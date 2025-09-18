@@ -905,7 +905,7 @@
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T21:38:00.000Z",
-    "worstCaseETC": "2025-09-18T21:18:44.048Z",
+    "worstCaseETC": "2025-09-18T21:20:46.840Z",
     "checkInTime": "2025-09-18T21:10:13.229Z",
     "lateBy": 0,
     "latePenalty": 2,
@@ -915,7 +915,7 @@
       53
     ],
     "lateLockedAt": "2025-09-18T21:10:13.229Z",
-    "bestCaseETC": "2025-09-18T21:18:44.048Z"
+    "bestCaseETC": "2025-09-18T21:20:46.840Z"
   },
   {
     "name": "Ayesha",
@@ -970,7 +970,7 @@
     "slotTime": "2025-09-18T21:53:00.000Z",
     "worstCaseETC": "2025-09-18T21:53:00.000Z",
     "checkInTime": "2025-09-18T21:09:09.264Z",
-    "bestCaseETC": "2025-09-18T21:23:44.048Z"
+    "bestCaseETC": "2025-09-18T21:25:46.840Z"
   },
   {
     "name": "Shiva",
@@ -986,7 +986,7 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T21:58:00.000Z",
     "worstCaseETC": "2025-09-18T21:58:00.000Z",
-    "bestCaseETC": "2025-09-18T21:28:44.048Z"
+    "bestCaseETC": "2025-09-18T21:30:46.840Z"
   },
   {
     "name": "Aakash",
@@ -1017,6 +1017,6 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-18T22:08:00.000Z",
     "worstCaseETC": "2025-09-18T22:08:00.000Z",
-    "bestCaseETC": "2025-09-18T21:33:44.048Z"
+    "bestCaseETC": "2025-09-18T21:35:46.840Z"
   }
 ]
