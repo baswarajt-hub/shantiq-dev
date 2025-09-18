@@ -65,10 +65,10 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
       {visibleNotifications.map(notification => (
         <Card key={notification.id} className="bg-accent/20 border-accent/50">
           <CardHeader className="flex flex-row items-start gap-4 space-y-0">
-            <Megaphone className="h-6 w-6 text-accent-foreground mt-1" />
+            <Megaphone className="h-6 w-6 text-blue-800 mt-1" />
             <div className="flex-1">
-              <CardTitle className="text-lg text-accent-foreground">Important Announcement</CardTitle>
-              <CardDescription className="text-base text-accent-foreground/90 mt-1">
+              <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
+              <CardDescription className="text-base text-blue-800/90 mt-1">
                 {notification.message}
               </CardDescription>
             </div>
