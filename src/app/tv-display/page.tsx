@@ -1,6 +1,6 @@
 
 'use client';
-import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
+import { recalculateQueueWithETC, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause, AlertTriangle } from 'lucide-react';
@@ -114,12 +114,14 @@ function TVDisplayPageContent() {
 
   const fetchData = async () => {
     await recalculateQueueWithETC();
-    const [patientData, statusData, scheduleData] = await Promise.all([
+    const [patientData, statusRes, scheduleData] = await Promise.all([
         getPatientsAction(),
-        getDoctorStatusAction(),
+        fetch('/api/status'),
         getDoctorScheduleAction()
     ]);
     
+    const statusData = await statusRes.json();
+
     const now = new Date();
     const timeZone = "Asia/Kolkata";
     const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');

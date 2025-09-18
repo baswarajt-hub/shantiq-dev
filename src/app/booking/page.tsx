@@ -11,7 +11,7 @@ import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, 
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
+import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
 import { format, parseISO, isToday, parse as parseDate, isWithinInterval } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -108,12 +108,14 @@ export default function BookingPage() {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) return;
 
-    const [familyData, patientData, scheduleData, statusData] = await Promise.all([
+    const [familyData, patientData, scheduleData, statusRes] = await Promise.all([
       getFamilyByPhoneAction(userPhone),
       getPatientsAction(),
       getDoctorScheduleAction(),
-      getDoctorStatusAction(),
+      fetch('/api/status'),
     ]);
+    
+    const statusData = await statusRes.json();
 
     setFamily(familyData);
     setPatients(patientData);

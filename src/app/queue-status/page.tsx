@@ -4,7 +4,7 @@
 
 import { PatientPortalHeader } from '@/components/patient-portal-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
+import { getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
 import type { DoctorSchedule, DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, AlertTriangle } from 'lucide-react';
@@ -360,12 +360,13 @@ function QueueStatusPageContent() {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) return;
 
-    const [patientData, statusData, scheduleData] = await Promise.all([
+    const [patientData, statusRes, scheduleData] = await Promise.all([
       getPatientsAction(),
-      getDoctorStatusAction(),
+      fetch('/api/status'),
       getDoctorScheduleAction(),
     ]);
 
+    const statusData = await statusRes.json();
     setSchedule(scheduleData);
     setDoctorStatus(statusData);
 
