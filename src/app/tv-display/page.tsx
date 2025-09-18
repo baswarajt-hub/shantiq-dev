@@ -214,7 +214,7 @@ function TVDisplayPageContent() {
   const yetToArrive = patients.filter(p => p.status === 'Booked' || p.status === 'Confirmed');
 
   const upNext = waitingList.find(p => p.status === 'Up-Next');
-  const queue = waitingList.filter(p => p.status !== 'Up-Next');
+  const queue = waitingList.filter(p => p.id !== upNext?.id);
   
   const clinicLogo = schedule?.clinicDetails.clinicLogo;
   const doctorName = schedule?.clinicDetails.doctorName || 'Doctor';
@@ -641,3 +641,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    

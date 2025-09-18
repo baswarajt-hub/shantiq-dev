@@ -344,6 +344,7 @@ function QueueStatusPageContent() {
     
     let sessionToShow: 'morning' | 'evening' | null = realTimeSession;
     
+    // If we're outside session hours, determine which session to show
     if (!sessionToShow) {
       const timeZone = "Asia/Kolkata";
       const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
@@ -356,19 +357,29 @@ function QueueStatusPageContent() {
               evening: todayOverride.eveningOverride ?? daySchedule.evening
           };
       }
-      const morningSession = daySchedule.morning;
       
-      if (morningSession.isOpen) {
-          const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-          const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-
-          if(now > morningEndUtc) {
-              sessionToShow = 'evening'; // Show evening queue after morning is done
+      // If doctor is online, it must be for an upcoming session
+      if (statusData.isOnline) {
+          const morningStartLocal = daySchedule.morning.isOpen ? parseDateFn(`${dateStr} ${daySchedule.morning.start}`, 'yyyy-MM-dd HH:mm', new Date()) : null;
+          if (morningStartLocal && now < morningStartLocal) {
+              sessionToShow = 'morning';
           } else {
-              sessionToShow = 'morning'; // Show morning queue before it starts
+              sessionToShow = 'evening';
           }
       } else {
-         sessionToShow = 'evening'; // If morning is closed, default to evening
+        // If doctor is offline, show morning if we are before morning end, otherwise show evening
+        const morningSession = daySchedule.morning;
+        if (morningSession.isOpen) {
+            const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+            const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+            if(now > morningEndUtc) {
+                sessionToShow = 'evening'; // Show evening queue after morning is done
+            } else {
+                sessionToShow = 'morning'; // Show morning queue before it starts
+            }
+        } else {
+           sessionToShow = 'evening'; // If morning is closed, default to evening
+        }
       }
     }
     
@@ -434,7 +445,7 @@ function QueueStatusPageContent() {
   }, [fetchData, phone]);
   
   const liveQueue = allPatients
-    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
+    .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
     .sort((a, b) => {
         const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
         const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
@@ -445,7 +456,9 @@ function QueueStatusPageContent() {
     });
   
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
-  const upNext = liveQueue.find(p => p.id !== nowServing?.id);
+  const upNext = liveQueue.find(p => p.status === 'Up-Next');
+  const waitingQueue = liveQueue.filter(p => p.id !== upNext?.id);
+
 
   if (hasTodaysAppointment === null || !phone) {
       return (
@@ -490,7 +503,7 @@ function QueueStatusPageContent() {
                     >
                         <h2 className="text-2xl font-bold text-center">Your Status</h2>
                         {(() => {
-                            const queuePosition = liveQueue.findIndex(p => p.id === foundAppointment.id) + 1;
+                            const queuePosition = waitingQueue.findIndex(p => p.id === foundAppointment.id) + 1;
                             const isNowServing = nowServing?.id === foundAppointment.id;
                             const isUpNext = upNext?.id === foundAppointment.id;
                             return (
@@ -548,3 +561,5 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
+
+    
