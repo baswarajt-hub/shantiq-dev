@@ -1,6 +1,6 @@
 
 
-import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails } from './types';
+import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification } from './types';
 import { format, parse, parseISO } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import fs from 'fs';
@@ -63,6 +63,10 @@ const defaultSchedule: DoctorSchedule = {
     consultationFee: 400,
     paymentQRCode: 'https://picsum.photos/200',
     clinicLogo: '',
+  },
+  notification: {
+    message: '',
+    enabled: false
   },
   slotDuration: 5,
   reserveFirstFive: true,
@@ -162,6 +166,7 @@ export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedul
     clinicDetails: scheduleUpdate.clinicDetails ?? doctorSchedule.clinicDetails,
     specialClosures: scheduleUpdate.specialClosures ?? doctorSchedule.specialClosures,
     visitPurposes: scheduleUpdate.visitPurposes ?? doctorSchedule.visitPurposes,
+    notification: scheduleUpdate.notification ?? doctorSchedule.notification,
   };
   writeData(scheduleFilePath, newSchedule);
   return newSchedule;
@@ -199,6 +204,13 @@ export async function updateTodayScheduleOverrideData(override: SpecialClosure) 
     } else {
         doctorSchedule.specialClosures.push(override);
     }
+    writeData(scheduleFilePath, doctorSchedule);
+    return doctorSchedule;
+}
+
+export async function updateNotificationData(notification: Notification) {
+    let doctorSchedule = await getDoctorSchedule();
+    doctorSchedule.notification = notification;
     writeData(scheduleFilePath, doctorSchedule);
     return doctorSchedule;
 }

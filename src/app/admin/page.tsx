@@ -8,12 +8,13 @@ import { ScheduleForm } from '@/components/admin/schedule-form';
 import { getDoctorScheduleAction as getDoctorScheduleData } from '@/app/actions';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
-import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose } from '@/lib/types';
+import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose, Notification } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { updateDoctorScheduleAction, updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction } from '../actions';
+import { updateDoctorScheduleAction, updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction, updateNotificationAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { VisitPurposeForm } from '@/components/admin/visit-purpose-form';
 import { ClinicDetailsForm } from '@/components/admin/clinic-details-form';
+import { NotificationForm } from '@/components/admin/notification-form';
 
 export default function AdminPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -35,6 +36,16 @@ export default function AdminPage() {
     } else {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, clinicDetails: updatedDetails } : null);
+    }
+  };
+
+  const handleNotificationSave = async (updatedNotification: Notification) => {
+    const result = await updateNotificationAction(updatedNotification);
+    if (result.error) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: result.success });
+      setSchedule(prev => prev ? { ...prev, notification: updatedNotification } : null);
     }
   };
 
@@ -101,6 +112,11 @@ export default function AdminPage() {
             <ClinicDetailsForm
               initialDetails={schedule.clinicDetails}
               onSave={handleClinicDetailsSave}
+            />
+            <Separator />
+            <NotificationForm 
+              initialNotification={schedule.notification}
+              onSave={handleNotificationSave}
             />
             <Separator />
             <ScheduleForm 

@@ -1,17 +1,18 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell, AlertTriangle } from 'lucide-react';
-import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus } from '@/lib/types';
+import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell, AlertTriangle, Megaphone } from 'lucide-react';
+import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
-import { format, parseISO, isToday, parse as parseDate } from 'date-fns';
+import { format, parseISO, isToday, parse as parseDate, isWithinInterval } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -27,6 +28,45 @@ const getStatusBadgeClass = (status: string) => {
         case 'Late': return 'bg-orange-100 text-orange-800';
         default: return 'bg-gray-100 text-gray-800';
     }
+}
+
+function NotificationCard({ notification }: { notification?: Notification }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (notification?.enabled && notification.startTime && notification.endTime) {
+      const checkVisibility = () => {
+        const now = new Date();
+        const start = parseISO(notification.startTime!);
+        const end = parseISO(notification.endTime!);
+        setIsVisible(isWithinInterval(now, { start, end }));
+      };
+
+      checkVisibility();
+      const interval = setInterval(checkVisibility, 60000); // Check every minute
+      return () => clearInterval(interval);
+    } else {
+      setIsVisible(false);
+    }
+  }, [notification]);
+
+  if (!isVisible || !notification?.message) {
+    return null;
+  }
+
+  return (
+    <Card className="bg-blue-50 border-blue-200">
+      <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+        <Megaphone className="h-6 w-6 text-blue-600 mt-1" />
+        <div className="flex-1">
+          <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
+          <CardDescription className="text-base text-blue-700 mt-1">
+            {notification.message}
+          </CardDescription>
+        </div>
+      </CardHeader>
+    </Card>
+  );
 }
 
 
@@ -137,10 +177,7 @@ export default function BookingPage() {
       const session = todaySch[sessionName];
       const isClosedByOverride = sessionName === 'morning' ? todayOverride?.isMorningClosed : todayOverride?.isEveningClosed;
 
-      if (!session.isOpen) {
-        return { time: 'Closed', status: 'Closed', statusColor: 'text-gray-500', isOver: true };
-      }
-      if (isClosedByOverride) {
+      if (!session.isOpen || isClosedByOverride) {
         return { time: 'Doctor Not Available', status: 'Closed', statusColor: 'text-red-600', isOver: true };
       }
 
@@ -251,6 +288,8 @@ export default function BookingPage() {
             )}
           </CardContent>
         </Card>
+        
+        <NotificationCard notification={schedule?.notification} />
 
         <Card className="bg-gradient-to-br from-primary/20 to-background">
             <CardHeader>

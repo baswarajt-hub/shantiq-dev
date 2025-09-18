@@ -105,7 +105,12 @@
     {
       "date": "2025-09-19",
       "isMorningClosed": true,
-      "isEveningClosed": false
+      "isEveningClosed": false,
+      "eveningOverride": {
+        "start": "17:30",
+        "end": "22:30",
+        "isOpen": true
+      }
     }
   ],
   "visitPurposes": [
