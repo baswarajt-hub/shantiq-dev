@@ -5,41 +5,16 @@
 import { PatientPortalHeader } from '@/components/patient-portal-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction } from '@/app/actions';
-import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
+import type { DoctorSchedule, DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause } from 'lucide-react';
 import { useEffect, useState, useCallback, Suspense } from 'react';
-import { format, parseISO, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
+import { format, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null }) {
-  const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
-  
-  useEffect(() => {
-    if (doctorStatus?.isOnline && doctorStatus.onlineTime) {
-      setDoctorOnlineTime(new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    } else {
-      setDoctorOnlineTime('');
-    }
-  }, [doctorStatus]);
-
-
   if (!doctorStatus?.isOnline) {
-    if (doctorStatus?.startDelay && doctorStatus.startDelay > 0) {
-      return (
-        <Card className="bg-orange-100/50 border-orange-300">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><AlertTriangle />Doctor is Running Late</CardTitle>
-            <CardDescription>We apologize for the inconvenience.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">The doctor is late by {doctorStatus.startDelay} minutes.</p>
-          </CardContent>
-        </Card>
-      );
-    }
     return (
        <Card className="bg-orange-100/50 border-orange-300">
           <CardHeader>
@@ -71,8 +46,8 @@ function NowServingCard({ patient, doctorStatus }: { patient: Patient | undefine
     return (
        <Card className="bg-green-100/50 border-green-300">
           <CardHeader>
-             <CardTitle className="text-lg flex items-center gap-2"><UserCheck />Ready for Next</CardTitle>
-            <CardDescription>The doctor is available (since {doctorOnlineTime}).</CardDescription>
+            <CardTitle className="text-lg flex items-center gap-2"><UserCheck />Ready for Next</CardTitle>
+            <CardDescription>The doctor is ready to see the next patient.</CardDescription>
           </CardHeader>
           <CardContent>
              <p className="text-xl font-bold">No one is currently being served.</p>
@@ -289,45 +264,27 @@ function QueueStatusPageContent() {
   const [foundAppointment, setFoundAppointment] = useState<Patient | null>(null);
   const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
-  const [hasTodaysAppointment, setHasTodaysAppointment] = useState<boolean | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const patientId = searchParams.get('id');
 
-  const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
+  const getSessionForTime = useCallback((appointmentTime: string, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule) return null;
-    const timeZone = "Asia/Kolkata";
     
-    const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
-    const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
-    const dateStr = format(zonedAppt, 'yyyy-MM-dd');
+    const dayOfWeek = format(new Date(appointmentTime), 'EEEE') as keyof DoctorSchedule['days'];
+    const sessionTimes = localSchedule.days[dayOfWeek];
+    
+    const appointmentDate = new Date(appointmentTime);
+    const appointmentHour = appointmentDate.getHours();
 
-    let daySchedule = localSchedule.days[dayOfWeek];
-    const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
-    if (todayOverride) {
-      daySchedule = {
-        morning: todayOverride.morningOverride ?? daySchedule.morning,
-        evening: todayOverride.eveningOverride ?? daySchedule.evening,
-      };
+    const morningEndHour = parseInt(sessionTimes.morning.end.split(':')[0], 10);
+    
+    if (appointmentHour < morningEndHour && sessionTimes.morning.isOpen) {
+        return 'morning';
+    } else if (sessionTimes.evening.isOpen) {
+        return 'evening';
     }
-
-    const sessionLocalToUtc = (sessionTime: string) => {
-        let localDate: Date;
-        // The time is stored as 'HH:mm' format in the schedule
-        localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
-        return fromZonedTime(localDate, timeZone);
-    }
-
-    const checkSession = (session: Session) => {
-      if (!session.isOpen) return false;
-      const startUtc = sessionLocalToUtc(session.start);
-      const endUtc = sessionLocalToUtc(session.end);
-      const apptMs = appointmentUtcDate.getTime();
-      return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
-    };
-
-    if (checkSession(daySchedule.morning)) return 'morning';
-    if (checkSession(daySchedule.evening)) return 'evening';
+    
     return null;
   }, []);
 
@@ -354,69 +311,22 @@ function QueueStatusPageContent() {
     setDoctorStatus(statusData);
 
     const now = new Date();
-    const realTimeSession = getSessionForTime(now, scheduleData);
+    const realTimeSession = getSessionForTime(now.toISOString(), scheduleData);
+    setCurrentSession(realTimeSession);
     
-    let sessionToShow: 'morning' | 'evening' | null = realTimeSession;
+    const todaysPatients = patientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
     
-    // If we're outside session hours, determine which session to show
-    if (!sessionToShow) {
-      const timeZone = "Asia/Kolkata";
-      const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-      const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-      let daySchedule = scheduleData.days[dayOfWeek];
-      const todayOverride = scheduleData.specialClosures.find(c => c.date === dateStr);
-      if(todayOverride) {
-          daySchedule = {
-              morning: todayOverride.morningOverride ?? daySchedule.morning,
-              evening: todayOverride.eveningOverride ?? daySchedule.evening
-          };
-      }
-      
-      // If doctor is online, it must be for an upcoming session
-      if (statusData.isOnline && statusData.onlineTime) {
-          sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
-      } else {
-        // If doctor is offline, show morning if we are before morning end, otherwise show evening
-        const morningSession = daySchedule.morning;
-        if (morningSession.isOpen) {
-            const morningEndLocal = parseDateFn(`${dateStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-            const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-            if(now > morningEndUtc) {
-                sessionToShow = 'evening'; // Show evening queue after morning is done
-            } else {
-                sessionToShow = 'morning'; // Show morning queue before it starts
-            }
-        } else {
-           sessionToShow = 'evening'; // If morning is closed, default to evening
-        }
-      }
-    }
+    const filteredPatients = todaysPatients.filter((p: Patient) => getSessionForTime(p.appointmentTime, scheduleData) === realTimeSession);
     
-    setCurrentSession(sessionToShow);
-    
-    const todayFilteredPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
-    
-    const userHasTodaysAppointment = todayFilteredPatients.some((p: Patient) => p.phone === userPhone && p.status !== 'Cancelled');
-    setHasTodaysAppointment(userHasTodaysAppointment);
-    
-    if (!userHasTodaysAppointment) {
-        setAllPatients([]);
-        setFoundAppointment(null);
-        setCompletedAppointmentForDisplay(null);
-        return;
-    }
-
-    const sessionFilteredPatients = todayFilteredPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
-    
-    setAllPatients(sessionFilteredPatients);
+    setAllPatients(filteredPatients);
     setLastUpdated(new Date().toLocaleTimeString());
 
     if (patientId) {
       const id = parseInt(patientId, 10);
-      const userAppointment = patientData.find((p: Patient) => p.id === id && p.phone === userPhone);
+      const userAppointment = todaysPatients.find((p: Patient) => p.id === id && p.phone === userPhone);
 
       if (userAppointment) {
-          const isSameSession = getSessionForTime(parseISO(userAppointment.appointmentTime), scheduleData) === sessionToShow;
+          const isSameSession = getSessionForTime(userAppointment.appointmentTime, scheduleData) === realTimeSession;
 
           if (userAppointment.status === 'Completed' && isSameSession) {
               const lastCompletedId = localStorage.getItem('completedAppointmentId');
@@ -468,8 +378,10 @@ function QueueStatusPageContent() {
   const upNext = liveQueue.find(p => p.status === 'Up-Next');
   const waitingQueue = liveQueue.filter(p => p.id !== upNext?.id);
 
+  const userHasAppointment = allPatients.some((p: Patient) => p.phone === phone && p.status !== 'Cancelled');
 
-  if (hasTodaysAppointment === null || !phone) {
+
+  if (!phone) {
       return (
           <div className="flex flex-col min-h-screen bg-muted/40">
               <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
@@ -487,10 +399,10 @@ function QueueStatusPageContent() {
         
         {completedAppointmentForDisplay ? (
              <CompletionSummary patient={completedAppointmentForDisplay} />
-        ) : !hasTodaysAppointment ? (
+        ) : !userHasAppointment ? (
              <div className="text-center mt-16">
                  <h1 className="text-3xl font-bold">No Active Appointment</h1>
-                 <p className="text-lg text-muted-foreground mt-2">You do not have an appointment scheduled for today.</p>
+                 <p className="text-lg text-muted-foreground mt-2">You do not have an appointment scheduled for this session.</p>
              </div>
         ) : (
           <>
@@ -538,7 +450,7 @@ function QueueStatusPageContent() {
                     <div className="mt-8">
                         <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {allPatients.filter(p => isToday(parseISO(p.appointmentTime || p.slotTime)) && p.status === 'Waiting for Reports').map((patient) => (
+                        {allPatients.filter(p => isToday(new Date(p.appointmentTime || p.slotTime)) && p.status === 'Waiting for Reports').map((patient) => (
                             <Card key={patient.id} className="bg-purple-100/50 border-purple-300">
                             <CardContent className="p-4 flex items-center space-x-4">
                                 <div className="flex-shrink-0 text-purple-700"><FileClock className="h-5 w-5" /></div>
@@ -550,7 +462,7 @@ function QueueStatusPageContent() {
                             </Card>
                         ))}
                         </div>
-                         {allPatients.filter(p => isToday(parseISO(p.appointmentTime || p.slotTime)) && p.status === 'Waiting for Reports').length === 0 && (
+                         {allPatients.filter(p => isToday(new Date(p.appointmentTime || p.slotTime)) && p.status === 'Waiting for Reports').length === 0 && (
                             <p className="text-center text-muted-foreground">No one is waiting for reports.</p>
                         )}
                     </div>
@@ -572,4 +484,3 @@ export default function QueueStatusPage() {
 }
 
     
-
