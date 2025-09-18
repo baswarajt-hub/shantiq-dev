@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { toggleDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, getDoctorStatusAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, toggleQueuePauseAction, advanceQueueAction, startLastConsultationAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, toggleQueuePauseAction, advanceQueueAction, startLastConsultationAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -461,11 +461,16 @@ export default function DashboardPage() {
 
     const handleToggleDoctorStatus = () => {
         startTransition(async () => {
-            const result = await toggleDoctorStatusAction(!doctorStatus?.isOnline, doctorStartDelay);
+            const newStatus = {
+                isOnline: !doctorStatus?.isOnline,
+                onlineTime: !doctorStatus?.isOnline ? new Date().toISOString() : undefined,
+                startDelay: doctorStartDelay
+            };
+            const result = await setDoctorStatusAction(newStatus);
             if (result?.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
-                toast({ title: 'Success', description: result.success});
+                toast({ title: 'Success', description: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.`});
                 await loadData();
             }
         });
@@ -1002,6 +1007,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 

@@ -313,25 +313,15 @@ export async function getDoctorStatusAction() {
     return getDoctorStatusData();
 }
 
-export async function toggleDoctorStatusAction(isOnline: boolean, startDelayMinutes: number = 0) {
-    const newStatus = {
-        isOnline: isOnline,
-        onlineTime: isOnline ? new Date().toISOString() : undefined,
-        startDelay: startDelayMinutes
-    };
-    await updateDoctorStatus(newStatus);
+export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
+    await updateDoctorStatus(status);
     await recalculateQueueWithETC();
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/patient-portal');
-    revalidatePath('/booking');
-    return { success: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.` };
+    return { success: `Doctor status updated.` };
 }
 
 export async function toggleQueuePauseAction(isPaused: boolean) {
     await updateDoctorStatus({ isPaused: isPaused });
+    await recalculateQueueWithETC();
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath('/tv-display');
@@ -362,6 +352,7 @@ export async function emergencyCancelAction() {
     
     // Also set doctor to offline
     await updateDoctorStatus({ isOnline: false, startDelay: 0 });
+    await recalculateQueueWithETC();
 
     revalidatePath('/');
     revalidatePath('/dashboard');
@@ -454,7 +445,6 @@ export async function addNewPatientAction(familyMemberData: Omit<FamilyMember, '
     if (!newMember) {
         return { error: 'Failed to create a new family member.' };
     }
-    await recalculateQueueWithETC();
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath('/booking');
@@ -749,6 +739,7 @@ export async function updateClinicDetailsAction(details: ClinicDetails) {
 
 export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     await updateSpecialClosures(closures);
+    await recalculateQueueWithETC();
     revalidatePath('/');
     revalidatePath('/admin');
     revalidatePath('/booking');
