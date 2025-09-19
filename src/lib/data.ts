@@ -106,7 +106,7 @@ export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTim
 }
 
 export async function addPatientData(patientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>) {
-    let patients = await getPatients();
+    const patients = await getPatients();
     const newPatient: Patient = {
         ...patientData,
         id: patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1,
@@ -277,3 +277,5 @@ export async function getFamily() {
     family = readData<FamilyMember[]>(familyFilePath, []);
     return JSON.parse(JSON.stringify(family));
 }
+
+    
