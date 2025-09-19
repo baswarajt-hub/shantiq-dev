@@ -38,9 +38,7 @@ function writeData<T>(filePath: string, data: T): void {
     }
 }
 
-let patients: Patient[] = readData<Patient[]>(patientsFilePath, []);
 let family: FamilyMember[] = readData<FamilyMember[]>(familyFilePath, []);
-let nextPatientId = patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1;
 let nextFamilyId = family.length > 0 ? Math.max(...family.map(f => f.id)) + 1 : 1;
 
 const defaultStatus: DoctorStatus = {
@@ -88,14 +86,15 @@ const defaultSchedule: DoctorSchedule = {
 
 // This is a mock database. In a real app, you'd use a proper database.
 export async function getPatients() {
-  patients = readData<Patient[]>(patientsFilePath, []);
+  const patients = readData<Patient[]>(patientsFilePath, []);
   return JSON.parse(JSON.stringify(patients));
 }
 
 export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>) {
+    let patients = await getPatients();
     const newPatient: Patient = {
         ...patient,
-        id: nextPatientId++,
+        id: patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1,
         estimatedWaitTime: patients.filter(p => p.status === 'Waiting').length * 15,
         rescheduleCount: 0,
         slotTime: patient.appointmentTime,
@@ -107,9 +106,10 @@ export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTim
 }
 
 export async function addPatientData(patientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>) {
+    let patients = await getPatients();
     const newPatient: Patient = {
         ...patientData,
-        id: nextPatientId++,
+        id: patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1,
         estimatedWaitTime: 15, // Default, will be recalculated
         slotTime: patientData.appointmentTime,
     };
@@ -119,21 +119,23 @@ export async function addPatientData(patientData: Omit<Patient, 'id' | 'estimate
 }
 
 export async function updatePatient(id: number, updates: Partial<Patient>) {
+  let patients = await getPatients();
   patients = patients.map(p => (p.id === id ? { ...p, ...updates } : p));
   writeData(patientsFilePath, patients);
   return patients.find(p => p.id === id);
 }
 
 export async function findPatientById(id: number) {
+  const patients = await getPatients();
   return patients.find(p => p.id === id);
 }
 
 export async function findPatientsByPhone(phone: string) {
+    const patients = await getPatients();
     return patients.filter(p => p.phone === phone);
 }
 
 export async function updateAllPatients(newPatients: Patient[]) {
-  patients = newPatients;
   writeData(patientsFilePath, newPatients);
 }
 
