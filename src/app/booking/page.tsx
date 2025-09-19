@@ -260,6 +260,22 @@ export default function BookingPage() {
   
   const relevantSessionDetails = relevantSession === 'evening' ? currentDaySchedule?.evening : currentDaySchedule?.morning;
 
+  // Calculate live queue for today's appointments
+  const upNextPatient = patients.find(p => p.status === 'Up-Next' && isToday(parseISO(p.appointmentTime)));
+  const waitingQueue = patients
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && isToday(parseISO(p.appointmentTime)) && p.id !== upNextPatient?.id)
+    .sort((a, b) => {
+      const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
+      const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
+      if (timeA === Infinity && timeB === Infinity) {
+          return (a.tokenNo || 0) - (b.tokenNo || 0);
+      }
+      return timeA - timeB;
+  });
+  
+  const liveQueue = [...waitingQueue];
+  if(upNextPatient) liveQueue.unshift(upNextPatient);
+
 
   if (!phone || isPending) {
       return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -340,7 +356,17 @@ export default function BookingPage() {
             <CardTitle>Today's Appointments</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {todaysAppointments.length > 0 ? todaysAppointments.map(appt => (
+            {todaysAppointments.length > 0 ? todaysAppointments.map(appt => {
+              let queuePosition: number | null = null;
+              if (appt.status === 'Waiting') {
+                const position = waitingQueue.findIndex(p => p.id === appt.id);
+                // Position is 0-indexed, add 1 for display. upNext adds 1 more.
+                if (position !== -1) {
+                  queuePosition = position + (upNextPatient ? 2 : 1);
+                }
+              }
+
+              return (
               <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
                    <Avatar>
@@ -358,13 +384,21 @@ export default function BookingPage() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 self-stretch justify-between">
-                   <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status as string)}`}>{appt.status}</p>
+                   <div className="flex items-center gap-2">
+                     {appt.status === 'Waiting' && queuePosition !== null && (
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-white text-xs font-bold">
+                        {queuePosition}
+                      </span>
+                     )}
+                     <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status as string)}`}>{appt.status}</p>
+                   </div>
                    <Button asChild variant="default" size="sm" className="h-8">
                       <Link href={`/queue-status?id=${appt.id}`}><Bell className="h-3.5 w-3.5 mr-1.5" />View Queue</Link>
                    </Button>
                 </div>
               </div>
-            )) : (
+              )
+            }) : (
               <p className="text-muted-foreground text-center py-8">No appointments for today.</p>
             )}
           </CardContent>

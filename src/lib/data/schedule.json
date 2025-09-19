@@ -14,18 +14,11 @@
   },
   "notifications": [
     {
-      "id": "notif_1731932599741",
-      "message": "Please note: Today for morning session Doctor is not available and evening session has extended timing. ",
+      "message": "The clinic will remain closed from 20/09/2025 to 22/09/2025. If any emergency please visit the nearest children's hospital.\n\nक्लिनिक 20/09/2025 से 22/09/2025 तक बंद रहेगा। किसी भी आपात स्थिति में, कृपया नज़दीकी बाल चिकित्सालय जाएँ।",
+      "startTime": "2025-09-19T20:15:06.762Z",
+      "endTime": "2025-09-21T20:00:00.000Z",
       "enabled": true,
-      "startTime": "2025-09-18T18:30:00.000Z",
-      "endTime": "2025-09-19T18:30:00.000Z"
-    },
-    {
-      "message": "Clinic will remain closed from 20/09/2025 to 20/09/2025.",
-      "startTime": "2025-09-18T19:48:18.591Z",
-      "endTime": "2025-09-19T03:50:00.000Z",
-      "enabled": true,
-      "id": "notif_1758225151598"
+      "id": "notif_1758312298986"
     }
   ],
   "slotDuration": 5,
@@ -137,6 +130,14 @@
       "date": "2025-09-18",
       "morningOverride": {
         "start": "02:00",
+        "end": "03:00",
+        "isOpen": true
+      }
+    },
+    {
+      "date": "2025-09-20",
+      "morningOverride": {
+        "start": "01:40",
         "end": "03:00",
         "isOpen": true
       }

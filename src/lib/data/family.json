@@ -233,5 +233,26 @@
     "phone": "9849094453",
     "id": 24,
     "avatar": "https://picsum.photos/seed/24/200/200"
+  },
+  {
+    "phone": "9849094455",
+    "name": "Shalini",
+    "dob": "2000-01-07",
+    "gender": "Female",
+    "location": "Shalibhanda",
+    "city": "Hyderabad",
+    "email": "shalini@gmail.com",
+    "isPrimary": true,
+    "id": 25,
+    "avatar": "https://picsum.photos/seed/25/200/200"
+  },
+  {
+    "name": "Shivani",
+    "dob": "2020-06-09",
+    "gender": "Female",
+    "clinicId": "",
+    "phone": "9849094455",
+    "id": 26,
+    "avatar": "https://picsum.photos/seed/26/200/200"
   }
 ]
