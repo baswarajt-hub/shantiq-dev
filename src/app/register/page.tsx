@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { registerUserAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -95,7 +96,7 @@ export default function RegisterPage() {
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="dob">Date of Birth (Optional)</Label>
-                    <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                    <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
