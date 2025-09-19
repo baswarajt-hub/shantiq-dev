@@ -110,8 +110,8 @@ function TVDisplayPageContent() {
       return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
     };
 
-    if (checkSession(daySchedule.morning)) return 'morning';
-    if (checkSession(daySchedule.evening)) return 'evening';
+    if (checkSession('morning')) return 'morning';
+    if (checkSession('evening')) return 'evening';
     return null;
   }, [timeZone]);
 
@@ -132,10 +132,7 @@ function TVDisplayPageContent() {
     if (scheduleData) {
         sessionToShow = getSessionForTime(now, scheduleData);
 
-        if (!sessionToShow && statusData.isOnline && statusData.onlineTime) {
-            sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
-        }
-        
+        // If we're not currently in a session time, figure out which one is relevant
         if (!sessionToShow) {
             const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
             const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
@@ -150,16 +147,17 @@ function TVDisplayPageContent() {
             }
             
             const morningSession = daySchedule.morning;
+            // If morning session is open and has already passed, show evening. Otherwise, default to morning.
             if (morningSession.isOpen) {
                 const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
                 const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
                 if (now > morningEndUtc) {
-                    sessionToShow = 'evening';
+                    sessionToShow = 'evening'; // Switch to evening after morning session time is over
                 } else {
-                    sessionToShow = 'morning';
+                    sessionToShow = 'morning'; // It's before or during morning session
                 }
             } else {
-                sessionToShow = 'evening';
+                sessionToShow = 'evening'; // Morning is closed, so show evening
             }
         }
     }
@@ -205,28 +203,33 @@ function TVDisplayPageContent() {
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-
-    // Only scroll if the content is taller than the container
-    if (list.scrollHeight <= list.clientHeight) return;
+    
+    const isScrollingNeeded = list.scrollHeight > list.clientHeight;
+    
+    if (!isScrollingNeeded) {
+        // If no scroll needed, ensure it's at the top.
+        list.scrollTo({ top: 0, behavior: 'auto' });
+        return;
+    }
 
     let scrollTop = 0;
-    const scrollHeight = list.scrollHeight;
-    const clientHeight = list.clientHeight;
     
     const scrollInterval = setInterval(() => {
       list.scrollTo({ top: scrollTop, behavior: 'smooth' });
       scrollTop += 1;
       
-      if (scrollTop >= scrollHeight - clientHeight) {
-        setTimeout(() => {
-          scrollTop = 0;
-          list.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 5000); // Pause at the bottom
+      // Check if we've reached the bottom
+      if (scrollTop >= list.scrollHeight - list.clientHeight) {
+          // Pause at the bottom then reset
+          setTimeout(() => {
+              scrollTop = 0;
+              list.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 5000); 
       }
-    }, 200); // Scroll speed
+    }, 200);
 
     return () => clearInterval(scrollInterval);
-  }, [patients, layout]);
+}, [patients, layout]); // Re-evaluate when patients or layout change
 
   if (!schedule || !doctorStatus) {
     return (
@@ -278,6 +281,26 @@ function TVDisplayPageContent() {
       const sessionEndUTC = fromZonedTime(parseDateFn(`${todayStr} ${todaySchedule[currentSessionName].end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
       isSessionOver = now > sessionEndUTC;
   }
+
+  const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
+    <span className="font-medium text-3xl flex items-center gap-2 relative">
+      {anonymizeName(patient.name)}
+      <span className="absolute -top-2 -right-4 flex gap-1">
+        {patient.subType === 'Booked Walk-in' && (
+          <sup className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>
+        )}
+        {patient.status === 'Late' && (
+          <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-xs font-bold">LATE</sup>
+        )}
+        {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
+          <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-xs font-bold">REPORT</sup>
+        )}
+        {patient.status === 'Priority' && (
+            <Shield className="h-6 w-6 text-red-600" title="Priority" />
+        )}
+      </span>
+    </span>
+  );
   
   if (layout === '2') {
     return (
@@ -343,15 +366,14 @@ function TVDisplayPageContent() {
                     ) : nowServing ? (
                         <motion.div key={nowServing.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
                             <Hourglass className="h-12 w-12 text-green-700 mx-auto animate-pulse mb-2" />
-                            <p className={cn("text-5xl font-bold tracking-wider", getPatientNameColorClass(nowServing.status, nowServing.type))}>
-                               {anonymizeName(nowServing.name)}
-                            </p>
-                            {nowServing.subStatus === 'Reports' && <p className="text-xl font-semibold text-purple-600">(Reports)</p>}
+                            <div className={cn("text-5xl font-bold tracking-wider", getPatientNameColorClass(nowServing.status, nowServing.type))}>
+                               <PatientNameWithBadges patient={nowServing} />
+                            </div>
                             <p className="text-2xl text-slate-500 mt-2 flex items-center justify-center gap-3"><Ticket className="h-7 w-7"/>#{nowServing.tokenNo}</p>
                         </motion.div>
                     ) : (
                         <motion.div key="no-one" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
-                            <p className="text-3xl font-semibold text-green-700">{doctorStatus.isOnline ? (queue.length > 0 ? 'Ready for next' : 'Queue is empty') : 'Doctor is Offline'}</p>
+                            <p className="text-3xl font-semibold text-green-700">{doctorStatus.isOnline ? (waitingList.length > 0 ? 'Ready for next' : 'Queue is empty') : 'Doctor is Offline'}</p>
                         </motion.div>
                     )}
                     </AnimatePresence>
@@ -404,12 +426,9 @@ function TVDisplayPageContent() {
                                 <Ticket className={cn("h-7 w-7", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-600')}/>
                                 <span className="text-3xl font-bold text-slate-800">#{upNext.tokenNo}</span>
                             </div>
-                            <span className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
-                                {anonymizeName(upNext.name)}
-                                {upNext.status === 'Late' && (
-                                    <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">LATE</sup>
-                                )}
-                            </span>
+                            <div className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
+                                <PatientNameWithBadges patient={upNext} />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -439,12 +458,7 @@ function TVDisplayPageContent() {
                             >
                                 <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                                 <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
-                                    {anonymizeName(patient.name)}
-                                    {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
-                                    {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
-                                    {patient.status === 'Late' && (
-                                        <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">LATE</sup>
-                                    )}
+                                    <PatientNameWithBadges patient={patient} />
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
                                 <div className="text-center font-medium text-slate-600">{patient.type}</div>
@@ -545,13 +559,12 @@ function TVDisplayPageContent() {
                         className="text-center"
                     >
                         <Hourglass className="h-16 w-16 text-sky-500 mx-auto animate-pulse mb-2" />
-                        <p className={cn(
+                        <div className={cn(
                            "text-6xl font-bold tracking-wider",
                            getPatientNameColorClass(nowServing.status, nowServing.type)
                          )}>
-                           {anonymizeName(nowServing.name)}
-                        </p>
-                        {nowServing.subStatus === 'Reports' && <p className="text-2xl font-semibold text-purple-600">(Reports)</p>}
+                            <PatientNameWithBadges patient={nowServing} />
+                        </div>
                         <p className="text-3xl text-slate-500 mt-2 flex items-center justify-center gap-3">
                            <Ticket className="h-8 w-8"/>#{nowServing.tokenNo}
                         </p>
@@ -565,7 +578,7 @@ function TVDisplayPageContent() {
                         className="text-center"
                     >
                         <p className="text-4xl font-semibold text-slate-400">
-                           {doctorStatus.isOnline ? (queue.length > 0 ? 'Ready for next patient' : 'The queue is empty') : 'Doctor is Offline'}
+                           {doctorStatus.isOnline ? (waitingList.length > 0 ? 'Ready for next patient' : 'The queue is empty') : 'Doctor is Offline'}
                         </p>
                     </motion.div>
                 )}
@@ -583,15 +596,12 @@ function TVDisplayPageContent() {
                         className="text-center"
                     >
                         {upNext.status === 'Priority' ? <Shield className="h-16 w-16 text-red-500 mx-auto mb-2"/> : <ChevronRight className="h-16 w-16 text-amber-500 mx-auto mb-2" />}
-                        <p className={cn(
+                        <div className={cn(
                            "text-6xl font-bold tracking-wider",
                            getPatientNameColorClass(upNext.status, upNext.type)
                          )}>
-                           {anonymizeName(upNext.name)}
-                           {upNext.status === 'Late' && (
-                                <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">LATE</sup>
-                           )}
-                        </p>
+                          <PatientNameWithBadges patient={upNext} />
+                        </div>
                          <p className="text-3xl text-slate-500 mt-2 flex items-center justify-center gap-3">
                            <Ticket className="h-8 w-8"/>#{upNext.tokenNo}
                         </p>
@@ -662,12 +672,7 @@ function TVDisplayPageContent() {
                                 "font-medium text-3xl flex items-center gap-2",
                                 getPatientNameColorClass(patient.status, patient.type)
                             )}>
-                                {anonymizeName(patient.name)}
-                                {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
-                                {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
-                                {patient.status === 'Late' && (
-                                    <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">LATE</sup>
-                                )}
+                               <PatientNameWithBadges patient={patient} />
                             </div>
                             <div className="text-center text-slate-600 flex justify-center">
                                 <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
@@ -704,3 +709,4 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
