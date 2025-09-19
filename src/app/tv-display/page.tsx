@@ -116,7 +116,6 @@ function TVDisplayPageContent() {
   }, [timeZone]);
 
   const fetchData = useCallback(async () => {
-    await recalculateQueueWithETC();
     const [patientData, statusRes, scheduleData] = await Promise.all([
         getPatientsAction(),
         fetch('/api/status'),
@@ -130,36 +129,38 @@ function TVDisplayPageContent() {
     const now = new Date();
     let sessionToShow: 'morning' | 'evening' | null = null;
     
-    sessionToShow = getSessionForTime(now, scheduleData);
+    if (scheduleData) {
+        sessionToShow = getSessionForTime(now, scheduleData);
 
-    if (!sessionToShow && statusData.isOnline && statusData.onlineTime) {
-        sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
-    }
-
-    if (!sessionToShow && scheduleData) {
-        const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-        const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-
-        let daySchedule = scheduleData.days[dayName];
-        const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
-        if (todayOverride) {
-            daySchedule = {
-                morning: todayOverride.morningOverride ?? scheduleData.days[dayName].morning,
-                evening: todayOverride.eveningOverride ?? scheduleData.days[dayName].evening,
-            };
+        if (!sessionToShow && statusData.isOnline && statusData.onlineTime) {
+            sessionToShow = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
         }
         
-        const morningSession = daySchedule.morning;
-        if (morningSession.isOpen) {
-            const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-            const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-            if (now > morningEndUtc) {
-                sessionToShow = 'evening';
-            } else {
-                sessionToShow = 'morning';
+        if (!sessionToShow) {
+            const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+            const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+
+            let daySchedule = scheduleData.days[dayName];
+            const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
+            if (todayOverride) {
+                daySchedule = {
+                    morning: todayOverride.morningOverride ?? daySchedule.morning,
+                    evening: todayOverride.eveningOverride ?? daySchedule.evening,
+                };
             }
-        } else {
-            sessionToShow = 'evening';
+            
+            const morningSession = daySchedule.morning;
+            if (morningSession.isOpen) {
+                const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+                const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+                if (now > morningEndUtc) {
+                    sessionToShow = 'evening';
+                } else {
+                    sessionToShow = 'morning';
+                }
+            } else {
+                sessionToShow = 'evening';
+            }
         }
     }
     
@@ -203,24 +204,26 @@ function TVDisplayPageContent() {
   // Scrolling logic
   useEffect(() => {
     const list = listRef.current;
-    if (!list || list.scrollHeight <= list.clientHeight) return;
+    if (!list) return;
+
+    // Only scroll if the content is taller than the container
+    if (list.scrollHeight <= list.clientHeight) return;
 
     let scrollTop = 0;
     const scrollHeight = list.scrollHeight;
     const clientHeight = list.clientHeight;
     
     const scrollInterval = setInterval(() => {
-        scrollTop += 1;
-        if (scrollTop >= scrollHeight - clientHeight) {
-            // Spend more time at the top
-            setTimeout(() => {
-                list.scrollTo({ top: 0, behavior: 'smooth' });
-                scrollTop = 0;
-            }, 5000); // 5s pause at the bottom before resetting
-        } else {
-            list.scrollTo({ top: scrollTop, behavior: 'smooth' });
-        }
-    }, 200); // Adjust speed of scroll
+      list.scrollTo({ top: scrollTop, behavior: 'smooth' });
+      scrollTop += 1;
+      
+      if (scrollTop >= scrollHeight - clientHeight) {
+        setTimeout(() => {
+          scrollTop = 0;
+          list.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 5000); // Pause at the bottom
+      }
+    }, 200); // Scroll speed
 
     return () => clearInterval(scrollInterval);
   }, [patients, layout]);
@@ -271,7 +274,7 @@ function TVDisplayPageContent() {
   const currentSessionName = getSessionForTime(now, schedule);
   
   let isSessionOver = false;
-  if (currentSessionName && todaySchedule[currentSessionName].isOpen) {
+  if (currentSessionName && todaySchedule[currentSessionName]?.isOpen) {
       const sessionEndUTC = fromZonedTime(parseDateFn(`${todayStr} ${todaySchedule[currentSessionName].end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
       isSessionOver = now > sessionEndUTC;
   }
@@ -348,7 +351,7 @@ function TVDisplayPageContent() {
                         </motion.div>
                     ) : (
                         <motion.div key="no-one" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
-                            <p className="text-3xl font-semibold text-green-700">{doctorStatus.isOnline ? 'Ready for next' : 'Doctor is Offline'}</p>
+                            <p className="text-3xl font-semibold text-green-700">{doctorStatus.isOnline ? (queue.length > 0 ? 'Ready for next' : 'Queue is empty') : 'Doctor is Offline'}</p>
                         </motion.div>
                     )}
                     </AnimatePresence>
@@ -404,7 +407,7 @@ function TVDisplayPageContent() {
                             <span className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
                                 {anonymizeName(upNext.name)}
                                 {upNext.status === 'Late' && (
-                                    <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                    <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">LATE</sup>
                                 )}
                             </span>
                         </div>
@@ -440,7 +443,7 @@ function TVDisplayPageContent() {
                                     {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
                                     {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
                                     {patient.status === 'Late' && (
-                                        <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                        <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">LATE</sup>
                                     )}
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
@@ -562,7 +565,7 @@ function TVDisplayPageContent() {
                         className="text-center"
                     >
                         <p className="text-4xl font-semibold text-slate-400">
-                           {doctorStatus.isOnline ? 'Ready for next patient' : 'Doctor is Offline'}
+                           {doctorStatus.isOnline ? (queue.length > 0 ? 'Ready for next patient' : 'The queue is empty') : 'Doctor is Offline'}
                         </p>
                     </motion.div>
                 )}
@@ -579,14 +582,14 @@ function TVDisplayPageContent() {
                         exit={{ opacity: 0, y: -20 }}
                         className="text-center"
                     >
-                        <ChevronRight className="h-16 w-16 text-amber-500 mx-auto mb-2" />
+                        {upNext.status === 'Priority' ? <Shield className="h-16 w-16 text-red-500 mx-auto mb-2"/> : <ChevronRight className="h-16 w-16 text-amber-500 mx-auto mb-2" />}
                         <p className={cn(
                            "text-6xl font-bold tracking-wider",
                            getPatientNameColorClass(upNext.status, upNext.type)
                          )}>
                            {anonymizeName(upNext.name)}
                            {upNext.status === 'Late' && (
-                                <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">LATE</sup>
                            )}
                         </p>
                          <p className="text-3xl text-slate-500 mt-2 flex items-center justify-center gap-3">
@@ -663,7 +666,7 @@ function TVDisplayPageContent() {
                                 {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
                                 {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
                                 {patient.status === 'Late' && (
-                                    <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                    <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">LATE</sup>
                                 )}
                             </div>
                             <div className="text-center text-slate-600 flex justify-center">
