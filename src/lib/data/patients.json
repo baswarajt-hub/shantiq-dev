@@ -4,34 +4,38 @@
     "phone": "9440120081",
     "type": "Appointment",
     "appointmentTime": "2025-09-19T05:25:00.000Z",
-    "status": "In-Consultation",
+    "status": "Completed",
     "purpose": "Consultation",
     "tokenNo": 6,
     "id": 55,
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
     "slotTime": "2025-09-19T06:15:00.000Z",
-    "worstCaseETC": "2025-09-19T06:12:22.882Z",
+    "worstCaseETC": "2025-09-19T06:15:00.000Z",
     "checkInTime": "2025-09-19T05:48:53.216Z",
     "bestCaseETC": "2025-09-19T06:07:22.882Z",
     "consultationStartTime": "2025-09-19T06:07:28.946Z",
-    "lateLocked": false
+    "lateLocked": false,
+    "consultationEndTime": "2025-09-19T06:12:46.613Z",
+    "consultationTime": 5
   },
   {
     "name": "Lakshmi",
     "phone": "9391188021",
     "type": "Appointment",
     "appointmentTime": "2025-09-19T05:30:00.000Z",
-    "status": "Up-Next",
+    "status": "In-Consultation",
     "purpose": "Consultation",
     "tokenNo": 7,
     "id": 56,
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
     "slotTime": "2025-09-19T06:20:00.000Z",
-    "worstCaseETC": "2025-09-19T06:12:28.946Z",
+    "worstCaseETC": "2025-09-19T06:17:45.075Z",
     "checkInTime": "2025-09-19T05:56:26.596Z",
-    "bestCaseETC": "2025-09-19T06:12:28.946Z"
+    "bestCaseETC": "2025-09-19T06:12:45.075Z",
+    "consultationStartTime": "2025-09-19T06:12:46.614Z",
+    "lateLocked": false
   },
   {
     "name": "Nitya",
@@ -45,9 +49,9 @@
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
     "slotTime": "2025-09-19T06:35:00.000Z",
-    "worstCaseETC": "2025-09-19T06:37:28.946Z",
+    "worstCaseETC": "2025-09-19T06:37:46.614Z",
     "checkInTime": "2025-09-19T05:57:56.358Z",
-    "bestCaseETC": "2025-09-19T06:37:28.946Z"
+    "bestCaseETC": "2025-09-19T06:37:46.614Z"
   },
   {
     "name": "Ridhi",
@@ -103,7 +107,7 @@
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
     "slotTime": "2025-09-19T06:10:00.000Z",
-    "worstCaseETC": "2025-09-19T06:27:28.946Z",
+    "worstCaseETC": "2025-09-19T06:27:46.614Z",
     "checkInTime": "2025-09-19T06:08:12.186Z",
     "lateBy": 0,
     "latePenalty": 2,
@@ -113,7 +117,7 @@
       62
     ],
     "lateLockedAt": "2025-09-19T06:08:12.186Z",
-    "bestCaseETC": "2025-09-19T06:27:28.946Z"
+    "bestCaseETC": "2025-09-19T06:27:46.614Z"
   },
   {
     "name": "Alice Johnson",
@@ -143,7 +147,7 @@
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
     "slotTime": "2025-09-19T06:10:00.000Z",
-    "worstCaseETC": "2025-09-19T06:27:28.946Z",
+    "worstCaseETC": "2025-09-19T06:27:46.614Z",
     "checkInTime": "2025-09-19T06:08:12.186Z",
     "lateBy": 0,
     "latePenalty": 2,
@@ -153,14 +157,14 @@
       62
     ],
     "lateLockedAt": "2025-09-19T06:08:12.186Z",
-    "bestCaseETC": "2025-09-19T06:27:28.946Z"
+    "bestCaseETC": "2025-09-19T06:27:46.614Z"
   },
   {
     "name": "Bob Williams",
     "phone": "5550102020",
     "type": "Walk-in",
     "appointmentTime": "2025-09-19T05:35:00.000Z",
-    "status": "Waiting",
+    "status": "Up-Next",
     "purpose": "Consultation",
     "tokenNo": 8,
     "subType": "Booked Walk-in",
@@ -168,9 +172,9 @@
     "estimatedWaitTime": 0,
     "rescheduleCount": 0,
     "slotTime": "2025-09-19T06:25:00.000Z",
-    "worstCaseETC": "2025-09-19T06:25:00.000Z",
+    "worstCaseETC": "2025-09-19T06:17:46.614Z",
     "checkInTime": "2025-09-19T05:49:30.840Z",
-    "bestCaseETC": "2025-09-19T06:17:28.946Z"
+    "bestCaseETC": "2025-09-19T06:17:46.614Z"
   },
   {
     "name": "Jimmy Doe",
@@ -240,8 +244,8 @@
     "estimatedWaitTime": 45,
     "rescheduleCount": 0,
     "slotTime": "2025-09-19T06:30:00.000Z",
-    "worstCaseETC": "2025-09-19T06:32:28.946Z",
-    "bestCaseETC": "2025-09-19T06:32:28.946Z"
+    "worstCaseETC": "2025-09-19T06:32:46.614Z",
+    "bestCaseETC": "2025-09-19T06:32:46.614Z"
   },
   {
     "name": "Shiva",
@@ -257,7 +261,7 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-19T06:45:00.000Z",
     "worstCaseETC": "2025-09-19T06:45:00.000Z",
-    "bestCaseETC": "2025-09-19T06:42:28.946Z"
+    "bestCaseETC": "2025-09-19T06:42:46.614Z"
   },
   {
     "name": "Ameer",
@@ -273,6 +277,6 @@
     "rescheduleCount": 0,
     "slotTime": "2025-09-19T06:50:00.000Z",
     "worstCaseETC": "2025-09-19T06:50:00.000Z",
-    "bestCaseETC": "2025-09-19T06:47:28.946Z"
+    "bestCaseETC": "2025-09-19T06:47:46.614Z"
   }
 ]

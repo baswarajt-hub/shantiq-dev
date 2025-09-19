@@ -267,12 +267,14 @@ function TVDisplayPageContent() {
   }
 
   const now = new Date();
-  const currentHour = now.getHours();
   
-  const sessionToCheck = (currentHour < 14 || !todaySchedule?.evening.isOpen) ? todaySchedule?.morning : todaySchedule?.evening;
-  const sessionEndUTC = sessionToCheck?.isOpen ? fromZonedTime(parseDateFn(`${todayStr} ${sessionToCheck.end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone) : null;
-  const isSessionOver = sessionEndUTC ? now > sessionEndUTC : false;
-
+  const currentSessionName = getSessionForTime(now, schedule);
+  
+  let isSessionOver = false;
+  if (currentSessionName && todaySchedule[currentSessionName].isOpen) {
+      const sessionEndUTC = fromZonedTime(parseDateFn(`${todayStr} ${todaySchedule[currentSessionName].end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
+      isSessionOver = now > sessionEndUTC;
+  }
   
   if (layout === '2') {
     return (
@@ -402,7 +404,7 @@ function TVDisplayPageContent() {
                             <span className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
                                 {anonymizeName(upNext.name)}
                                 {upNext.status === 'Late' && (
-                                    <sup className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                    <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
                                 )}
                             </span>
                         </div>
@@ -438,7 +440,7 @@ function TVDisplayPageContent() {
                                     {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
                                     {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
                                     {patient.status === 'Late' && (
-                                        <sup className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                        <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
                                     )}
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
@@ -584,7 +586,7 @@ function TVDisplayPageContent() {
                          )}>
                            {anonymizeName(upNext.name)}
                            {upNext.status === 'Late' && (
-                                <sup className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
                            )}
                         </p>
                          <p className="text-3xl text-slate-500 mt-2 flex items-center justify-center gap-3">
@@ -661,7 +663,7 @@ function TVDisplayPageContent() {
                                 {patient.status === 'Priority' && <Shield className="h-6 w-6 text-red-600" title="Priority" />}
                                 {patient.subType === 'Booked Walk-in' && <sup className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
                                 {patient.status === 'Late' && (
-                                    <sup className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
+                                    <sup className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">Late</sup>
                                 )}
                             </div>
                             <div className="text-center text-slate-600 flex justify-center">
