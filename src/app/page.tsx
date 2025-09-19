@@ -681,7 +681,7 @@ export default function DashboardPage() {
                                             <DropdownMenuSubContent>
                                                 <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
-                                                {[1, 2, 3, 5, 8].map(penalty => (
+                                                {[1, 2, 3, 4, 5, 6, 7].map(penalty => (
                                                     <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(patient!.id, penalty)}>
                                                         {`${penalty} position${penalty > 1 ? 's' : ''}`}
                                                     </DropdownMenuItem>
@@ -1008,6 +1008,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
