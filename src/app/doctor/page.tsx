@@ -8,9 +8,9 @@ import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { format, parse } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import Header from '@/components/header';
-import Stats from '@/app/dashboard/stats';
 import { DoctorStatusControls } from '@/components/doctor/doctor-status-controls';
 import { InfoCards } from '@/components/doctor/info-cards';
+import { DoctorStats } from '@/components/doctor/doctor-stats';
 
 const timeZone = 'Asia/Kolkata';
 
@@ -125,7 +125,7 @@ export default function DoctorPage() {
           <p className="text-muted-foreground">A compact overview for the {currentSession} session.</p>
         </div>
         
-        <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
+        <DoctorStats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
 
         <div className="grid gap-6 md:grid-cols-2">
             <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />

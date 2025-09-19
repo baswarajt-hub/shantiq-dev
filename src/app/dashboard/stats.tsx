@@ -10,7 +10,7 @@ type StatsProps = {
 };
 
 export default function Stats({ patients, averageConsultationTime }: StatsProps) {
-  const waitingPatients = patients.filter(p => p.status === 'Waiting' || p.status === 'Late');
+  const waitingPatients = patients.filter(p => p.status === 'Waiting' || p.status === 'Late' || p.status === 'Up-Next' || p.status === 'Priority');
   const completedPatients = patients.filter(p => p.status === 'Completed');
   const yetToArrive = patients.filter(p => p.status === 'Booked' || p.status === 'Confirmed');
   
