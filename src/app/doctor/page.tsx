@@ -1,0 +1,138 @@
+
+'use client';
+
+import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
+import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
+import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { format, parse } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import Header from '@/components/header';
+import Stats from '@/app/dashboard/stats';
+import { DoctorStatusControls } from '@/components/doctor/doctor-status-controls';
+import { InfoCards } from '@/components/doctor/info-cards';
+
+const timeZone = 'Asia/Kolkata';
+
+export default function DoctorPage() {
+  const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule) => {
+    const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
+    const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
+    const dateStr = format(zonedAppt, 'yyyy-MM-dd');
+    let daySchedule = localSchedule.days[dayOfWeek];
+    const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
+    if (todayOverride) {
+      daySchedule = {
+        morning: todayOverride.morningOverride ?? daySchedule.morning,
+        evening: todayOverride.eveningOverride ?? daySchedule.evening,
+      };
+    }
+
+    const checkSession = (session: Session) => {
+      if (!session.isOpen) return false;
+      const startUtc = fromZonedTime(parse(`${dateStr} ${session.start}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
+      const endUtc = fromZonedTime(parse(`${dateStr} ${session.end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
+      const apptMs = appointmentUtcDate.getTime();
+      return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
+    };
+
+    if (checkSession(daySchedule.morning)) return 'morning';
+    if (checkSession(daySchedule.evening)) return 'evening';
+    return null;
+  }, []);
+
+  const loadData = useCallback(() => {
+    startTransition(async () => {
+      await recalculateQueueWithETC();
+      const [scheduleData, patientData, statusData] = await Promise.all([
+        getDoctorScheduleAction(),
+        getPatientsAction(),
+        getDoctorStatusAction(),
+      ]);
+      setSchedule(scheduleData);
+      setPatients(patientData);
+      setDoctorStatus(statusData);
+    });
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    const intervalId = setInterval(loadData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(intervalId);
+  }, [loadData]);
+
+  const { currentSession, sessionPatients, averageConsultationTime } = useMemo(() => {
+    if (!schedule) {
+      return { currentSession: null, sessionPatients: [], averageConsultationTime: 0 };
+    }
+    const now = new Date();
+    const currentHour = now.getHours();
+    let session: 'morning' | 'evening' = 'morning';
+
+    // A more robust session detection
+    const morningEndHour = parseInt(schedule.days.Monday.morning.end.split(':')[0]);
+    if (currentHour >= morningEndHour) {
+      session = 'evening';
+    }
+
+    const filteredPatients = patients.filter(p => {
+      const apptDate = new Date(p.appointmentTime);
+      return format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') === format(toZonedTime(now, timeZone), 'yyyy-MM-dd') &&
+             getSessionForTime(apptDate, schedule) === session;
+    });
+
+    const completedWithTime = filteredPatients.filter(p => p.status === 'Completed' && typeof p.consultationTime === 'number');
+    let avgTime = schedule.slotDuration || 10;
+    if (completedWithTime.length > 0) {
+      const totalTime = completedWithTime.reduce((acc, p) => acc + p.consultationTime!, 0);
+      avgTime = Math.round(totalTime / completedWithTime.length);
+    }
+    
+    return { currentSession: session, sessionPatients: filteredPatients, averageConsultationTime: avgTime };
+
+  }, [schedule, patients, getSessionForTime]);
+
+  if (!schedule || !doctorStatus || isPending && !patients.length) {
+    return (
+      <div className="flex flex-col min-h-screen bg-muted/40">
+        <Header logoSrc={null} />
+        <main className="flex-1 container mx-auto p-4 space-y-6">
+          <Skeleton className="h-12 w-1/3" />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+          </div>
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-muted/40">
+      <Header logoSrc={schedule.clinicDetails.clinicLogo} clinicName={schedule.clinicDetails.clinicName} />
+      <main className="flex-1 container mx-auto p-4 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Doctor's Panel</h1>
+          <p className="text-muted-foreground">A compact overview for the {currentSession} session.</p>
+        </div>
+        
+        <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
+
+        <div className="grid gap-6 md:grid-cols-2">
+            <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />
+            <InfoCards schedule={schedule} />
+        </div>
+
+      </main>
+    </div>
+  );
+}

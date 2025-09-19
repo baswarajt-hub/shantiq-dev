@@ -4,6 +4,7 @@ import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { User, Shield } from "lucide-react";
 
 type HeaderProps = {
   logoSrc?: string | null;
@@ -24,9 +25,12 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
           )}
           <span className="font-bold sm:inline-block text-lg">{clinicName || 'QueueWise'}</span>
         </Link>
-        <nav className="flex flex-1 items-center space-x-4">
+        <nav className="flex flex-1 items-center space-x-2">
            <Button variant="ghost" asChild>
             <Link href="/">Dashboard</Link>
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link href="/doctor" className="text-blue-600 font-semibold">Doctor Panel</Link>
           </Button>
           <Button variant="ghost" asChild>
             <Link href="/admin">Admin</Link>
