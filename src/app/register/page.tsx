@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [gender, setGender] = useState('');
   const [dob, setDob] = useState('');
+  const [email, setEmail] = useState('');
   const [location, setLocation] = useState('');
   const [city, setCity] = useState('');
   const [phone, setPhone] = useState<string | null>(null);
@@ -32,10 +33,10 @@ export default function RegisterPage() {
   }, [router]);
 
   const handleRegister = () => {
-    if (!name || !gender || !dob || !location || !city || !phone) {
+    if (!name || !gender || !location || !city || !phone) {
       toast({
         title: 'Missing Information',
-        description: 'Please fill out all fields to register.',
+        description: 'Please fill out all required fields to register.',
         variant: 'destructive',
       });
       return;
@@ -49,6 +50,7 @@ export default function RegisterPage() {
         gender,
         location,
         city,
+        email,
       });
 
       if (result.success) {
@@ -87,12 +89,12 @@ export default function RegisterPage() {
                 <Input value={phone} disabled />
             </div>
              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="As per your records" />
+                <Label htmlFor="name">Full Name (Parent's)</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Parent's Name" />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth</Label>
+                    <Label htmlFor="dob">Date of Birth (Optional)</Label>
                     <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
                 </div>
                 <div className="space-y-2">
@@ -108,6 +110,10 @@ export default function RegisterPage() {
                         </SelectContent>
                     </Select>
                 </div>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="email">Email (Optional)</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. parent@example.com" />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

@@ -38,9 +38,6 @@ function writeData<T>(filePath: string, data: T): void {
     }
 }
 
-let family: FamilyMember[] = readData<FamilyMember[]>(familyFilePath, []);
-let nextFamilyId = family.length > 0 ? Math.max(...family.map(f => f.id)) + 1 : 1;
-
 const defaultStatus: DoctorStatus = {
   isOnline: false,
   onlineTime: undefined,
@@ -91,7 +88,7 @@ export async function getPatients() {
 }
 
 export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>) {
-    let patients = await getPatients();
+    const patients = await getPatients();
     const newPatient: Patient = {
         ...patient,
         id: patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1,
@@ -220,18 +217,18 @@ export async function updateNotificationData(notifications: Notification[]) {
 
 // Family / Member specific functions
 export async function getFamilyByPhone(phone: string) {
-    family = readData<FamilyMember[]>(familyFilePath, []);
+    const family = readData<FamilyMember[]>(familyFilePath, []);
     return family.filter(member => member.phone === phone);
 }
 
 export async function findPrimaryUserByPhone(phone: string): Promise<FamilyMember | null> {
-    family = readData<FamilyMember[]>(familyFilePath, []);
+    const family = readData<FamilyMember[]>(familyFilePath, []);
     const primaryUser = family.find(member => member.phone === phone && member.isPrimary);
     return primaryUser || null;
 }
 
 export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMember[]> {
-    family = readData<FamilyMember[]>(familyFilePath, []);
+    const family = readData<FamilyMember[]>(familyFilePath, []);
     if (!searchTerm.trim()) {
         return [];
     }
@@ -244,7 +241,7 @@ export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMem
 }
 
 export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember> {
-    family = readData<FamilyMember[]>(familyFilePath, []);
+    const family = readData<FamilyMember[]>(familyFilePath, []);
     const newId = family.length > 0 ? Math.max(...family.map(f => f.id)) + 1 : 1;
     const newMember: FamilyMember = {
         ...memberData,
@@ -253,11 +250,11 @@ export async function addFamilyMember(memberData: Omit<FamilyMember, 'id' | 'ava
     };
     family.push(newMember);
     writeData(familyFilePath, family);
-    nextFamilyId = newId + 1;
     return newMember;
 }
 
 export async function updateFamilyMember(updatedMember: FamilyMember) {
+    let family = readData<FamilyMember[]>(familyFilePath, []);
     family = family.map(m => m.id === updatedMember.id ? updatedMember : m);
     writeData(familyFilePath, family);
     return updatedMember;
@@ -274,7 +271,7 @@ export async function cancelAppointment(appointmentId: number) {
 
 
 export async function getFamily() {
-    family = readData<FamilyMember[]>(familyFilePath, []);
+    const family = readData<FamilyMember[]>(familyFilePath, []);
     return JSON.parse(JSON.stringify(family));
 }
 

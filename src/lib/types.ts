@@ -113,7 +113,7 @@ export type DoctorSchedule = {
 export type FamilyMember = {
   id: number;
   name: string;
-  dob: string; // YYYY-MM-DD
+  dob?: string; // YYYY-MM-DD
   gender: 'Male' | 'Female' | 'Other';
   avatar?: string; // URL to avatar image
   clinicId?: string;
@@ -121,6 +121,7 @@ export type FamilyMember = {
   isPrimary?: boolean;
   location?: string;
   city?: string;
+  email?: string;
 };
 
 export type Appointment = {
