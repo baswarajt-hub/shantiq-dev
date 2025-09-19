@@ -516,19 +516,28 @@ export async function recalculateQueueWithETC() {
                 const actualDelay = differenceInMinutes(onlineTimeUtc, clinicSessionStartTime);
                 sessionDelay = actualDelay > 0 ? actualDelay : 0;
             }
-        } else {
+        } else if (doctorStatus.startDelay > 0) {
+             // Logic for when doctor is NOT online but a delay is set
              const now = new Date();
-             const morningStartUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.start) : new Date(8.64e15);
-             const eveningStartUtc = daySchedule.evening.isOpen ? sessionLocalToUtc(todayStr, daySchedule.evening.start) : new Date(8.64e15);
+             const morningStartUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.start) : new Date(8.64e15); // Far future
+             const eveningStartUtc = daySchedule.evening.isOpen ? sessionLocalToUtc(todayStr, daySchedule.evening.start) : new Date(8.64e15); // Far future
 
             let delayAppliesToSession: 'morning' | 'evening' | null = null;
+            
+            // If it's before the morning session even starts, the delay applies to the morning.
             if (now < morningStartUtc) {
                 delayAppliesToSession = 'morning'; 
-            } else if (now >= morningStartUtc && now < eveningStartUtc) {
+            } 
+            // If we are between the start of morning and start of evening, the delay applies to the current (morning) session.
+            else if (now >= morningStartUtc && now < eveningStartUtc) {
                 delayAppliesToSession = 'morning';
-            } else {
+            } 
+            // If we are past the start of the evening session, the delay applies to the evening session.
+            else if (now >= eveningStartUtc) {
                 delayAppliesToSession = 'evening';
             }
+            
+            // Only apply the startDelay if it's for the session we are currently calculating
              if (delayAppliesToSession === session) {
                  sessionDelay = doctorStatus.startDelay;
              }
@@ -1024,4 +1033,6 @@ export async function updateNotificationsAction(notifications: Notification[]) {
     revalidatePath('/patient-portal');
     return { success: 'Notifications updated successfully.' };
 }
+    
+
     

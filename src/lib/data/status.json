@@ -1,6 +1,6 @@
 {
-  "isOnline": true,
+  "isOnline": false,
   "onlineTime": "2025-09-18T21:03:54.136Z",
-  "startDelay": 0,
+  "startDelay": 40,
   "isPaused": false
 }
