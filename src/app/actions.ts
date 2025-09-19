@@ -882,7 +882,7 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
   const waitingSnapshot = allPatients
     .filter((p: Patient) => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === todayStr)
-    .filter((p: Patient) => p.id !== patientId && ['Waiting', 'Up-Next'].includes(p.status))
+    .filter((p: Patient) => p.id !== patientId && ['Waiting', 'Up-Next', 'Late', 'Priority'].includes(p.status))
     .sort((a: Patient, b: Patient) => {
        if (a.status === 'Priority' && b.status !== 'Priority') return -1;
        if (a.status !== 'Priority' && b.status === 'Priority') return 1;
