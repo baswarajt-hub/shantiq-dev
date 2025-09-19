@@ -461,16 +461,24 @@ export default function DashboardPage() {
 
     const handleToggleDoctorStatus = () => {
         startTransition(async () => {
+            const isGoingOnline = !doctorStatus?.isOnline;
             const newStatus = {
-                isOnline: !doctorStatus?.isOnline,
-                onlineTime: !doctorStatus?.isOnline ? new Date().toISOString() : undefined,
-                startDelay: doctorStartDelay
+                isOnline: isGoingOnline,
+                onlineTime: isGoingOnline ? new Date().toISOString() : undefined,
+                // Reset delay only when going online
+                startDelay: isGoingOnline ? 0 : doctorStartDelay 
             };
+            
             const result = await setDoctorStatusAction(newStatus);
+            
             if (result?.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
                 toast({ title: 'Success', description: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.`});
+                // If we just went online, also reset the local delay input state
+                if (isGoingOnline) {
+                    setDoctorStartDelay(0);
+                }
                 await loadData();
             }
         });
@@ -1008,6 +1016,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
