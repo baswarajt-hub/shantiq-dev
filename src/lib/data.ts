@@ -217,34 +217,40 @@ const defaultSchedule: DoctorSchedule = {
 
 export async function getDoctorStatus(): Promise<DoctorStatus> {
   const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-  return JSON.parse(JSON.stringify(settings.status));
+  return JSON.parse(JSON.stringify(settings.status || defaultStatus));
 }
 
 export async function updateDoctorStatus(statusUpdate: Partial<DoctorStatus>): Promise<DoctorStatus> {
   const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-  const newStatus = { ...settings.status, ...statusUpdate };
+  const newStatus = { ...(settings.status || defaultStatus), ...statusUpdate };
   await updateDoc(settingsDoc, { status: newStatus });
   return newStatus;
 }
 
 export async function getDoctorSchedule(): Promise<DoctorSchedule> {
   const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-  return JSON.parse(JSON.stringify(settings.schedule));
+  const schedule = settings.schedule || defaultSchedule;
+  // Ensure nested arrays exist to prevent runtime errors
+  if (!schedule.specialClosures) schedule.specialClosures = [];
+  if (!schedule.visitPurposes) schedule.visitPurposes = [];
+  if (!schedule.notifications) schedule.notifications = [];
+  return JSON.parse(JSON.stringify(schedule));
 }
 
 export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedule>): Promise<DoctorSchedule> {
   const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
+  const currentSchedule = settings.schedule || defaultSchedule;
   const newSchedule: DoctorSchedule = {
-    ...settings.schedule,
+    ...currentSchedule,
     ...scheduleUpdate,
     days: {
-      ...settings.schedule.days,
+      ...currentSchedule.days,
       ...scheduleUpdate.days,
     },
-    clinicDetails: scheduleUpdate.clinicDetails ?? settings.schedule.clinicDetails,
-    specialClosures: scheduleUpdate.specialClosures ?? settings.schedule.specialClosures,
-    visitPurposes: scheduleUpdate.visitPurposes ?? settings.schedule.visitPurposes,
-    notifications: scheduleUpdate.notifications ?? settings.schedule.notifications,
+    clinicDetails: scheduleUpdate.clinicDetails ?? currentSchedule.clinicDetails,
+    specialClosures: scheduleUpdate.specialClosures ?? currentSchedule.specialClosures,
+    visitPurposes: scheduleUpdate.visitPurposes ?? currentSchedule.visitPurposes,
+    notifications: scheduleUpdate.notifications ?? currentSchedule.notifications,
   };
   await updateDoc(settingsDoc, { schedule: newSchedule });
   return newSchedule;
