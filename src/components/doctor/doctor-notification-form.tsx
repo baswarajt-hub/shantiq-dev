@@ -35,14 +35,14 @@ function DateTimePicker({ label, isoString, onDateChange, onTimeChange, disabled
     return (
        <div className="space-y-2">
             <Label>{label}</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button
                           variant={"outline"}
                           disabled={disabled}
                           className={cn(
-                              "flex-1 justify-start text-left font-normal",
+                              "w-full justify-start text-left font-normal",
                               !dateValue && "text-muted-foreground"
                           )}
                         >
@@ -61,7 +61,7 @@ function DateTimePicker({ label, isoString, onDateChange, onTimeChange, disabled
                 </Popover>
                 <Input
                     type="time"
-                    className="w-[120px]"
+                    className="w-full"
                     value={timeValue}
                     onChange={(e) => onTimeChange(e.target.value)}
                     disabled={disabled}
