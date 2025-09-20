@@ -249,6 +249,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 schedule={schedule}
+                className="p-0"
               />
             </div>
             <RadioGroup value={selectedSession} onValueChange={(value) => { setSelectedSession(value); setSelectedSlot(''); }} className="flex justify-center gap-4">

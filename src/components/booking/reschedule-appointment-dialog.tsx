@@ -132,7 +132,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
     setSelectedDate(new Date(appointment.date));
     setSelectedSession('morning');
     setSelectedSlot('');
-    setSelectedPurpose(appointment.purpose || '');
+    setSelectedPurpose(appointment.purpose || 'Consultation');
   }
 
   const handleClose = (open: boolean) => {
@@ -213,6 +213,7 @@ export function RescheduleAppointmentDialog({ isOpen, onOpenChange, appointment,
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 schedule={schedule}
+                className="p-0"
               />
             </div>
             <RadioGroup defaultValue="morning" onValueChange={(v) => {setSelectedSession(v); setSelectedSlot('')}} className="flex justify-center gap-4">

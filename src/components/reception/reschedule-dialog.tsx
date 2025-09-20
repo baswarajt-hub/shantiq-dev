@@ -177,6 +177,7 @@ export function RescheduleDialog({ isOpen, onOpenChange, patient, schedule, onSa
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 schedule={schedule}
+                className="p-0"
               />
             </div>
             <RadioGroup defaultValue="morning" onValueChange={(v) => {setSelectedSession(v); setSelectedSlot('')}} className="flex justify-center gap-4">
