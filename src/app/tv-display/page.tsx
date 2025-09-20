@@ -101,13 +101,21 @@ function TVDisplayPageContent() {
         localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
         return fromZonedTime(localDate, timeZone);
     }
+    
+    const checkSession = (sessionName: 'morning' | 'evening') => {
+        const session = daySchedule[sessionName];
+        if (!session.isOpen) return false;
 
-    const checkSession = (session: Session) => {
-      if (!session.isOpen) return false;
-      const startUtc = sessionLocalToUtc(session.start);
-      const endUtc = sessionLocalToUtc(session.end);
-      const apptMs = appointmentUtcDate.getTime();
-      return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
+        const isClosedByOverride = sessionName === 'morning' ? todayOverride?.isMorningClosed : todayOverride?.isEveningClosed;
+        if(isClosedByOverride) return false;
+        
+        const effectiveSession = sessionName === 'morning' ? todayOverride?.morningOverride ?? session : todayOverride?.eveningOverride ?? session;
+
+        const startUtc = sessionLocalToUtc(effectiveSession.start);
+        const endUtc = sessionLocalToUtc(effectiveSession.end);
+
+        const apptMs = appointmentUtcDate.getTime();
+        return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
     };
 
     if (checkSession('morning')) return 'morning';
@@ -132,7 +140,6 @@ function TVDisplayPageContent() {
     if (scheduleData) {
         sessionToShow = getSessionForTime(now, scheduleData);
 
-        // If we're not currently in a session time, figure out which one is relevant
         if (!sessionToShow) {
             const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
             const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
@@ -147,17 +154,16 @@ function TVDisplayPageContent() {
             }
             
             const morningSession = daySchedule.morning;
-            // If morning session is open and has already passed, show evening. Otherwise, default to morning.
             if (morningSession.isOpen) {
                 const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
                 const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
                 if (now > morningEndUtc) {
-                    sessionToShow = 'evening'; // Switch to evening after morning session time is over
+                    sessionToShow = 'evening';
                 } else {
-                    sessionToShow = 'morning'; // It's before or during morning session
+                    sessionToShow = 'morning';
                 }
             } else {
-                sessionToShow = 'evening'; // Morning is closed, so show evening
+                sessionToShow = 'evening';
             }
         }
     }
@@ -709,4 +715,3 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
-
