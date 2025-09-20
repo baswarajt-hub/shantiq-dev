@@ -57,7 +57,6 @@ export default function DoctorPage() {
 
   const loadData = useCallback(() => {
     startTransition(async () => {
-      await recalculateQueueWithETC();
       const [scheduleData, patientData, statusData] = await Promise.all([
         getDoctorScheduleAction(),
         getPatientsAction(),
