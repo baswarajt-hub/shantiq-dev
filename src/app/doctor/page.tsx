@@ -7,7 +7,7 @@ import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, reca
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { format, parse } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-import Header from '@/components/header';
+import { DoctorHeader } from '@/components/doctor/doctor-header';
 import { DoctorStatusControls } from '@/components/doctor/doctor-status-controls';
 import { InfoCards } from '@/components/doctor/info-cards';
 import { DoctorStats } from '@/components/doctor/doctor-stats';
@@ -147,7 +147,7 @@ export default function DoctorPage() {
   if (!schedule || !doctorStatus || isPending && !patients.length) {
     return (
       <div className="flex flex-col min-h-screen bg-muted/40">
-        <Header logoSrc={null} />
+        <DoctorHeader logoSrc={null} />
         <main className="flex-1 container mx-auto p-4 space-y-6">
           <Skeleton className="h-12 w-1/3" />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -165,7 +165,7 @@ export default function DoctorPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
-      <Header logoSrc={schedule.clinicDetails.clinicLogo} clinicName={schedule.clinicDetails.clinicName} />
+      <DoctorHeader logoSrc={schedule.clinicDetails.clinicLogo} clinicName={schedule.clinicDetails.clinicName} />
       <main className="flex-1 container mx-auto p-4 space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Doctor's Panel</h1>
