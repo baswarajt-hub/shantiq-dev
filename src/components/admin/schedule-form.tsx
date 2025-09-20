@@ -160,7 +160,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
                 <Input 
                     id="slotDuration"
                     type="number" 
-                    value={schedule.slotDuration}
+                    value={schedule.slotDuration || 0}
                     onChange={handleSlotDurationChange}
                     className="w-[180px]"
                     placeholder="e.g. 10"
