@@ -6,7 +6,6 @@ import {
   eachDayOfInterval,
   endOfWeek,
   format,
-  startOfWeek,
   isPast,
   set
 } from 'date-fns';
@@ -45,6 +44,8 @@ export function WeekView({ schedule, closures, onOverrideSave }: WeekViewProps) 
     const closure = closures.find(c => c.date === dateStr);
     const daySchedule = schedule.days[dayName];
     
+    if (!daySchedule) return null;
+
     const sessions: { name: 'morning' | 'evening'; session: Session, override?: Session }[] = [
         { name: 'morning', session: daySchedule.morning, override: closure?.morningOverride },
         { name: 'evening', session: daySchedule.evening, override: closure?.eveningOverride },
@@ -140,3 +141,5 @@ export function WeekView({ schedule, closures, onOverrideSave }: WeekViewProps) 
     </div>
   );
 }
+
+    

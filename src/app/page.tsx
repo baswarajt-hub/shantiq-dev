@@ -113,7 +113,7 @@ export default function DashboardPage() {
     const [isPending, startTransition] = useTransition();
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
-        if (!schedule) return null;
+        if (!schedule || !schedule.days) return null;
         
         const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
         const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
@@ -204,7 +204,7 @@ export default function DashboardPage() {
 
 
     useEffect(() => {
-        if (!schedule) return;
+        if (!schedule || !schedule.days) return;
 
         const familyMap = new Map(family.map(f => [`${f.phone}-${f.name}`, f]));
         
@@ -1026,3 +1026,6 @@ export default function DashboardPage() {
 
 
 
+
+
+    
