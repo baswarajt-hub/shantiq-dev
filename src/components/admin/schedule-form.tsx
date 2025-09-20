@@ -107,6 +107,10 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
   }
 
   const copyToWeekdays = () => {
+    if (!schedule || !schedule.days) {
+      toast({ title: "Error", description: "Schedule data is not loaded yet.", variant: "destructive" });
+      return;
+    }
     const mondaySchedule = schedule.days.Monday;
     const newDays = {...schedule.days};
     weekdays.slice(1).forEach(day => {
