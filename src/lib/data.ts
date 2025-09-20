@@ -5,9 +5,12 @@ import { format, parse, parseISO } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import fs from 'fs';
 import path from 'path';
+import { db } from './firebase';
+import { collection, getDocs, doc, getDoc, addDoc, writeBatch, updateDoc, query, where, documentId } from 'firebase/firestore';
+
 
 const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
-const patientsFilePath = path.join(dataDir, 'patients.json');
+// Keep non-patient data in JSON for now
 const familyFilePath = path.join(dataDir, 'family.json');
 const scheduleFilePath = path.join(dataDir, 'schedule.json');
 const statusFilePath = path.join(dataDir, 'status.json');
@@ -81,60 +84,136 @@ const defaultSchedule: DoctorSchedule = {
   ],
 };
 
-// This is a mock database. In a real app, you'd use a proper database.
-export async function getPatients() {
-  const patients = readData<Patient[]>(patientsFilePath, []);
-  return JSON.parse(JSON.stringify(patients));
+// --- Firestore Patient Functions ---
+
+// Since Firestore generates string IDs, we need to adjust the type
+// The `id` from the database will be a string. We keep the `Patient` type
+// with number for now to avoid breaking the rest of the app, but we convert.
+type PatientDoc = Omit<Patient, 'id'>;
+
+export async function getPatients(): Promise<Patient[]> {
+  try {
+    const patientsCollection = collection(db, 'patients');
+    const patientSnapshot = await getDocs(patientsCollection);
+    const patientsList = patientSnapshot.docs.map(doc => {
+        const data = doc.data() as PatientDoc;
+        // Convert Firestore string ID to a number for compatibility with the app
+        // NOTE: This is not robust for production. A better approach is to use string IDs throughout the app.
+        // Or use a dedicated numeric ID field. For now, we hash the string to a number.
+        let numericId = 0;
+        for (let i = 0; i < doc.id.length; i++) {
+            numericId = (numericId << 5) - numericId + doc.id.charCodeAt(i);
+            numericId |= 0; // Convert to 32bit integer
+        }
+        return { ...data, id: Math.abs(numericId), firestoreId: doc.id } as Patient & { firestoreId: string };
+    });
+    return JSON.parse(JSON.stringify(patientsList));
+  } catch (error) {
+    console.error("Error getting patients from Firestore:", error);
+    return [];
+  }
 }
 
-export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>) {
+async function getPatientFirestoreId(numericId: number): Promise<string | null> {
+    // This is inefficient and should be avoided in a real app.
+    // It's a workaround because we are using a numeric ID in the app
+    // while Firestore uses string IDs.
     const patients = await getPatients();
-    const newPatient: Patient = {
+    const patient = patients.find(p => p.id === numericId);
+    return (patient as any)?.firestoreId || null;
+}
+
+
+export async function addPatient(patient: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>): Promise<Patient> {
+    const newPatientData: PatientDoc = {
         ...patient,
-        id: patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1,
-        estimatedWaitTime: patients.filter(p => p.status === 'Waiting').length * 15,
+        estimatedWaitTime: 0, // will be recalculated
         rescheduleCount: 0,
         slotTime: patient.appointmentTime,
         status: patient.status || 'Booked',
     };
-  patients.push(newPatient);
-  writeData(patientsFilePath, patients);
-  return newPatient;
+    const docRef = await addDoc(collection(db, 'patients'), newPatientData);
+    let numericId = 0;
+    for (let i = 0; i < docRef.id.length; i++) {
+      numericId = (numericId << 5) - numericId + docRef.id.charCodeAt(i);
+      numericId |= 0;
+    }
+    return { ...newPatientData, id: Math.abs(numericId) };
 }
 
-export async function addPatientData(patientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>) {
-    const patients = await getPatients();
-    const newPatient: Patient = {
+export async function addPatientData(patientData: Omit<Patient, 'id' | 'estimatedWaitTime' | 'slotTime'>): Promise<Patient> {
+    const newPatientData: PatientDoc = {
         ...patientData,
-        id: patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1,
-        estimatedWaitTime: 15, // Default, will be recalculated
         slotTime: patientData.appointmentTime,
     };
-    patients.push(newPatient);
-    writeData(patientsFilePath, patients);
-    return newPatient;
+    const docRef = await addDoc(collection(db, 'patients'), newPatientData);
+    let numericId = 0;
+    for (let i = 0; i < docRef.id.length; i++) {
+      numericId = (numericId << 5) - numericId + docRef.id.charCodeAt(i);
+      numericId |= 0;
+    }
+    return { ...newPatientData, id: Math.abs(numericId) };
 }
 
-export async function updatePatient(id: number, updates: Partial<Patient>) {
-  let patients = await getPatients();
-  patients = patients.map(p => (p.id === id ? { ...p, ...updates } : p));
-  writeData(patientsFilePath, patients);
-  return patients.find(p => p.id === id);
+export async function updatePatient(id: number, updates: Partial<Patient>): Promise<Patient | undefined> {
+    const firestoreId = await getPatientFirestoreId(id);
+    if (!firestoreId) {
+        console.error("Could not find Firestore document for patient ID:", id);
+        return undefined;
+    }
+    const patientRef = doc(db, 'patients', firestoreId);
+    await updateDoc(patientRef, updates);
+    const updatedDoc = await getDoc(patientRef);
+    return { ...(updatedDoc.data() as PatientDoc), id };
 }
 
-export async function findPatientById(id: number) {
-  const patients = await getPatients();
-  return patients.find(p => p.id === id);
+export async function findPatientById(id: number): Promise<Patient | undefined> {
+  const firestoreId = await getPatientFirestoreId(id);
+  if (!firestoreId) return undefined;
+  const patientRef = doc(db, 'patients', firestoreId);
+  const patientSnap = await getDoc(patientRef);
+  if (patientSnap.exists()) {
+    return { ...(patientSnap.data() as PatientDoc), id };
+  }
+  return undefined;
 }
 
-export async function findPatientsByPhone(phone: string) {
-    const patients = await getPatients();
-    return patients.filter(p => p.phone === phone);
+
+export async function findPatientsByPhone(phone: string): Promise<Patient[]> {
+    const q = query(collection(db, "patients"), where("phone", "==", phone));
+    const querySnapshot = await getDocs(q);
+    const patientsList = querySnapshot.docs.map(doc => {
+        const data = doc.data() as PatientDoc;
+         let numericId = 0;
+        for (let i = 0; i < doc.id.length; i++) {
+            numericId = (numericId << 5) - numericId + doc.id.charCodeAt(i);
+            numericId |= 0; 
+        }
+        return { ...data, id: Math.abs(numericId) };
+    });
+    return patientsList;
 }
 
-export async function updateAllPatients(newPatients: Patient[]) {
-  writeData(patientsFilePath, newPatients);
+export async function updateAllPatients(newPatients: (Patient & { firestoreId?: string })[]): Promise<void> {
+    const batch = writeBatch(db);
+    
+    // We need firestore IDs to update. The incoming `newPatients` might not have them if they were just read.
+    const allCurrentPatients = await getPatients();
+    const idMap = new Map(allCurrentPatients.map(p => [(p as any).id, (p as any).firestoreId]));
+
+    newPatients.forEach(patient => {
+        const firestoreId = patient.firestoreId || idMap.get(patient.id);
+        if (firestoreId) {
+            const { id, firestoreId: fid, ...patientData } = patient;
+            const patientRef = doc(db, "patients", firestoreId);
+            batch.set(patientRef, patientData, { merge: true });
+        }
+    });
+    await batch.commit();
 }
+
+
+// --- JSON file based functions (for other data) ---
 
 export async function getDoctorStatus(): Promise<DoctorStatus> {
   const status = readData<DoctorStatus>(statusFilePath, defaultStatus);
@@ -274,5 +353,3 @@ export async function getFamily() {
     const family = readData<FamilyMember[]>(familyFilePath, []);
     return JSON.parse(JSON.stringify(family));
 }
-
-    
