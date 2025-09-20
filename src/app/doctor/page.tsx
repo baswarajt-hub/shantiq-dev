@@ -17,6 +17,7 @@ import { NotificationForm } from '@/components/admin/notification-form';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, SlidersHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const timeZone = 'Asia/Kolkata';
 
@@ -100,14 +101,31 @@ export default function DoctorPage() {
       return { currentSession: null, sessionPatients: [], averageConsultationTime: 0 };
     }
     const now = new Date();
-    const currentHour = now.getHours();
+    const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+    const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+
+    let daySchedule = schedule.days[dayOfWeek];
+    const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+    if (todayOverride) {
+      daySchedule = {
+        morning: todayOverride.morningOverride ?? daySchedule.morning,
+        evening: todayOverride.eveningOverride ?? daySchedule.evening,
+      };
+    }
+    
     let session: 'morning' | 'evening' = 'morning';
 
-    // A more robust session detection
-    const morningEndHour = parseInt(schedule.days.Monday.morning.end.split(':')[0]);
-    if (currentHour >= morningEndHour) {
-      session = 'evening';
+    if (daySchedule.morning.isOpen) {
+        const morningEndTime = parse(daySchedule.morning.end, 'HH:mm', now);
+        // If current time is past morning session end time, switch to evening
+        if (now > morningEndTime) {
+            session = 'evening';
+        }
+    } else {
+        // If morning is not open, default to evening
+        session = 'evening';
     }
+
 
     const filteredPatients = patients.filter(p => {
       const apptDate = new Date(p.appointmentTime);
@@ -151,7 +169,12 @@ export default function DoctorPage() {
       <main className="flex-1 container mx-auto p-4 space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Doctor's Panel</h1>
-          <p className="text-muted-foreground">A compact overview for the {currentSession} session.</p>
+          <p className="text-muted-foreground text-lg">
+            {format(new Date(), 'EEEE, MMMM d')} - 
+            <span className={cn("font-semibold", currentSession === 'morning' ? 'text-amber-600' : 'text-blue-600')}>
+              {currentSession === 'morning' ? ' Morning Session' : ' Evening Session'}
+            </span>
+          </p>
         </div>
         
         <DoctorStats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
