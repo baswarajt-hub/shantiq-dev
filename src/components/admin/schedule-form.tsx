@@ -2,7 +2,7 @@
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
-import type { DoctorSchedule, DaySchedule, Session, VisitPurpose } from '@/lib/types';
+import type { DoctorSchedule, DaySchedule, Session } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -61,12 +61,6 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
   useEffect(() => {
     setSchedule(initialSchedule);
   }, [initialSchedule]);
-  
-  const createUpdatedSchedule = (updater: (draft: DoctorSchedule) => void) => {
-    const newSchedule = JSON.parse(JSON.stringify(schedule));
-    updater(newSchedule);
-    return newSchedule;
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -123,7 +117,6 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
     e.preventDefault();
     startTransition(async () => {
       await onSave(schedule);
-      toast({ title: "Success", description: "Schedule saved."});
     });
   };
 
@@ -185,7 +178,6 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
                    
                    <RadioGroup 
                       onValueChange={handleWalkInStrategyChange} 
-                      defaultValue={schedule.walkInReservation || 'none'}
                       value={schedule.walkInReservation || 'none'}
                       className="space-y-2 border-l-2 pl-4 ml-2"
                    >
