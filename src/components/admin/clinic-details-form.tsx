@@ -10,17 +10,31 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import Image from 'next/image';
 
+const EMPTY_DETAILS: ClinicDetails = {
+  doctorName: '',
+  qualifications: '',
+  clinicName: '',
+  tagLine: '',
+  address: '',
+  contactNumber: '',
+  email: '',
+  website: '',
+  consultationFee: 0,
+  paymentQRCode: '',
+  clinicLogo: ''
+};
+
 type ClinicDetailsFormProps = {
-  initialDetails: ClinicDetails;
+  initialDetails?: ClinicDetails | null;
   onSave: (details: ClinicDetails) => Promise<void>;
 };
 
 export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormProps) {
-  const [details, setDetails] = useState<ClinicDetails>(initialDetails);
+  const [details, setDetails] = useState<ClinicDetails>(initialDetails || EMPTY_DETAILS);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    setDetails(initialDetails);
+    setDetails(initialDetails || EMPTY_DETAILS);
   }, [initialDetails]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
