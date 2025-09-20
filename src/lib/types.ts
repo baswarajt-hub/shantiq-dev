@@ -1,7 +1,7 @@
 
 
 export type Patient = {
-  id: number;
+  id: string;
   name: string;
   type: 'Appointment' | 'Walk-in';
   subType?: 'Booked Walk-in';
@@ -27,7 +27,7 @@ export type Patient = {
   // Anchor-based late handling
   lateLocked?: boolean;
   lateLockedAt?: string; // ISO timestamp
-  lateAnchors?: number[]; // Array of patient IDs
+  lateAnchors?: string[]; // Array of patient IDs
 };
 
 export type AIPatientData = {
@@ -111,9 +111,9 @@ export type DoctorSchedule = {
 };
 
 export type FamilyMember = {
-  id: number;
+  id: string;
   name: string;
-  dob?: string; // YYYY-MM-DD
+  dob: string; // YYYY-MM-DD
   gender: 'Male' | 'Female' | 'Other';
   avatar?: string; // URL to avatar image
   clinicId?: string;
@@ -125,8 +125,8 @@ export type FamilyMember = {
 };
 
 export type Appointment = {
-  id: number;
-  familyMemberId: number;
+  id: string;
+  familyMemberId: string;
   familyMemberName: string;
   date: string; // ISO string format from Patient.appointmentTime
   time: string;

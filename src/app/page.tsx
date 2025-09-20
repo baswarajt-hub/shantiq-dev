@@ -143,14 +143,12 @@ export default function DashboardPage() {
 
     const loadData = useCallback(async () => {
         await recalculateQueueWithETC();
-        const [scheduleData, patientData, familyData, statusRes] = await Promise.all([
+        const [scheduleData, patientData, familyData, statusData] = await Promise.all([
             getDoctorScheduleAction(),
             getPatientsAction(),
             getFamilyAction(),
-            fetch('/api/status')
+            getDoctorStatusAction()
         ]);
-        
-        const statusData = await statusRes.json();
 
         setSchedule(scheduleData);
         setPatients(patientData);
@@ -1016,6 +1014,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 

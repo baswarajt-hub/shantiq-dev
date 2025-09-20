@@ -14,7 +14,7 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
+import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, deleteFamilyMemberAction } from '@/app/actions';
 import { format, parseISO, isToday, isFuture } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -261,6 +261,18 @@ export default function MyAppointmentsPage() {
     });
   }
 
+  const handleDeleteFamilyMember = (memberId: string) => {
+      startTransition(async () => {
+          const result = await deleteFamilyMemberAction(memberId);
+          if(result.success) {
+              toast({ title: "Success", description: "Family member removed."});
+              if (phone) await loadData(phone);
+          } else {
+              toast({ title: "Error", description: "Could not remove member", variant: 'destructive'});
+          }
+      });
+  }
+
   const handleCancelAppointment = (appointmentId: number) => {
     startTransition(async () => {
         const result = await cancelAppointmentAction(appointmentId);
@@ -342,7 +354,23 @@ export default function MyAppointmentsPage() {
                     </div>
                     <div className="flex items-center gap-1">
                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditMember(member)}><Edit className="h-4 w-4" /></Button>
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                       <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action is permanent and will remove this family member.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteFamilyMember(member.id)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                   </div>
                 ))}
