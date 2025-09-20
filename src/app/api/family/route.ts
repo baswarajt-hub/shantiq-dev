@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getFamily } from '@/lib/data';
+import { getFamilyAction } from '@/app/actions';
 
 export const revalidate = 0;
 
 export async function GET() {
-  const family = await getFamily();
+  const family = await getFamilyAction();
   return NextResponse.json(family, { status: 200 });
 }
