@@ -21,6 +21,12 @@ type SpecialClosuresProps = {
 
 function CustomDayContent(props: DayContentProps) {
     const { onSessionToggle, closures, schedule } = (props.customProps || {}) as { onSessionToggle: Function, closures: SpecialClosure[], schedule: DoctorSchedule };
+    
+    if (!schedule || !schedule.days) {
+        // Render nothing if schedule or schedule.days is not available
+        return <div className="relative w-full h-full flex flex-col items-center justify-center">{props.date.getDate()}</div>;
+    }
+
     const dateStr = format(props.date, 'yyyy-MM-dd');
     const closure = closures.find(c => c.date === dateStr);
     const dayName = dayOfWeek[props.date.getDay()] as keyof DoctorSchedule['days'];
@@ -78,7 +84,7 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }:
         setIsClient(true);
     }, []);
 
-    if (!isClient) {
+    if (!isClient || !schedule.days) {
         return <Skeleton className="h-[350px] w-full max-w-sm mx-auto rounded-md" />;
     }
 
