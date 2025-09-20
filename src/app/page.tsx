@@ -161,7 +161,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
         loadData(); // Initial load
-        const intervalId = setInterval(loadData, 15000); // Poll every 15 seconds
+        const intervalId = setInterval(loadData, 5000); // Poll every 5 seconds for faster updates
 
         return () => clearInterval(intervalId); // Cleanup on unmount
     }, [loadData]);
@@ -1016,6 +1016,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 

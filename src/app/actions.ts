@@ -315,7 +315,7 @@ export async function getDoctorStatusAction() {
 
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
     await updateDoctorStatus(status);
-    revalidatePath('/api/status', 'page');
+    await recalculateQueueWithETC();
     revalidatePath('/', 'layout');
     return { success: `Doctor status updated.` };
 }
@@ -1036,3 +1036,4 @@ export async function updateNotificationsAction(notifications: Notification[]) {
     
 
     
+

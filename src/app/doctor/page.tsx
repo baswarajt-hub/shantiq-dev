@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
@@ -70,7 +71,7 @@ export default function DoctorPage() {
 
   useEffect(() => {
     loadData();
-    const intervalId = setInterval(loadData, 30000); // Refresh every 30 seconds
+    const intervalId = setInterval(loadData, 5000); // Poll every 5 seconds for faster updates
     return () => clearInterval(intervalId);
   }, [loadData]);
   

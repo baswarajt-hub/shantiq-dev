@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
@@ -24,6 +24,12 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  useEffect(() => {
+    setStatus(initialStatus);
+    setDelay(initialStatus.startDelay || 0);
+  }, [initialStatus]);
+
+
   const handleToggleOnline = () => {
     startTransition(async () => {
       const isGoingOnline = !status.isOnline;
@@ -35,8 +41,6 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
       const result = await setDoctorStatusAction(newStatus);
       if (result.success) {
         toast({ title: 'Success', description: `Doctor is now ${isGoingOnline ? 'Online' : 'Offline'}.` });
-        setStatus(prev => ({...prev, ...newStatus}));
-        if(isGoingOnline) setDelay(0);
         onUpdate();
       } else {
         toast({ title: 'Error', variant: 'destructive', description: "Could not update status." });
@@ -50,7 +54,6 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
       const result = await setDoctorStatusAction(newStatus);
       if (result.success) {
         toast({ title: 'Success', description: `Queue is now ${newStatus.isPaused ? 'paused' : 'resumed'}.` });
-        setStatus(prev => ({...prev, ...newStatus}));
         onUpdate();
       } else {
         toast({ title: 'Error', variant: 'destructive', description: "Could not update status." });
@@ -63,7 +66,6 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
       const result = await updateDoctorStartDelayAction(delay);
       if (result.success) {
         toast({ title: 'Success', description: result.success });
-        setStatus(prev => ({...prev, startDelay: delay}));
         onUpdate();
       } else {
         toast({ title: 'Error', variant: 'destructive', description: result.error });
