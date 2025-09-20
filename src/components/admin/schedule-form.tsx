@@ -17,8 +17,8 @@ const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const allDays = [...weekdays, 'Saturday', 'Sunday'];
 
 type ScheduleFormProps = {
-  initialSchedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>;
-  onSave: (schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes'>) => Promise<void>;
+  initialSchedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'notifications' | 'clinicDetails'>;
+  onSave: (schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'notifications' | 'clinicDetails'>) => Promise<void>;
 };
 
 function SessionControl({ day, sessionName, session, handleInputChange, handleSwitchChange }: { day: string, sessionName: 'morning' | 'evening', session: Session, handleInputChange: any, handleSwitchChange: any }) {
