@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -19,7 +18,7 @@ const allDays = [...weekdays, 'Saturday', 'Sunday'];
 
 type ScheduleFormProps = {
   initialSchedule: DoctorSchedule;
-  onSave: (schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'notifications' | 'clinicDetails'>) => Promise<void>;
+  onSave: (schedule: Partial<DoctorSchedule>) => Promise<void>;
 };
 
 function SessionControl({ day, sessionName, session, handleInputChange, handleSwitchChange }: { day: string, sessionName: 'morning' | 'evening', session: Session, handleInputChange: any, handleSwitchChange: any }) {
@@ -54,81 +53,77 @@ function DayScheduleRow({ day, schedule, handleInputChange, handleSwitchChange }
   )
 }
 
-export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
-  const [schedule, setSchedule] = useState(initialSchedule);
+export function ScheduleForm({ initialSchedule: schedule, onSave }: ScheduleFormProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-
-  useEffect(() => {
-    setSchedule(initialSchedule);
-  }, [initialSchedule]);
+  
+  const createUpdatedSchedule = (updater: (draft: DoctorSchedule) => void) => {
+    const newSchedule = JSON.parse(JSON.stringify(schedule));
+    updater(newSchedule);
+    return newSchedule;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const [day, session, property] = name.split('-');
     
-    setSchedule(prev => ({
-      ...prev,
-      days: {
-        ...prev.days,
-        [day as keyof DoctorSchedule['days']]: {
-          ...prev.days[day as keyof DoctorSchedule['days']],
-          [session as 'morning' | 'evening']: {
-            ...prev.days[day as keyof DoctorSchedule['days']][session as 'morning' | 'evening'],
-            [property as 'start' | 'end']: value
-          }
-        }
-      }
-    }));
+    const newSchedule = createUpdatedSchedule(draft => {
+        draft.days[day as keyof DoctorSchedule['days']][session as 'morning' | 'evening'][property as 'start' | 'end'] = value;
+    });
+    onSave(newSchedule);
   };
 
   const handleSwitchChange = (day: string, session: 'morning' | 'evening', isOpen: boolean) => {
-     setSchedule(prev => ({
-      ...prev,
-      days: {
-        ...prev.days,
-        [day as keyof DoctorSchedule['days']]: {
-          ...prev.days[day as keyof DoctorSchedule['days']],
-          [session]: {
-            ...prev.days[day as keyof DoctorSchedule['days']][session],
-            isOpen
-          }
-        }
-      }
-    }));
+     const newSchedule = createUpdatedSchedule(draft => {
+        draft.days[day as keyof DoctorSchedule['days']][session].isOpen = isOpen;
+     });
+     onSave(newSchedule);
   }
 
   const handleSlotDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSchedule(prev => ({...prev, slotDuration: parseInt(value, 10) || 0 }));
+    const value = parseInt(e.target.value, 10) || 0;
+    const newSchedule = createUpdatedSchedule(draft => {
+        draft.slotDuration = value;
+    });
+    onSave(newSchedule);
   };
   
   const handleWalkInStrategyChange = (value: 'none' | 'alternateOne' | 'alternateTwo') => {
-    setSchedule(prev => ({ ...prev, walkInReservation: value }));
+    const newSchedule = createUpdatedSchedule(draft => {
+        draft.walkInReservation = value;
+    });
+    onSave(newSchedule);
   }
 
   const handleReserveFirstFiveChange = (checked: boolean) => {
-    setSchedule(prev => ({ ...prev, reserveFirstFive: checked }));
+    const newSchedule = createUpdatedSchedule(draft => {
+        draft.reserveFirstFive = checked;
+    });
+    onSave(newSchedule);
   }
 
   const copyToWeekdays = () => {
-    if (!schedule || !schedule.days) {
+    if (!schedule || !schedule.days || !schedule.days.Monday) {
       toast({ title: "Error", description: "Schedule data is not loaded yet.", variant: "destructive" });
       return;
     }
-    const mondaySchedule = schedule.days.Monday;
-    const newDays = {...schedule.days};
-    weekdays.slice(1).forEach(day => {
-        newDays[day as keyof DoctorSchedule['days']] = JSON.parse(JSON.stringify(mondaySchedule));
+    const newSchedule = createUpdatedSchedule(draft => {
+        const mondaySchedule = draft.days.Monday;
+        weekdays.slice(1).forEach(day => {
+            draft.days[day as keyof DoctorSchedule['days']] = JSON.parse(JSON.stringify(mondaySchedule));
+        });
     });
-    setSchedule(prev => ({...prev, days: newDays}));
+    onSave(newSchedule);
     toast({ title: "Copied Monday's schedule to all weekdays." });
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
+      // onSave is already called on each change, but we can have a final save here if needed
+      // For this refactor, the button click just confirms the last state.
       await onSave(schedule);
+      toast({ title: "Success", description: "Schedule saved."});
     });
   };
 
@@ -187,6 +182,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
                    <RadioGroup 
                       onValueChange={handleWalkInStrategyChange} 
                       defaultValue={schedule.walkInReservation || 'none'}
+                      value={schedule.walkInReservation || 'none'}
                       className="space-y-2 border-l-2 pl-4 ml-2"
                    >
                       <div className="flex items-center space-x-2">
