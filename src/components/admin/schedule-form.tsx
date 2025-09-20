@@ -151,7 +151,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
                 handleSwitchChange={handleSwitchChange}
               />
             ))}
-             <Button type="button" variant="outline" size="sm" onClick={copyToWeekdays} className="gap-2">
+             <Button type="button" variant="outline" size="sm" onClick={copyToWeekdays} className="mt-4 gap-2">
                 <Copy className="h-4 w-4" />
                 Copy Monday to Weekdays
              </Button>
@@ -213,5 +213,3 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
     </Card>
   );
 }
-
-    
