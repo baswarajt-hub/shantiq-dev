@@ -38,6 +38,10 @@ export function WeekView({ schedule, closures, onOverrideSave }: WeekViewProps) 
     const dayName = format(date, 'EEEE') as keyof DoctorSchedule['days'];
     const dateStr = format(date, 'yyyy-MM-dd');
 
+    if (!schedule || !schedule.days) {
+      return null;
+    }
+
     const closure = closures.find(c => c.date === dateStr);
     const daySchedule = schedule.days[dayName];
     
