@@ -232,7 +232,7 @@ export async function getDoctorStatus(): Promise<DoctorStatus> {
 export async function updateDoctorStatus(statusUpdate: Partial<DoctorStatus>): Promise<DoctorStatus> {
   const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
   const newStatus = { ...(settings.status || defaultStatus), ...statusUpdate };
-  await updateDoc(settingsDoc, { status: newStatus });
+  await setDoc(settingsDoc, { status: newStatus }, { merge: true });
   return newStatus;
 }
 
@@ -261,26 +261,20 @@ export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedul
     visitPurposes: scheduleUpdate.visitPurposes ?? currentSchedule.visitPurposes,
     notifications: scheduleUpdate.notifications ?? currentSchedule.notifications,
   };
-  await updateDoc(settingsDoc, { schedule: newSchedule });
+  await setDoc(settingsDoc, { schedule: newSchedule }, { merge: true });
   return newSchedule;
 }
 
 export async function updateClinicDetailsData(details: ClinicDetails) {
-  // Ensure the document exists before updating
-  await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-  await updateDoc(settingsDoc, { 'schedule.clinicDetails': details });
+  await setDoc(settingsDoc, { schedule: { clinicDetails: details } }, { merge: true });
 }
 
 export async function updateVisitPurposesData(purposes: VisitPurpose[]) {
-    // Ensure the document exists before updating
-    await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-    await updateDoc(settingsDoc, { 'schedule.visitPurposes': purposes });
+    await setDoc(settingsDoc, { schedule: { visitPurposes: purposes } }, { merge: true });
 }
 
 export async function updateSpecialClosures(closures: SpecialClosure[]) {
-    // Ensure the document exists before updating
-    await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-    await updateDoc(settingsDoc, { 'schedule.specialClosures': closures });
+    await setDoc(settingsDoc, { schedule: { specialClosures: closures } }, { merge: true });
 }
 
 export async function updateTodayScheduleOverrideData(override: SpecialClosure) {
@@ -294,15 +288,11 @@ export async function updateTodayScheduleOverrideData(override: SpecialClosure) 
     } else {
         schedule.specialClosures.push(override);
     }
-    // Ensure the document exists before updating
-    await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-    await updateDoc(settingsDoc, { 'schedule.specialClosures': schedule.specialClosures });
+    await setDoc(settingsDoc, { schedule: { specialClosures: schedule.specialClosures } }, { merge: true });
 }
 
 export async function updateNotificationData(notifications: Notification[]) {
-    // Ensure the document exists before updating
-    await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-    await updateDoc(settingsDoc, { 'schedule.notifications': notifications });
+    await setDoc(settingsDoc, { schedule: { notifications: notifications } }, { merge: true });
 }
 
 
