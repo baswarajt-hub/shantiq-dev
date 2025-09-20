@@ -13,7 +13,7 @@ import { InfoCards } from '@/components/doctor/info-cards';
 import { DoctorStats } from '@/components/doctor/doctor-stats';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { NotificationForm } from '@/components/admin/notification-form';
+import { DoctorNotificationForm } from '@/components/doctor/doctor-notification-form';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, SlidersHorizontal } from 'lucide-react';
@@ -196,7 +196,7 @@ export default function DoctorPage() {
                     </AccordionTrigger>
                     <AccordionContent className="p-6 pt-2 bg-muted/50">
                         <div className="space-y-6">
-                           <NotificationForm 
+                           <DoctorNotificationForm 
                               initialNotifications={schedule.notifications}
                               onSave={handleNotificationsSave}
                             />
