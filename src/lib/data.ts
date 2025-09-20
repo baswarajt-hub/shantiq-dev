@@ -18,7 +18,15 @@ async function getSingletonDoc<T>(docRef: any, defaultData: T): Promise<T> {
   try {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data() as T;
+      // Ensure nested objects exist to prevent runtime errors on partial data
+      const data = docSnap.data() as T;
+      if ('schedule' in data && data.schedule && typeof data.schedule === 'object') {
+        const schedule = data.schedule as DoctorSchedule;
+        if (!schedule.specialClosures) schedule.specialClosures = [];
+        if (!schedule.visitPurposes) schedule.visitPurposes = [];
+        if (!schedule.notifications) schedule.notifications = [];
+      }
+      return data;
     } else {
       // If the doc doesn't exist, create it with default data
       await setDoc(docRef, defaultData);
@@ -26,6 +34,7 @@ async function getSingletonDoc<T>(docRef: any, defaultData: T): Promise<T> {
     }
   } catch (error) {
     console.error("Error getting singleton document:", error);
+    // Return default data on error to allow the app to function minimally
     return defaultData;
   }
 }
@@ -257,14 +266,20 @@ export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedul
 }
 
 export async function updateClinicDetailsData(details: ClinicDetails) {
+  // Ensure the document exists before updating
+  await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
   await updateDoc(settingsDoc, { 'schedule.clinicDetails': details });
 }
 
 export async function updateVisitPurposesData(purposes: VisitPurpose[]) {
+    // Ensure the document exists before updating
+    await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
     await updateDoc(settingsDoc, { 'schedule.visitPurposes': purposes });
 }
 
 export async function updateSpecialClosures(closures: SpecialClosure[]) {
+    // Ensure the document exists before updating
+    await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
     await updateDoc(settingsDoc, { 'schedule.specialClosures': closures });
 }
 
@@ -279,10 +294,14 @@ export async function updateTodayScheduleOverrideData(override: SpecialClosure) 
     } else {
         schedule.specialClosures.push(override);
     }
+    // Ensure the document exists before updating
+    await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
     await updateDoc(settingsDoc, { 'schedule.specialClosures': schedule.specialClosures });
 }
 
 export async function updateNotificationData(notifications: Notification[]) {
+    // Ensure the document exists before updating
+    await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
     await updateDoc(settingsDoc, { 'schedule.notifications': notifications });
 }
 
