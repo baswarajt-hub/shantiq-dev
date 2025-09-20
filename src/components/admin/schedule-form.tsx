@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useTransition, useState } from 'react';
+import { useTransition, useState, useEffect } from 'react';
 import type { DoctorSchedule, DaySchedule, Session, VisitPurpose } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -18,7 +18,7 @@ const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const allDays = [...weekdays, 'Saturday', 'Sunday'];
 
 type ScheduleFormProps = {
-  initialSchedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'notifications' | 'clinicDetails'>;
+  initialSchedule: DoctorSchedule;
   onSave: (schedule: Omit<DoctorSchedule, 'specialClosures' | 'visitPurposes' | 'notifications' | 'clinicDetails'>) => Promise<void>;
 };
 
@@ -58,6 +58,10 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
   const [schedule, setSchedule] = useState(initialSchedule);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setSchedule(initialSchedule);
+  }, [initialSchedule]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
