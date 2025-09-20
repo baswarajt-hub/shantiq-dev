@@ -35,7 +35,7 @@ function DateTimePicker({ label, isoString, onDateChange, onTimeChange, disabled
     return (
        <div className="space-y-2">
             <Label>{label}</Label>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex items-center gap-2">
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button
@@ -61,7 +61,7 @@ function DateTimePicker({ label, isoString, onDateChange, onTimeChange, disabled
                 </Popover>
                 <Input
                     type="time"
-                    className="w-full"
+                    className="w-auto"
                     value={timeValue}
                     onChange={(e) => onTimeChange(e.target.value)}
                     disabled={disabled}
