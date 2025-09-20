@@ -137,7 +137,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
                 <span>Morning Session</span>
                 <span>Evening Session</span>
             </div>
-            {allDays.map(day => (
+            {schedule && schedule.days && allDays.map(day => (
               <DayScheduleRow 
                 key={day}
                 day={day}
