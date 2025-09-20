@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
-import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
-import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC } from '@/app/actions';
+import type { DoctorSchedule, DoctorStatus, Patient, Session, Notification, SpecialClosure } from '@/lib/types';
+import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC, updateNotificationsAction, updateSpecialClosuresAction } from '@/app/actions';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { format, parse } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +11,12 @@ import Header from '@/components/header';
 import { DoctorStatusControls } from '@/components/doctor/doctor-status-controls';
 import { InfoCards } from '@/components/doctor/info-cards';
 import { DoctorStats } from '@/components/doctor/doctor-stats';
+import { Card, CardContent } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { NotificationForm } from '@/components/admin/notification-form';
+import { SpecialClosures } from '@/components/admin/special-closures';
+import { useToast } from '@/hooks/use-toast';
+import { Settings, SlidersHorizontal } from 'lucide-react';
 
 const timeZone = 'Asia/Kolkata';
 
@@ -19,6 +25,7 @@ export default function DoctorPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule) => {
     const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
@@ -65,6 +72,28 @@ export default function DoctorPage() {
     const intervalId = setInterval(loadData, 30000); // Refresh every 30 seconds
     return () => clearInterval(intervalId);
   }, [loadData]);
+  
+  const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
+    const result = await updateNotificationsAction(updatedNotifications);
+    if (result.error) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: result.success });
+      setSchedule(prev => prev ? { ...prev, notifications: updatedNotifications } : null);
+    }
+  };
+
+  const handleClosuresSave = async (updatedClosures: SpecialClosure[]) => {
+     if (!schedule) return;
+    const result = await updateSpecialClosuresAction(updatedClosures);
+     if (result.error) {
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
+        toast({ title: 'Success', description: 'Closure updated successfully.' });
+        setSchedule(prev => prev ? { ...prev, specialClosures: updatedClosures } : null);
+    }
+  };
+
 
   const { currentSession, sessionPatients, averageConsultationTime } = useMemo(() => {
     if (!schedule) {
@@ -131,6 +160,34 @@ export default function DoctorPage() {
             <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />
             <InfoCards schedule={schedule} />
         </div>
+        
+        <Card>
+            <CardContent className="p-0">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="item-1">
+                    <AccordionTrigger className="px-6 text-lg font-semibold">
+                        <div className="flex items-center gap-2">
+                            <SlidersHorizontal className="h-5 w-5" />
+                            Advanced Settings
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-6 pt-2 bg-muted/50">
+                        <div className="space-y-6">
+                           <NotificationForm 
+                              initialNotifications={schedule.notifications}
+                              onSave={handleNotificationsSave}
+                            />
+                            <SpecialClosures 
+                                schedule={schedule}
+                                onSave={handleClosuresSave}
+                            />
+                        </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+            </CardContent>
+        </Card>
+
 
       </main>
     </div>
