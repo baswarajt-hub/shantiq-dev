@@ -13,7 +13,7 @@ const dayOfWeekMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 export function ScheduleCalendar({ schedule, ...props }: ScheduleCalendarProps) {
     const disabledDays = [{ before: new Date(new Date().setDate(new Date().getDate())) }];
 
-    if (schedule) {
+    if (schedule && schedule.days) {
         Object.entries(schedule.days).forEach(([dayName, daySchedule]) => {
             if (!daySchedule.morning.isOpen && !daySchedule.evening.isOpen) {
                 const dayIndex = dayOfWeekMap.indexOf(dayName);
