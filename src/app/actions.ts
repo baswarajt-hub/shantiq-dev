@@ -949,7 +949,9 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 }
 
 // ========================================================================================
-// === FIND THIS SECTION TO INTEGRATE YOUR SMS PROVIDER ===================================
+// ========================================================================================
+// ==  FIND THIS SECTION TO INTEGRATE YOUR SMS PROVIDER ===================================
+// ========================================================================================
 // ========================================================================================
 // The code below handles OTP generation and sending.
 // The 'fetch' call to the SMS provider is currently commented out.
@@ -982,9 +984,10 @@ export async function checkUserAuthAction(phone: string) {
     // You will need to replace the URL, headers, and body with the correct
     // values for your specific SMS provider (e.g., BulkSMS, Twilio).
     console.log(`Simulating OTP send: To=${phone}, OTP=${otp}, Provider=${smsSettings.provider}`);
+    
     /*
     try {
-        const apiUrl = 'https://api.your-sms-provider.com/send'; // <--- REPLACE THIS
+        const apiUrl = 'https://account.bulksms.services/index.php/api/bulk-sms.html'; // <--- REPLACE THIS
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -994,7 +997,7 @@ export async function checkUserAuthAction(phone: string) {
             body: JSON.stringify({
                 to: phone,
                 from: senderId,
-                message: `Your OTP for QueueWise is: ${otp}`
+                message: `Your OTP for shanti children's clinc is: ${otp}`
                 // The body structure will vary based on your provider's API.
             })
         });
@@ -1011,6 +1014,7 @@ export async function checkUserAuthAction(phone: string) {
         return { error: "Failed to send OTP. Please try again later." };
     }
     */
+  
     
     // Return the generated OTP for verification on the client side.
     // In a production app, you might store this OTP in a temporary server-side
@@ -1151,3 +1155,4 @@ export async function deleteFamilyMemberAction(id: string) {
 
 
     
+
