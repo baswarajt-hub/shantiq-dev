@@ -908,7 +908,7 @@ export default function DashboardPage() {
                                 </AlertDialog>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" outline>
+                                        <Button variant="outline" className="text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive">
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             Delete Today's Entries
                                         </Button>
@@ -1071,4 +1071,5 @@ export default function DashboardPage() {
     
 
     
+
 
