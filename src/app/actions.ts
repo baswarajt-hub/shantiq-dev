@@ -219,6 +219,9 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     // The queue recalculation logic will handle the re-ordering.
   } else if (status === 'Waiting for Reports') {
     updates.subStatus = 'Reports';
+  } else if (patient.status === 'Waiting for Reports' && status === 'In-Consultation') {
+    updates.consultationStartTime = new Date().toISOString();
+    updates.subStatus = 'Reports';
   }
 
   await updatePatient(patientId, updates);
@@ -1179,7 +1182,7 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
   easebuzzPayload.append('hash', hash);
 
   const baseUrl = paymentSettings.environment === 'test'
-    ? 'https://testpay.easebuzz.in'
+    ? 'http://testpay.easebuzz.in'
     : 'https://pay.easebuzz.in';
 
   try {
