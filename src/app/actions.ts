@@ -3,8 +3,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData } from '@/lib/data';
-import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings } from '@/lib/types';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData } from '@/lib/data';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format, parseISO, parse, differenceInMinutes, startOfDay, max } from 'date-fns';
@@ -218,7 +218,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     // The queue recalculation logic will handle the re-ordering.
   }
 
-  await updatePatient(patient.id, updates);
+  await updatePatient(patientId, updates);
   await recalculateQueueWithETC();
 
   revalidatePath('/');
@@ -763,6 +763,13 @@ export async function updateSmsSettingsAction(smsSettings: SmsSettings) {
     return { success: 'SMS settings updated successfully.' };
 }
 
+export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings: PaymentGatewaySettings) {
+    await updatePaymentGatewaySettingsData(paymentGatewaySettings);
+     revalidatePath('/');
+    revalidatePath('/admin');
+    return { success: 'Payment Gateway settings updated successfully.' };
+}
+
 export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     await updateSpecialClosures(closures);
     await recalculateQueueWithETC();
@@ -964,8 +971,8 @@ export async function checkUserAuthAction(phone: string) {
     const schedule = await getDoctorScheduleData();
     const smsSettings = schedule.smsSettings;
 
-    if (!smsSettings || !smsSettings.provider || !smsSettings.apiKey || !smsSettings.senderId) {
-        console.error("SMS settings are not configured in the admin panel.");
+    if (!smsSettings || !smsSettings.provider || !smsSettings.provider.toLowerCase().includes('bulksms') || !smsSettings.apiKey || !smsSettings.senderId) {
+        console.error("SMS settings for BulkSMS are not configured in the admin panel.");
         return { error: "SMS service is not configured. Please contact support." };
     }
     
@@ -1149,5 +1156,6 @@ export async function deleteFamilyMemberAction(id: string) {
 
 
     
+
 
 

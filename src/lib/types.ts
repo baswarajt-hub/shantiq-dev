@@ -89,6 +89,12 @@ export type SmsSettings = {
   senderId: string;
 }
 
+export type PaymentGatewaySettings = {
+  provider: 'none' | 'easebuzz';
+  key: string;
+  salt: string;
+};
+
 export type Notification = {
   id: string;
   message: string;
@@ -100,6 +106,7 @@ export type Notification = {
 export type DoctorSchedule = {
   clinicDetails: ClinicDetails;
   smsSettings: SmsSettings;
+  paymentGatewaySettings: PaymentGatewaySettings;
   notifications: Notification[];
   slotDuration: number;
   reserveFirstFive: boolean;

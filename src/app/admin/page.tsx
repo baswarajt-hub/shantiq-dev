@@ -5,10 +5,10 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import { ScheduleForm } from '@/components/admin/schedule-form';
-import { getDoctorScheduleAction, updateDoctorScheduleAction } from '@/app/actions';
+import { getDoctorScheduleAction, updateDoctorScheduleAction, updatePaymentGatewaySettingsAction } from '@/app/actions';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
-import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose, Notification, SmsSettings } from '@/lib/types';
+import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction, updateNotificationsAction, updateSmsSettingsAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,7 @@ import { VisitPurposeForm } from '@/components/admin/visit-purpose-form';
 import { ClinicDetailsForm } from '@/components/admin/clinic-details-form';
 import { NotificationForm } from '@/components/admin/notification-form';
 import { SmsSettingsForm } from '@/components/admin/sms-settings-form';
+import { PaymentGatewaySettingsForm } from '@/components/admin/payment-gateway-settings-form';
 
 export default function AdminPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -56,6 +57,17 @@ export default function AdminPage() {
     } else {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, smsSettings: updatedSmsSettings } : null);
+    }
+  };
+
+  const handlePaymentGatewaySettingsSave = async (updatedPaymentGatewaySettings: PaymentGatewaySettings) => {
+    if (!schedule) return;
+    const result = await updatePaymentGatewaySettingsAction(updatedPaymentGatewaySettings);
+    if (result.error) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: result.success });
+      setSchedule(prev => prev ? { ...prev, paymentGatewaySettings: updatedPaymentGatewaySettings } : null);
     }
   };
 
@@ -156,6 +168,11 @@ export default function AdminPage() {
             <SmsSettingsForm
               initialSettings={schedule.smsSettings}
               onSave={handleSmsSettingsSave}
+            />
+            <Separator />
+            <PaymentGatewaySettingsForm
+              initialSettings={schedule.paymentGatewaySettings}
+              onSave={handlePaymentGatewaySettingsSave}
             />
             <Separator />
             <NotificationForm 

@@ -1,6 +1,6 @@
 
 
-import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings } from './types';
+import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { db } from './firebase';
@@ -26,6 +26,7 @@ async function getSingletonDoc<T>(docRef: any, defaultData: T): Promise<T> {
         if (!schedule.visitPurposes) schedule.visitPurposes = [];
         if (!schedule.notifications) schedule.notifications = [];
         if (!schedule.smsSettings) schedule.smsSettings = { provider: 'none', apiKey: '', senderId: ''};
+        if (!schedule.paymentGatewaySettings) schedule.paymentGatewaySettings = { provider: 'none', key: '', salt: '' };
       }
       return data;
     } else {
@@ -182,6 +183,11 @@ const defaultSchedule: DoctorSchedule = {
     apiKey: '',
     senderId: ''
   },
+  paymentGatewaySettings: {
+    provider: 'none',
+    key: '',
+    salt: ''
+  },
   notifications: [],
   slotDuration: 10,
   reserveFirstFive: true,
@@ -230,6 +236,7 @@ export async function getDoctorSchedule(): Promise<DoctorSchedule> {
     days: { ...defaultDays(), ...(data.days || {}) },
     clinicDetails: data.clinicDetails ?? defaultSchedule.clinicDetails,
     smsSettings: data.smsSettings ?? defaultSchedule.smsSettings,
+    paymentGatewaySettings: data.paymentGatewaySettings ?? defaultSchedule.paymentGatewaySettings,
     notifications: data.notifications ?? defaultSchedule.notifications,
     visitPurposes: data.visitPurposes ?? defaultSchedule.visitPurposes,
     specialClosures: data.specialClosures ?? defaultSchedule.specialClosures,
@@ -249,6 +256,7 @@ export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedul
       },
       clinicDetails: scheduleUpdate.clinicDetails ?? currentSchedule.clinicDetails,
       smsSettings: scheduleUpdate.smsSettings ?? currentSchedule.smsSettings,
+      paymentGatewaySettings: scheduleUpdate.paymentGatewaySettings ?? currentSchedule.paymentGatewaySettings,
       specialClosures: scheduleUpdate.specialClosures ?? currentSchedule.specialClosures,
       visitPurposes: scheduleUpdate.visitPurposes ?? currentSchedule.visitPurposes,
       notifications: scheduleUpdate.notifications ?? currentSchedule.notifications,
@@ -263,6 +271,10 @@ export async function updateClinicDetailsData(details: ClinicDetails) {
 
 export async function updateSmsSettingsData(smsSettings: SmsSettings) {
   await setDoc(settingsDoc, { schedule: { smsSettings: smsSettings } }, { merge: true });
+}
+
+export async function updatePaymentGatewaySettingsData(paymentGatewaySettings: PaymentGatewaySettings) {
+  await setDoc(settingsDoc, { schedule: { paymentGatewaySettings: paymentGatewaySettings } }, { merge: true });
 }
 
 export async function updateVisitPurposesData(purposes: VisitPurpose[]) {
