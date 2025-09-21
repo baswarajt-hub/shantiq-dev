@@ -57,9 +57,8 @@ export function ScheduleForm({ initialSchedule: schedule, onSave }: ScheduleForm
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const updateSchedule = (updatedData: Partial<DoctorSchedule>) => {
-    const newSchedule = { ...schedule, ...updatedData };
-    startTransition(() => onSave(newSchedule));
+  const handleUpdate = (updatedData: Partial<DoctorSchedule>) => {
+    startTransition(() => onSave({ ...schedule, ...updatedData }));
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,15 +78,15 @@ export function ScheduleForm({ initialSchedule: schedule, onSave }: ScheduleForm
 
   const handleSlotDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
-    updateSchedule({ slotDuration: isNaN(value) ? 0 : value });
+    handleUpdate({ slotDuration: isNaN(value) ? 0 : value });
   };
   
   const handleWalkInStrategyChange = (value: 'none' | 'alternateOne' | 'alternateTwo') => {
-    updateSchedule({ walkInReservation: value });
+    handleUpdate({ walkInReservation: value });
   }
 
   const handleReserveFirstFiveChange = (checked: boolean) => {
-    updateSchedule({ reserveFirstFive: checked });
+    handleUpdate({ reserveFirstFive: checked });
   }
 
   const copyToWeekdays = () => {
