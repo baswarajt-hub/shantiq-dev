@@ -217,6 +217,8 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
   } else if (status === 'Priority') {
     // Special handling for priority status, this just sets the status.
     // The queue recalculation logic will handle the re-ordering.
+  } else if (status === 'Waiting for Reports') {
+    updates.subStatus = 'Reports';
   }
 
   await updatePatient(patientId, updates);
@@ -1215,6 +1217,7 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
 
 
     
+
 
 
 
