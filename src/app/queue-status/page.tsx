@@ -377,18 +377,18 @@ function QueueStatusPageContent() {
     let targetAppointment: Patient | null = null;
     let sessionToShow: 'morning' | 'evening' | null = null;
     
-    // STRICTLY prioritize the patientId from the URL
+    // 1. Strictly prioritize the patientId from the URL
     if (patientId) {
         const id = parseInt(patientId, 10);
         targetAppointment = allPatientData.find((p: Patient) => p.id === id) || null;
     }
     
-    // If no specific appointment was found via ID, THEN fall back to the first active appointment for the user.
+    // 2. If no ID in URL, THEN fall back to finding the first active appointment
     if (!targetAppointment) {
         targetAppointment = userAppointmentsToday.find(p => p.status !== 'Completed' && p.status !== 'Cancelled') || null;
     }
     
-    // Determine the session based on the TARGET appointment, not the current time.
+    // 3. Determine the session based on the found appointment.
     if (targetAppointment) {
         sessionToShow = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData);
     } else {
@@ -400,37 +400,32 @@ function QueueStatusPageContent() {
     
     setCurrentSession(sessionToShow);
     
-    const filteredPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
-    
-    setAllPatients(filteredPatients);
+    const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+    setAllPatients(filteredPatientsForSession);
     setLastUpdated(new Date().toLocaleTimeString());
 
-    if (targetAppointment) {
-        // Make sure the target appointment is for the session we are displaying.
-        const isSameSession = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData) === sessionToShow;
-
-        if (isSameSession) {
-            if (targetAppointment.status === 'Completed') {
-                const lastCompletedId = localStorage.getItem('completedAppointmentId');
-                if (lastCompletedId !== String(targetAppointment.id)) {
-                    setCompletedAppointmentForDisplay(targetAppointment);
-                    setFoundAppointment(null);
-                    localStorage.setItem('completedAppointmentId', String(targetAppointment.id));
-                }
+    // 4. Set the found appointment for display
+    if (targetAppointment && getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData) === sessionToShow) {
+        if (targetAppointment.status === 'Completed') {
+            const lastCompletedId = localStorage.getItem('completedAppointmentId');
+            if (lastCompletedId !== String(targetAppointment.id)) {
+                setCompletedAppointmentForDisplay(targetAppointment);
+                setFoundAppointment(null);
+                localStorage.setItem('completedAppointmentId', String(targetAppointment.id));
             } else {
-                setFoundAppointment(targetAppointment);
+                // If we've already shown the completion screen, don't show it again.
                 setCompletedAppointmentForDisplay(null);
-                localStorage.removeItem('completedAppointmentId');
+                setFoundAppointment(null);
             }
         } else {
-            // The target appointment is for a different session, so don't show any specific user status.
-            setFoundAppointment(null);
+            setFoundAppointment(targetAppointment);
             setCompletedAppointmentForDisplay(null);
+            localStorage.removeItem('completedAppointmentId');
         }
     } else {
+        // No specific appointment to show (or it's for a different session)
         setFoundAppointment(null);
         setCompletedAppointmentForDisplay(null);
-        localStorage.removeItem('completedAppointmentId');
     }
 }, [getSessionForTime, patientId]);
 
@@ -559,3 +554,5 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
+
+    
