@@ -295,7 +295,7 @@ function TVDisplayPageContent() {
         {patient.subType === 'Booked Walk-in' && (
           <sup className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>
         )}
-        {patient.lateBy && patient.lateBy > 0 && (
+        {patient.lateBy && patient.lateBy > 0 && patient.status !== 'In-Consultation' && (
           <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-xs font-bold">LATE</sup>
         )}
         {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
