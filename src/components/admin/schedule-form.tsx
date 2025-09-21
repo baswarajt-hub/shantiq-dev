@@ -117,13 +117,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(() => {
-        onSave(schedule)
-            .then(() => {
-                toast({ title: "Success", description: "Schedule changes have been saved."});
-            })
-            .catch(() => {
-                toast({ title: "Error", description: "Failed to save schedule.", variant: "destructive" });
-            });
+        onSave(schedule);
     });
   };
 
