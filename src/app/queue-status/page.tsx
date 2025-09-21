@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PatientPortalHeader } from '@/components/patient-portal-header';
@@ -310,6 +309,7 @@ function QueueStatusPageContent() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [lastUpdated, setLastUpdated] = useState('');
   const [phone, setPhone] = useState<string | null>(null);
+  const [userTodaysPatients, setUserTodaysPatients] = useState<Patient[]>([]);
   const [foundAppointment, setFoundAppointment] = useState<Patient | null>(null);
   const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
@@ -371,28 +371,26 @@ const fetchData = useCallback(async () => {
     setDoctorStatus(statusData);
 
     const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
-    const userTodaysPatients = todaysPatients.filter((p: Patient) => p.phone === userPhone);
+    const userAppointmentsToday = todaysPatients.filter((p: Patient) => p.phone === userPhone);
+    setUserTodaysPatients(userAppointmentsToday);
+
 
     let targetAppointment: Patient | null = null;
     
-    // Strictly prioritize finding the appointment by the ID from the URL.
     if (patientId) {
         const id = parseInt(patientId, 10);
         targetAppointment = allPatientData.find((p: Patient) => p.id === id) || null;
     }
     
-    // If no specific appointment was found via ID, then fall back to the first active one.
     if (!targetAppointment) {
-        targetAppointment = userTodaysPatients.find(p => p.status !== 'Completed' && p.status !== 'Cancelled') || null;
+        targetAppointment = userAppointmentsToday.find(p => p.status !== 'Completed' && p.status !== 'Cancelled') || null;
     }
 
     let sessionToShow: 'morning' | 'evening' | null = null;
     
-    // Determine the session based on the target appointment, NOT the current time.
     if (targetAppointment) {
         sessionToShow = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData);
     } else {
-        // If no appointment at all, default to current time's session.
         const now = new Date();
         const currentHour = now.getHours();
         sessionToShow = currentHour < 14 ? 'morning' : 'evening';
@@ -400,14 +398,12 @@ const fetchData = useCallback(async () => {
     
     setCurrentSession(sessionToShow);
     
-    // Filter all patients for the determined session.
     const filteredPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     
     setAllPatients(filteredPatients);
     setLastUpdated(new Date().toLocaleTimeString());
 
     if (targetAppointment) {
-        // Check if the found target is actually in the session we are displaying.
         const isSameSession = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData) === sessionToShow;
 
         if (isSameSession) {
@@ -424,8 +420,6 @@ const fetchData = useCallback(async () => {
                 localStorage.removeItem('completedAppointmentId');
             }
         } else {
-            // This case might happen if the URL points to an appointment in a different session.
-            // Clear found appointment to avoid showing wrong context.
             setFoundAppointment(null);
             setCompletedAppointmentForDisplay(null);
         }
@@ -459,9 +453,6 @@ const fetchData = useCallback(async () => {
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
   const upNext = liveQueue.find(p => p.status === 'Up-Next');
   const waitingQueue = liveQueue.filter(p => p.id !== upNext?.id);
-
-  const userHasAppointment = allPatients.some((p: Patient) => p.phone === phone && p.status !== 'Cancelled');
-
 
   if (!phone) {
       return (
@@ -564,3 +555,5 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
+
+    
