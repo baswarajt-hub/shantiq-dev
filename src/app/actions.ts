@@ -7,7 +7,7 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { format, parseISO, parse, differenceInMinutes, startOfDay, max } from 'date-fns';
+import { format, parseISO, parse, differenceInMinutes, startOfDay, max, addMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { createHash } from 'crypto';
 
@@ -705,6 +705,7 @@ export async function recalculateQueueWithETC() {
     revalidatePath('/queue-status');
     revalidatePath('/tv-display');
     revalidatePath('/api/patients');
+    revalidatePath('/walk-in');
     return { success: `Queue recalculated for all sessions.` };
 }
 
@@ -719,6 +720,7 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
     revalidatePath('/tv-display');
     revalidatePath('/queue-status');
     revalidatePath('/api/schedule');
+    revalidatePath('/walk-in');
     return { success: "Today's schedule has been updated." };
 }
 
@@ -732,6 +734,7 @@ export async function updatePatientPurposeAction(patientId: number, purpose: str
     revalidatePath('/queue-status');
     revalidatePath('/tv-display');
     revalidatePath('/api/patients');
+    revalidatePath('/walk-in');
     return { success: 'Visit purpose updated.' };
 }
 
@@ -746,6 +749,7 @@ export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedul
     revalidatePath('/tv-display');
     revalidatePath('/queue-status');
     revalidatePath('/api/schedule');
+    revalidatePath('/walk-in');
     return { success: 'Doctor schedule updated successfully.', schedule: updated };
 }
 
@@ -759,6 +763,7 @@ export async function updateClinicDetailsAction(details: ClinicDetails) {
     revalidatePath('/tv-display');
     revalidatePath('/queue-status');
     revalidatePath('/api/schedule');
+    revalidatePath('/walk-in');
     return { success: 'Clinic details updated successfully.' };
 }
 
@@ -787,6 +792,7 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     revalidatePath('/tv-display');
     revalidatePath('/queue-status');
     revalidatePath('/api/schedule');
+    revalidatePath('/walk-in');
     return { success: 'Special closures updated successfully.' };
 }
 
@@ -800,6 +806,7 @@ export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
     revalidatePath('/tv-display');
     revalidatePath('/queue-status');
     revalidatePath('/api/schedule');
+    revalidatePath('/walk-in');
     return { success: 'Visit purposes updated successfully.' };
 }
 
@@ -813,6 +820,7 @@ revalidatePath('/');
     revalidatePath('/tv-display');
     revalidatePath('/queue-status');
     revalidatePath('/api/family');
+    revalidatePath('/walk-in');
     return { success: 'Family member updated.' };
 }
 
@@ -827,6 +835,7 @@ if (patient) {
         revalidatePath('/queue-status');
         revalidatePath('/tv-display');
         revalidatePath('/api/patients');
+        revalidatePath('/walk-in');
         return { success: 'Appointment cancelled.' };
     }
     return { error: 'Could not find appointment to cancel.' };
@@ -898,6 +907,7 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
     revalidatePath('/queue-status');
     revalidatePath('/tv-display');
     revalidatePath('/api/patients');
+    revalidatePath('/walk-in');
 
     return { success: 'Appointment rescheduled successfully.' };
 }
@@ -951,6 +961,7 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   revalidatePath('/queue-status');
   revalidatePath('/patient-portal');
   revalidatePath('/booking');
+  revalidatePath('/walk-in');
 
   return { success: `Marked late and pushed down by ${penalty}.` };
 }
@@ -1085,6 +1096,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
   revalidatePath('/queue-status');
   revalidatePath('/tv-display');
   revalidatePath('/api/patients');
+  revalidatePath('/walk-in');
 
   return { success: 'Queue advanced successfully.' };
 }
@@ -1124,6 +1136,7 @@ export async function startLastConsultationAction(patientId: number) {
   revalidatePath('/queue-status');
   revalidatePath('/tv-display');
   revalidatePath('/api/patients');
+  revalidatePath('/walk-in');
 
   return { success: 'Started final consultation.' };
 }
@@ -1147,6 +1160,7 @@ export async function deleteFamilyMemberAction(id: string) {
     revalidatePath('/tv-display');
     revalidatePath('/queue-status');
     revalidatePath('/api/family');
+    revalidatePath('/walk-in');
     return { success: 'Family member deleted.' };
 }
 
@@ -1210,4 +1224,102 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
     console.error('Easebuzz API connection error:', error);
     return { error: 'Could not connect to the payment gateway.' };
   }
+}
+
+export async function joinQueueAction(member: FamilyMember, purpose: string) {
+  const schedule = await getDoctorScheduleData();
+  const allPatients = await getPatientsData();
+
+  if (!schedule) {
+    return { error: 'Clinic schedule not found.' };
+  }
+
+  const now = new Date();
+  const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+  const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+
+  let daySchedule = schedule.days[dayOfWeek];
+  const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
+  if (specialClosure) {
+    daySchedule = {
+      morning: specialClosure.morningOverride ?? daySchedule.morning,
+      evening: specialClosure.eveningOverride ?? daySchedule.evening,
+    };
+  }
+
+  const getSession = (time: Date) => {
+    const zonedTime = toZonedTime(time, timeZone);
+    const morningEndUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.end) : new Date(0);
+    return (zonedTime < morningEndUtc && daySchedule.morning.isOpen) ? 'morning' : 'evening';
+  };
+
+  const currentSessionName = getSession(now);
+  const sessionSchedule = daySchedule[currentSessionName];
+  const isSessionClosed = currentSessionName === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
+
+  if (!sessionSchedule || !sessionSchedule.isOpen || isSessionClosed) {
+    return { error: 'The clinic is currently closed.' };
+  }
+
+  // Find next available walk-in slot
+  const startLocal = parse(`${todayStr} ${sessionSchedule.start}`, 'yyyy-MM-dd HH:mm', new Date());
+  let slotTime = fromZonedTime(startLocal, timeZone);
+
+  const endLocal = parse(`${todayStr} ${sessionSchedule.end}`, 'yyyy-MM-dd HH:mm', new Date());
+  const endTime = fromZonedTime(endLocal, timeZone);
+
+  let availableSlot: Date | null = null;
+  let slotIndex = 0;
+
+  while (slotTime < endTime) {
+    if (slotTime > now) { // Only consider future slots
+      const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), slotTime)) < 1);
+      
+      if (!isBooked) {
+         let isReservedForWalkIn = false;
+          if (schedule.reserveFirstFive && slotIndex < 5) {
+              isReservedForWalkIn = true;
+          }
+
+          const reservationStrategy = schedule.walkInReservation;
+          const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+          if (slotIndex >= startIndexForAlternate) {
+              const relativeIndex = slotIndex - startIndexForAlternate;
+              if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+              if (reservationStrategy === 'alternateTwo' && (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)) isReservedForWalkIn = true;
+          }
+
+          if (isReservedForWalkIn) {
+            availableSlot = slotTime;
+            break;
+          }
+      }
+    }
+    slotTime = addMinutes(slotTime, schedule.slotDuration);
+    slotIndex++;
+  }
+
+  if (!availableSlot) {
+      // If no reserved slot found, find first unbooked slot
+      slotTime = fromZonedTime(startLocal, timeZone);
+       while (slotTime < endTime) {
+            if (slotTime > now) {
+                 const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), slotTime)) < 1);
+                 if (!isBooked) {
+                     availableSlot = slotTime;
+                     break;
+                 }
+            }
+            slotTime = addMinutes(slotTime, schedule.slotDuration);
+       }
+  }
+
+  if (!availableSlot) {
+    return { error: 'Sorry, no walk-in slots are available at the moment.' };
+  }
+  
+  const appointmentTime = availableSlot.toISOString();
+  
+  // Re-use logic from addAppointmentAction for token calculation and creation
+  return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }

@@ -4,7 +4,7 @@ import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { User, Shield } from "lucide-react";
+import { User, Shield, QrCode } from "lucide-react";
 
 type HeaderProps = {
   logoSrc?: string | null;
@@ -53,6 +53,9 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
           </DropdownMenu>
         </nav>
         <div className="flex items-center justify-end space-x-2">
+            <Button variant="outline" size="sm" asChild>
+                <Link href="/walk-in" target="_blank"><QrCode className="mr-2 h-4 w-4"/>Walk-in Portal</Link>
+            </Button>
            <Button variant="outline" size="sm" asChild>
             <Link href="/login">Patient Portal</Link>
           </Button>
