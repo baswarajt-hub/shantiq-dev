@@ -62,37 +62,40 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
     setSchedule(initialSchedule);
   }, [initialSchedule]);
 
-  const updateSchedule = (newSchedule: DoctorSchedule) => {
-    setSchedule(newSchedule);
-    startTransition(() => onSave(newSchedule));
+  const updateSchedule = (updater: (prev: DoctorSchedule) => DoctorSchedule) => {
+    setSchedule(updater);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const [day, sessionName, property] = name.split('-');
     
-    const newSchedule = JSON.parse(JSON.stringify(schedule));
-    newSchedule.days[day as keyof DoctorSchedule['days']][sessionName as 'morning' | 'evening'][property as 'start' | 'end'] = value;
-    updateSchedule(newSchedule);
+    updateSchedule(prev => {
+        const newSchedule = JSON.parse(JSON.stringify(prev));
+        newSchedule.days[day as keyof DoctorSchedule['days']][sessionName as 'morning' | 'evening'][property as 'start' | 'end'] = value;
+        return newSchedule;
+    });
   };
 
   const handleSwitchChange = (day: string, sessionName: 'morning' | 'evening', isOpen: boolean) => {
-    const newSchedule = JSON.parse(JSON.stringify(schedule));
-    newSchedule.days[day as keyof DoctorSchedule['days']][sessionName].isOpen = isOpen;
-    updateSchedule(newSchedule);
+    updateSchedule(prev => {
+        const newSchedule = JSON.parse(JSON.stringify(prev));
+        newSchedule.days[day as keyof DoctorSchedule['days']][sessionName].isOpen = isOpen;
+        return newSchedule;
+    });
   }
 
   const handleSlotDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
-    updateSchedule({ ...schedule, slotDuration: isNaN(value) ? 0 : value });
+    updateSchedule(prev => ({ ...prev, slotDuration: isNaN(value) ? 0 : value }));
   };
   
   const handleWalkInStrategyChange = (value: 'none' | 'alternateOne' | 'alternateTwo') => {
-    updateSchedule({ ...schedule, walkInReservation: value });
+    updateSchedule(prev => ({ ...prev, walkInReservation: value }));
   }
 
   const handleReserveFirstFiveChange = (checked: boolean) => {
-    updateSchedule({ ...schedule, reserveFirstFive: checked });
+    updateSchedule(prev => ({ ...prev, reserveFirstFive: checked }));
   }
 
   const copyToWeekdays = () => {
@@ -100,19 +103,28 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
       toast({ title: "Error", description: "Schedule data is not loaded yet.", variant: "destructive" });
       return;
     }
-    const newSchedule = JSON.parse(JSON.stringify(schedule));
-    const mondaySchedule = newSchedule.days.Monday;
-    weekdays.slice(1).forEach(day => {
-        newSchedule.days[day as keyof DoctorSchedule['days']] = JSON.parse(JSON.stringify(mondaySchedule));
+    updateSchedule(prev => {
+        const newSchedule = JSON.parse(JSON.stringify(prev));
+        const mondaySchedule = newSchedule.days.Monday;
+        weekdays.slice(1).forEach(day => {
+            newSchedule.days[day as keyof DoctorSchedule['days']] = JSON.parse(JSON.stringify(mondaySchedule));
+        });
+        return newSchedule;
     });
-    updateSchedule(newSchedule);
     toast({ title: "Copied Monday's schedule to all weekdays." });
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    startTransition(() => onSave(schedule));
-    toast({ title: "Success", description: "Schedule changes have been saved."});
+    startTransition(() => {
+        onSave(schedule)
+            .then(() => {
+                toast({ title: "Success", description: "Schedule changes have been saved."});
+            })
+            .catch(() => {
+                toast({ title: "Error", description: "Failed to save schedule.", variant: "destructive" });
+            });
+    });
   };
 
   if (!schedule) {
@@ -124,7 +136,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
       <form onSubmit={handleSubmit}>
         <CardHeader>
           <CardTitle>Doctor Schedule</CardTitle>
-          <CardDescription>Set up the clinic's recurring weekly hours and appointment slot duration. Changes are saved automatically.</CardDescription>
+          <CardDescription>Set up the clinic's recurring weekly hours and appointment slot duration.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
           <div className="space-y-4">
@@ -161,7 +173,6 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
                     onChange={handleSlotDurationChange}
                     className="w-[180px]"
                     placeholder="e.g. 10"
-                    disabled={isPending}
                 />
             </div>
 
@@ -169,7 +180,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
                 <Label className="flex items-center gap-2"><Users />Walk-in Patient Strategy</Label>
                 <div className="space-y-3">
                    <div className="flex items-center space-x-2">
-                      <Switch id="reserveFirstFive" checked={schedule.reserveFirstFive} onCheckedChange={handleReserveFirstFiveChange} disabled={isPending} />
+                      <Switch id="reserveFirstFive" checked={schedule.reserveFirstFive} onCheckedChange={handleReserveFirstFiveChange} />
                       <Label htmlFor="reserveFirstFive">Reserve first 5 slots of a session for walk-ins</Label>
                    </div>
                    
@@ -177,7 +188,6 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
                       onValueChange={handleWalkInStrategyChange} 
                       value={schedule.walkInReservation || 'none'}
                       className="space-y-2 border-l-2 pl-4 ml-2"
-                      disabled={isPending}
                    >
                       <div className="flex items-center space-x-2">
                           <RadioGroupItem value="none" id="r1" />
