@@ -306,6 +306,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
 function QueueStatusPageContent() {
   const [allSessionPatients, setAllSessionPatients] = useState<Patient[]>([]);
   const [userQueue, setUserQueue] = useState<Patient[]>([]);
+  const [userTodaysPatients, setUserTodaysPatients] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [lastUpdated, setLastUpdated] = useState('');
@@ -370,38 +371,28 @@ function QueueStatusPageContent() {
     setDoctorStatus(statusData);
 
     const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
+    setUserTodaysPatients(todaysPatients.filter((p: Patient) => p.phone === userPhone));
     
     let targetAppointment: Patient | null = null;
-    let sessionToShow: 'morning' | 'evening' | null = null;
     
-    // 1. Strictly prioritize the patientId from the URL
     if (patientIdParam) {
         const id = parseInt(patientIdParam, 10);
-        targetAppointment = todaysPatients.find((p: Patient) => p.id === id) || null;
+        targetAppointment = allPatientData.find((p: Patient) => p.id === id) || null;
     }
     
-    // 2. If no ID in URL, THEN fall back to finding the first active appointment
     if (!targetAppointment) {
         targetAppointment = todaysPatients.find(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled') || null;
     }
     
-    // 3. Determine the session based on the found appointment.
-    if (targetAppointment) {
-        sessionToShow = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData);
-    } else {
-        // Only if there is NO target appointment at all, use current time to guess session.
-        const now = new Date();
-        const currentHour = now.getHours();
-        sessionToShow = currentHour < 14 ? 'morning' : 'evening';
-    }
+    const sessionToShow = targetAppointment 
+      ? getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData) 
+      : (new Date().getHours() < 14 ? 'morning' : 'evening');
     
     setCurrentSession(sessionToShow);
     
     const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     setAllSessionPatients(filteredPatientsForSession);
-    setLastUpdated(new Date().toLocaleTimeString());
-
-    // Filter for the user's family members in the current session's queue
+    
     const currentUserQueue = filteredPatientsForSession
       .filter(p => p.phone === userPhone)
       .sort((a, b) => {
@@ -423,6 +414,7 @@ function QueueStatusPageContent() {
     } else {
         setCompletedAppointmentForDisplay(null);
     }
+    setLastUpdated(new Date().toLocaleTimeString());
 }, [getSessionForTime, searchParams]);
 
 
@@ -434,8 +426,11 @@ function QueueStatusPageContent() {
     }
   }, [fetchData, phone]);
   
-  const liveQueue = allSessionPatients
-    .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
+  const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
+  const upNext = allSessionPatients.find(p => p.status === 'Up-Next');
+  
+  const waitingQueue = allSessionPatients
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
     .sort((a, b) => {
         const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
         const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
@@ -444,10 +439,6 @@ function QueueStatusPageContent() {
         }
         return timeA - timeB;
     });
-  
-  const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
-  const upNext = liveQueue.find(p => p.status === 'Up-Next');
-  const waitingQueue = liveQueue.filter(p => p.id !== upNext?.id);
 
   if (!phone) {
       return (
@@ -460,7 +451,7 @@ function QueueStatusPageContent() {
       );
   }
   
-  const hasActiveAppointments = userQueue.some(p => p.status !== 'Completed' && p.status !== 'Cancelled');
+  const hasActiveAppointments = userTodaysPatients.some(p => p.status !== 'Completed' && p.status !== 'Cancelled');
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -485,29 +476,39 @@ function QueueStatusPageContent() {
             </div>
             
             <div className="mt-8 max-w-4xl mx-auto space-y-8">
-                <AnimatePresence>
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-4"
-                    >
-                        <h2 className="text-2xl font-bold text-center">Your Family's Status</h2>
-                        {userQueue.map(patient => {
-                            const queuePosition = waitingQueue.findIndex(p => p.id === patient.id) + (upNext ? 2 : 1);
-                            const isNowServing = nowServing?.id === patient.id;
-                            const isUpNext = upNext?.id === patient.id;
-                            return (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-4"
+                >
+                    <h2 className="text-2xl font-bold text-center">Your Family's Status</h2>
+                    <AnimatePresence>
+                      {userQueue.map(patient => {
+                          const queuePosition = waitingQueue.findIndex(p => p.id === patient.id) + (upNext ? 2 : 1);
+                          const isNowServing = nowServing?.id === patient.id;
+                          const isUpNext = upNext?.id === patient.id;
+                          return (
+                              <motion.div
+                                key={patient.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                              >
                                 <YourStatusCard 
-                                    key={patient.id}
                                     patient={patient}
                                     queuePosition={queuePosition}
                                     isUpNext={isUpNext}
                                     isNowServing={isNowServing}
                                 />
-                            );
-                        })}
-                    </motion.div>
-                </AnimatePresence>
+                              </motion.div>
+                          );
+                      })}
+                    </AnimatePresence>
+                    {userQueue.length === 0 && hasActiveAppointments && (
+                        <p className="text-center text-muted-foreground">Your active appointments are not in this session.</p>
+                    )}
+                </motion.div>
 
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
