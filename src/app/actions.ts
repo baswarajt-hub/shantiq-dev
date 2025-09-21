@@ -3,7 +3,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, deleteTodaysPatients as deleteTodaysPatientsData } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -515,6 +515,7 @@ export async function recalculateQueueWithETC() {
         // --- Post-Session Cleanup Logic ---
         const sessionEndUtc = sessionLocalToUtc(todayStr, sessionTimes.end);
         const cleanupTimeUtc = new Date(sessionEndUtc.getTime() + 60 * 60 * 1000); // 1 hour after session end
+        const now = new Date();
 
         if (now > cleanupTimeUtc) {
             sessionPatients.forEach(p => {
@@ -1072,10 +1073,24 @@ export async function deleteFamilyMemberAction(id: string) {
 }
     
 
+export async function deleteTodaysPatientsAction() {
+    const allPatients = await getPatientsData();
+    const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
+
+    const todaysPatientIds = allPatients
+        .filter(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === todayStr)
+        .map(p => p.id);
+
+    if (todaysPatientIds.length > 0) {
+        await deleteTodaysPatientsData(todaysPatientIds);
+    }
+    
+    revalidatePath('/', 'layout');
+    return { success: `Deleted ${todaysPatientIds.length} of today's patient entries.` };
+}
+
+
+
     
 
-
-
-
-    
 

@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction, deleteTodaysPatientsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -184,7 +184,7 @@ export default function DashboardPage() {
                 setDoctorStartDelay(doctorStatus.startDelay || 0);
             }
         }
-    }, [doctorStatus]);
+    }, [doctorStatus, isPending]);
 
 
     const sessionPatients = patients.filter(p => {
@@ -547,6 +547,18 @@ export default function DashboardPage() {
             }
         });
     };
+    
+    const handleDeleteTodaysEntries = () => {
+        startTransition(async () => {
+            const result = await deleteTodaysPatientsAction();
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.success });
+                await loadData();
+            }
+        });
+    };
 
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
     const upNext = sessionPatients.find(p => p.status === 'Up-Next');
@@ -874,10 +886,10 @@ export default function DashboardPage() {
                                 </Button>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                    <Button variant="destructive">
-                                        <AlertTriangle className="mr-2 h-4 w-4" />
-                                        Emergency
-                                    </Button>
+                                        <Button variant="destructive">
+                                            <AlertTriangle className="mr-2 h-4 w-4" />
+                                            Emergency
+                                        </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -892,6 +904,28 @@ export default function DashboardPage() {
                                         {isPending ? 'Cancelling...' : 'Confirm Emergency'}
                                         </AlertDialogAction>
                                     </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" outline>
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete Today's Entries
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete all entries for today?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This action is for testing purposes and will permanently delete all patient appointments for today. This cannot be undone.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleDeleteTodaysEntries} disabled={isPending}>
+                                                {isPending ? 'Deleting...' : 'Yes, delete all'}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
                             </div>
@@ -1037,3 +1071,4 @@ export default function DashboardPage() {
     
 
     
+

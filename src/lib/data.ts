@@ -346,3 +346,13 @@ export async function deleteFamilyMember(id: string): Promise<void> {
     const memberRef = doc(db, 'family', id);
     await deleteDoc(memberRef);
 }
+
+export async function deleteTodaysPatients(patientIds: string[]): Promise<void> {
+    if (patientIds.length === 0) return;
+    const batch = writeBatch(db);
+    patientIds.forEach(id => {
+        const patientRef = doc(db, 'patients', id);
+        batch.delete(patientRef);
+    });
+    await batch.commit();
+}
