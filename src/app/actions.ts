@@ -1186,7 +1186,7 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
     : 'https://pay.easebuzz.in';
 
   try {
-    const response = await fetch(`${baseUrl}/payment/initiateLink`, {
+    const response = await fetch(`${baseUrl}/initiate_seamless_payment/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: easebuzzPayload.toString(),
