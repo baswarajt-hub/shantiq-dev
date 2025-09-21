@@ -232,22 +232,21 @@ export async function getDoctorSchedule(): Promise<DoctorSchedule> {
 }
 
 export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedule>): Promise<DoctorSchedule> {
-  const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-  const currentSchedule = settings.schedule || defaultSchedule;
-  const newSchedule: DoctorSchedule = {
-    ...currentSchedule,
-    ...scheduleUpdate,
-    days: {
-      ...currentSchedule.days,
-      ...scheduleUpdate.days,
-    },
-    clinicDetails: scheduleUpdate.clinicDetails ?? currentSchedule.clinicDetails,
-    specialClosures: scheduleUpdate.specialClosures ?? currentSchedule.specialClosures,
-    visitPurposes: scheduleUpdate.visitPurposes ?? currentSchedule.visitPurposes,
-    notifications: scheduleUpdate.notifications ?? currentSchedule.notifications,
-  };
-  await setDoc(settingsDoc, { schedule: newSchedule }, { merge: true });
-  return newSchedule;
+    const currentSchedule = await getDoctorSchedule();
+    const newSchedule: DoctorSchedule = {
+      ...currentSchedule,
+      ...scheduleUpdate,
+      days: {
+        ...currentSchedule.days,
+        ...scheduleUpdate.days,
+      },
+      clinicDetails: scheduleUpdate.clinicDetails ?? currentSchedule.clinicDetails,
+      specialClosures: scheduleUpdate.specialClosures ?? currentSchedule.specialClosures,
+      visitPurposes: scheduleUpdate.visitPurposes ?? currentSchedule.visitPurposes,
+      notifications: scheduleUpdate.notifications ?? currentSchedule.notifications,
+    };
+    await setDoc(settingsDoc, { schedule: newSchedule }, { merge: true });
+    return newSchedule;
 }
 
 export async function updateClinicDetailsData(details: ClinicDetails) {
