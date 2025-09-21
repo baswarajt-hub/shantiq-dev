@@ -147,6 +147,21 @@ const defaultStatus: DoctorStatus = {
   isPaused: false,
 };
 
+const defaultDays = (): DoctorSchedule['days'] => {
+    const emptySession = { start: "09:00", end: "13:00", isOpen: false };
+    const dayTemplate = { morning: { ...emptySession }, evening: { ...emptySession } };
+  
+    return {
+      Monday: JSON.parse(JSON.stringify(dayTemplate)),
+      Tuesday: JSON.parse(JSON.stringify(dayTemplate)),
+      Wednesday: JSON.parse(JSON.stringify(dayTemplate)),
+      Thursday: JSON.parse(JSON.stringify(dayTemplate)),
+      Friday: JSON.parse(JSON.stringify(dayTemplate)),
+      Saturday: JSON.parse(JSON.stringify(dayTemplate)),
+      Sunday: JSON.parse(JSON.stringify(dayTemplate)),
+    };
+};
+
 const defaultSchedule: DoctorSchedule = {
   clinicDetails: {
     doctorName: 'Dr Baswaraj Tandur',
@@ -158,63 +173,15 @@ const defaultSchedule: DoctorSchedule = {
     email: 'info@shantichildrensclinic.com',
     website: 'shantichildrensclinic.com',
     consultationFee: 400,
-    paymentQRCode: 'https://picsum.photos/200',
+    paymentQRCode: '',
     clinicLogo: ''
   },
-  notifications: [
-    {
-      "message": "The clinic will remain closed from 20/09/2025 to 22/09/2025. If any emergency please visit the nearest children's hospital.\n\nक्लिनिक 20/09/2025 से 22/09/2025 तक बंद रहेगा। किसी भी आपात स्थिति में, कृपया नज़दीकी बाल चिकित्सालय जाएँ।",
-      "startTime": "2025-09-19T20:15:06.762Z",
-      "endTime": "2025-09-21T20:00:00.000Z",
-      "enabled": true,
-      "id": "notif_1758312298986"
-    }
-  ],
-  slotDuration: 5,
+  notifications: [],
+  slotDuration: 10,
   reserveFirstFive: true,
-  walkInReservation: 'alternateTwo',
-  days: {
-    Monday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
-    Tuesday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
-    Wednesday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
-    Thursday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
-    Friday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
-    Saturday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
-    Sunday: { morning: { start: '10:30', end: '13:00', isOpen: true }, evening: { start: '18:30', end: '21:30', isOpen: true } },
-  },
-  specialClosures: [
-    {
-      "date": "2025-09-19",
-      "isMorningClosed": false,
-      "isEveningClosed": true,
-      "eveningOverride": {
-        "start": "18:30",
-        "end": "21:30",
-        "isOpen": true
-      },
-      "morningOverride": {
-        "start": "10:30",
-        "end": "13:00",
-        "isOpen": true
-      }
-    },
-    {
-      "date": "2025-09-18",
-      "morningOverride": {
-        "start": "02:00",
-        "end": "03:00",
-        "isOpen": true
-      }
-    },
-    {
-      "date": "2025-09-20",
-      "morningOverride": {
-        "start": "01:40",
-        "end": "03:00",
-        "isOpen": true
-      }
-    }
-  ],
+  walkInReservation: 'alternateOne',
+  days: defaultDays(),
+  specialClosures: [],
   visitPurposes: [
     { id: 'vp_1', name: 'Consultation', enabled: true, description: '' },
     { id: 'vp_2', name: 'Follow-up visit', enabled: true, description: 'Next visit after paid consultation. Only one visit within 5 days of paid consultation.' },
@@ -237,13 +204,31 @@ export async function updateDoctorStatus(statusUpdate: Partial<DoctorStatus>): P
 }
 
 export async function getDoctorSchedule(): Promise<DoctorSchedule> {
-  const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-  const schedule = settings.schedule || defaultSchedule;
-  // Ensure nested arrays exist to prevent runtime errors
-  if (!schedule.specialClosures) schedule.specialClosures = [];
-  if (!schedule.visitPurposes) schedule.visitPurposes = [];
-  if (!schedule.notifications) schedule.notifications = [];
-  return JSON.parse(JSON.stringify(schedule));
+  const settingsDocRef = doc(db, 'settings', 'singleton');
+  const docSnap = await getDoc(settingsDocRef);
+
+  if (!docSnap.exists()) {
+    // If the document doesn't exist, create it with the full default schedule.
+    await setDoc(settingsDocRef, { schedule: defaultSchedule, status: defaultStatus });
+    return JSON.parse(JSON.stringify(defaultSchedule));
+  }
+
+  const settings = docSnap.data() as { schedule?: Partial<DoctorSchedule>, status?: DoctorStatus };
+  const data = settings.schedule || {};
+
+  // Normalize the fetched data to ensure all fields are present.
+  const normalizedSchedule: DoctorSchedule = {
+    slotDuration: data.slotDuration ?? defaultSchedule.slotDuration,
+    reserveFirstFive: data.reserveFirstFive ?? defaultSchedule.reserveFirstFive,
+    walkInReservation: data.walkInReservation ?? defaultSchedule.walkInReservation,
+    days: { ...defaultDays(), ...(data.days || {}) },
+    clinicDetails: data.clinicDetails ?? defaultSchedule.clinicDetails,
+    notifications: data.notifications ?? defaultSchedule.notifications,
+    visitPurposes: data.visitPurposes ?? defaultSchedule.visitPurposes,
+    specialClosures: data.specialClosures ?? defaultSchedule.specialClosures,
+  };
+  
+  return JSON.parse(JSON.stringify(normalizedSchedule));
 }
 
 export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedule>): Promise<DoctorSchedule> {
