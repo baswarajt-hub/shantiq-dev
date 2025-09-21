@@ -7,7 +7,8 @@ import {
   endOfWeek,
   format,
   isPast,
-  set
+  set,
+  startOfWeek
 } from 'date-fns';
 import { Button } from '../ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -141,5 +142,3 @@ export function WeekView({ schedule, closures, onOverrideSave }: WeekViewProps) 
     </div>
   );
 }
-
-    
