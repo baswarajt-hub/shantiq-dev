@@ -206,7 +206,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     
     // Now, set the new patient to "In-Consultation"
     updates.consultationStartTime = new Date().toISOString();
-    updates.subStatus = patient.subStatus === 'Reports' ? undefined : patient.subStatus;
+    updates.subStatus = undefined;
 
   } else if (status === 'Completed' && patient.consultationStartTime) {
     const startTime = toDate(patient.consultationStartTime)!;

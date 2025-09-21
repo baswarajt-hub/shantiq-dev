@@ -198,9 +198,8 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         }
 
         try {
-            const easebuzzPay = new Easebuzz(
-                schedule.paymentGatewaySettings.key, 
-                schedule.paymentGatewaySettings.salt, 
+            var easebuzzPay = new Easebuzz.easebuzz(
+                paymentResult.access_key,
                 schedule.paymentGatewaySettings.environment
             );
 
