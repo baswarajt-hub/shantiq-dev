@@ -1161,10 +1161,8 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
   const productinfo = 'Clinic Appointment Booking';
   const surl = `${process.env.NEXT_PUBLIC_BASE_URL}/booking/my-appointments?status=success`;
   const furl = `${process.env.NEXT_PUBLIC_BASE_URL}/booking/my-appointments?status=failure`;
-  const amountStr = amount.toFixed(2); // Ensure amount is formatted as a string with 2 decimal places
+  const amountStr = amount.toFixed(2);
 
-  // IMPORTANT: The order of fields in the hash string is critical.
-  // Refer to Easebuzz documentation for the correct sequence. This is a common example.
   const hashString = `${paymentSettings.key}|${txnid}|${amountStr}|${productinfo}|${name}|${email}|||||||||||${paymentSettings.salt}`;
   const hash = createHash('sha512').update(hashString).digest('hex');
 
@@ -1180,9 +1178,12 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
   easebuzzPayload.append('furl', furl);
   easebuzzPayload.append('hash', hash);
 
+  const baseUrl = paymentSettings.environment === 'test'
+    ? 'https://testpay.easebuzz.in'
+    : 'https://pay.easebuzz.in';
+
   try {
-    // NOTE: Use the correct Easebuzz endpoint for your environment (test/production)
-    const response = await fetch('https://pay.easebuzz.in/payment/initiateLink', {
+    const response = await fetch(`${baseUrl}/payment/initiateLink`, {
       method: 'POST',
       body: easebuzzPayload,
     });
@@ -1198,6 +1199,7 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
     if (result.status === 1) {
       return { success: true, access_key: result.data };
     } else {
+      console.error('Easebuzz Initiation Error:', result);
       return { error: result.error_Message || 'Failed to initiate payment from gateway.' };
     }
   } catch (error) {
@@ -1205,22 +1207,3 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
     return { error: 'Could not connect to the payment gateway.' };
   }
 }
-    
-
-    
-
-
-
-    
-
-
-
-
-
-    
-
-
-
-
-
-

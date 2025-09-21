@@ -8,11 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 const EMPTY_SETTINGS: PaymentGatewaySettings = {
   provider: 'none',
   key: '',
   salt: '',
+  environment: 'test',
 };
 
 type PaymentGatewaySettingsFormProps = {
@@ -38,6 +40,10 @@ export function PaymentGatewaySettingsForm({ initialSettings, onSave }: PaymentG
 
   const handleProviderChange = (value: 'none' | 'easebuzz') => {
     setSettings(prev => ({ ...prev, provider: value }));
+  };
+
+  const handleEnvironmentChange = (value: 'test' | 'production') => {
+    setSettings(prev => ({ ...prev, environment: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -67,8 +73,25 @@ export function PaymentGatewaySettingsForm({ initialSettings, onSave }: PaymentG
               </SelectContent>
             </Select>
           </div>
-          {settings.provider !== 'none' && (
+          {settings.provider === 'easebuzz' && (
             <>
+              <div className="space-y-2">
+                <Label>Environment</Label>
+                <RadioGroup
+                  onValueChange={handleEnvironmentChange}
+                  value={settings.environment}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="test" id="r1" />
+                    <Label htmlFor="r1">Test</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="production" id="r2" />
+                    <Label htmlFor="r2">Production</Label>
+                  </div>
+                </RadioGroup>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="key">Key</Label>
                 <Input id="key" name="key" type="password" value={settings.key} onChange={handleInputChange} />

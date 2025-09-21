@@ -26,7 +26,7 @@ async function getSingletonDoc<T>(docRef: any, defaultData: T): Promise<T> {
         if (!schedule.visitPurposes) schedule.visitPurposes = [];
         if (!schedule.notifications) schedule.notifications = [];
         if (!schedule.smsSettings) schedule.smsSettings = { provider: 'none', apiKey: '', senderId: ''};
-        if (!schedule.paymentGatewaySettings) schedule.paymentGatewaySettings = { provider: 'none', key: '', salt: '' };
+        if (!schedule.paymentGatewaySettings) schedule.paymentGatewaySettings = { provider: 'none', key: '', salt: '', environment: 'test' };
       }
       return data;
     } else {
@@ -186,7 +186,8 @@ const defaultSchedule: DoctorSchedule = {
   paymentGatewaySettings: {
     provider: 'none',
     key: '',
-    salt: ''
+    salt: '',
+    environment: 'test'
   },
   notifications: [],
   slotDuration: 10,

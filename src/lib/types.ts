@@ -93,6 +93,7 @@ export type PaymentGatewaySettings = {
   provider: 'none' | 'easebuzz';
   key: string;
   salt: string;
+  environment: 'test' | 'production';
 };
 
 export type Notification = {

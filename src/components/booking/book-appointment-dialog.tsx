@@ -201,7 +201,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
             const easebuzzPay = new Easebuzz(
                 schedule.paymentGatewaySettings.key, 
                 schedule.paymentGatewaySettings.salt, 
-                "test" // IMPORTANT: Change to "production" for live payments
+                schedule.paymentGatewaySettings.environment
             );
 
             const options = {
