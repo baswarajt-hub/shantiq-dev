@@ -360,52 +360,48 @@ function QueueStatusPageContent() {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) return;
 
-    const [patientData, statusRes, scheduleData] = await Promise.all([
-      getPatientsAction(),
-      fetch('/api/status'),
-      getDoctorScheduleAction(),
+    const [allPatientData, statusRes, scheduleData] = await Promise.all([
+        getPatientsAction(),
+        fetch('/api/status'),
+        getDoctorScheduleAction(),
     ]);
 
     const statusData = await statusRes.json();
     setSchedule(scheduleData);
     setDoctorStatus(statusData);
 
-    const now = new Date();
-    let realTimeSession = getSessionForTime(now, scheduleData);
+    const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
 
-    if (!realTimeSession && statusData.isOnline && statusData.onlineTime) {
-      realTimeSession = getSessionForTime(parseISO(statusData.onlineTime), scheduleData);
+    let appointmentForSession: Patient | null = null;
+    if (patientId) {
+        const id = parseInt(patientId, 10);
+        appointmentForSession = todaysPatients.find((p: Patient) => p.id === id && p.phone === userPhone) || null;
+    }
+    
+    if (!appointmentForSession) {
+        appointmentForSession = todaysPatients.find(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled') || null;
     }
 
-    if (!realTimeSession) {
-      const currentHour = now.getHours();
-      realTimeSession = currentHour < 14 ? 'morning' : 'evening';
+    let sessionToShow: 'morning' | 'evening' | null = null;
+    if (appointmentForSession) {
+        sessionToShow = getSessionForTime(parseISO(appointmentForSession.appointmentTime), scheduleData);
+    } else {
+        const now = new Date();
+        const currentHour = now.getHours();
+        sessionToShow = currentHour < 14 ? 'morning' : 'evening';
     }
-
-
-    setCurrentSession(realTimeSession);
     
-    const todaysPatients = patientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
+    setCurrentSession(sessionToShow);
     
-    const filteredPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === realTimeSession);
+    const filteredPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     
     setAllPatients(filteredPatients);
     setLastUpdated(new Date().toLocaleTimeString());
 
-    let userAppointment: Patient | null = null;
-    if (patientId) {
-        const id = parseInt(patientId, 10);
-        userAppointment = todaysPatients.find((p: Patient) => p.id === id && p.phone === userPhone) || null;
-    }
-
-    // If no appointment found via ID, try to find any active one for the user in the session
-    if (!userAppointment) {
-        userAppointment = filteredPatients.find(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled') || null;
-    }
-
+    let userAppointment = appointmentForSession;
 
     if (userAppointment) {
-        const isSameSession = getSessionForTime(parseISO(userAppointment.appointmentTime), scheduleData) === realTimeSession;
+        const isSameSession = getSessionForTime(parseISO(userAppointment.appointmentTime), scheduleData) === sessionToShow;
 
         if (userAppointment.status === 'Completed' && isSameSession) {
             const lastCompletedId = localStorage.getItem('completedAppointmentId');
@@ -427,7 +423,7 @@ function QueueStatusPageContent() {
         setCompletedAppointmentForDisplay(null);
         localStorage.removeItem('completedAppointmentId');
     }
-  }, [getSessionForTime, patientId]);
+}, [getSessionForTime, patientId]);
 
 
   useEffect(() => {
@@ -557,5 +553,3 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
-
-    
