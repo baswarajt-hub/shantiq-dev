@@ -154,7 +154,6 @@ export default function DashboardPage() {
         setPatients(patientData);
         setFamily(familyData);
         setDoctorStatus(statusData);
-        setDoctorStartDelay(statusData.startDelay || 0);
     }, []);
 
     useEffect(() => {
@@ -178,6 +177,10 @@ export default function DashboardPage() {
             setDoctorOnlineTime(new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         } else {
             setDoctorOnlineTime('');
+        }
+        // Initialize delay state only when status data arrives
+        if (doctorStatus) {
+            setDoctorStartDelay(doctorStatus.startDelay || 0);
         }
     }, [doctorStatus]);
 
@@ -1031,3 +1034,4 @@ export default function DashboardPage() {
     
 
     
+
