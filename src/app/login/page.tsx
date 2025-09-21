@@ -40,14 +40,17 @@ export default function LoginPage() {
         return;
       }
       
+      // --- OTP BYPASS FOR TESTING ---
       if (result.otp) {
-        setGeneratedOtp(result.otp);
-        console.log("Generated OTP for testing:", result.otp);
-        setIsNewUser(!result.userExists);
-        setStep('otp');
+        // Automatically log in using the generated OTP
+        localStorage.setItem('userPhone', phone);
+        if (!result.userExists) {
+           router.push('/register');
+        } else {
+           router.push('/booking');
+        }
       } else if (result.userExists) {
         // Fallback for existing user if somehow OTP fails but user is found
-        // In a real app with enforced OTP, this might not be needed
         localStorage.setItem('userPhone', phone);
         router.push('/booking');
       }
@@ -121,7 +124,7 @@ export default function LoginPage() {
           <CardFooter>
             {step === 'phone' ? (
               <Button onClick={handlePhoneSubmit} disabled={isPending || phone.length < 10} className="w-full">
-                {isPending ? 'Sending OTP...' : 'Send OTP'}
+                {isPending ? 'Logging in...' : 'Login / Register'}
               </Button>
             ) : (
               <Button onClick={handleOtpSubmit} className="w-full">
