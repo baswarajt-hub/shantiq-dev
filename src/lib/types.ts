@@ -83,6 +83,12 @@ export type ClinicDetails = {
     clinicLogo?: string;
 };
 
+export type SmsSettings = {
+  provider: 'none' | 'bulksms' | 'twilio';
+  apiKey: string;
+  senderId: string;
+}
+
 export type Notification = {
   id: string;
   message: string;
@@ -93,6 +99,7 @@ export type Notification = {
 
 export type DoctorSchedule = {
   clinicDetails: ClinicDetails;
+  smsSettings: SmsSettings;
   notifications: Notification[];
   slotDuration: number;
   reserveFirstFive: boolean;

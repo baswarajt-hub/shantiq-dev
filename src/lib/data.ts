@@ -1,10 +1,10 @@
 
 
-import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification } from './types';
-import { format, parse, parseISO } from 'date-fns';
+import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings } from './types';
+import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, addDoc, writeBatch, updateDoc, query, where, documentId, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, writeBatch, updateDoc, query, where, documentId, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 
 
 // --- Firestore Collection References ---
@@ -25,6 +25,7 @@ async function getSingletonDoc<T>(docRef: any, defaultData: T): Promise<T> {
         if (!schedule.specialClosures) schedule.specialClosures = [];
         if (!schedule.visitPurposes) schedule.visitPurposes = [];
         if (!schedule.notifications) schedule.notifications = [];
+        if (!schedule.smsSettings) schedule.smsSettings = { provider: 'none', apiKey: '', senderId: ''};
       }
       return data;
     } else {
@@ -176,6 +177,11 @@ const defaultSchedule: DoctorSchedule = {
     paymentQRCode: '',
     clinicLogo: ''
   },
+  smsSettings: {
+    provider: 'none',
+    apiKey: '',
+    senderId: ''
+  },
   notifications: [],
   slotDuration: 10,
   reserveFirstFive: true,
@@ -223,6 +229,7 @@ export async function getDoctorSchedule(): Promise<DoctorSchedule> {
     walkInReservation: data.walkInReservation ?? defaultSchedule.walkInReservation,
     days: { ...defaultDays(), ...(data.days || {}) },
     clinicDetails: data.clinicDetails ?? defaultSchedule.clinicDetails,
+    smsSettings: data.smsSettings ?? defaultSchedule.smsSettings,
     notifications: data.notifications ?? defaultSchedule.notifications,
     visitPurposes: data.visitPurposes ?? defaultSchedule.visitPurposes,
     specialClosures: data.specialClosures ?? defaultSchedule.specialClosures,
@@ -241,6 +248,7 @@ export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedul
         ...scheduleUpdate.days,
       },
       clinicDetails: scheduleUpdate.clinicDetails ?? currentSchedule.clinicDetails,
+      smsSettings: scheduleUpdate.smsSettings ?? currentSchedule.smsSettings,
       specialClosures: scheduleUpdate.specialClosures ?? currentSchedule.specialClosures,
       visitPurposes: scheduleUpdate.visitPurposes ?? currentSchedule.visitPurposes,
       notifications: scheduleUpdate.notifications ?? currentSchedule.notifications,
@@ -251,6 +259,10 @@ export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedul
 
 export async function updateClinicDetailsData(details: ClinicDetails) {
   await setDoc(settingsDoc, { schedule: { clinicDetails: details } }, { merge: true });
+}
+
+export async function updateSmsSettingsData(smsSettings: SmsSettings) {
+  await setDoc(settingsDoc, { schedule: { smsSettings: smsSettings } }, { merge: true });
 }
 
 export async function updateVisitPurposesData(purposes: VisitPurpose[]) {
@@ -345,4 +357,21 @@ export async function getFamily(): Promise<FamilyMember[]> {
 export async function deleteFamilyMember(id: string): Promise<void> {
     const memberRef = doc(db, 'family', id);
     await deleteDoc(memberRef);
+}
+
+export async function deleteTodaysPatientsData(): Promise<void> {
+    const today = startOfToday();
+    const todayTimestamp = Timestamp.fromDate(today);
+
+    // Query for patients with an appointmentTime on or after the start of today
+    const q = query(patientsCollection, where("appointmentTime", ">=", todayTimestamp.toDate().toISOString()));
+    
+    const querySnapshot = await getDocs(q);
+    const batch = writeBatch(db);
+
+    querySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+
+    await batch.commit();
 }
