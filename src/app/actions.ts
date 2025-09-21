@@ -206,7 +206,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     
     // Now, set the new patient to "In-Consultation"
     updates.consultationStartTime = new Date().toISOString();
-    updates.subStatus = undefined;
+    updates.subStatus = patient.subStatus === 'Reports' ? undefined : patient.subStatus;
 
   } else if (status === 'Completed' && patient.consultationStartTime) {
     const startTime = toDate(patient.consultationStartTime)!;
@@ -1161,16 +1161,17 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
   const productinfo = 'Clinic Appointment Booking';
   const surl = `${process.env.NEXT_PUBLIC_BASE_URL}/booking/my-appointments?status=success`;
   const furl = `${process.env.NEXT_PUBLIC_BASE_URL}/booking/my-appointments?status=failure`;
+  const amountStr = amount.toFixed(2); // Ensure amount is formatted as a string with 2 decimal places
 
   // IMPORTANT: The order of fields in the hash string is critical.
   // Refer to Easebuzz documentation for the correct sequence. This is a common example.
-  const hashString = `${paymentSettings.key}|${txnid}|${amount}|${productinfo}|${name}|${email}|||||||||||${paymentSettings.salt}`;
+  const hashString = `${paymentSettings.key}|${txnid}|${amountStr}|${productinfo}|${name}|${email}|||||||||||${paymentSettings.salt}`;
   const hash = createHash('sha512').update(hashString).digest('hex');
 
   const easebuzzPayload = new FormData();
   easebuzzPayload.append('key', paymentSettings.key);
   easebuzzPayload.append('txnid', txnid);
-  easebuzzPayload.append('amount', amount.toString());
+  easebuzzPayload.append('amount', amountStr);
   easebuzzPayload.append('productinfo', productinfo);
   easebuzzPayload.append('firstname', name);
   easebuzzPayload.append('email', email);
@@ -1189,7 +1190,7 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
     if (!response.ok) {
         const errorText = await response.text();
         console.error('Easebuzz API Error Response:', errorText);
-        return { error: `Failed to connect to payment gateway. Status: ${response.status}` };
+        return { error: `Failed to connect to payment gateway. Gateway message: ${errorText}` };
     }
 
     const result = await response.json();
@@ -1217,6 +1218,7 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
 
 
     
+
 
 
 
