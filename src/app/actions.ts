@@ -1163,7 +1163,7 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
   const furl = `${process.env.NEXT_PUBLIC_BASE_URL}/booking/my-appointments?status=failure`;
   const amountStr = amount.toFixed(2);
 
-  const hashString = `${paymentSettings.key}|${txnid}|${amountStr}|${productinfo}|${name}|${email}|||||||||||${paymentSettings.salt}`;
+  const hashString = `${paymentSettings.key}|${txnid}|${amountStr}|${productinfo}|${name}|${email}|udf1|udf2|udf3|udf4|udf5|udf6|udf7|udf8|udf9|udf10|${paymentSettings.salt}`;
   const hash = createHash('sha512').update(hashString).digest('hex');
 
   const easebuzzPayload = new FormData();
