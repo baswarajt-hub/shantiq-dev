@@ -305,7 +305,6 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
 
 function QueueStatusPageContent() {
   const [allSessionPatients, setAllSessionPatients] = useState<Patient[]>([]);
-  const [userTodaysPatients, setUserTodaysPatients] = useState<Patient[]>([]);
   const [patientsToDisplay, setPatientsToDisplay] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -359,61 +358,73 @@ function QueueStatusPageContent() {
     const userPhone = localStorage.getItem('userPhone');
     const patientIdParam = searchParams.get('id');
     if (!userPhone) return;
-
+  
     const [allPatientData, statusRes, scheduleData] = await Promise.all([
       getPatientsAction(),
       fetch('/api/status'),
       getDoctorScheduleAction(),
     ]);
-
+  
     const statusData = await statusRes.json();
     setSchedule(scheduleData);
     setDoctorStatus(statusData);
-
+  
     const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
-    const userTodaysPatients = todaysPatients.filter((p: Patient) => p.phone === userPhone);
-    setUserTodaysPatients(userTodaysPatients);
-
+  
     let targetAppointment: Patient | null = null;
     let appointmentsToShow: Patient[] = [];
-
+  
+    // 1. Strictly prioritize the ID from the URL
     if (patientIdParam) {
       const id = parseInt(patientIdParam, 10);
       targetAppointment = todaysPatients.find((p: Patient) => p.id === id) || null;
-      if (targetAppointment) {
-        appointmentsToShow = [targetAppointment];
-      }
     }
-    
-    if (appointmentsToShow.length === 0) {
-      // Fallback if no ID or ID not found: show all active appointments for the family
-      appointmentsToShow = userTodaysPatients.filter(p => p.status !== 'Completed' && p.status !== 'Cancelled');
+  
+    // 2. If no target from ID, fall back to active appointments for the user's phone
+    if (!targetAppointment) {
+      appointmentsToShow = todaysPatients.filter(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled');
       if (appointmentsToShow.length > 0) {
-        targetAppointment = appointmentsToShow[0]; // Use first active appointment to determine session
+        // To determine a session, just pick the first one
+        targetAppointment = appointmentsToShow[0];
       }
+    } else {
+       // If we found a target via ID, that's the only one we'll show in the user status section
+      appointmentsToShow = [targetAppointment];
     }
+  
     setPatientsToDisplay(appointmentsToShow);
-    
-    const sessionToShow = targetAppointment 
-      ? getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData) 
-      : (new Date().getHours() < 14 ? 'morning' : 'evening');
-    
+  
+    // 3. Determine the session context from our target appointment
+    let sessionToShow: 'morning' | 'evening' | null = null;
+    if (targetAppointment) {
+      sessionToShow = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData);
+    } else {
+      // If still no target, default session based on current time
+      sessionToShow = new Date().getHours() < 14 ? 'morning' : 'evening';
+    }
     setCurrentSession(sessionToShow);
-    
+  
+    // 4. Filter all session patients based on the determined session
     const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     setAllSessionPatients(filteredPatientsForSession);
-    
-    if (targetAppointment && targetAppointment.status === 'Completed') {
+  
+    // 5. Check if the primary target appointment is completed to show summary
+    const appointmentForSummary = targetAppointment && targetAppointment.id === parseInt(patientIdParam || '0', 10) ? targetAppointment : null;
+    if (appointmentForSummary && appointmentForSummary.status === 'Completed') {
         const lastCompletedId = localStorage.getItem('completedAppointmentId');
-        if (lastCompletedId !== String(targetAppointment.id)) {
-            setCompletedAppointmentForDisplay(targetAppointment);
-            localStorage.setItem('completedAppointmentId', String(targetAppointment.id));
+        // Only show summary if it's a new completion
+        if (lastCompletedId !== String(appointmentForSummary.id)) {
+            setCompletedAppointmentForDisplay(appointmentForSummary);
+            localStorage.setItem('completedAppointmentId', String(appointmentForSummary.id));
+        } else {
+            setCompletedAppointmentForDisplay(null);
         }
     } else {
         setCompletedAppointmentForDisplay(null);
     }
+  
     setLastUpdated(new Date().toLocaleTimeString());
-}, [getSessionForTime, searchParams]);
+  }, [searchParams, getSessionForTime]);
 
 
   useEffect(() => {
@@ -449,7 +460,7 @@ function QueueStatusPageContent() {
       );
   }
   
-  const hasActiveAppointments = userTodaysPatients.some(p => p.status !== 'Completed' && p.status !== 'Cancelled');
+  const hasAnyAppointmentsToday = patientsToDisplay.length > 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -458,7 +469,7 @@ function QueueStatusPageContent() {
         
         {completedAppointmentForDisplay ? (
              <CompletionSummary patient={completedAppointmentForDisplay} />
-        ) : !hasActiveAppointments ? (
+        ) : !hasAnyAppointmentsToday ? (
              <div className="text-center mt-16">
                  <h1 className="text-3xl font-bold">No Active Appointment</h1>
                  <p className="text-lg text-muted-foreground mt-2">You do not have an active appointment scheduled for today.</p>
@@ -485,10 +496,9 @@ function QueueStatusPageContent() {
                           const isNowServing = nowServing?.id === patient.id;
                           const isUpNext = upNext?.id === patient.id;
                           let queuePosition = -1;
-                          if (patient.status === 'Waiting' || patient.status === 'Late' || patient.status === 'Priority') {
+                          if (['Waiting', 'Late', 'Priority'].includes(patient.status)) {
                             const position = waitingQueue.findIndex(p => p.id === patient.id);
                             if (position !== -1) {
-                                // Add 1 because it's 0-indexed. If upNext exists, add another 1.
                                 queuePosition = position + (upNext ? 2 : 1);
                             }
                           }
@@ -510,7 +520,7 @@ function QueueStatusPageContent() {
                           );
                       })}
                     </AnimatePresence>
-                    {patientsToDisplay.length === 0 && hasActiveAppointments && (
+                    {patientsToDisplay.length === 0 && (
                         <p className="text-center text-muted-foreground">Your active appointments are not in this session.</p>
                     )}
                 </motion.div>
