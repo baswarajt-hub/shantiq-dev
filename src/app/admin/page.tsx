@@ -37,29 +37,23 @@ export default function AdminPage() {
 
   const handleClinicDetailsSave = async (updatedDetails: ClinicDetails) => {
     if (!schedule) return;
-    const newSchedule = { ...schedule, clinicDetails: updatedDetails };
-    setSchedule(newSchedule);
     const result = await updateClinicDetailsAction(updatedDetails);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
-      const freshSchedule = await getDoctorScheduleAction();
-      setSchedule(freshSchedule);
     } else {
       toast({ title: 'Success', description: result.success });
+      setSchedule(prev => prev ? { ...prev, clinicDetails: updatedDetails } : null);
     }
   };
 
   const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
     if (!schedule) return;
-    const newSchedule = { ...schedule, notifications: updatedNotifications };
-    setSchedule(newSchedule);
     const result = await updateNotificationsAction(updatedNotifications);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
-       const freshSchedule = await getDoctorScheduleAction();
-       setSchedule(freshSchedule);
     } else {
       toast({ title: 'Success', description: result.success });
+       setSchedule(prev => prev ? { ...prev, notifications: updatedNotifications } : null);
     }
   };
 
@@ -78,29 +72,23 @@ export default function AdminPage() {
 
   const handleClosuresSave = async (updatedClosures: SpecialClosure[]) => {
     if (!schedule) return;
-    const newSchedule = { ...schedule, specialClosures: updatedClosures };
-    setSchedule(newSchedule);
     const result = await updateSpecialClosuresAction(updatedClosures);
      if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
-        const freshSchedule = await getDoctorScheduleAction();
-        setSchedule(freshSchedule);
     } else {
         toast({ title: 'Success', description: 'Closure updated successfully.' });
+        setSchedule(prev => prev ? { ...prev, specialClosures: updatedClosures } : null);
     }
   };
 
   const handleVisitPurposesSave = async (updatedPurposes: VisitPurpose[]) => {
     if (!schedule) return;
-    const newSchedule = { ...schedule, visitPurposes: updatedPurposes };
-    setSchedule(newSchedule);
     const result = await updateVisitPurposesAction(updatedPurposes);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
-       const freshSchedule = await getDoctorScheduleAction();
-       setSchedule(freshSchedule);
     } else {
       toast({ title: 'Success', description: result.success });
+      setSchedule(prev => prev ? { ...prev, visitPurposes: updatedPurposes } : null);
     }
   };
 
@@ -177,6 +165,4 @@ export default function AdminPage() {
     </div>
   );
 }
-    
-
     
