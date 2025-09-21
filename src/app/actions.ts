@@ -3,7 +3,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, deleteTodaysPatients as deleteTodaysPatientsData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -944,10 +944,51 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 export async function checkUserAuthAction(phone: string) {
     const user = await findPrimaryUserByPhone(phone);
     if (user) {
-        return { userExists: true, user };
+        // In a real app, OTP would be sent and verified for existing users too.
+        // For now, we simulate success for existing users.
+        return { userExists: true, user, otp: '123456' }; // Return a dummy OTP for simulation
     }
-    // Simulate OTP
+
+    // New user registration flow
+    const apiKey = process.env.BULKSMS_API_KEY;
+    const senderId = process.env.BULKSMS_SENDER_ID;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // In a real implementation, you would send the OTP via your SMS provider here.
+    // The following is a placeholder to show where the API call would go.
+    
+    // console.log(`Sending OTP ${otp} to ${phone} using API Key: ${apiKey}`);
+    /*
+    try {
+        const response = await fetch('https://api.your-sms-provider.com/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                to: phone,
+                from: senderId,
+                message: `Your OTP for QueueWise is: ${otp}`
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to send OTP');
+        }
+        
+        console.log('OTP sent successfully');
+
+    } catch (error) {
+        console.error("SMS API Error:", error);
+        return { error: "Failed to send OTP. Please try again later." };
+    }
+    */
+    
+    // For now, we return the OTP so it can be verified on the client side.
+    // In production, you would not return the OTP here. You would store it
+    // (e.g., in a temporary cache or session) and verify it in a separate action.
+    console.log("Generated OTP for testing:", otp); // Keep for testing, remove in production
     return { userExists: false, otp: otp };
 }
 
@@ -1077,4 +1118,5 @@ export async function deleteFamilyMemberAction(id: string) {
 
 
     
+
 
