@@ -4,12 +4,12 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import { ScheduleForm } from '@/components/admin/schedule-form';
-import { getDoctorScheduleAction } from '@/app/actions';
+import { getDoctorScheduleAction, updateDoctorScheduleAction } from '@/app/actions';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
 import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose, Notification } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { updateDoctorScheduleAction, updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction, updateNotificationsAction } from '../actions';
+import { updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction, updateNotificationsAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { VisitPurposeForm } from '@/components/admin/visit-purpose-form';
 import { ClinicDetailsForm } from '@/components/admin/clinic-details-form';
@@ -17,24 +17,31 @@ import { NotificationForm } from '@/components/admin/notification-form';
 
 export default function AdminPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     async function loadSchedule() {
-      const scheduleData = await getDoctorScheduleAction();
-      setSchedule(scheduleData);
+      try {
+        const scheduleData = await getDoctorScheduleAction();
+        setSchedule(scheduleData);
+      } catch (error) {
+        console.error("Failed to load schedule", error);
+        toast({ title: 'Error', description: 'Failed to load schedule data.', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
     }
     loadSchedule();
-  }, []);
+  }, [toast]);
 
   const handleClinicDetailsSave = async (updatedDetails: ClinicDetails) => {
     if (!schedule) return;
-    // Optimistically update UI
-    setSchedule(prev => prev ? { ...prev, clinicDetails: updatedDetails } : null);
+    const newSchedule = { ...schedule, clinicDetails: updatedDetails };
+    setSchedule(newSchedule);
     const result = await updateClinicDetailsAction(updatedDetails);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
-      // Revert on error
       const freshSchedule = await getDoctorScheduleAction();
       setSchedule(freshSchedule);
     } else {
@@ -44,7 +51,8 @@ export default function AdminPage() {
 
   const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
     if (!schedule) return;
-     setSchedule(prev => prev ? { ...prev, notifications: updatedNotifications } : null);
+    const newSchedule = { ...schedule, notifications: updatedNotifications };
+    setSchedule(newSchedule);
     const result = await updateNotificationsAction(updatedNotifications);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -55,19 +63,11 @@ export default function AdminPage() {
     }
   };
 
-  const handleScheduleSave = async (updatedScheduleData: Partial<DoctorSchedule>) => {
-    // Optimistically update the UI
-    if (schedule) {
-      setSchedule({ ...schedule, ...updatedScheduleData });
-    }
-    
+  const handleScheduleSave = async (updatedScheduleData: DoctorSchedule) => {
     const result = await updateDoctorScheduleAction(updatedScheduleData);
 
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
-      // Revert on error
-      const freshSchedule = await getDoctorScheduleAction();
-      setSchedule(freshSchedule);
     } else {
       toast({ title: 'Success', description: result.success });
       if (result.schedule) {
@@ -77,8 +77,9 @@ export default function AdminPage() {
   };
 
   const handleClosuresSave = async (updatedClosures: SpecialClosure[]) => {
-     if (!schedule) return;
-    setSchedule(prev => prev ? { ...prev, specialClosures: updatedClosures } : null);
+    if (!schedule) return;
+    const newSchedule = { ...schedule, specialClosures: updatedClosures };
+    setSchedule(newSchedule);
     const result = await updateSpecialClosuresAction(updatedClosures);
      if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -91,7 +92,8 @@ export default function AdminPage() {
 
   const handleVisitPurposesSave = async (updatedPurposes: VisitPurpose[]) => {
     if (!schedule) return;
-    setSchedule(prev => prev ? { ...prev, visitPurposes: updatedPurposes } : null);
+    const newSchedule = { ...schedule, visitPurposes: updatedPurposes };
+    setSchedule(newSchedule);
     const result = await updateVisitPurposesAction(updatedPurposes);
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -102,7 +104,7 @@ export default function AdminPage() {
     }
   };
 
-  if (!schedule) {
+  if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Header logoSrc={null} />
@@ -118,6 +120,17 @@ export default function AdminPage() {
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-96 w-full" />
           </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!schedule) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <Header logoSrc={null} />
+        <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
+           <p>Could not load schedule. Please try again later.</p>
         </main>
       </div>
     );
@@ -164,4 +177,6 @@ export default function AdminPage() {
     </div>
   );
 }
+    
+
     
