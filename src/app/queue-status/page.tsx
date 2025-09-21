@@ -392,32 +392,36 @@ function QueueStatusPageContent() {
     setAllPatients(filteredPatients);
     setLastUpdated(new Date().toLocaleTimeString());
 
+    let userAppointment: Patient | null = null;
     if (patientId) {
-      const id = parseInt(patientId, 10);
-      const userAppointment = todaysPatients.find((p: Patient) => p.id === id && p.phone === userPhone);
+        const id = parseInt(patientId, 10);
+        userAppointment = todaysPatients.find((p: Patient) => p.id === id && p.phone === userPhone) || null;
+    }
 
-      if (userAppointment) {
-          const isSameSession = getSessionForTime(parseISO(userAppointment.appointmentTime), scheduleData) === realTimeSession;
+    // If no appointment found via ID, try to find any active one for the user in the session
+    if (!userAppointment) {
+        userAppointment = filteredPatients.find(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled') || null;
+    }
 
-          if (userAppointment.status === 'Completed' && isSameSession) {
-              const lastCompletedId = localStorage.getItem('completedAppointmentId');
-              if (lastCompletedId !== patientId) {
-                  setCompletedAppointmentForDisplay(userAppointment);
-                  setFoundAppointment(null);
-                  localStorage.setItem('completedAppointmentId', patientId);
-              }
-          } else if (isSameSession) {
-              setFoundAppointment(userAppointment);
-              setCompletedAppointmentForDisplay(null);
-              localStorage.removeItem('completedAppointmentId');
-          } else {
-              setFoundAppointment(null);
-              setCompletedAppointmentForDisplay(null);
-          }
-      } else {
-          setFoundAppointment(null);
-          setCompletedAppointmentForDisplay(null);
-      }
+
+    if (userAppointment) {
+        const isSameSession = getSessionForTime(parseISO(userAppointment.appointmentTime), scheduleData) === realTimeSession;
+
+        if (userAppointment.status === 'Completed' && isSameSession) {
+            const lastCompletedId = localStorage.getItem('completedAppointmentId');
+            if (lastCompletedId !== String(userAppointment.id)) {
+                setCompletedAppointmentForDisplay(userAppointment);
+                setFoundAppointment(null);
+                localStorage.setItem('completedAppointmentId', String(userAppointment.id));
+            }
+        } else if (isSameSession) {
+            setFoundAppointment(userAppointment);
+            setCompletedAppointmentForDisplay(null);
+            localStorage.removeItem('completedAppointmentId');
+        } else {
+            setFoundAppointment(null);
+            setCompletedAppointmentForDisplay(null);
+        }
     } else {
         setFoundAppointment(null);
         setCompletedAppointmentForDisplay(null);
