@@ -221,7 +221,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     updates.subStatus = 'Reports';
   } else if (patient.status === 'Waiting for Reports' && status === 'In-Consultation') {
     updates.consultationStartTime = new Date().toISOString();
-    updates.subStatus = 'Reports';
+    updates.subStatus = undefined;
   }
 
   await updatePatient(patientId, updates);
@@ -1162,14 +1162,14 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
 
   const txnid = `TXN_${Date.now()}`;
   const productinfo = 'Clinic Appointment Booking';
-  const surl = `${process.env.NEXT_PUBLIC_BASE_URL}/booking/my-appointments?status=success`;
-  const furl = `${process.env.NEXT_PUBLIC_BASE_URL}/booking/my-appointments?status=failure`;
+  const surl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/booking/my-appointments?status=success`;
+  const furl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/booking/my-appointments?status=failure`;
   const amountStr = amount.toFixed(2);
 
   const hashString = `${paymentSettings.key}|${txnid}|${amountStr}|${productinfo}|${name}|${email}|udf1|udf2|udf3|udf4|udf5|udf6|udf7|udf8|udf9|udf10|${paymentSettings.salt}`;
   const hash = createHash('sha512').update(hashString).digest('hex');
 
-  const easebuzzPayload = new FormData();
+  const easebuzzPayload = new URLSearchParams();
   easebuzzPayload.append('key', paymentSettings.key);
   easebuzzPayload.append('txnid', txnid);
   easebuzzPayload.append('amount', amountStr);
@@ -1182,13 +1182,14 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
   easebuzzPayload.append('hash', hash);
 
   const baseUrl = paymentSettings.environment === 'test'
-    ? 'http://testpay.easebuzz.in'
+    ? 'https://testpay.easebuzz.in'
     : 'https://pay.easebuzz.in';
 
   try {
     const response = await fetch(`${baseUrl}/payment/initiateLink`, {
       method: 'POST',
-      body: easebuzzPayload,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: easebuzzPayload.toString(),
     });
     
     if (!response.ok) {
@@ -1203,7 +1204,7 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
       return { success: true, access_key: result.data };
     } else {
       console.error('Easebuzz Initiation Error:', result);
-      return { error: result.error_Message || 'Failed to initiate payment from gateway.' };
+      return { error: result.error_Message || result.error_message || 'Failed to initiate payment from gateway.' };
     }
   } catch (error) {
     console.error('Easebuzz API connection error:', error);

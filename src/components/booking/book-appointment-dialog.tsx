@@ -176,8 +176,6 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     const selectedMember = familyMembers.find(f => f.id.toString() === selectedMemberId);
     if (selectedMember && selectedDate && selectedSlot && selectedPurpose) {
       startTransition(async () => {
-        toast({ title: 'Connecting to Payment Gateway...', description: 'Please wait.' });
-
         if (!schedule?.paymentGatewaySettings || schedule.paymentGatewaySettings.provider !== 'easebuzz') {
             onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
             handleClose(false);
@@ -185,6 +183,8 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
             return;
         }
 
+        toast({ title: 'Connecting to Payment Gateway...', description: 'Please wait.' });
+        
         const paymentResult = await getEasebuzzAccessKey(
             schedule.clinicDetails.consultationFee || 400,
             selectedMember.email || 'patient@example.com',
@@ -199,10 +199,9 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
 
         try {
             var easebuzzPay = new Easebuzz.easebuzz(
-                paymentResult.access_key,
-                schedule.paymentGatewaySettings.environment
+                paymentSettings.key, 
+                paymentSettings.environment
             );
-
             const options = {
                 access_key: paymentResult.access_key,
                 onResponse: (response: any) => {
@@ -211,17 +210,16 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                         onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
                         handleClose(false);
                     } else {
-                        toast({ title: "Payment Failed", description: response.error_Message || "Your payment was not successful. Please try again.", variant: 'destructive'});
+                        toast({ title: "Payment Failed", description: response.error_Message || response.error_message || "Your payment was not successful. Please try again.", variant: 'destructive'});
                     }
                 },
                 theme: "#1976d2" 
             };
             easebuzzPay.initiatePayment(options);
         } catch (e) {
-            console.error(e);
+            console.error("Easebuzz client-side error:", e);
             toast({ title: "Error", description: "Could not load payment gateway. Please check your connection and try again.", variant: "destructive"})
         }
-
       });
     }
   };
@@ -243,7 +241,8 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
 
   const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === selectedPurpose);
 
-  const isPaymentEnabled = schedule?.paymentGatewaySettings?.provider === 'easebuzz';
+  const paymentSettings = schedule?.paymentGatewaySettings;
+  const isPaymentEnabled = paymentSettings?.provider === 'easebuzz' && paymentSettings.key && paymentSettings.salt;
 
 
   return (
