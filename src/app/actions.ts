@@ -205,13 +205,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     
     // Now, set the new patient to "In-Consultation"
     updates.consultationStartTime = new Date().toISOString();
-    // Check if coming from "Waiting for Reports"
-    if(patient.status === 'Waiting for Reports') {
-        updates.subStatus = 'Reports';
-    } else {
-        updates.subStatus = undefined;
-    }
-
+    updates.subStatus = undefined;
 
   } else if (status === 'Completed' && patient.consultationStartTime) {
     const startTime = toDate(patient.consultationStartTime)!;
@@ -997,7 +991,7 @@ export async function checkUserAuthAction(phone: string) {
             body: JSON.stringify({
                 to: phone,
                 from: senderId,
-                message: `Your OTP for shanti children's clinc is: ${otp}`
+                message: `Your OTP to login to Shanti Children's Clinic Appointments Booking is: {#var#}`
                 // The body structure will vary based on your provider's API.
             })
         });
@@ -1155,4 +1149,5 @@ export async function deleteFamilyMemberAction(id: string) {
 
 
     
+
 
