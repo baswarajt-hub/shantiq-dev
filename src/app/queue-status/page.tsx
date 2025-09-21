@@ -371,21 +371,25 @@ function QueueStatusPageContent() {
     setDoctorStatus(statusData);
 
     const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
+    const userTodaysPatients = todaysPatients.filter((p: Patient) => p.phone === userPhone);
 
-    let appointmentForSession: Patient | null = null;
+    let targetAppointment: Patient | null = null;
+    
     if (patientId) {
         const id = parseInt(patientId, 10);
-        appointmentForSession = todaysPatients.find((p: Patient) => p.id === id && p.phone === userPhone) || null;
+        targetAppointment = userTodaysPatients.find((p: Patient) => p.id === id) || null;
     }
     
-    if (!appointmentForSession) {
-        appointmentForSession = todaysPatients.find(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled') || null;
+    if (!targetAppointment) {
+        // Fallback: find the first active appointment if no valid ID is provided
+        targetAppointment = userTodaysPatients.find(p => p.status !== 'Completed' && p.status !== 'Cancelled') || null;
     }
 
     let sessionToShow: 'morning' | 'evening' | null = null;
-    if (appointmentForSession) {
-        sessionToShow = getSessionForTime(parseISO(appointmentForSession.appointmentTime), scheduleData);
+    if (targetAppointment) {
+        sessionToShow = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData);
     } else {
+        // If no user appointment, default to current time's session
         const now = new Date();
         const currentHour = now.getHours();
         sessionToShow = currentHour < 14 ? 'morning' : 'evening';
@@ -398,20 +402,18 @@ function QueueStatusPageContent() {
     setAllPatients(filteredPatients);
     setLastUpdated(new Date().toLocaleTimeString());
 
-    let userAppointment = appointmentForSession;
+    if (targetAppointment) {
+        const isSameSession = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData) === sessionToShow;
 
-    if (userAppointment) {
-        const isSameSession = getSessionForTime(parseISO(userAppointment.appointmentTime), scheduleData) === sessionToShow;
-
-        if (userAppointment.status === 'Completed' && isSameSession) {
+        if (targetAppointment.status === 'Completed' && isSameSession) {
             const lastCompletedId = localStorage.getItem('completedAppointmentId');
-            if (lastCompletedId !== String(userAppointment.id)) {
-                setCompletedAppointmentForDisplay(userAppointment);
+            if (lastCompletedId !== String(targetAppointment.id)) {
+                setCompletedAppointmentForDisplay(targetAppointment);
                 setFoundAppointment(null);
-                localStorage.setItem('completedAppointmentId', String(userAppointment.id));
+                localStorage.setItem('completedAppointmentId', String(targetAppointment.id));
             }
         } else if (isSameSession) {
-            setFoundAppointment(userAppointment);
+            setFoundAppointment(targetAppointment);
             setCompletedAppointmentForDisplay(null);
             localStorage.removeItem('completedAppointmentId');
         } else {
