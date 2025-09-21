@@ -9,6 +9,7 @@ import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time'
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format, parseISO, parse, differenceInMinutes, startOfDay, max } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { createHash } from 'crypto';
 
 const timeZone = "Asia/Kolkata";
 
@@ -1060,6 +1061,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
     await updatePatient(upNext.id, {
       status: 'In-Consultation',
       consultationStartTime: new Date().toISOString(),
+      subStatus: undefined,
       lateLocked: false,
     });
   }
@@ -1143,6 +1145,63 @@ export async function deleteFamilyMemberAction(id: string) {
     return { success: 'Family member deleted.' };
 }
 
+export async function getEasebuzzAccessKey(amount: number, email: string, phone: string, name: string) {
+  'use server';
+
+  const schedule = await getDoctorScheduleData();
+  const paymentSettings = schedule.paymentGatewaySettings;
+
+  if (!paymentSettings || paymentSettings.provider !== 'easebuzz' || !paymentSettings.key || !paymentSettings.salt) {
+    return { error: 'Easebuzz payment gateway is not configured correctly.' };
+  }
+
+  const txnid = `TXN_${Date.now()}`;
+  const productinfo = 'Clinic Appointment Booking';
+  const surl = `${process.env.NEXT_PUBLIC_BASE_URL}/booking/my-appointments?status=success`;
+  const furl = `${process.env.NEXT_PUBLIC_BASE_URL}/booking/my-appointments?status=failure`;
+
+  // IMPORTANT: The order of fields in the hash string is critical.
+  // Refer to Easebuzz documentation for the correct sequence. This is a common example.
+  const hashString = `${paymentSettings.key}|${txnid}|${amount}|${productinfo}|${name}|${email}|||||||||||${paymentSettings.salt}`;
+  const hash = createHash('sha512').update(hashString).digest('hex');
+
+  const easebuzzPayload = new FormData();
+  easebuzzPayload.append('key', paymentSettings.key);
+  easebuzzPayload.append('txnid', txnid);
+  easebuzzPayload.append('amount', amount.toString());
+  easebuzzPayload.append('productinfo', productinfo);
+  easebuzzPayload.append('firstname', name);
+  easebuzzPayload.append('email', email);
+  easebuzzPayload.append('phone', phone);
+  easebuzzPayload.append('surl', surl);
+  easebuzzPayload.append('furl', furl);
+  easebuzzPayload.append('hash', hash);
+
+  try {
+    // NOTE: Use the correct Easebuzz endpoint for your environment (test/production)
+    const response = await fetch('https://pay.easebuzz.in/payment/initiateLink', {
+      method: 'POST',
+      body: easebuzzPayload,
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Easebuzz API Error Response:', errorText);
+        return { error: `Failed to connect to payment gateway. Status: ${response.status}` };
+    }
+
+    const result = await response.json();
+
+    if (result.status === 1) {
+      return { success: true, access_key: result.data };
+    } else {
+      return { error: result.error_Message || 'Failed to initiate payment from gateway.' };
+    }
+  } catch (error) {
+    console.error('Easebuzz API connection error:', error);
+    return { error: 'Could not connect to the payment gateway.' };
+  }
+}
     
 
     
@@ -1156,6 +1215,7 @@ export async function deleteFamilyMemberAction(id: string) {
 
 
     
+
 
 
 

@@ -22,6 +22,10 @@ import { toZonedTime } from 'date-fns-tz';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Info } from 'lucide-react';
+import { getEasebuzzAccessKey } from '@/app/actions';
+
+// This is required to tell TypeScript about the Easebuzz object from the script
+declare var Easebuzz: any;
 
 type BookAppointmentDialogProps = {
   isOpen: boolean;
@@ -171,17 +175,54 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const handleSave = () => {
     const selectedMember = familyMembers.find(f => f.id.toString() === selectedMemberId);
     if (selectedMember && selectedDate && selectedSlot && selectedPurpose) {
-      startTransition(() => {
-        toast({ title: 'Processing Payment...', description: 'Please wait.' });
-        
-        // *** PAYMENT GATEWAY INTEGRATION POINT ***
-        // Replace this setTimeout with your payment gateway's logic.
-        // On successful payment, call the onSave function.
-        setTimeout(() => {
+      startTransition(async () => {
+        toast({ title: 'Connecting to Payment Gateway...', description: 'Please wait.' });
+
+        if (!schedule?.paymentGatewaySettings || schedule.paymentGatewaySettings.provider !== 'easebuzz') {
             onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
             handleClose(false);
-            toast({ title: 'Booking Successful!', description: 'Your appointment is confirmed.' });
-        }, 1500);
+            toast({ title: 'Booking Confirmed!', description: 'Your appointment has been booked.' });
+            return;
+        }
+
+        const paymentResult = await getEasebuzzAccessKey(
+            schedule.clinicDetails.consultationFee || 400,
+            selectedMember.email || 'patient@example.com',
+            selectedMember.phone,
+            selectedMember.name
+        );
+        
+        if (paymentResult.error || !paymentResult.access_key) {
+            toast({ title: "Payment Failed", description: paymentResult.error, variant: 'destructive'});
+            return;
+        }
+
+        try {
+            const easebuzzPay = new Easebuzz(
+                schedule.paymentGatewaySettings.key, 
+                schedule.paymentGatewaySettings.salt, 
+                "test" // IMPORTANT: Change to "production" for live payments
+            );
+
+            const options = {
+                access_key: paymentResult.access_key,
+                onResponse: (response: any) => {
+                    if (response.status === "success") {
+                        toast({ title: 'Payment Successful!', description: 'Finalizing your booking...' });
+                        onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
+                        handleClose(false);
+                    } else {
+                        toast({ title: "Payment Failed", description: response.error_Message || "Your payment was not successful. Please try again.", variant: 'destructive'});
+                    }
+                },
+                theme: "#1976d2" 
+            };
+            easebuzzPay.initiatePayment(options);
+        } catch (e) {
+            console.error(e);
+            toast({ title: "Error", description: "Could not load payment gateway. Please check your connection and try again.", variant: "destructive"})
+        }
+
       });
     }
   };
@@ -202,6 +243,9 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   }
 
   const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === selectedPurpose);
+
+  const isPaymentEnabled = schedule?.paymentGatewaySettings?.provider === 'easebuzz';
+
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -309,11 +353,11 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                 ) : (
                   <p className="text-center text-muted-foreground">No slots available for this session.</p>
                 )}
-                 <Label className="text-sm text-muted-foreground pt-4 block">A nominal fee will be charged upon confirmation.</Label>
+                 {isPaymentEnabled && <Label className="text-sm text-muted-foreground pt-4 block">A nominal fee of ₹{schedule?.clinicDetails.consultationFee || 0} will be charged upon confirmation.</Label>}
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>
                     <Button onClick={handleSave} disabled={isPending || !selectedSlot} className="w-full">
-                      {isPending ? "Processing..." : "Pay & Confirm"}
+                      {isPending ? "Processing..." : (isPaymentEnabled ? "Pay & Confirm" : "Confirm Booking")}
                     </Button>
                 </DialogFooter>
             </div>
