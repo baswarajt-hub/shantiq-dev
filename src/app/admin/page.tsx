@@ -57,7 +57,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleScheduleSave = async (updatedScheduleData: DoctorSchedule) => {
+  const handleScheduleSave = async (updatedScheduleData: Partial<DoctorSchedule>) => {
     const result = await updateDoctorScheduleAction(updatedScheduleData);
 
     if (result.error) {

@@ -99,7 +99,7 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
   }
 
   const copyToWeekdays = () => {
-    if (!schedule || !schedule.days || !schedule.days.Monday) {
+    if (!schedule || !schedule.days) {
       toast({ title: "Error", description: "Schedule data is not loaded yet.", variant: "destructive" });
       return;
     }
@@ -120,10 +120,6 @@ export function ScheduleForm({ initialSchedule, onSave }: ScheduleFormProps) {
       await onSave(schedule);
     });
   };
-
-  if (!schedule) {
-    return null;
-  }
 
   return (
     <Card>
