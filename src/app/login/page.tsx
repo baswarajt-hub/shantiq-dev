@@ -41,6 +41,7 @@ export default function LoginPage() {
           router.push('/booking');
       } else {
         setGeneratedOtp(result.otp!);
+        console.log("Generated OTP for testing:", result.otp);
         setIsNewUser(true);
         setStep('otp');
       }
@@ -108,11 +109,6 @@ export default function LoginPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                 />
-                {generatedOtp && (
-                  <p className="text-sm text-center text-muted-foreground pt-2">
-                    For testing, your OTP is: <span className="font-bold text-foreground">{generatedOtp}</span>
-                  </p>
-                )}
               </div>
             )}
           </CardContent>
