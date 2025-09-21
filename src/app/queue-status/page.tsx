@@ -249,7 +249,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
                  <CardContent>
                     <p className="text-4xl font-bold">{patient.name}</p>
                     <p className="text-muted-foreground flex items-center gap-2 mt-1">
-                        Appointment at {format(parseISO(patient.appointmentTime || patient.slotTime), 'hh:mm a')}
+                        Appointment at {format(parseISO(patient.appointmentTime), 'hh:mm a')}
                     </p>
                 </CardContent>
             </Card>
@@ -356,14 +356,14 @@ function QueueStatusPageContent() {
     }
   }, [router]);
   
-const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) return;
 
     const [allPatientData, statusRes, scheduleData] = await Promise.all([
-        getPatientsAction(),
-        fetch('/api/status'),
-        getDoctorScheduleAction(),
+      getPatientsAction(),
+      fetch('/api/status'),
+      getDoctorScheduleAction(),
     ]);
 
     const statusData = await statusRes.json();
@@ -374,23 +374,25 @@ const fetchData = useCallback(async () => {
     const userAppointmentsToday = todaysPatients.filter((p: Patient) => p.phone === userPhone);
     setUserTodaysPatients(userAppointmentsToday);
 
-
     let targetAppointment: Patient | null = null;
+    let sessionToShow: 'morning' | 'evening' | null = null;
     
+    // STRICTLY prioritize the patientId from the URL
     if (patientId) {
         const id = parseInt(patientId, 10);
         targetAppointment = allPatientData.find((p: Patient) => p.id === id) || null;
     }
     
+    // If no specific appointment was found via ID, THEN fall back to the first active appointment for the user.
     if (!targetAppointment) {
         targetAppointment = userAppointmentsToday.find(p => p.status !== 'Completed' && p.status !== 'Cancelled') || null;
     }
-
-    let sessionToShow: 'morning' | 'evening' | null = null;
     
+    // Determine the session based on the TARGET appointment, not the current time.
     if (targetAppointment) {
         sessionToShow = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData);
     } else {
+        // Only if there is NO target appointment at all, use current time to guess session.
         const now = new Date();
         const currentHour = now.getHours();
         sessionToShow = currentHour < 14 ? 'morning' : 'evening';
@@ -404,11 +406,12 @@ const fetchData = useCallback(async () => {
     setLastUpdated(new Date().toLocaleTimeString());
 
     if (targetAppointment) {
+        // Make sure the target appointment is for the session we are displaying.
         const isSameSession = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData) === sessionToShow;
 
         if (isSameSession) {
             if (targetAppointment.status === 'Completed') {
-                 const lastCompletedId = localStorage.getItem('completedAppointmentId');
+                const lastCompletedId = localStorage.getItem('completedAppointmentId');
                 if (lastCompletedId !== String(targetAppointment.id)) {
                     setCompletedAppointmentForDisplay(targetAppointment);
                     setFoundAppointment(null);
@@ -420,6 +423,7 @@ const fetchData = useCallback(async () => {
                 localStorage.removeItem('completedAppointmentId');
             }
         } else {
+            // The target appointment is for a different session, so don't show any specific user status.
             setFoundAppointment(null);
             setCompletedAppointmentForDisplay(null);
         }
@@ -523,7 +527,7 @@ const fetchData = useCallback(async () => {
                     <div className="mt-8">
                         <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {allPatients.filter(p => isToday(new Date(p.appointmentTime || p.slotTime)) && p.status === 'Waiting for Reports').map((patient) => (
+                        {allPatients.filter(p => isToday(new Date(p.appointmentTime)) && p.status === 'Waiting for Reports').map((patient) => (
                             <Card key={patient.id} className="bg-purple-100/50 border-purple-300">
                             <CardContent className="p-4 flex items-center space-x-4">
                                 <div className="flex-shrink-0 text-purple-700"><FileClock className="h-5 w-5" /></div>
@@ -535,7 +539,7 @@ const fetchData = useCallback(async () => {
                             </Card>
                         ))}
                         </div>
-                         {allPatients.filter(p => isToday(new Date(p.appointmentTime || p.slotTime)) && p.status === 'Waiting for Reports').length === 0 && (
+                         {allPatients.filter(p => isToday(new Date(p.appointmentTime)) && p.status === 'Waiting for Reports').length === 0 && (
                             <p className="text-center text-muted-foreground">No one is waiting for reports.</p>
                         )}
                     </div>
@@ -555,5 +559,3 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
-
-    
