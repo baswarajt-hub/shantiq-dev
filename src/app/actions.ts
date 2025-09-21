@@ -948,6 +948,16 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   return { success: `Marked late and pushed down by ${penalty}.` };
 }
 
+// ========================================================================================
+// === FIND THIS SECTION TO INTEGRATE YOUR SMS PROVIDER ===================================
+// ========================================================================================
+// The code below handles OTP generation and sending.
+// The 'fetch' call to the SMS provider is currently commented out.
+// You need to:
+// 1. Uncomment the 'try...catch' block.
+// 2. Replace the placeholder 'apiUrl' with the one from your SMS provider.
+// 3. Adjust the 'headers' and 'body' of the fetch call to match your provider's API documentation.
+// ========================================================================================
 export async function checkUserAuthAction(phone: string) {
     const user = await findPrimaryUserByPhone(phone);
     if (user) {
