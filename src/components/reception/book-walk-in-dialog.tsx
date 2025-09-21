@@ -45,7 +45,9 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
       }
       startTransition(async () => {
         const results = await searchFamilyMembersAction(searchTerm);
-        setFoundMembers(results);
+        // Filter out primary members from the search results
+        const nonPrimaryMembers = results.filter(member => !member.isPrimary);
+        setFoundMembers(nonPrimaryMembers);
       });
     }, 300); // Debounce search
 
