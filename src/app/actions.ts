@@ -40,6 +40,7 @@ function sessionLocalToUtc(dateStr: string, sessionTime: string) {
 /** Returns 'morning' | 'evening' or null */
 const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 'morning' | 'evening' | null => {
   // Convert appointment instant to clinic local date to decide which day's schedule to use
+  if (!schedule || !schedule.days) return null;
   const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
   const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
   const dateStr = format(zonedAppt, 'yyyy-MM-dd');
@@ -477,6 +478,12 @@ export async function recalculateQueueWithETC() {
     let allPatients = await getPatientsData();
     const schedule = await getDoctorScheduleData();
     const doctorStatus = await getDoctorStatusData();
+
+    if (!schedule || !schedule.days) {
+        // Can't calculate without a schedule
+        console.warn("Recalculation skipped: schedule.days is not available.");
+        return { error: "Doctor schedule is not fully configured." };
+    }
 
     const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
     const dayOfWeek = format(toZonedTime(new Date(), timeZone), 'EEEE') as keyof DoctorSchedule['days'];
@@ -1051,3 +1058,6 @@ export async function deleteFamilyMemberAction(id: string) {
     
 
 
+
+
+    

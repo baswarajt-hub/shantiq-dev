@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -88,14 +89,27 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }:
         return <Skeleton className="h-[350px] w-full max-w-sm mx-auto rounded-md" />;
     }
 
-    const disabledDays = Object.entries(schedule.days)
-      .filter(([, daySchedule]) => !daySchedule.morning.isOpen && !daySchedule.evening.isOpen)
-      .map(([dayName]) => dayOfWeek.indexOf(dayName))
-      .map(dayIndex => ({ dayOfWeek: [dayIndex] as any[] }));
-      
-    // Disable all past dates
-    disabledDays.push({ before: new Date() } as any);
+    const disabledDays: any[] = [{ before: new Date(new Date().setDate(new Date().getDate())) }];
+    
+    if (schedule.days) {
+        Object.entries(schedule.days)
+          .filter(([, daySchedule]) => !daySchedule.morning.isOpen && !daySchedule.evening.isOpen)
+          .forEach(([dayName]) => {
+              const dayIndex = dayOfWeek.indexOf(dayName);
+              if (dayIndex !== -1) {
+                  disabledDays.push({ dayOfWeek: [dayIndex] });
+              }
+          });
 
+        schedule.specialClosures.forEach(closure => {
+            if (closure.isMorningClosed && closure.isEveningClosed) {
+                disabledDays.push(new Date(closure.date + 'T00:00:00'));
+            }
+             if(closure.morningOverride && !closure.morningOverride.isOpen && closure.eveningOverride && !closure.eveningOverride.isOpen) {
+                 disabledDays.push(new Date(closure.date + 'T00:00:00'));
+            }
+        });
+    }
 
     return (
         <div className="flex justify-center">
@@ -224,3 +238,5 @@ export function SpecialClosures({ schedule, onSave }: SpecialClosuresProps) {
     </Card>
   );
 }
+
+    
