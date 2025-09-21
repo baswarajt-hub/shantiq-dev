@@ -19,6 +19,7 @@ import { SpecialClosures } from '@/components/admin/special-closures';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DoctorQueue } from '@/components/doctor/doctor-queue';
 
 const timeZone = 'Asia/Kolkata';
 
@@ -97,7 +98,7 @@ export default function DoctorPage() {
 
 
   const { currentSession, sessionPatients, averageConsultationTime } = useMemo(() => {
-    if (!schedule) {
+    if (!schedule || !schedule.days) { // Added check for schedule.days
       return { currentSession: null, sessionPatients: [], averageConsultationTime: 0 };
     }
     const now = new Date();
@@ -210,8 +211,8 @@ export default function DoctorPage() {
                 </Accordion>
             </CardContent>
         </Card>
-
-
+        
+        <DoctorQueue patients={sessionPatients} onUpdate={loadData} />
       </main>
     </div>
   );
