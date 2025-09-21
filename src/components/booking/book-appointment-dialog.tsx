@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -50,6 +50,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const [selectedSlot, setSelectedSlot] = useState('');
   const [selectedPurpose, setSelectedPurpose] = useState('Consultation');
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
@@ -170,15 +171,18 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const handleSave = () => {
     const selectedMember = familyMembers.find(f => f.id.toString() === selectedMemberId);
     if (selectedMember && selectedDate && selectedSlot && selectedPurpose) {
-      toast({ title: 'Processing Payment...', description: 'Please wait.' });
-      
-      // *** PAYMENT GATEWAY INTEGRATION POINT ***
-      // Replace this setTimeout with your payment gateway's logic.
-      // On successful payment, call the onSave function.
-      setTimeout(() => {
-          onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
-          handleClose(false);
-      }, 1500)
+      startTransition(() => {
+        toast({ title: 'Processing Payment...', description: 'Please wait.' });
+        
+        // *** PAYMENT GATEWAY INTEGRATION POINT ***
+        // Replace this setTimeout with your payment gateway's logic.
+        // On successful payment, call the onSave function.
+        setTimeout(() => {
+            onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
+            handleClose(false);
+            toast({ title: 'Booking Successful!', description: 'Your appointment is confirmed.' });
+        }, 1500);
+      });
     }
   };
   
@@ -308,7 +312,9 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                  <Label className="text-sm text-muted-foreground pt-4 block">A nominal fee will be charged upon confirmation.</Label>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>
-                    <Button onClick={handleSave} disabled={!selectedSlot} className="w-full">Pay & Confirm</Button>
+                    <Button onClick={handleSave} disabled={isPending || !selectedSlot} className="w-full">
+                      {isPending ? "Processing..." : "Pay & Confirm"}
+                    </Button>
                 </DialogFooter>
             </div>
         )}

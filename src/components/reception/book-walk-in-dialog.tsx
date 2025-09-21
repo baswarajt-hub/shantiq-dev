@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ import type { FamilyMember, VisitPurpose } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { UserPlus } from 'lucide-react';
 import { searchFamilyMembersAction } from '@/app/actions';
-import { AddNewPatientDialog } from './add-new-patient-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 type BookWalkInDialogProps = {
@@ -102,6 +100,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
 
   const handleOpenNewPatientDialog = () => {
     onAddNewPatient(searchTerm);
+    handleClose(false);
   };
 
   return (
