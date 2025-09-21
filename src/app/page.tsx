@@ -1,5 +1,26 @@
 
 
+/*
+  ========================================================================================
+  IMPORTANT NOTE FOR THE USER:
+  To configure your SMS provider's API keys, please follow these steps:
+
+  1. Find the file named ".env" in the file explorer list on the left side of this screen. 
+     It should be near the top of the list.
+
+  2. Click on the ".env" file to open it.
+
+  3. You will see the following lines:
+     BULKSMS_API_KEY="YOUR_API_KEY_HERE"
+     BULKSMS_SENDER_ID="YOUR_SENDER_ID_HERE"
+
+  4. Replace "YOUR_API_KEY_HERE" and "YOUR_SENDER_ID_HERE" with the actual values 
+     you received from your bulk SMS provider.
+
+  5. After you have pasted your keys, the application will be ready to send SMS messages.
+  ========================================================================================
+*/
+
 'use client';
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import Header from '@/components/header';
@@ -1037,6 +1058,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
