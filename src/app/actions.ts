@@ -485,8 +485,9 @@ export async function recalculateQueueWithETC() {
         return { error: "Doctor schedule is not fully configured." };
     }
 
-    const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
-    const dayOfWeek = format(toZonedTime(new Date(), timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+    const now = new Date();
+    const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+    const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
     let daySchedule = schedule.days[dayOfWeek];
     const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
@@ -511,6 +512,24 @@ export async function recalculateQueueWithETC() {
             return apptSession === session;
         });
 
+        // --- Post-Session Cleanup Logic ---
+        const sessionEndUtc = sessionLocalToUtc(todayStr, sessionTimes.end);
+        const cleanupTimeUtc = new Date(sessionEndUtc.getTime() + 60 * 60 * 1000); // 1 hour after session end
+
+        if (now > cleanupTimeUtc) {
+            sessionPatients.forEach(p => {
+                if (p.status === 'Waiting') {
+                     patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Completed' });
+                } else if (p.status === 'Booked' || p.status === 'Confirmed') {
+                     patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Missed' });
+                }
+            });
+             // Map again to include cleanup updates before continuing
+            sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
+        }
+        // --- End Cleanup Logic ---
+
+
         if (sessionPatients.length === 0) continue;
 
         const clinicSessionStartTime = sessionLocalToUtc(todayStr, sessionTimes.start);
@@ -525,7 +544,6 @@ export async function recalculateQueueWithETC() {
             }
         } else if (doctorStatus.startDelay > 0) {
              // Logic for when doctor is NOT online but a delay is set
-             const now = new Date();
              const morningStartUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.start) : new Date(8.64e15); // Far future
              const eveningStartUtc = daySchedule.evening.isOpen ? sessionLocalToUtc(todayStr, daySchedule.evening.start) : new Date(8.64e15); // Far future
 
@@ -623,7 +641,6 @@ export async function recalculateQueueWithETC() {
             }
         }
         
-        let now = new Date();
         let effectiveDoctorStartTime: Date;
         if (doctorStatus.isOnline && doctorStatus.onlineTime) {
             effectiveDoctorStartTime = max([now, toDate(doctorStatus.onlineTime)!, delayedClinicStartTime]);
@@ -1061,3 +1078,4 @@ export async function deleteFamilyMemberAction(id: string) {
 
 
     
+

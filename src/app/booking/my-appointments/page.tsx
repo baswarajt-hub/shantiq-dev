@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -191,25 +191,25 @@ export default function MyAppointmentsPage() {
     }
   }, [router]);
 
-  const loadData = async (userPhone: string) => {
-    const [familyData, patientData, scheduleData] = await Promise.all([
-      getFamilyByPhoneAction(userPhone),
-      getPatientsAction(),
-      getDoctorScheduleAction(),
-    ]);
+  const loadData = useCallback(async (userPhone: string) => {
+    startTransition(async () => {
+      const [familyData, patientData, scheduleData] = await Promise.all([
+        getFamilyByPhoneAction(userPhone),
+        getPatientsAction(),
+        getDoctorScheduleAction(),
+      ]);
 
-    setFamily(familyData);
-    setPatients(patientData);
-    setSchedule(scheduleData);
-  };
+      setFamily(familyData);
+      setPatients(patientData);
+      setSchedule(scheduleData);
+    });
+  }, []);
 
   useEffect(() => {
     if (phone) {
-        startTransition(() => {
-            loadData(phone);
-        });
+        loadData(phone);
     }
-  }, [phone]);
+  }, [phone, loadData]);
 
   useEffect(() => {
     if (!family.length || !patients.length) return;
@@ -236,54 +236,57 @@ export default function MyAppointmentsPage() {
   }, [patients, family]);
   
 
-  const handleAddFamilyMember = (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
+  const handleAddFamilyMember = useCallback((member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
+    if (!phone) return;
     startTransition(async () => {
-        if (!phone) return;
         const result = await addNewPatientAction({ ...member, phone });
         if(result.success){
             toast({ title: "Success", description: "Family member added."});
-            if (phone) await loadData(phone);
+            loadData(phone);
         } else {
             toast({ title: "Error", description: result.error || "Could not add member", variant: 'destructive'});
         }
     });
-  };
+  }, [phone, toast, loadData]);
   
-  const handleEditFamilyMember = (updatedMember: FamilyMember) => {
+  const handleEditFamilyMember = useCallback((updatedMember: FamilyMember) => {
+     if (!phone) return;
      startTransition(async () => {
         const result = await updateFamilyMemberAction(updatedMember);
          if(result.success){
             toast({ title: "Success", description: "Family member details updated."});
-            if (phone) await loadData(phone);
+            loadData(phone);
         } else {
             toast({ title: "Error", description: "Could not update member", variant: 'destructive'});
         }
     });
-  }
+  }, [phone, toast, loadData]);
 
-  const handleDeleteFamilyMember = (memberId: string) => {
+  const handleDeleteFamilyMember = useCallback((memberId: string) => {
+      if (!phone) return;
       startTransition(async () => {
           const result = await deleteFamilyMemberAction(memberId);
           if(result.success) {
               toast({ title: "Success", description: "Family member removed."});
-              if (phone) await loadData(phone);
+              loadData(phone);
           } else {
               toast({ title: "Error", description: "Could not remove member", variant: 'destructive'});
           }
       });
-  }
+  }, [phone, toast, loadData]);
 
-  const handleCancelAppointment = (appointmentId: number) => {
+  const handleCancelAppointment = useCallback((appointmentId: number) => {
+    if (!phone) return;
     startTransition(async () => {
         const result = await cancelAppointmentAction(appointmentId);
         if (result.success) {
             toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
-            if (phone) await loadData(phone);
+            loadData(phone);
         } else {
             toast({ title: 'Error', description: result.error || "Could not cancel appointment", variant: 'destructive' });
         }
     });
-  }
+  }, [phone, toast, loadData]);
 
   const handleOpenReschedule = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
@@ -295,8 +298,8 @@ export default function MyAppointmentsPage() {
     setEditMemberOpen(true);
   }
   
-  const handleRescheduleAppointment = (newDate: string, newTime: string, newPurpose: string) => {
-    if (selectedAppointment) {
+  const handleRescheduleAppointment = useCallback((newDate: string, newTime: string, newPurpose: string) => {
+    if (selectedAppointment && phone) {
       startTransition(async () => {
         const dateObj = new Date(`${newDate}T00:00:00`);
         const timeObj = new Date(`1970-01-01T${newTime}`);
@@ -307,13 +310,13 @@ export default function MyAppointmentsPage() {
         const result = await rescheduleAppointmentAction(selectedAppointment.id, appointmentTime, newPurpose);
         if(result.success) {
           toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
-          if (phone) await loadData(phone);
+          loadData(phone);
         } else {
           toast({ title: 'Error', description: result.error || "Could not reschedule", variant: 'destructive' });
         }
       });
     }
-  };
+  }, [selectedAppointment, phone, toast, loadData]);
   
   const activeAppointments = appointments.filter(appt => !['Completed', 'Cancelled', 'Missed'].includes(appt.status as string));
   const todaysAppointments = activeAppointments.filter(appt => isToday(parseISO(appt.date)));
