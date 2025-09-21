@@ -29,6 +29,7 @@ export function AdjustTimingDialog({ isOpen, onOpenChange, schedule, onSave }: A
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
+    // Only set the state when the dialog is opened, not on every re-render caused by prop changes.
     if (isOpen && schedule) {
       const today = new Date();
       const dayName = format(today, 'EEEE') as keyof DoctorSchedule['days'];
@@ -39,7 +40,7 @@ export function AdjustTimingDialog({ isOpen, onOpenChange, schedule, onSave }: A
       setMorningSession(todayOverride?.morningOverride ?? schedule.days[dayName].morning);
       setEveningSession(todayOverride?.eveningOverride ?? schedule.days[dayName].evening);
     }
-  }, [isOpen, schedule]);
+  }, [isOpen]); // Depend only on `isOpen` to prevent overwriting user input.
 
   const handleSave = () => {
     startTransition(() => {
