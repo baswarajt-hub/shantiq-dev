@@ -10,7 +10,7 @@ export type Patient = {
   status: 'Waiting' | 'In-Consultation' | 'Completed' | 'Late' | 'Cancelled' | 'Waiting for Reports' | 'Confirmed' | 'Booked' | 'Priority' | 'Up-Next';
   subStatus?: 'Reports'; // To specify context for certain statuses
   phone: string;
-  estimatedWaitTime: number; // in minutes
+  estimatedWaitTime?: number; // in minutes
   consultationTime?: number; // actual time taken in minutes
   consultationStartTime?: string; // ISO string
   consultationEndTime?: string; // ISO string
@@ -18,7 +18,7 @@ export type Patient = {
   rescheduleCount?: number;
   // New fields for advanced queue management
   tokenNo: number;        // Static token based on booking order
-  slotTime: string;         // ISO String for the scheduled slot start
+  slotTime?: string;         // ISO String for the scheduled slot start
   bestCaseETC?: string;     // ISO String for the best-case consultation time
   worstCaseETC?: string;    // ISO String for the worst-case consultation time
   lateBy?: number; // in minutes

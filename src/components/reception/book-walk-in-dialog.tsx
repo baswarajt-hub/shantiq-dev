@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ type BookWalkInDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   timeSlot: string;
   selectedDate: Date;
-  onSave: (familyMember: FamilyMember, appointmentIsoString: string, isWalkIn: boolean, purpose: string) => void;
+  onSave: (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => void;
   onAddNewPatient: (searchTerm: string) => void;
   visitPurposes: VisitPurpose[];
 };

@@ -30,7 +30,7 @@ export default function AppointmentPage() {
       // Simulate payment delay
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const result = await addAppointmentAction(formData);
+      const result = await addAppointmentAction(formData as any); // The 'as any' is a temporary workaround
 
       if (result.error) {
         toast({ title: 'Booking Failed', description: result.error, variant: 'destructive' });
@@ -44,7 +44,7 @@ export default function AppointmentPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header />
+      <Header logoSrc={null} />
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="text-center max-w-2xl">
             <CardTitle className="text-4xl mb-4">Patient Portal is now Live!</CardTitle>

@@ -30,7 +30,7 @@ type BookAppointmentDialogProps = {
   schedule: DoctorSchedule | null;
   onSave: (familyMember: FamilyMember, date: string, time: string, purpose: string) => void;
   bookedPatients: Patient[];
-  initialMemberId?: number | null;
+  initialMemberId?: string | null;
   onDialogClose?: () => void;
 };
 
@@ -171,6 +171,10 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     const selectedMember = familyMembers.find(f => f.id.toString() === selectedMemberId);
     if (selectedMember && selectedDate && selectedSlot && selectedPurpose) {
       toast({ title: 'Processing Payment...', description: 'Please wait.' });
+      
+      // *** PAYMENT GATEWAY INTEGRATION POINT ***
+      // Replace this setTimeout with your payment gateway's logic.
+      // On successful payment, call the onSave function.
       setTimeout(() => {
           onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
           handleClose(false);
