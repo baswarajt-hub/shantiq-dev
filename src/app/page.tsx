@@ -173,16 +173,19 @@ export default function DashboardPage() {
     }, []);
 
     useEffect(() => {
-        if (doctorStatus?.isOnline && doctorStatus.onlineTime) {
-            setDoctorOnlineTime(new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        } else {
-            setDoctorOnlineTime('');
-        }
-        // Initialize delay state only when status data arrives
         if (doctorStatus) {
-            setDoctorStartDelay(doctorStatus.startDelay || 0);
+            if (doctorStatus.isOnline && doctorStatus.onlineTime) {
+                setDoctorOnlineTime(new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            } else {
+                setDoctorOnlineTime('');
+            }
+            // Only initialize the delay state if it's not being actively edited
+            if (!isPending) {
+                setDoctorStartDelay(doctorStatus.startDelay || 0);
+            }
         }
     }, [doctorStatus]);
+
 
     const sessionPatients = patients.filter(p => {
         if (!isToday(parseISO(p.appointmentTime))) return false;
@@ -817,7 +820,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className='flex items-center space-x-2'>
                                     <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
-                                    <Input id="doctor-delay" type="number" value={doctorStartDelay || 0} onChange={e => setDoctorStartDelay(parseInt(e.target.value) || 0)} className="w-16 h-8" disabled={doctorStatus.isOnline} />
+                                    <Input id="doctor-delay" type="number" value={doctorStartDelay} onChange={e => setDoctorStartDelay(parseInt(e.target.value) || 0)} className="w-16 h-8" disabled={doctorStatus.isOnline} />
                                     <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={doctorStatus.isOnline}>Update</Button>
                                 </div>
                                 <DropdownMenu>
@@ -1034,4 +1037,3 @@ export default function DashboardPage() {
     
 
     
-

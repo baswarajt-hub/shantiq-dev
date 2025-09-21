@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -26,7 +27,10 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
 
   useEffect(() => {
     setStatus(initialStatus);
-    setDelay(initialStatus.startDelay || 0);
+     // Only update the delay from props if the user is not currently editing it.
+    if (!isPending) {
+      setDelay(initialStatus.startDelay || 0);
+    }
   }, [initialStatus]);
 
 
