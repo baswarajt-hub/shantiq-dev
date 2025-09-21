@@ -356,7 +356,7 @@ function QueueStatusPageContent() {
     }
   }, [router]);
   
-  const fetchData = useCallback(async () => {
+const fetchData = useCallback(async () => {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) return;
 
@@ -375,21 +375,24 @@ function QueueStatusPageContent() {
 
     let targetAppointment: Patient | null = null;
     
+    // Strictly prioritize finding the appointment by the ID from the URL.
     if (patientId) {
         const id = parseInt(patientId, 10);
-        targetAppointment = userTodaysPatients.find((p: Patient) => p.id === id) || null;
+        targetAppointment = allPatientData.find((p: Patient) => p.id === id) || null;
     }
     
+    // If no specific appointment was found via ID, then fall back to the first active one.
     if (!targetAppointment) {
-        // Fallback: find the first active appointment if no valid ID is provided
         targetAppointment = userTodaysPatients.find(p => p.status !== 'Completed' && p.status !== 'Cancelled') || null;
     }
 
     let sessionToShow: 'morning' | 'evening' | null = null;
+    
+    // Determine the session based on the target appointment, NOT the current time.
     if (targetAppointment) {
         sessionToShow = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData);
     } else {
-        // If no user appointment, default to current time's session
+        // If no appointment at all, default to current time's session.
         const now = new Date();
         const currentHour = now.getHours();
         sessionToShow = currentHour < 14 ? 'morning' : 'evening';
@@ -397,26 +400,32 @@ function QueueStatusPageContent() {
     
     setCurrentSession(sessionToShow);
     
+    // Filter all patients for the determined session.
     const filteredPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     
     setAllPatients(filteredPatients);
     setLastUpdated(new Date().toLocaleTimeString());
 
     if (targetAppointment) {
+        // Check if the found target is actually in the session we are displaying.
         const isSameSession = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData) === sessionToShow;
 
-        if (targetAppointment.status === 'Completed' && isSameSession) {
-            const lastCompletedId = localStorage.getItem('completedAppointmentId');
-            if (lastCompletedId !== String(targetAppointment.id)) {
-                setCompletedAppointmentForDisplay(targetAppointment);
-                setFoundAppointment(null);
-                localStorage.setItem('completedAppointmentId', String(targetAppointment.id));
+        if (isSameSession) {
+            if (targetAppointment.status === 'Completed') {
+                 const lastCompletedId = localStorage.getItem('completedAppointmentId');
+                if (lastCompletedId !== String(targetAppointment.id)) {
+                    setCompletedAppointmentForDisplay(targetAppointment);
+                    setFoundAppointment(null);
+                    localStorage.setItem('completedAppointmentId', String(targetAppointment.id));
+                }
+            } else {
+                setFoundAppointment(targetAppointment);
+                setCompletedAppointmentForDisplay(null);
+                localStorage.removeItem('completedAppointmentId');
             }
-        } else if (isSameSession) {
-            setFoundAppointment(targetAppointment);
-            setCompletedAppointmentForDisplay(null);
-            localStorage.removeItem('completedAppointmentId');
         } else {
+            // This case might happen if the URL points to an appointment in a different session.
+            // Clear found appointment to avoid showing wrong context.
             setFoundAppointment(null);
             setCompletedAppointmentForDisplay(null);
         }
@@ -472,10 +481,10 @@ function QueueStatusPageContent() {
         
         {completedAppointmentForDisplay ? (
              <CompletionSummary patient={completedAppointmentForDisplay} />
-        ) : !userHasAppointment ? (
+        ) : !foundAppointment && !userTodaysPatients.some(p => p.status !== 'Completed' && p.status !== 'Cancelled') ? (
              <div className="text-center mt-16">
                  <h1 className="text-3xl font-bold">No Active Appointment</h1>
-                 <p className="text-lg text-muted-foreground mt-2">You do not have an appointment scheduled for this session.</p>
+                 <p className="text-lg text-muted-foreground mt-2">You do not have an active appointment scheduled for today.</p>
              </div>
         ) : (
           <>
