@@ -300,7 +300,7 @@ function TVDisplayPageContent() {
       isSessionOver = now > sessionEndUTC;
   }
   
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const qrCodeUrl = currentSessionName && baseUrl ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
   const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
 
