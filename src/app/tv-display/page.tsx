@@ -100,7 +100,7 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   const isOffline = !doctorStatus.isOnline;
 
   const cardClasses = cn(
-    "border",
+    "border w-full",
     isOffline ? "bg-red-100/50 border-red-300" : "bg-green-100/50 border-green-300"
   );
   
@@ -610,7 +610,7 @@ function TVDisplayPageContent() {
                   <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
                   <p className="text-lg text-slate-500">{qualifications}</p>
               </div>
-              {showQrCode && (
+               {showQrCode && (
                   <div className="bg-white rounded-lg p-2 flex flex-col items-center justify-center shadow-md border border-slate-200">
                       <h3 className="text-sm font-bold text-slate-800">Scan for Walk-in</h3>
                       <Image
@@ -621,6 +621,10 @@ function TVDisplayPageContent() {
                       />
                   </div>
               )}
+            </div>
+            <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+              {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+              {doctorStatus.isOnline ? 'Online' : 'Offline'}
             </div>
         </div>
 
