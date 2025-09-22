@@ -477,7 +477,7 @@ export async function checkInPatientAction(patientId: number) {
 export async function recalculateQueueWithETC() {
     let allPatients = await getPatientsData();
     const schedule = await getDoctorScheduleData();
-    const doctorStatus = await getDoctorStatusData();
+    let doctorStatus = await getDoctorStatusData();
 
     if (!schedule || !schedule.days) {
         // Can't calculate without a schedule
@@ -512,11 +512,12 @@ export async function recalculateQueueWithETC() {
             return apptSession === session;
         });
 
-        // --- Post-Session Cleanup Logic ---
+        // --- Post-Session Cleanup & Auto Doctor Offline Logic ---
         const sessionEndUtc = sessionLocalToUtc(todayStr, sessionTimes.end);
-        const cleanupTimeUtc = new Date(sessionEndUtc.getTime() + 60 * 60 * 1000); // 1 hour after session end
+        const patientCleanupTimeUtc = new Date(sessionEndUtc.getTime() + 60 * 60 * 1000); // 1 hour after session end
+        const doctorAutoOfflineTimeUtc = new Date(sessionEndUtc.getTime() + 2 * 60 * 60 * 1000); // 2 hours after session end
         
-        if (now > cleanupTimeUtc) {
+        if (now > patientCleanupTimeUtc) {
             sessionPatients.forEach(p => {
                 if (p.status === 'Waiting') {
                      patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Completed' });
@@ -526,6 +527,15 @@ export async function recalculateQueueWithETC() {
             });
              // Map again to include cleanup updates before continuing
             sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
+        }
+
+        if (now > doctorAutoOfflineTimeUtc && doctorStatus.isOnline) {
+             const onlineSession = doctorStatus.onlineTime ? getSessionForTime(schedule, parseISO(doctorStatus.onlineTime)) : null;
+            // Only turn off if the doctor went online for THIS session or an earlier one.
+            if (onlineSession === session || (session === 'evening' && onlineSession === 'morning')) {
+                await updateDoctorStatus({ isOnline: false, startDelay: 0 });
+                doctorStatus = await getDoctorStatusData(); // Re-fetch status after update
+            }
         }
         // --- End Cleanup Logic ---
 
