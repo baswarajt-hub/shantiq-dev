@@ -74,11 +74,9 @@ function TVDisplayPageContent() {
   const [time, setTime] = useState('');
   const [averageWait, setAverageWait] = useState(0);
   const [currentSessionName, setCurrentSessionName] = useState<'morning' | 'evening' | null>(null);
-  const [baseUrl, setBaseUrl] = useState('');
-
+  
   const searchParams = useSearchParams();
   const layout = searchParams.get('layout') || '1';
-
 
   const listRef = useRef<HTMLDivElement>(null);
   const timeZone = "Asia/Kolkata";
@@ -244,12 +242,7 @@ function TVDisplayPageContent() {
     }, 200);
 
     return () => clearInterval(scrollInterval);
-}, [patients, layout]); // Re-evaluate when patients or layout change
-
-  useEffect(() => {
-    // This effect runs only on the client, where window is available
-    setBaseUrl(window.location.origin);
-  }, []);
+}, [patients, layout]);
 
   if (!schedule || !doctorStatus) {
     return (
@@ -307,6 +300,7 @@ function TVDisplayPageContent() {
       isSessionOver = now > sessionEndUTC;
   }
   
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
   const qrCodeUrl = currentSessionName && baseUrl ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
   const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
 
@@ -746,5 +740,3 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
-
-    
