@@ -71,26 +71,6 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   const timeZone = "Asia/Kolkata";
   if (!doctorStatus) return null;
   
-  const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
-  const dayName = format(toZonedTime(new Date(), timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-
-  let daySchedule;
-  if (schedule) {
-    const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
-    daySchedule = todayOverride 
-        ? {
-            morning: todayOverride.morningOverride ?? schedule.days[dayName].morning,
-            evening: todayOverride.eveningOverride ?? schedule.days[dayName].evening
-          }
-        : schedule.days[dayName];
-  }
-  
-  const now = new Date();
-  const currentHour = now.getHours();
-  
-  const sessionToCheck = (currentHour < 14 || !daySchedule?.evening.isOpen) ? daySchedule?.morning : daySchedule?.evening;
-  const isSessionOver = sessionToCheck ? now > fromZonedTime(parseDateFn(`${todayStr} ${sessionToCheck.end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone) : false;
-  
   const isOffline = !doctorStatus.isOnline;
 
   const cardClasses = cn(
@@ -98,59 +78,43 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
     isOffline ? "bg-red-100/50 border-red-300" : "bg-green-100/50 border-green-300"
   );
   
-  if (isOffline) {
-    return (
-       <Card className={cardClasses}>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><LogOut/>Doctor is Offline</CardTitle>
-             {doctorStatus.startDelay > 0 && !isSessionOver ? (
-                <CardDescription>Doctor is running late by {doctorStatus.startDelay} min.</CardDescription>
-             ) : (
-                <CardDescription>The session has not started yet.</CardDescription>
-             )}
-          </CardHeader>
-        </Card>
-    )
-  }
+  let TitleIcon = isOffline ? LogOut : LogIn;
+  let titleText = isOffline ? 'Doctor is Offline' : 'Doctor is Online';
+  let descriptionText = '';
   
   if (doctorStatus.isPaused) {
-    return (
-       <Card className="bg-yellow-100/50 border-yellow-300">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><Pause/>Queue Paused</CardTitle>
-            <CardDescription>The queue is temporarily paused.</CardDescription>
-          </CardHeader>
-        </Card>
-    )
+    TitleIcon = Pause;
+    titleText = 'Queue Paused';
+    descriptionText = 'The queue is temporarily paused.';
+  } else if (patient) {
+    TitleIcon = Hourglass;
+    titleText = 'Now Serving';
+    descriptionText = 'Currently in consultation';
+  } else if (!isOffline) {
+    const waitingCount = schedule ? (schedule as any).waitingCount || 0 : 0;
+    descriptionText = waitingCount > 0 ? 'Ready for next patient' : 'The queue is currently empty';
   }
 
-  if (!patient) {
-    const waitingCount = schedule ? (schedule as any).waitingCount || 0 : 0;
-    return (
-       <Card className={cardClasses}>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><LogIn />Doctor is Online</CardTitle>
-            <CardDescription>{waitingCount > 0 ? 'Ready for next patient' : 'The queue is currently empty'}</CardDescription>
-          </CardHeader>
-        </Card>
-    )
-  }
-  
   return (
        <Card className={cardClasses}>
-       <CardHeader>
-         <CardTitle className="text-lg flex items-center gap-2"><Hourglass className="animate-spin" />Now Serving</CardTitle>
-         <CardDescription>Currently in consultation</CardDescription>
-       </CardHeader>
-       <CardContent>
-          <p className="text-3xl font-bold">
-            {patient.name}
-            {patient.subStatus === 'Reports' && <span className="text-2xl ml-2 font-semibold text-purple-600">(Reports)</span>}
-          </p>
-          <p className="text-muted-foreground flex items-center gap-2 mt-1">
-            <Ticket className="h-4 w-4"/> Token #{patient.tokenNo}
-          </p>
-       </CardContent>
+         <CardHeader>
+           <CardTitle className="text-lg flex items-center gap-2">
+             <TitleIcon className={cn(patient && 'animate-spin')} />
+             {titleText}
+           </CardTitle>
+           <CardDescription>{descriptionText}</CardDescription>
+         </CardHeader>
+         {patient && (
+           <CardContent>
+              <p className="text-3xl font-bold">
+                {patient.name}
+                {patient.subStatus === 'Reports' && <span className="text-2xl ml-2 font-semibold text-purple-600">(Reports)</span>}
+              </p>
+              <p className="text-muted-foreground flex items-center gap-2 mt-1">
+                <Ticket className="h-4 w-4"/> Token #{patient.tokenNo}
+              </p>
+           </CardContent>
+         )}
      </Card>
   )
 }
@@ -488,29 +452,8 @@ function TVDisplayPageContent() {
         <main className="flex-1 flex gap-4 overflow-hidden">
             {/* Left Column (25%) */}
             <div className="w-1/4 flex flex-col gap-4">
-                <div className="bg-green-100 rounded-2xl p-4 flex flex-col justify-center items-center shadow-lg border-2 border-green-300">
-                    <h2 className="text-2xl text-green-800 font-semibold">NOW SERVING</h2>
-                    <AnimatePresence mode="wait">
-                    {doctorStatus.isPaused ? (
-                        <motion.div key="paused" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
-                            <Pause className="h-12 w-12 text-yellow-500 mx-auto mb-2" />
-                            <p className="text-4xl font-bold tracking-wider text-slate-900">Queue Paused</p>
-                        </motion.div>
-                    ) : nowServing ? (
-                        <motion.div key={nowServing.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
-                            <Hourglass className="h-12 w-12 text-green-700 mx-auto animate-pulse mb-2" />
-                            <div className={cn("text-5xl font-bold tracking-wider", getPatientNameColorClass(nowServing.status, nowServing.type))}>
-                               <PatientNameWithBadges patient={nowServing} />
-                            </div>
-                            <p className="text-2xl text-slate-500 mt-2 flex items-center justify-center gap-3"><Ticket className="h-7 w-7"/>#{nowServing.tokenNo}</p>
-                        </motion.div>
-                    ) : (
-                        <motion.div key="no-one" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-4">
-                            <p className="text-3xl font-semibold text-green-700">{doctorStatus.isOnline ? (waitingList.length > 0 ? 'Ready for next' : 'Queue is empty') : 'Doctor is Offline'}</p>
-                        </motion.div>
-                    )}
-                    </AnimatePresence>
-                </div>
+                <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule ? { ...schedule, waitingCount: waitingList.length } as any : null} />
+
                 <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden">
                     <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
                     <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
@@ -634,7 +577,26 @@ function TVDisplayPageContent() {
                 <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
                 <p className="text-lg text-slate-500">{qualifications}</p>
             </div>
-             <div className="flex justify-center items-center gap-4 text-lg p-2 rounded-md bg-slate-100 border border-slate-200">
+             {showQrCode && (
+                <div className="bg-white rounded-lg p-2 flex flex-col items-center justify-center shadow-md border border-slate-200">
+                    <h3 className="text-sm font-bold text-slate-800">Scan for Walk-in</h3>
+                    <Image
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrCodeUrl)}`}
+                        alt="Walk-in QR Code"
+                        width={100}
+                        height={100}
+                    />
+                </div>
+            )}
+        </div>
+
+        <div className="flex items-center justify-end gap-4">
+           <div className="text-5xl font-semibold text-slate-900">{time}</div>
+        </div>
+      </header>
+      
+       <div className="flex justify-center mt-4">
+            <div className="flex justify-center items-center gap-4 text-lg p-2 rounded-md bg-slate-100 border border-slate-200">
                 <div className="flex items-center gap-2 font-semibold text-amber-800">
                     <Activity className="h-6 w-6" />
                     Avg. Wait: <span className="font-bold">{averageWait} min</span>
@@ -652,28 +614,10 @@ function TVDisplayPageContent() {
             </div>
         </div>
 
-        <div className="flex items-center justify-end gap-4">
-            {showQrCode && (
-                <div className="bg-white rounded-lg p-2 flex flex-col items-center justify-center shadow-md border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-800">Scan for Walk-in</h3>
-                    <Image
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrCodeUrl)}`}
-                        alt="Walk-in QR Code"
-                        width={100}
-                        height={100}
-                    />
-                </div>
-            )}
-           <div className="text-5xl font-semibold text-slate-900">{time}</div>
-        </div>
-      </header>
-
 
       <main className="flex-1 flex flex-col gap-4 pt-4 overflow-hidden">
-        <div className="flex justify-center">
-            <div className="w-full max-w-2xl">
-                 <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule ? { ...schedule, waitingCount: waitingList.length } as any : null} />
-            </div>
+        <div className="w-full">
+            <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule ? { ...schedule, waitingCount: waitingList.length } as any : null} />
         </div>
 
         <div ref={listRef} className="flex-1 space-y-3 overflow-y-scroll no-scrollbar">
