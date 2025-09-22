@@ -247,7 +247,7 @@ function TVDisplayPageContent() {
   
   useEffect(() => {
     // This effect runs only on the client, where window is available
-    if (window.location.origin) {
+    if (typeof window !== 'undefined') {
       setBaseUrl(window.location.origin);
     }
   }, []);
@@ -522,7 +522,7 @@ function TVDisplayPageContent() {
   // Default Layout 1
   return (
     <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col p-6 font-body">
-      <header className="grid grid-cols-3 items-center pb-4 border-b-2 border-slate-200">
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center pb-4 border-b-2 border-slate-200">
         <div className="flex items-center space-x-4">
           {clinicLogo ? (
               <div className="relative h-16 w-16">
@@ -542,176 +542,130 @@ function TVDisplayPageContent() {
           </div>
         </div>
 
-        <div className="text-center">
-            <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
-            <p className="text-lg text-slate-500">{qualifications}</p>
-            <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-                {doctorStatus.isOnline ? 'Online' : 'Offline'}
+        <div className="flex items-center justify-center gap-6">
+            <div className="text-center">
+                <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
+                <p className="text-lg text-slate-500">{qualifications}</p>
+                <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                    {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+                    {doctorStatus.isOnline ? 'Online' : 'Offline'}
+                </div>
+                {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
+                    <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
+                        <AlertTriangle className="h-4 w-4" />
+                        Doctor is running late by {doctorStatus.startDelay} minutes.
+                    </div>
+                )}
             </div>
-             {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
-                <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
-                    <AlertTriangle className="h-4 w-4" />
-                    Doctor is running late by {doctorStatus.startDelay} minutes.
+             {showQrCode && (
+                <div className="bg-white rounded-lg p-2 flex flex-col items-center justify-center shadow-md border border-slate-200">
+                    <h3 className="text-sm font-bold text-slate-800">Scan for Walk-in</h3>
+                    <Image
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrCodeUrl)}`}
+                        alt="Walk-in QR Code"
+                        width={100}
+                        height={100}
+                    />
                 </div>
             )}
         </div>
 
-        <div className="text-right flex flex-col items-center justify-center gap-2">
+        <div className="text-right flex flex-col items-end justify-center">
            <div className="text-5xl font-semibold text-slate-900">{time}</div>
-            <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
-                <div className="flex items-center gap-2 font-semibold text-amber-800">
-                    <Activity className="h-6 w-6" />
-                    Avg. Wait: <span className="font-bold">{averageWait} min</span>
-                </div>
-            </div>
         </div>
       </header>
 
+      <div className="flex justify-center items-center gap-4 mt-4 text-lg p-2 rounded-md bg-slate-100 border border-slate-200">
+          <div className="flex items-center gap-2 font-semibold text-amber-800">
+              <Activity className="h-6 w-6" />
+              Avg. Wait: <span className="font-bold">{averageWait} min</span>
+          </div>
+          <div className="border-l h-6 border-slate-300"></div>
+          <div className="flex items-center gap-2 font-semibold text-blue-800">
+              <Users className="h-6 w-6" />
+              In Queue: <span className="font-bold">{waitingList.length}</span>
+          </div>
+           <div className="border-l h-6 border-slate-300"></div>
+           <div className="flex items-center gap-2 font-semibold text-gray-800">
+              <Calendar className="h-6 w-6" />
+              Yet to Arrive: <span className="font-bold">{yetToArrive.length}</span>
+          </div>
+      </div>
+
       <main className="flex-1 flex flex-col gap-4 pt-4 overflow-hidden">
-        <div className="grid grid-cols-4 gap-6">
-            <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border-2 border-sky-500">
-                <h2 className="text-3xl text-sky-600 font-semibold">NOW SERVING</h2>
-                <AnimatePresence mode="wait">
-                {doctorStatus.isPaused ? (
-                     <motion.div
-                        key="paused"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="text-center"
-                    >
-                        <Pause className="h-16 w-16 text-yellow-500 mx-auto mb-2" />
-                        <p className="text-5xl font-bold tracking-wider text-slate-900">
-                           Queue Paused
-                        </p>
-                    </motion.div>
-                ) : nowServing ? (
-                    <motion.div
-                        key={nowServing.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="text-center"
-                    >
-                        <Hourglass className="h-16 w-16 text-sky-500 mx-auto animate-pulse mb-2" />
-                        <div className={cn(
-                           "text-6xl font-bold tracking-wider",
-                           getPatientNameColorClass(nowServing.status, nowServing.type)
-                         )}>
-                            <PatientNameWithBadges patient={nowServing} />
-                        </div>
-                        <p className="text-3xl text-slate-500 mt-2 flex items-center justify-center gap-3">
-                           <Ticket className="h-8 w-8"/>#{nowServing.tokenNo}
-                        </p>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        key="no-one"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="text-center"
-                    >
-                        <p className="text-4xl font-semibold text-slate-400">
-                           {doctorStatus.isOnline ? (waitingList.length > 0 ? 'Ready for next patient' : 'The queue is empty') : 'Doctor is Offline'}
-                        </p>
-                    </motion.div>
-                )}
-                </AnimatePresence>
-            </div>
-            {showQrCode ? (
-                <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200">
-                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><QrCode /> Scan for Walk-in</h3>
-                    <p className="text-sm text-muted-foreground mb-2">Join the queue directly</p>
-                    <Image
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}`}
-                        alt="Walk-in QR Code"
-                        width={200}
-                        height={200}
-                    />
-                </div>
-            ) : (
-                 <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center">
-                     <h3 className="text-xl font-bold text-slate-800">Walk-in QR Unavailable</h3>
-                     <p className="text-sm text-muted-foreground">Enable QR in Admin panel to allow walk-ins.</p>
-                 </div>
+        <div ref={listRef} className="flex-1 space-y-3 overflow-y-scroll no-scrollbar">
+          <AnimatePresence>
+            {nowServing && (
+              <motion.div
+                  key="now-serving"
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="grid grid-cols-[80px_1fr_80px_150px] gap-4 items-center py-3 text-2xl border-2 border-sky-500 bg-sky-100/50 rounded-lg shadow-lg"
+              >
+                  <div className="font-bold text-3xl text-center text-sky-600 flex items-center justify-center gap-2">
+                      <Hourglass className="animate-pulse" />
+                      #{nowServing.tokenNo}
+                  </div>
+                  <div className={cn("font-bold text-4xl flex items-center gap-2", getPatientNameColorClass(nowServing.status, nowServing.type))}>
+                      <PatientNameWithBadges patient={nowServing} />
+                  </div>
+                  <div className="text-center text-slate-600 font-bold text-sky-700">SERVING</div>
+                  <div className="text-center font-semibold text-slate-600">-</div>
+              </motion.div>
             )}
-             <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-full">
-                <h3 className="text-lg text-gray-600 font-semibold">In Queue</h3>
-                <div className="text-7xl font-bold text-slate-800 flex items-center gap-2">
-                    <Users className="h-16 w-16 text-gray-400" />
-                    {waitingList.length}
-                </div>
-            </div>
-            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-full">
-                <h3 className="text-lg text-gray-600 font-semibold">Yet to Arrive</h3>
-                <div className="text-7xl font-bold text-slate-800 flex items-center gap-2">
-                    <Calendar className="h-16 w-16 text-gray-400" />
-                    {yetToArrive.length}
-                </div>
-            </div>
-        </div>
 
-        <div className="flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
-                {upNext && (
-                    <div className={cn("rounded-xl p-4 mb-4 flex items-center justify-between shadow-md", upNext.status === 'Priority' ? 'bg-red-200 border-2 border-red-500' : 'bg-amber-100 border-2 border-amber-400')}>
-                        <div className="flex items-center gap-4">
-                            <h2 className={cn("text-2xl font-bold flex items-center gap-3", upNext.status === 'Priority' ? 'text-red-800' : 'text-amber-700')}>
-                                {upNext.status === 'Priority' ? <Shield /> : <ChevronRight />}
-                                {upNext.status === 'Priority' ? 'PRIORITY' : 'UP NEXT'}
-                            </h2>
-                            <div className="flex items-center gap-3">
-                                <Ticket className={cn("h-7 w-7", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-600')}/>
-                                <span className="text-3xl font-bold text-slate-800">#{upNext.tokenNo}</span>
-                            </div>
-                            <div className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
-                                <PatientNameWithBadges patient={upNext} />
-                            </div>
-                        </div>
+            {upNext && (
+              <motion.div
+                  key="up-next"
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    "grid grid-cols-[80px_1fr_80px_150px] gap-4 items-center py-3 text-2xl border-2 rounded-lg shadow-md",
+                    upNext.status === 'Priority' ? 'border-red-500 bg-red-100/50' : 'border-amber-400 bg-amber-100/50'
+                  )}
+              >
+                  <div className="font-bold text-3xl text-center text-sky-600">#{upNext.tokenNo}</div>
+                  <div className={cn("font-bold text-4xl flex items-center gap-2", getPatientNameColorClass(upNext.status, upNext.type))}>
+                       <PatientNameWithBadges patient={upNext} />
+                  </div>
+                  <div className={cn("text-center text-slate-600 font-bold", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-700')}>
+                      {upNext.status === 'Priority' ? 'PRIORITY' : 'UP NEXT'}
+                  </div>
+                   <div className="text-center font-semibold text-slate-600">-</div>
+              </motion.div>
+            )}
+            
+            {queue.map((patient) => {
+                const waitTime = patient.checkInTime ? differenceInMinutes(new Date(), parseISO(patient.checkInTime)) : null;
+                const PurposeIcon = patient.purpose && purposeIcons[patient.purpose] ? purposeIcons[patient.purpose] : HelpCircle;
+
+                return (
+                <motion.div
+                    key={patient.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    className="grid grid-cols-[80px_1fr_80px_150px] gap-4 items-center py-3 text-2xl border-b border-slate-200 bg-white"
+                >
+                    <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
+                    <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
+                        <PatientNameWithBadges patient={patient} />
                     </div>
-                )}
-                <div className="grid grid-cols-[80px_1fr_80px_150px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
-                    <h3 className="text-center">Token</h3>
-                    <h3>Name</h3>
-                    <h3 className="text-center">Purpose</h3>
-                    <h3 className="text-center">Wait Time</h3>
-                </div>
-                <div ref={listRef} className="flex-1 overflow-y-scroll no-scrollbar">
-                    <AnimatePresence>
-                    {queue.length > 0 ? (
-                        queue.map((patient) => {
-                            const waitTime = patient.checkInTime ? differenceInMinutes(new Date(), parseISO(patient.checkInTime)) : null;
-                            const PurposeIcon = patient.purpose && purposeIcons[patient.purpose] ? purposeIcons[patient.purpose] : HelpCircle;
-
-                            return (
-                            <motion.div
-                                key={patient.id}
-                                layout
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, x: -50 }}
-                                className="grid grid-cols-[80px_1fr_80px_150px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
-                            >
-                                <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
-                                <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
-                                   <PatientNameWithBadges patient={patient} />
-                                </div>
-                                <div className="text-center text-slate-600 flex justify-center">
-                                    <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
-                                </div>
-                                <div className="text-center font-semibold text-slate-600">
-                                    {waitTime !== null && waitTime >= 0 ? `${waitTime} min` : '-'}
-                                </div>
-                            </motion.div>
-                            )
-                        })
-                    ) : (
-                        !upNext && <p className="text-center text-slate-400 text-2xl pt-16">The waiting queue is empty.</p>
-                    )}
-                    </AnimatePresence>
-                </div>
-            </div>
+                    <div className="text-center text-slate-600 flex justify-center">
+                        <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
+                    </div>
+                    <div className="text-center font-semibold text-slate-600">
+                        {waitTime !== null && waitTime >= 0 ? `${waitTime} min` : '-'}
+                    </div>
+                </motion.div>
+                )
+            })}
+             {queue.length === 0 && !upNext && !nowServing && <p className="text-center text-slate-400 text-2xl pt-16">The waiting queue is empty.</p>}
+          </AnimatePresence>
+        </div>
       </main>
     </div>
   );
@@ -724,5 +678,3 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
-
-    
