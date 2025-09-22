@@ -1247,23 +1247,28 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     };
   }
 
-  const getSession = (time: Date) => {
+  const getSession = (time: Date): 'morning' | 'evening' | null => {
     const zonedTime = toZonedTime(time, timeZone);
-    const morningEndUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.end) : new Date(0);
     
-    if (daySchedule.morning.isOpen && zonedTime < morningEndUtc) {
-      const morningStartUtc = sessionLocalToUtc(todayStr, daySchedule.morning.start);
-      if (zonedTime >= morningStartUtc) return 'morning';
-    }
-
-    if (daySchedule.evening.isOpen) {
-      const eveningStartUtc = sessionLocalToUtc(todayStr, daySchedule.evening.start);
-      const eveningEndUtc = sessionLocalToUtc(todayStr, daySchedule.evening.end);
-      if (zonedTime >= eveningStartUtc && zonedTime < eveningEndUtc) return 'evening';
-    }
-
+    const isWithinSession = (sessionName: 'morning' | 'evening'): boolean => {
+        const session = daySchedule[sessionName];
+        if (!session.isOpen) return false;
+        
+        const isClosedByOverride = sessionName === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
+        if (isClosedByOverride) return false;
+        
+        const startUtc = sessionLocalToUtc(todayStr, session.start);
+        const endUtc = sessionLocalToUtc(todayStr, session.end);
+        
+        return zonedTime >= startUtc && zonedTime < endUtc;
+    };
+    
+    if (isWithinSession('morning')) return 'morning';
+    if (isWithinSession('evening')) return 'evening';
+    
     return null;
   };
+
 
   const currentSessionName = getSession(now);
   
@@ -1272,11 +1277,10 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   }
 
   const sessionSchedule = daySchedule[currentSessionName];
-  const isSessionClosed = currentSessionName === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
-
-  if (!sessionSchedule || !sessionSchedule.isOpen || isSessionClosed) {
-    return { error: 'The clinic is currently closed.' };
+  if (!sessionSchedule.isOpen) {
+      return { error: 'The clinic session is currently closed.' };
   }
+
 
   // Find next available walk-in slot
   const startLocal = parse(`${todayStr} ${sessionSchedule.start}`, 'yyyy-MM-dd HH:mm', new Date());
