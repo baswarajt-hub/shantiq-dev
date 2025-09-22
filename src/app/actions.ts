@@ -1344,3 +1344,4 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   // Re-use logic from addAppointmentAction for token calculation and creation
   return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }
+
