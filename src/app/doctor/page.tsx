@@ -98,7 +98,7 @@ export default function DoctorPage() {
 
 
   const { currentSession, sessionPatients, averageConsultationTime } = useMemo(() => {
-    if (!schedule || !schedule.days) { // Added check for schedule.days
+    if (!schedule || !schedule.days) {
       return { currentSession: null, sessionPatients: [], averageConsultationTime: 0 };
     }
     const now = new Date();
@@ -145,7 +145,7 @@ export default function DoctorPage() {
 
   }, [schedule, patients, getSessionForTime]);
 
-  if (!schedule || !doctorStatus || isPending && !patients.length) {
+  if (!schedule || !doctorStatus || (isPending && !patients.length)) {
     return (
       <div className="flex flex-col min-h-screen bg-muted/40">
         <DoctorHeader logoSrc={null} />
@@ -166,7 +166,7 @@ export default function DoctorPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
-      <DoctorHeader logoSrc={schedule.clinicDetails.clinicLogo} clinicName={schedule.clinicDetails.clinicName} />
+      <DoctorHeader logoSrc={schedule.clinicDetails?.clinicLogo} clinicName={schedule.clinicDetails?.clinicName} />
       <main className="flex-1 container mx-auto p-4 space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Doctor's Panel</h1>
