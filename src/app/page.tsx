@@ -141,17 +141,17 @@ export default function DashboardPage() {
         const dateStr = format(zonedAppt, 'yyyy-MM-dd');
 
         let daySchedule = schedule.days[dayOfWeek];
-        if (!daySchedule) return null; // FIX: Ensure daySchedule exists before proceeding
+        if (!daySchedule) return null;
 
         const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
         if (todayOverride) {
             daySchedule = {
-            morning: todayOverride.morningOverride ?? daySchedule.morning,
-            evening: todayOverride.eveningOverride ?? daySchedule.evening,
+                morning: todayOverride.morningOverride ?? daySchedule.morning,
+                evening: todayOverride.eveningOverride ?? daySchedule.evening,
             };
         }
 
-        const checkSession = (session: any) => { // Using `any` for session to bypass strict type checks for a moment.
+        const checkSession = (session: Session) => {
             if (!session.isOpen) return false;
             const startUtc = sessionLocalToUtc(dateStr, session.start);
             const endUtc = sessionLocalToUtc(dateStr, session.end);
@@ -303,10 +303,11 @@ export default function DashboardPage() {
                 if (patientForSlot) {
                     patientDetails = familyMap.get(`${patientForSlot.phone}-${patientForSlot.name}`);
                     if (!patientDetails) {
+                        // Create a fallback object if family member is not found, to prevent crash
                         patientDetails = {
                             name: patientForSlot.name,
                             phone: patientForSlot.phone,
-                            gender: 'Other' 
+                            gender: 'Other' // or some default
                         };
                     }
                 }
@@ -1060,6 +1061,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
