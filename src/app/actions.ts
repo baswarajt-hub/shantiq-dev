@@ -537,16 +537,13 @@ export async function recalculateQueueWithETC() {
 
         if (now > doctorAutoOfflineTimeUtc) {
              const onlineSession = doctorStatus.onlineTime ? getSessionForTime(schedule, parseISO(doctorStatus.onlineTime)) : null;
-             let shouldTurnOff = false;
 
              if (doctorStatus.isOnline && (onlineSession === session || (session === 'evening' && onlineSession === 'morning'))) {
-                 shouldTurnOff = true;
                  doctorStatus.isOnline = false;
                  doctorStatus.startDelay = 0;
                  statusNeedsUpdate = true;
              }
              if (doctorStatus.isQrCodeActive) {
-                 shouldTurnOff = true;
                  doctorStatus.isQrCodeActive = false;
                  statusNeedsUpdate = true;
              }
@@ -1371,6 +1368,6 @@ export async function joinQueueAction(member: FamilyMember, purpose: string, ses
   
   const appointmentTime = availableSlot.toISOString();
   
-  // Re-use logic from addAppointmentAction for token calculation and creation
-  return await addAppointmentAction(member, appointmentTime, purpose, true, true);
+  // For QR code walk-ins, always use "Book Only" (checkIn = false)
+  return await addAppointmentAction(member, appointmentTime, purpose, true, false);
 }

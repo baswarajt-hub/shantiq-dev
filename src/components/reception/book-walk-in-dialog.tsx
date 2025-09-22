@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FamilyMember, VisitPurpose } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Info } from 'lucide-react';
 import { searchFamilyMembersAction } from '@/app/actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -103,6 +103,8 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
     handleClose(false);
   };
 
+  const selectedPurposeDetails = visitPurposes.find(p => p.name === selectedPurpose);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
@@ -176,6 +178,12 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
                             {visitPurposes.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                    {selectedPurposeDetails?.description && (
+                        <div className="text-xs text-muted-foreground p-2 flex gap-2 items-start">
+                            <Info className="h-3 w-3 mt-0.5 shrink-0"/>
+                            <span>{selectedPurposeDetails.description}</span>
+                        </div>
+                    )}
                 </div>
                 <DialogFooter className="gap-2 sm:gap-0">
                     <Button variant="outline" onClick={goBackToSearch}>Back to Search</Button>

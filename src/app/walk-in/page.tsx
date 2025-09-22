@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { getDoctorScheduleAction, getFamilyByPhoneAction, addNewPatientAction, joinQueueAction } from '@/app/actions';
+import { getDoctorScheduleAction, getFamilyByPhoneAction, addNewPatientAction, joinQueueAction, registerUserAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { StethoscopeIcon } from '@/components/icons';
 import Image from 'next/image';
@@ -18,10 +18,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 
 function WalkInPageContent() {
-  const [step, setStep] = useState<'phone' | 'selectOrCreate' | 'create'>('phone');
+  const [step, setStep] = useState<'phone' | 'selectOrCreate' | 'create' | 'registerParent'>('phone');
   const [phone, setPhone] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -35,12 +35,15 @@ function WalkInPageContent() {
   // State for patient selection/creation
   const [foundFamily, setFoundFamily] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
+  const [purpose, setPurpose] = useState('Consultation');
 
-  // State for new member form
+  // State for new member/parent form
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState('');
-  const [purpose, setPurpose] = useState('Consultation');
+  const [email, setEmail] = useState('');
+  const [location, setLocation] = useState('');
+  const [city, setCity] = useState('');
 
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
 
@@ -60,8 +63,12 @@ function WalkInPageContent() {
     }
     startTransition(async () => {
       const family = await getFamilyByPhoneAction(phone);
-      setFoundFamily(family);
-      setStep('selectOrCreate');
+      if (family.length > 0) {
+        setFoundFamily(family);
+        setStep('selectOrCreate');
+      } else {
+        setStep('registerParent');
+      }
     });
   };
 
@@ -93,17 +100,40 @@ function WalkInPageContent() {
       });
   }
 
+  const handleRegisterParent = () => {
+    if (!name || !gender || !location || !city || !phone) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please fill out all required fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    startTransition(async () => {
+      const result = await registerUserAction({ phone, name, dob, gender, location, city, email });
+      if (result.success) {
+        toast({ title: 'Registration Successful', description: 'Your family account has been created. Now, please add the patient.' });
+        const family = await getFamilyByPhoneAction(phone);
+        setFoundFamily(family);
+        setName(''); setDob(''); setGender(''); setEmail(''); setLocation(''); setCity('');
+        setStep('create'); // Go to add patient step
+      } else {
+        toast({ title: 'Registration Failed', description: 'Something went wrong.', variant: 'destructive' });
+      }
+    });
+  };
+
   const resetFlow = () => {
     setStep('phone');
     setPhone('');
     setFoundFamily([]);
     setSelectedMember(null);
-    setName('');
-    setDob('');
-    setGender('');
+    setName(''); setDob(''); setGender(''); setEmail(''); setLocation(''); setCity('');
     setPurpose('Consultation');
-    router.replace('/walk-in'); // Reset URL to remove params
+    router.replace('/walk-in' + (sessionParam ? `?session=${sessionParam}`: ''));
   }
+  
+  const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === purpose);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4 font-body">
@@ -148,6 +178,65 @@ function WalkInPageContent() {
           </Card>
         )}
 
+        {step === 'registerParent' && (
+          <Card>
+            <CardHeader>
+               <Button variant="ghost" size="sm" onClick={() => setStep('phone')} className="absolute top-3 left-3">Back</Button>
+               <CardTitle className="text-center pt-8">Register Your Family</CardTitle>
+               <CardDescription className="text-center">This phone number is new to us. Please enter the parent's details to create a family account.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+               <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Attention!</AlertTitle>
+                  <AlertDescription>
+                    If you have registered with the doctor before, please contact the receptionist for assistance.
+                  </AlertDescription>
+              </Alert>
+               <div className="space-y-2">
+                  <Label htmlFor="name">Full Name (Parent's)</Label>
+                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Parent's Name" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="dob">Date of Birth (Optional)</Label>
+                      <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="gender">Gender</Label>
+                      <Select value={gender} onValueChange={setGender}>
+                          <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="Male">Male</SelectItem>
+                              <SelectItem value="Female">Female</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="email">Email (Optional)</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. parent@example.com" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="location">Location Area</Label>
+                      <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g., Ameerpet" />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g., Hyderabad" />
+                  </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={handleRegisterParent} disabled={isPending} className="w-full">
+                {isPending ? 'Registering...' : 'Register & Add Patient'}
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
+
         {step === 'selectOrCreate' && (
           <Card>
             <CardHeader>
@@ -157,7 +246,7 @@ function WalkInPageContent() {
             </CardHeader>
             <CardContent className="space-y-4">
                 <RadioGroup onValueChange={(id) => setSelectedMember(foundFamily.find(m => m.id === id) || null)}>
-                    {foundFamily.map(member => (
+                    {foundFamily.filter(m => !m.isPrimary).map(member => (
                         <Label key={member.id} htmlFor={member.id} className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-muted has-[input:checked]:bg-primary/20 has-[input:checked]:border-primary">
                             <RadioGroupItem value={member.id} id={member.id} />
                             <Avatar>
@@ -188,6 +277,12 @@ function WalkInPageContent() {
                         ))}
                       </SelectContent>
                     </Select>
+                     {selectedPurposeDetails?.description && (
+                        <div className="text-xs text-muted-foreground p-2 flex gap-2 items-start">
+                            <Info className="h-3 w-3 mt-0.5 shrink-0"/>
+                            <span>{selectedPurposeDetails.description}</span>
+                        </div>
+                    )}
                 </div>
             </CardContent>
             <CardFooter>
@@ -201,20 +296,11 @@ function WalkInPageContent() {
         {step === 'create' && (
             <Card>
                 <CardHeader>
-                  <Button variant="ghost" size="sm" onClick={() => setStep('selectOrCreate')} className="absolute top-3 left-3">Back</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setStep(foundFamily.length > 0 ? 'selectOrCreate' : 'phone')} className="absolute top-3 left-3">Back</Button>
                   <CardTitle className="text-center pt-8">Add New Patient</CardTitle>
                   <CardDescription className="text-center">Enter the new patient's details.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {foundFamily.length === 0 && (
-                        <Alert>
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>New Family</AlertTitle>
-                            <AlertDescription>
-                                This phone number is not registered. The first person added will become the primary contact.
-                            </AlertDescription>
-                        </Alert>
-                    )}
                     <div className="space-y-2">
                         <Label htmlFor="name">Patient's Full Name</Label>
                         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Jane Doe" required />
@@ -242,10 +328,16 @@ function WalkInPageContent() {
                             <SelectTrigger id="purpose-create"><SelectValue placeholder="Select a reason" /></SelectTrigger>
                             <SelectContent>
                                 {activeVisitPurposes.map(p => (
-                                <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                                    <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+                        {selectedPurposeDetails?.description && (
+                            <div className="text-xs text-muted-foreground p-2 flex gap-2 items-start">
+                                <Info className="h-3 w-3 mt-0.5 shrink-0"/>
+                                <span>{selectedPurposeDetails.description}</span>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
                 <CardFooter>
