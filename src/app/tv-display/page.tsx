@@ -546,16 +546,6 @@ function TVDisplayPageContent() {
             <div className="text-center">
                 <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
                 <p className="text-lg text-slate-500">{qualifications}</p>
-                <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                    {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-                    {doctorStatus.isOnline ? 'Online' : 'Offline'}
-                </div>
-                {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
-                    <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
-                        <AlertTriangle className="h-4 w-4" />
-                        Doctor is running late by {doctorStatus.startDelay} minutes.
-                    </div>
-                )}
             </div>
              {showQrCode && (
                 <div className="bg-white rounded-lg p-2 flex flex-col items-center justify-center shadow-md border border-slate-200">
@@ -593,28 +583,39 @@ function TVDisplayPageContent() {
       </div>
 
       <main className="flex-1 flex flex-col gap-4 pt-4 overflow-hidden">
+        <AnimatePresence mode="wait">
+            {doctorStatus.isPaused ? (
+                <motion.div key="paused" className="w-full bg-yellow-100 text-yellow-800 rounded-lg p-4 text-center">
+                    <p className="text-4xl font-bold tracking-wider flex items-center justify-center gap-4"><Pause className="h-12 w-12" /> Queue Paused</p>
+                </motion.div>
+            ) : !doctorStatus.isOnline ? (
+                <motion.div key="offline" className="w-full bg-red-100 text-red-800 rounded-lg p-4 text-center">
+                    <p className="text-4xl font-bold tracking-wider flex items-center justify-center gap-4"><LogOut className="h-12 w-12" /> Doctor is Offline</p>
+                    {doctorStatus.startDelay > 0 && !isSessionOver && (
+                        <p className="text-lg mt-2">Doctor is running late by {doctorStatus.startDelay} minutes.</p>
+                    )}
+                </motion.div>
+            ) : nowServing ? (
+                 <motion.div key={nowServing.id} className="grid grid-cols-[80px_1fr_80px_150px] gap-4 items-center py-3 text-2xl border-2 border-sky-500 bg-sky-100/50 rounded-lg shadow-lg">
+                    <div className="font-bold text-3xl text-center text-sky-600 flex items-center justify-center gap-2">
+                        <Hourglass className="animate-pulse" />
+                        #{nowServing.tokenNo}
+                    </div>
+                    <div className={cn("font-bold text-4xl flex items-center gap-2", getPatientNameColorClass(nowServing.status, nowServing.type))}>
+                        <PatientNameWithBadges patient={nowServing} />
+                    </div>
+                    <div className="text-center text-slate-600 font-bold text-sky-700">SERVING</div>
+                    <div className="text-center font-semibold text-slate-600">-</div>
+                </motion.div>
+            ) : (
+                <motion.div key="ready" className="w-full bg-green-100 text-green-800 rounded-lg p-4 text-center">
+                    <p className="text-4xl font-bold tracking-wider">{waitingList.length > 0 ? 'Ready for next patient' : 'Queue is empty'}</p>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
         <div ref={listRef} className="flex-1 space-y-3 overflow-y-scroll no-scrollbar">
           <AnimatePresence>
-            {nowServing && (
-              <motion.div
-                  key="now-serving"
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="grid grid-cols-[80px_1fr_80px_150px] gap-4 items-center py-3 text-2xl border-2 border-sky-500 bg-sky-100/50 rounded-lg shadow-lg"
-              >
-                  <div className="font-bold text-3xl text-center text-sky-600 flex items-center justify-center gap-2">
-                      <Hourglass className="animate-pulse" />
-                      #{nowServing.tokenNo}
-                  </div>
-                  <div className={cn("font-bold text-4xl flex items-center gap-2", getPatientNameColorClass(nowServing.status, nowServing.type))}>
-                      <PatientNameWithBadges patient={nowServing} />
-                  </div>
-                  <div className="text-center text-slate-600 font-bold text-sky-700">SERVING</div>
-                  <div className="text-center font-semibold text-slate-600">-</div>
-              </motion.div>
-            )}
-
             {upNext && (
               <motion.div
                   key="up-next"
@@ -663,7 +664,7 @@ function TVDisplayPageContent() {
                 </motion.div>
                 )
             })}
-             {queue.length === 0 && !upNext && !nowServing && <p className="text-center text-slate-400 text-2xl pt-16">The waiting queue is empty.</p>}
+             {queue.length === 0 && !upNext && <p className="text-center text-slate-400 text-2xl pt-16">The waiting queue is empty.</p>}
           </AnimatePresence>
         </div>
       </main>
