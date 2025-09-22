@@ -70,6 +70,7 @@ const getPatientNameColorClass = (status: Patient['status'], type: Patient['type
 function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null, schedule: DoctorSchedule | null }) {
   if (!doctorStatus) return null;
   
+  const timeZone = "Asia/Kolkata";
   const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
   const dayName = format(toZonedTime(new Date(), timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
@@ -156,7 +157,7 @@ function TVDisplayPageContent() {
   const [averageWait, setAverageWait] = useState(0);
   const [currentSessionName, setCurrentSessionName] = useState<'morning' | 'evening' | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
-  
+
   const searchParams = useSearchParams();
   const layout = searchParams.get('layout') || '1';
 
@@ -207,7 +208,7 @@ function TVDisplayPageContent() {
     if (checkSession('morning')) return 'morning';
     if (checkSession('evening')) return 'evening';
     return null;
-  }, [timeZone]);
+  }, []);
 
   const fetchData = useCallback(async () => {
     const [patientData, statusRes, scheduleData] = await Promise.all([
@@ -276,7 +277,7 @@ function TVDisplayPageContent() {
     } else if (scheduleData) {
         setAverageWait(scheduleData.slotDuration); // Default if no one is waiting
     }
-  }, [getSessionForTime, timeZone]);
+  }, [getSessionForTime]);
 
   useEffect(() => {
     fetchData(); // Initial fetch
@@ -327,9 +328,8 @@ function TVDisplayPageContent() {
   }, [patients, layout]);
   
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        setBaseUrl(window.location.origin);
-    }
+    // This effect runs only on the client, where window is available
+    setBaseUrl(window.location.origin);
   }, []);
 
   if (!schedule || !doctorStatus) {
@@ -435,10 +435,10 @@ function TVDisplayPageContent() {
             </div>
           </div>
 
-          <div className="text-center px-8">
-              <div className="flex justify-center items-center gap-4">
+          <div className="text-center px-8 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-4">
                 <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
-                <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                 <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
                     {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
                     {doctorStatus.isOnline ? 'Online' : 'Offline'}
                 </div>
