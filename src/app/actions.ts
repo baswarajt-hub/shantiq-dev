@@ -7,7 +7,7 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { format, parseISO, parse, differenceInMinutes, startOfDay, max, addMinutes } from 'date-fns';
+import { format, parseISO, parse, differenceInMinutes, startOfDay, max, addMinutes, subMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { createHash } from 'crypto';
 
@@ -1275,39 +1275,34 @@ export async function joinQueueAction(member: FamilyMember, purpose: string, ses
     };
   }
   
-  const getActiveSession = (time: Date): { name: 'morning' | 'evening', schedule: Session } | null => {
-    const zonedTime = toZonedTime(time, timeZone);
-    
-    const checkSession = (sessionName: 'morning' | 'evening'): { name: 'morning' | 'evening', schedule: Session } | null => {
-        const session = daySchedule[sessionName];
-        if (!session.isOpen) return null;
-        
-        const isClosedByOverride = sessionName === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
-        if (isClosedByOverride) return null;
-        
-        const startUtc = sessionLocalToUtc(todayStr, session.start);
-        const endUtc = sessionLocalToUtc(todayStr, session.end);
-        
-        if(zonedTime >= startUtc && zonedTime < endUtc) {
-            return { name: sessionName, schedule: session };
-        }
-        return null;
-    };
-    
-    return checkSession('morning') || checkSession('evening');
-  };
-  
-  const currentSession = getActiveSession(now);
-
-  if (!currentSession) {
-    return { error: 'The clinic is currently closed or not in session.' };
+  const getSessionFromParam = (param: 'morning' | 'evening'): { name: 'morning' | 'evening', schedule: Session } | null => {
+      const session = daySchedule[param];
+      if (!session.isOpen) return null;
+      
+      const isClosedByOverride = param === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
+      if (isClosedByOverride) return null;
+      
+      return { name: param, schedule: session };
   }
   
-  if (sessionParam && currentSession.name !== sessionParam) {
-    return { error: `Walk-in registration is only open for the ${currentSession.name} session.` };
-  }
+  const currentSessionDetails = sessionParam ? getSessionFromParam(sessionParam) : null;
 
-  const sessionSchedule = currentSession.schedule;
+  if (!currentSessionDetails) {
+    return { error: 'The clinic is currently closed or the session is invalid.' };
+  }
+  
+  const sessionSchedule = currentSessionDetails.schedule;
+  const sessionStartUtc = sessionLocalToUtc(todayStr, sessionSchedule.start);
+  const sessionEndUtc = sessionLocalToUtc(todayStr, sessionSchedule.end);
+  const registrationOpenTime = subMinutes(sessionStartUtc, 30);
+
+  if (now < registrationOpenTime) {
+      return { error: `Walk-in registration for the ${currentSessionDetails.name} session opens at ${format(toZonedTime(registrationOpenTime, timeZone), 'hh:mm a')}.` };
+  }
+  
+  if (now > sessionEndUtc) {
+      return { error: `The ${currentSessionDetails.name} session is over. Walk-ins are no longer accepted.` };
+  }
 
   // Find next available walk-in slot
   const startLocal = parse(`${todayStr} ${sessionSchedule.start}`, 'yyyy-MM-dd HH:mm', new Date());
