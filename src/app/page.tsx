@@ -141,6 +141,8 @@ export default function DashboardPage() {
         const dateStr = format(zonedAppt, 'yyyy-MM-dd');
 
         let daySchedule = schedule.days[dayOfWeek];
+        if (!daySchedule) return null; // FIX: Ensure daySchedule exists before proceeding
+
         const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
         if (todayOverride) {
             daySchedule = {
@@ -1058,6 +1060,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
