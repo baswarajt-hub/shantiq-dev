@@ -74,7 +74,6 @@ function TVDisplayPageContent() {
   const [time, setTime] = useState('');
   const [averageWait, setAverageWait] = useState(0);
   const [currentSessionName, setCurrentSessionName] = useState<'morning' | 'evening' | null>(null);
-  const [baseUrl, setBaseUrl] = useState('');
 
   const searchParams = useSearchParams();
   const layout = searchParams.get('layout') || '1';
@@ -199,9 +198,6 @@ function TVDisplayPageContent() {
   }, [getSessionForTime, timeZone]);
 
   useEffect(() => {
-    // Set base URL on client-side
-    setBaseUrl(window.location.origin);
-    
     fetchData(); // Initial fetch
     const dataIntervalId = setInterval(fetchData, 15000); // Poll every 15 seconds
 
@@ -298,6 +294,7 @@ function TVDisplayPageContent() {
       isSessionOver = now > sessionEndUTC;
   }
   
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
   const qrCodeUrl = currentSessionName ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
   const showQrCode = doctorStatus.isOnline && qrCodeUrl;
 
