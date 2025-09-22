@@ -91,6 +91,9 @@ function TVDisplayPageContent() {
     const dateStr = format(zonedAppt, 'yyyy-MM-dd');
 
     let daySchedule = localSchedule.days[dayOfWeek];
+
+    if (!daySchedule) return null;
+
     const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
     if (todayOverride) {
       daySchedule = {
@@ -148,25 +151,27 @@ function TVDisplayPageContent() {
             const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
             let daySchedule = scheduleData.days[dayName];
-            const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
-            if (todayOverride) {
-                daySchedule = {
-                    morning: todayOverride.morningOverride ?? daySchedule.morning,
-                    evening: todayOverride.eveningOverride ?? daySchedule.evening,
-                };
-            }
-            
-            const morningSession = daySchedule.morning;
-            if (morningSession.isOpen) {
-                const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-                const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-                if (now > morningEndUtc) {
-                    sessionToShow = 'evening';
-                } else {
-                    sessionToShow = 'morning';
+            if (daySchedule) {
+                const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
+                if (todayOverride) {
+                    daySchedule = {
+                        morning: todayOverride.morningOverride ?? daySchedule.morning,
+                        evening: todayOverride.eveningOverride ?? daySchedule.evening,
+                    };
                 }
-            } else {
-                sessionToShow = 'evening';
+                
+                const morningSession = daySchedule.morning;
+                if (morningSession.isOpen) {
+                    const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+                    const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+                    if (now > morningEndUtc) {
+                        sessionToShow = 'evening';
+                    } else {
+                        sessionToShow = 'morning';
+                    }
+                } else {
+                    sessionToShow = 'evening';
+                }
             }
         }
     }
