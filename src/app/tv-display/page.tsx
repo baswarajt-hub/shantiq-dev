@@ -70,7 +70,33 @@ const getPatientNameColorClass = (status: Patient['status'], type: Patient['type
 function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null, schedule: DoctorSchedule | null }) {
   const timeZone = "Asia/Kolkata";
   if (!doctorStatus) return null;
-  
+
+  const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
+  const dayName = format(toZonedTime(new Date(), timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+
+  let daySchedule;
+  if (schedule) {
+    const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+    daySchedule = todayOverride
+        ? {
+            morning: todayOverride.morningOverride ?? schedule.days[dayName].morning,
+            evening: todayOverride.eveningOverride ?? schedule.days[dayName].evening
+          }
+        : schedule.days[dayName];
+  }
+
+  const sessionLocalToUtc = (sessionTime: string) => {
+    let localDate: Date;
+    localDate = parseDateFn(`${todayStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+    return fromZonedTime(localDate, timeZone);
+  }
+
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  const sessionToCheck = (currentHour < 14 || !daySchedule?.evening.isOpen) ? daySchedule?.morning : daySchedule?.evening;
+  const isSessionOver = sessionToCheck ? now > sessionLocalToUtc(sessionToCheck.end) : false;
+
   const isOffline = !doctorStatus.isOnline;
 
   const cardClasses = cn(
@@ -79,46 +105,51 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   );
   
   let TitleIcon = isOffline ? LogOut : LogIn;
-  let titleText = isOffline ? 'Doctor is Offline' : 'Doctor is Online';
-  let descriptionText = '';
-  
-  if (doctorStatus.isPaused) {
+  let titleText = isOffline ? 'Doctor is Offline' : 'Now Serving';
+  let descriptionText: string | React.ReactNode = '';
+
+  if (doctorStatus.startDelay && doctorStatus.startDelay > 0 && isOffline && !isSessionOver) {
+    TitleIcon = AlertTriangle;
+    titleText = `Running late by ${doctorStatus.startDelay} min`;
+  } else if (doctorStatus.isPaused) {
     TitleIcon = Pause;
     titleText = 'Queue Paused';
     descriptionText = 'The queue is temporarily paused.';
   } else if (patient) {
     TitleIcon = Hourglass;
     titleText = 'Now Serving';
-    descriptionText = 'Currently in consultation';
   } else if (!isOffline) {
+    TitleIcon = LogIn;
+    titleText = 'Doctor is Online';
     const waitingCount = schedule ? (schedule as any).waitingCount || 0 : 0;
     descriptionText = waitingCount > 0 ? 'Ready for next patient' : 'The queue is currently empty';
   }
 
   return (
        <Card className={cardClasses}>
-         <CardHeader>
+         <CardHeader className="text-center items-center">
            <CardTitle className="text-lg flex items-center gap-2">
              <TitleIcon className={cn(patient && 'animate-spin')} />
              {titleText}
            </CardTitle>
-           <CardDescription>{descriptionText}</CardDescription>
+           {descriptionText && <CardDescription>{descriptionText}</CardDescription>}
          </CardHeader>
          {patient && (
-           <CardContent>
-              <p className="text-3xl font-bold">
-                {patient.name}
-                {patient.subStatus === 'Reports' && <span className="text-2xl ml-2 font-semibold text-purple-600">(Reports)</span>}
-              </p>
-              <p className="text-muted-foreground flex items-center gap-2 mt-1">
-                <Ticket className="h-4 w-4"/> Token #{patient.tokenNo}
-              </p>
+           <CardContent className="text-center">
+             <div className="flex items-center justify-center gap-4">
+                <p className="text-slate-800 font-bold flex items-center gap-2 text-2xl">
+                    <Ticket className="h-6 w-6"/>#{patient.tokenNo}
+                </p>
+                <p className="text-3xl font-bold">
+                    {patient.name}
+                    {patient.subStatus === 'Reports' && <span className="text-2xl ml-2 font-semibold text-purple-600">(Reports)</span>}
+                </p>
+             </div>
            </CardContent>
          )}
      </Card>
   )
 }
-
 
 function TVDisplayPageContent() {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -251,6 +282,11 @@ function TVDisplayPageContent() {
   }, [getSessionForTime]);
 
   useEffect(() => {
+    // This effect runs only on the client, where window is available
+    setBaseUrl(window.location.origin);
+  }, []);
+  
+  useEffect(() => {
     fetchData(); // Initial fetch
     const dataIntervalId = setInterval(fetchData, 15000); // Poll every 15 seconds
 
@@ -298,11 +334,6 @@ function TVDisplayPageContent() {
     return () => clearInterval(scrollInterval);
   }, [patients, layout]);
   
-  useEffect(() => {
-    // This effect runs only on the client, where window is available
-    setBaseUrl(window.location.origin);
-  }, []);
-
   if (!schedule || !doctorStatus) {
     return (
       <div className="bg-slate-50 text-slate-800 min-h-screen flex justify-center items-center">
@@ -406,7 +437,7 @@ function TVDisplayPageContent() {
             </div>
           </div>
 
-          <div className="text-center px-8 flex flex-col items-center gap-2">
+          <div className="text-center px-8 flex flex-col items-center justify-center gap-2">
               <div className="flex items-center justify-center gap-4">
                 <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
                 <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
@@ -490,7 +521,7 @@ function TVDisplayPageContent() {
                         <div className="flex items-center gap-4">
                             <h2 className={cn("text-2xl font-bold flex items-center gap-3 whitespace-nowrap", upNext.status === 'Priority' ? 'text-red-800' : 'text-amber-700')}>
                                 {upNext.status === 'Priority' ? <Shield /> : <ChevronRight />}
-                                {upNext.status === 'Priority' ? 'PRIORITY' : 'UP NEXT'}
+                                UP NEXT
                             </h2>
                             <div className="flex items-center gap-3">
                                 <Ticket className={cn("h-7 w-7", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-600')}/>
