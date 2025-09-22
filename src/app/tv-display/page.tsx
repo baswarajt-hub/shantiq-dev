@@ -100,7 +100,7 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   const isOffline = !doctorStatus.isOnline;
 
   const cardClasses = cn(
-    "border w-full",
+    "border w-full text-center p-4 rounded-xl shadow-lg",
     isOffline ? "bg-red-100/50 border-red-300" : "bg-green-100/50 border-green-300"
   );
   
@@ -127,17 +127,15 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
 
   return (
        <Card className={cardClasses}>
-         <CardHeader className="text-center items-center">
-           <CardTitle className="text-lg flex items-center justify-center gap-2">
+           <CardTitle className="text-xl flex items-center justify-center gap-2">
              <TitleIcon className={cn(patient && 'animate-spin')} />
              {titleText}
            </CardTitle>
-           {descriptionText && <CardDescription>{descriptionText}</CardDescription>}
-         </CardHeader>
+           {descriptionText && <CardDescription className="mt-1">{descriptionText}</CardDescription>}
          {patient && (
-           <CardContent className="text-center">
+           <CardContent className="p-0 pt-2">
               <div className="flex items-center justify-center gap-4">
-                <p className="flex items-center gap-2 text-2xl">
+                 <p className="flex items-center gap-2 text-2xl">
                     <Ticket className="h-6 w-6 text-sky-600"/>
                     <span className="font-bold text-sky-600">#{patient.tokenNo}</span>
                 </p>
@@ -160,7 +158,6 @@ function TVDisplayPageContent() {
   const [averageWait, setAverageWait] = useState(0);
   const [currentSessionName, setCurrentSessionName] = useState<'morning' | 'evening' | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
-
   const searchParams = useSearchParams();
   const layout = searchParams.get('layout') || '1';
 
@@ -441,7 +438,7 @@ function TVDisplayPageContent() {
           <div className="text-center px-8 flex flex-col items-center justify-center gap-2">
               <div className="flex items-center justify-center gap-4">
                 <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
-                <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                 <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
                     {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
                     {doctorStatus.isOnline ? 'Online' : 'Offline'}
                 </div>
@@ -584,72 +581,69 @@ function TVDisplayPageContent() {
   // Default Layout 1
   return (
     <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col p-6 font-body">
-      <header className="grid grid-cols-[1fr_auto_1fr] items-center pb-4 border-b-2 border-slate-200">
-        <div className="flex items-center space-x-4">
-          {clinicLogo ? (
-              <div className="relative h-16 w-16">
-                <Image src={clinicLogo} alt="Clinic Logo" fill className="object-contain" />
-              </div>
-          ) : (
-             <StethoscopeIcon className="h-12 w-12 text-sky-500" />
-          )}
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">{clinicName}</h1>
-            {todaySchedule && (
-                <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200 inline-block">
-                    <p className="font-semibold text-sky-800"><span className="font-bold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
-                    <p className="font-semibold text-sky-800"><span className="font-bold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
-                </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center justify-center gap-2">
-            <div className="flex items-center justify-center gap-4">
-              <div className="text-center">
-                  <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
-                  <p className="text-lg text-slate-500">{qualifications}</p>
-              </div>
-               {showQrCode && (
-                  <div className="bg-white rounded-lg p-2 flex flex-col items-center justify-center shadow-md border border-slate-200">
-                      <h3 className="text-sm font-bold text-slate-800">Scan for Walk-in</h3>
-                      <Image
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrCodeUrl)}`}
-                          alt="Walk-in QR Code"
-                          width={100}
-                          height={100}
-                      />
+      <header className="grid grid-cols-4 items-center pb-4 border-b-2 border-slate-200">
+          <div className="flex items-center space-x-4">
+              {clinicLogo ? (
+                  <div className="relative h-16 w-16">
+                    <Image src={clinicLogo} alt="Clinic Logo" fill className="object-contain" />
                   </div>
+              ) : (
+                 <StethoscopeIcon className="h-12 w-12 text-sky-500" />
               )}
-            </div>
-            <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-              {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-              {doctorStatus.isOnline ? 'Online' : 'Offline'}
-            </div>
-        </div>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">{clinicName}</h1>
+                {todaySchedule && (
+                    <div className="text-sm mt-2 bg-sky-100/50 p-2 rounded-md border border-sky-200 inline-block">
+                        <p className="font-semibold text-sky-800"><span className="font-bold">Morning:</span> {formatSessionTime(todaySchedule.morning)}</p>
+                        <p className="font-semibold text-sky-800"><span className="font-bold">Evening:</span> {formatSessionTime(todaySchedule.evening)}</p>
+                    </div>
+                )}
+              </div>
+          </div>
 
-        <div className="flex items-center justify-end gap-4">
-           <div className="text-5xl font-semibold text-slate-900">{time}</div>
-        </div>
-      </header>
+          <div className="flex flex-col items-center justify-center">
+              <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
+              <p className="text-lg text-slate-500">{qualifications}</p>
+               <div className={cn("text-md px-3 mt-2 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                  {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+                  {doctorStatus.isOnline ? 'Online' : 'Offline'}
+              </div>
+          </div>
+
+          <div className="flex justify-center">
+              <div className="text-lg p-2 rounded-md bg-slate-100 border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-2 font-semibold text-amber-800">
+                      <Activity className="h-6 w-6" />
+                      Avg. Wait: <span className="font-bold">{averageWait} min</span>
+                  </div>
+                  <div className="flex items-center gap-2 font-semibold text-blue-800">
+                      <Users className="h-6 w-6" />
+                      In Queue: <span className="font-bold">{waitingList.length}</span>
+                  </div>
+                  <div className="flex items-center gap-2 font-semibold text-gray-800">
+                      <Calendar className="h-6 w-6" />
+                      Yet to Arrive: <span className="font-bold">{yetToArrive.length}</span>
+                  </div>
+              </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-4">
+             <div className="text-5xl font-semibold text-slate-900">{time}</div>
+          </div>
+        </header>
       
        <div className="flex justify-center mt-4">
-            <div className="flex justify-center items-center gap-4 text-lg p-2 rounded-md bg-slate-100 border border-slate-200">
-                <div className="flex items-center gap-2 font-semibold text-amber-800">
-                    <Activity className="h-6 w-6" />
-                    Avg. Wait: <span className="font-bold">{averageWait} min</span>
+            {showQrCode && (
+                <div className="bg-white rounded-lg p-2 flex flex-col items-center justify-center shadow-md border border-slate-200">
+                    <h3 className="text-sm font-bold text-slate-800">Scan for Walk-in</h3>
+                    <Image
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrCodeUrl)}`}
+                        alt="Walk-in QR Code"
+                        width={100}
+                        height={100}
+                    />
                 </div>
-                <div className="border-l h-6 border-slate-300"></div>
-                <div className="flex items-center gap-2 font-semibold text-blue-800">
-                    <Users className="h-6 w-6" />
-                    In Queue: <span className="font-bold">{waitingList.length}</span>
-                </div>
-                <div className="border-l h-6 border-slate-300"></div>
-                <div className="flex items-center gap-2 font-semibold text-gray-800">
-                    <Calendar className="h-6 w-6" />
-                    Yet to Arrive: <span className="font-bold">{yetToArrive.length}</span>
-                </div>
-            </div>
+            )}
         </div>
 
 
