@@ -1246,11 +1246,11 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
       evening: specialClosure.eveningOverride ?? daySchedule.evening,
     };
   }
-
-  const getSession = (time: Date): 'morning' | 'evening' | null => {
+  
+  const getSession = (time: Date): { name: 'morning' | 'evening', schedule: Session } | null => {
     const zonedTime = toZonedTime(time, timeZone);
     
-    const isWithinSession = (sessionName: 'morning' | 'evening'): boolean => {
+    const checkSession = (sessionName: 'morning' | 'evening'): boolean => {
         const session = daySchedule[sessionName];
         if (!session.isOpen) return false;
         
@@ -1263,24 +1263,19 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
         return zonedTime >= startUtc && zonedTime < endUtc;
     };
     
-    if (isWithinSession('morning')) return 'morning';
-    if (isWithinSession('evening')) return 'evening';
+    if (checkSession('morning')) return { name: 'morning', schedule: daySchedule.morning };
+    if (checkSession('evening')) return { name: 'evening', schedule: daySchedule.evening };
     
     return null;
   };
-
-
-  const currentSessionName = getSession(now);
   
-  if (!currentSessionName) {
-    return { error: 'The clinic is currently closed.' };
+  const currentSession = getSession(now);
+  
+  if (!currentSession) {
+    return { error: 'The clinic is currently closed or not in session.' };
   }
 
-  const sessionSchedule = daySchedule[currentSessionName];
-  if (!sessionSchedule.isOpen) {
-      return { error: 'The clinic session is currently closed.' };
-  }
-
+  const sessionSchedule = currentSession.schedule;
 
   // Find next available walk-in slot
   const startLocal = parse(`${todayStr} ${sessionSchedule.start}`, 'yyyy-MM-dd HH:mm', new Date());
@@ -1344,4 +1339,3 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   // Re-use logic from addAppointmentAction for token calculation and creation
   return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }
-

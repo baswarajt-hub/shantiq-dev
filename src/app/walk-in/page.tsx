@@ -71,7 +71,7 @@ export default function WalkInPage() {
             toast({ title: "Added to Queue!", description: `You have been assigned Token #${result.patient.tokenNo}.`});
             router.push(`/queue-status?id=${result.patient.id}`);
         } else {
-            toast({ title: "Error", description: result.error, variant: 'destructive'});
+            toast({ title: "Error Joining Queue", description: result.error, variant: 'destructive'});
         }
     });
   }
