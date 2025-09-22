@@ -128,7 +128,7 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   return (
        <Card className={cardClasses}>
          <CardHeader className="text-center items-center">
-           <CardTitle className="text-lg flex items-center gap-2">
+           <CardTitle className="text-lg flex items-center justify-center gap-2">
              <TitleIcon className={cn(patient && 'animate-spin')} />
              {titleText}
            </CardTitle>
@@ -136,15 +136,16 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
          </CardHeader>
          {patient && (
            <CardContent className="text-center">
-             <div className="flex items-center justify-center gap-4">
-                <p className="text-slate-800 font-bold flex items-center gap-2 text-2xl">
-                    <Ticket className="h-6 w-6"/>#{patient.tokenNo}
+              <div className="flex items-center justify-center gap-4">
+                <p className="flex items-center gap-2 text-2xl">
+                    <Ticket className="h-6 w-6 text-sky-600"/>
+                    <span className="font-bold text-sky-600">#{patient.tokenNo}</span>
                 </p>
                 <p className="text-3xl font-bold">
                     {patient.name}
                     {patient.subStatus === 'Reports' && <span className="text-2xl ml-2 font-semibold text-purple-600">(Reports)</span>}
                 </p>
-             </div>
+              </div>
            </CardContent>
          )}
      </Card>
@@ -604,21 +605,23 @@ function TVDisplayPageContent() {
         </div>
 
         <div className="flex flex-col items-center justify-center gap-2">
-            <div className="text-center">
-                <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
-                <p className="text-lg text-slate-500">{qualifications}</p>
+            <div className="flex items-center justify-center gap-4">
+              <div className="text-center">
+                  <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
+                  <p className="text-lg text-slate-500">{qualifications}</p>
+              </div>
+              {showQrCode && (
+                  <div className="bg-white rounded-lg p-2 flex flex-col items-center justify-center shadow-md border border-slate-200">
+                      <h3 className="text-sm font-bold text-slate-800">Scan for Walk-in</h3>
+                      <Image
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrCodeUrl)}`}
+                          alt="Walk-in QR Code"
+                          width={100}
+                          height={100}
+                      />
+                  </div>
+              )}
             </div>
-             {showQrCode && (
-                <div className="bg-white rounded-lg p-2 flex flex-col items-center justify-center shadow-md border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-800">Scan for Walk-in</h3>
-                    <Image
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrCodeUrl)}`}
-                        alt="Walk-in QR Code"
-                        width={100}
-                        height={100}
-                    />
-                </div>
-            )}
         </div>
 
         <div className="flex items-center justify-end gap-4">
