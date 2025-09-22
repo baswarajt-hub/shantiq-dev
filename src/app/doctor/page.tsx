@@ -17,9 +17,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { DoctorNotificationForm } from '@/components/doctor/doctor-notification-form';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, SlidersHorizontal } from 'lucide-react';
+import { Settings, SlidersHorizontal, QrCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DoctorQueue } from '@/components/doctor/doctor-queue';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { setDoctorStatusAction } from '@/app/actions';
 
 const timeZone = 'Asia/Kolkata';
 
@@ -31,10 +34,12 @@ export default function DoctorPage() {
   const { toast } = useToast();
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule) => {
+    if (!localSchedule.days) return null;
     const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
     const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
     const dateStr = format(zonedAppt, 'yyyy-MM-dd');
     let daySchedule = localSchedule.days[dayOfWeek];
+    if (!daySchedule) return null;
     const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
     if (todayOverride) {
       daySchedule = {
@@ -96,6 +101,19 @@ export default function DoctorPage() {
     }
   };
 
+   const handleToggleQrCode = () => {
+        if (!doctorStatus) return;
+        startTransition(async () => {
+            const newStatus = { isQrCodeActive: !doctorStatus.isQrCodeActive };
+            const result = await setDoctorStatusAction(newStatus);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive'});
+            } else {
+                toast({ title: 'Success', description: `QR code display is now ${newStatus.isQrCodeActive ? 'active' : 'inactive'}.`});
+                loadData();
+            }
+        });
+    }
 
   const { currentSession, sessionPatients, averageConsultationTime } = useMemo(() => {
     if (!schedule || !schedule.days) {
@@ -106,6 +124,8 @@ export default function DoctorPage() {
     const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
     let daySchedule = schedule.days[dayOfWeek];
+    if (!daySchedule) return { currentSession: null, sessionPatients: [], averageConsultationTime: 0 };
+
     const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
     if (todayOverride) {
       daySchedule = {
@@ -148,7 +168,7 @@ export default function DoctorPage() {
   if (!schedule || !doctorStatus || (isPending && !patients.length)) {
     return (
       <div className="flex flex-col min-h-screen bg-muted/40">
-        <DoctorHeader logoSrc={null} />
+        <DoctorHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
         <main className="flex-1 container mx-auto p-4 space-y-6">
           <Skeleton className="h-12 w-1/3" />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -197,6 +217,13 @@ export default function DoctorPage() {
                     </AccordionTrigger>
                     <AccordionContent className="p-6 pt-2 bg-muted/50">
                         <div className="space-y-6">
+                            <div className='flex items-center space-x-2 p-3 rounded-lg bg-background'>
+                                <Switch id="qr-code-status" checked={doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} disabled={isPending}/>
+                                <Label htmlFor="qr-code-status" className={cn('flex items-center text-base')}>
+                                    <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
+                                    Walk-in QR Code on TV
+                                </Label>
+                            </div>
                            <DoctorNotificationForm 
                               initialNotifications={schedule.notifications}
                               onSave={handleNotificationsSave}

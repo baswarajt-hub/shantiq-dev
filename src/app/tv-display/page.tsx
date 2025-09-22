@@ -278,6 +278,13 @@ function TVDisplayPageContent() {
   const dayName = format(toZonedTime(new Date(), timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
   let todaySchedule = schedule.days[dayName];
+  if (!todaySchedule) {
+      return (
+        <div className="bg-slate-50 text-slate-800 min-h-screen flex justify-center items-center">
+            <p className="text-2xl font-semibold text-red-500">Schedule not configured for today.</p>
+        </div>
+      );
+  }
   const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
   if(todayOverride) {
     todaySchedule = {
@@ -296,7 +303,7 @@ function TVDisplayPageContent() {
   
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
   const qrCodeUrl = currentSessionName ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
-  const showQrCode = doctorStatus.isOnline && qrCodeUrl;
+  const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
 
 
   const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (

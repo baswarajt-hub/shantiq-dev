@@ -44,9 +44,12 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
   if (!schedule || !schedule.days) return null;
   const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
   const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
+  const dayScheduleInfo = schedule.days[dayOfWeek];
+  if (!dayScheduleInfo) return null;
+
   const dateStr = format(zonedAppt, 'yyyy-MM-dd');
 
-  let daySchedule = schedule.days[dayOfWeek];
+  let daySchedule = dayScheduleInfo;
   const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
   if (todayOverride) {
     daySchedule = {
@@ -490,6 +493,8 @@ export async function recalculateQueueWithETC() {
     const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
     let daySchedule = schedule.days[dayOfWeek];
+    if (!daySchedule) return { error: `Schedule for ${dayOfWeek} is not configured.` };
+
     const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
     if (specialClosure) {
         daySchedule = {
@@ -500,6 +505,7 @@ export async function recalculateQueueWithETC() {
     
     const patientUpdates = new Map<string, Partial<Patient>>();
     const sessions: ('morning' | 'evening')[] = ['morning', 'evening'];
+    let statusNeedsUpdate = false;
 
     for (const session of sessions) {
         const sessionTimes = daySchedule[session];
@@ -529,13 +535,21 @@ export async function recalculateQueueWithETC() {
             sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
         }
 
-        if (now > doctorAutoOfflineTimeUtc && doctorStatus.isOnline) {
+        if (now > doctorAutoOfflineTimeUtc) {
              const onlineSession = doctorStatus.onlineTime ? getSessionForTime(schedule, parseISO(doctorStatus.onlineTime)) : null;
-            // Only turn off if the doctor went online for THIS session or an earlier one.
-            if (onlineSession === session || (session === 'evening' && onlineSession === 'morning')) {
-                await updateDoctorStatus({ isOnline: false, startDelay: 0 });
-                doctorStatus = await getDoctorStatusData(); // Re-fetch status after update
-            }
+             let shouldTurnOff = false;
+
+             if (doctorStatus.isOnline && (onlineSession === session || (session === 'evening' && onlineSession === 'morning'))) {
+                 shouldTurnOff = true;
+                 doctorStatus.isOnline = false;
+                 doctorStatus.startDelay = 0;
+                 statusNeedsUpdate = true;
+             }
+             if (doctorStatus.isQrCodeActive) {
+                 shouldTurnOff = true;
+                 doctorStatus.isQrCodeActive = false;
+                 statusNeedsUpdate = true;
+             }
         }
         // --- End Cleanup Logic ---
 
@@ -699,6 +713,10 @@ export async function recalculateQueueWithETC() {
         }
     }
 
+    if (statusNeedsUpdate) {
+        await updateDoctorStatus(doctorStatus);
+    }
+    
     const updatedPatients = allPatients.map(p => {
         if (patientUpdates.has(p.id)) {
             return { ...p, ...patientUpdates.get(p.id) };
@@ -1249,6 +1267,9 @@ export async function joinQueueAction(member: FamilyMember, purpose: string, ses
   const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
   let daySchedule = schedule.days[dayOfWeek];
+  if (!daySchedule) {
+      return { error: 'Clinic schedule not set for today.' };
+  }
   const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
   if (specialClosure) {
     daySchedule = {
@@ -1260,23 +1281,23 @@ export async function joinQueueAction(member: FamilyMember, purpose: string, ses
   const getActiveSession = (time: Date): { name: 'morning' | 'evening', schedule: Session } | null => {
     const zonedTime = toZonedTime(time, timeZone);
     
-    const checkSession = (sessionName: 'morning' | 'evening'): boolean => {
+    const checkSession = (sessionName: 'morning' | 'evening'): { name: 'morning' | 'evening', schedule: Session } | null => {
         const session = daySchedule[sessionName];
-        if (!session.isOpen) return false;
+        if (!session.isOpen) return null;
         
         const isClosedByOverride = sessionName === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
-        if (isClosedByOverride) return false;
+        if (isClosedByOverride) return null;
         
         const startUtc = sessionLocalToUtc(todayStr, session.start);
         const endUtc = sessionLocalToUtc(todayStr, session.end);
         
-        return zonedTime >= startUtc && zonedTime < endUtc;
+        if(zonedTime >= startUtc && zonedTime < endUtc) {
+            return { name: sessionName, schedule: session };
+        }
+        return null;
     };
     
-    if (checkSession('morning')) return { name: 'morning', schedule: daySchedule.morning };
-    if (checkSession('evening')) return { name: 'evening', schedule: daySchedule.evening };
-    
-    return null;
+    return checkSession('morning') || checkSession('evening');
   };
   
   const currentSession = getActiveSession(now);

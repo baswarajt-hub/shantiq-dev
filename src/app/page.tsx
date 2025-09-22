@@ -33,7 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -240,6 +240,11 @@ export default function DashboardPage() {
         const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
         const generatedSlots: TimeSlot[] = [];
+
+        if (!daySchedule) {
+            setTimeSlots([]);
+            return;
+        }
 
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
         const closure = schedule.specialClosures.find(c => c.date === dateStr);
@@ -524,6 +529,19 @@ export default function DashboardPage() {
             }
         });
     }
+    
+    const handleToggleQrCode = () => {
+        startTransition(async () => {
+            const newStatus = { isQrCodeActive: !doctorStatus?.isQrCodeActive };
+            const result = await setDoctorStatusAction(newStatus);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive'});
+            } else {
+                toast({ title: 'Success', description: `QR code display is now ${newStatus.isQrCodeActive ? 'active' : 'inactive'}.`});
+                await loadData();
+            }
+        });
+    }
 
     const handleUpdateDelay = () => {
         startTransition(async () => {
@@ -797,7 +815,7 @@ export default function DashboardPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
-            <Header logoSrc={schedule.clinicDetails?.clinicLogo} clinicName={schedule.clinicDetails?.clinicName} />
+            <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
                     <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
@@ -840,6 +858,13 @@ export default function DashboardPage() {
                                     <Label htmlFor="pause-queue" className='flex items-center text-sm'>
                                         {doctorStatus.isPaused ? <Pause className="mr-2 h-4 w-4 text-orange-500" /> : <Play className="mr-2 h-4 w-4 text-green-500" />}
                                         {doctorStatus.isPaused ? 'Queue Paused' : 'Queue Active'}
+                                    </Label>
+                                </div>
+                                <div className='flex items-center space-x-2'>
+                                    <Switch id="qr-code-status" checked={doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} disabled={isPending || !canDoctorCheckIn}/>
+                                    <Label htmlFor="qr-code-status" className={cn('flex items-center text-sm', !canDoctorCheckIn && 'text-muted-foreground')}>
+                                        <QrCode className={cn("mr-2 h-4 w-4", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
+                                        QR Code
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
@@ -1061,11 +1086,3 @@ export default function DashboardPage() {
     
 
     
-
-
-
-
-
-
-
-

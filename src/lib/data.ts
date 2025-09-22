@@ -147,6 +147,7 @@ const defaultStatus: DoctorStatus = {
   onlineTime: undefined,
   startDelay: 0,
   isPaused: false,
+  isQrCodeActive: false,
 };
 
 const defaultDays = (): DoctorSchedule['days'] => {

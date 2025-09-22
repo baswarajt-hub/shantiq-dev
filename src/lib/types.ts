@@ -41,6 +41,7 @@ export type DoctorStatus = {
   onlineTime?: string; // ISO string format
   startDelay: number; // in minutes
   isPaused?: boolean;
+  isQrCodeActive?: boolean;
 };
 
 export type Session = {
