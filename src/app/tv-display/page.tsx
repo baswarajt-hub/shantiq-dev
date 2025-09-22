@@ -300,7 +300,12 @@ function TVDisplayPageContent() {
       isSessionOver = now > sessionEndUTC;
   }
   
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const [baseUrl, setBaseUrl] = useState('');
+  useEffect(() => {
+    // This effect runs only on the client, where window is available
+    setBaseUrl(window.location.origin);
+  }, []);
+
   const qrCodeUrl = currentSessionName && baseUrl ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
   const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
 
@@ -328,7 +333,7 @@ function TVDisplayPageContent() {
   if (layout === '2') {
     return (
       <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-body p-4 gap-4">
-        <header className="grid grid-cols-3 items-center pb-4 border-b-2 border-slate-200">
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center pb-4 border-b-2 border-slate-200">
           <div className="flex items-center space-x-4">
             {clinicLogo ? (
                 <div className="relative h-16 w-16">
@@ -348,30 +353,46 @@ function TVDisplayPageContent() {
             </div>
           </div>
 
-          <div className="text-center">
+          <div className="text-center px-8">
               <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
               <p className="text-lg text-slate-500">{qualifications}</p>
               
-              <div className={cn("text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                  {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-                  {doctorStatus.isOnline ? 'Online' : 'Offline'}
+              <div className="flex justify-center items-center gap-4 mt-2">
+                <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                    {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+                    {doctorStatus.isOnline ? 'Online' : 'Offline'}
+                </div>
+                {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
+                    <div className="text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
+                        <AlertTriangle className="h-4 w-4" />
+                        Running late by {doctorStatus.startDelay} min.
+                    </div>
+                )}
+                 <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
+                    <div className="flex items-center gap-2 font-semibold text-amber-800">
+                        <Activity className="h-6 w-6" />
+                        Avg. Wait: <span className="font-bold">{averageWait} min</span>
+                    </div>
+                </div>
               </div>
-              {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
-                  <div className="text-md px-3 py-0.5 mt-1 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
-                      <AlertTriangle className="h-4 w-4" />
-                      Doctor is running late by {doctorStatus.startDelay} minutes.
-                  </div>
-              )}
           </div>
 
-          <div className="text-right flex flex-col items-center justify-center gap-2">
-            <div className="text-5xl font-semibold text-slate-900">{time}</div>
-              <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
-                  <div className="flex items-center gap-2 font-semibold text-amber-800">
-                      <Activity className="h-6 w-6" />
-                      Avg. Wait: <span className="font-bold">{averageWait} min</span>
-                  </div>
-              </div>
+          <div className="flex items-center justify-end gap-6">
+                <div className="text-center">
+                    <h3 className="text-lg text-gray-600 font-semibold">In Queue</h3>
+                    <div className="text-5xl font-bold text-slate-800 flex items-center gap-2">
+                        <Users className="h-10 w-10 text-gray-400" />
+                        {waitingList.length}
+                    </div>
+                </div>
+                <div className="text-center">
+                    <h3 className="text-lg text-gray-600 font-semibold">Yet to Arrive</h3>
+                    <div className="text-5xl font-bold text-slate-800 flex items-center gap-2">
+                        <Calendar className="h-10 w-10 text-gray-400" />
+                        {yetToArrive.length}
+                    </div>
+                </div>
+                <div className="text-5xl font-semibold text-slate-900">{time}</div>
           </div>
         </header>
 
@@ -402,7 +423,23 @@ function TVDisplayPageContent() {
                     </AnimatePresence>
                 </div>
 
-                {showQrCode ? (
+                 <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden flex-1">
+                    <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
+                    <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
+                        {waitingForReports.length > 0 ? (
+                            waitingForReports.map(patient => (
+                                <div key={patient.id} className="bg-purple-100 text-purple-800 p-2 rounded-lg flex items-center gap-2">
+                                    <FileClock className="h-5 w-5 flex-shrink-0" />
+                                    <span className="font-medium">{anonymizeName(patient.name)}</span>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center h-full"><p className="text-slate-400">None</p></div>
+                        )}
+                    </div>
+                </div>
+
+                {showQrCode && (
                     <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200">
                         <h3 className="text-lg font-bold text-slate-800">Scan for Walk-in</h3>
                         <p className="text-xs text-muted-foreground mb-2">Join the queue directly</p>
@@ -412,22 +449,6 @@ function TVDisplayPageContent() {
                             width={150}
                             height={150}
                         />
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden flex-1">
-                        <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
-                        <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
-                            {waitingForReports.length > 0 ? (
-                                waitingForReports.map(patient => (
-                                    <div key={patient.id} className="bg-purple-100 text-purple-800 p-2 rounded-lg flex items-center gap-2">
-                                        <FileClock className="h-5 w-5 flex-shrink-0" />
-                                        <span className="font-medium">{anonymizeName(patient.name)}</span>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="flex-1 flex items-center justify-center h-full"><p className="text-slate-400">None</p></div>
-                            )}
-                        </div>
                     </div>
                 )}
             </div>
@@ -549,10 +570,10 @@ function TVDisplayPageContent() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col gap-4 pt-4">
-        {/* Top Row: Now Serving, Reports, Yet to Arrive */}
-        <div className="grid grid-cols-3 gap-4 h-[220px]">
-            <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border-2 border-sky-500 col-span-1">
+      <main className="flex-1 grid grid-cols-2 gap-6 pt-4">
+        {/* Left Column */}
+        <div className="flex flex-col gap-4">
+            <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border-2 border-sky-500">
                 <h2 className="text-3xl text-sky-600 font-semibold">NOW SERVING</h2>
                 <AnimatePresence mode="wait">
                 {doctorStatus.isPaused ? (
@@ -602,44 +623,70 @@ function TVDisplayPageContent() {
                 )}
                 </AnimatePresence>
             </div>
-            
-             <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border-2 border-amber-400 col-span-1">
-                 <h2 className="text-3xl text-amber-600 font-semibold">UP NEXT</h2>
-                 {upNext ? (
-                    <motion.div
-                        key={upNext.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="text-center"
-                    >
-                        {upNext.status === 'Priority' ? <Shield className="h-16 w-16 text-red-500 mx-auto mb-2"/> : <ChevronRight className="h-16 w-16 text-amber-500 mx-auto mb-2" />}
-                        <div className={cn(
-                           "text-6xl font-bold tracking-wider",
-                           getPatientNameColorClass(upNext.status, upNext.type)
-                         )}>
-                          <PatientNameWithBadges patient={upNext} />
+             <div className="flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
+                {upNext && (
+                    <div className={cn("rounded-xl p-4 mb-4 flex items-center justify-between shadow-md", upNext.status === 'Priority' ? 'bg-red-200 border-2 border-red-500' : 'bg-amber-100 border-2 border-amber-400')}>
+                        <div className="flex items-center gap-4">
+                            <h2 className={cn("text-2xl font-bold flex items-center gap-3", upNext.status === 'Priority' ? 'text-red-800' : 'text-amber-700')}>
+                                {upNext.status === 'Priority' ? <Shield /> : <ChevronRight />}
+                                {upNext.status === 'Priority' ? 'PRIORITY' : 'UP NEXT'}
+                            </h2>
+                            <div className="flex items-center gap-3">
+                                <Ticket className={cn("h-7 w-7", upNext.status === 'Priority' ? 'text-red-700' : 'text-amber-600')}/>
+                                <span className="text-3xl font-bold text-slate-800">#{upNext.tokenNo}</span>
+                            </div>
+                            <div className={cn("text-3xl font-bold", getPatientNameColorClass(upNext.status, upNext.type))}>
+                                <PatientNameWithBadges patient={upNext} />
+                            </div>
                         </div>
-                         <p className="text-3xl text-slate-500 mt-2 flex items-center justify-center gap-3">
-                           <Ticket className="h-8 w-8"/>#{upNext.tokenNo}
-                        </p>
-                    </motion.div>
-                ) : (
-                     <motion.div
-                        key="no-one-next"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="text-center"
-                    >
-                        <p className="text-4xl font-semibold text-slate-400">
-                           Queue is empty
-                        </p>
-                    </motion.div>
+                    </div>
                 )}
-            </div>
+                <div className="grid grid-cols-[80px_1fr_80px_150px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
+                    <h3 className="text-center">Token</h3>
+                    <h3>Name</h3>
+                    <h3 className="text-center">Purpose</h3>
+                    <h3 className="text-center">Wait Time</h3>
+                </div>
+                <div ref={listRef} className="flex-1 overflow-y-scroll no-scrollbar">
+                    <AnimatePresence>
+                    {queue.length > 0 ? (
+                        queue.map((patient) => {
+                            const waitTime = patient.checkInTime ? differenceInMinutes(new Date(), parseISO(patient.checkInTime)) : null;
+                            const PurposeIcon = patient.purpose && purposeIcons[patient.purpose] ? purposeIcons[patient.purpose] : HelpCircle;
 
-            {showQrCode ? (
+                            return (
+                            <motion.div
+                                key={patient.id}
+                                layout
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: -50 }}
+                                className="grid grid-cols-[80px_1fr_80px_150px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
+                            >
+                                <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
+                                <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
+                                   <PatientNameWithBadges patient={patient} />
+                                </div>
+                                <div className="text-center text-slate-600 flex justify-center">
+                                    <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
+                                </div>
+                                <div className="text-center font-semibold text-slate-600">
+                                    {waitTime !== null && waitTime >= 0 ? `${waitTime} min` : '-'}
+                                </div>
+                            </motion.div>
+                            )
+                        })
+                    ) : (
+                        !upNext && <p className="text-center text-slate-400 text-2xl pt-16">The waiting queue is empty.</p>
+                    )}
+                    </AnimatePresence>
+                </div>
+            </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="flex flex-col gap-4">
+             {showQrCode ? (
                 <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200">
                     <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><QrCode /> Scan for Walk-in</h3>
                     <p className="text-xs text-muted-foreground mb-1">Join the queue directly</p>
@@ -651,83 +698,29 @@ function TVDisplayPageContent() {
                     />
                 </div>
             ) : (
-                <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden col-span-1">
-                    <div className="grid grid-rows-2 h-full">
-                        <div className="row-span-1 border-b flex flex-col items-center justify-center">
-                            <h3 className="text-center text-gray-600 font-semibold">In Queue</h3>
-                            <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
-                                <Users className="h-12 w-12 text-gray-400" />
-                                {waitingList.length}
-                            </div>
-                        </div>
-                        <div className="row-span-1 flex flex-col items-center justify-center">
-                        <h3 className="text-center text-gray-600 font-semibold">Booked patients yet to arrive</h3>
-                            <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
-                            <Calendar className="h-12 w-12 text-gray-400" />
-                            {yetToArrive.length}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                 <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center">
+                     <h3 className="text-xl font-bold text-slate-800">Walk-in QR Unavailable</h3>
+                     <p className="text-sm text-muted-foreground">Enable QR in Admin panel to allow walk-ins.</p>
+                 </div>
             )}
-        </div>
 
-        {/* Waiting List */}
-        <div className="flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
-            <div className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
-                <h3 className="text-center">Token</h3>
-                <h3>Name</h3>
-                <h3 className="text-center">Purpose</h3>
-                <h3>Type</h3>
-                <h3 className="text-center">Wait Time</h3>
-                <h3 className="text-center">Estimated Consultation Time</h3>
+            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-28">
+                <h3 className="text-lg text-gray-600 font-semibold">In Queue</h3>
+                <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
+                    <Users className="h-12 w-12 text-gray-400" />
+                    {waitingList.length}
+                </div>
             </div>
-            <div ref={listRef} className="flex-1 overflow-y-scroll no-scrollbar">
-                <AnimatePresence>
-                {queue.length > 0 ? (
-                    queue.map((patient, index) => {
-                        const waitTime = patient.checkInTime ? differenceInMinutes(new Date(), parseISO(patient.checkInTime)) : null;
-                        const PurposeIcon = patient.purpose && purposeIcons[patient.purpose] ? purposeIcons[patient.purpose] : HelpCircle;
 
-                        return (
-                        <motion.div
-                            key={patient.id}
-                            layout
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, x: -50 }}
-                            className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
-                        >
-                            <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
-                            <div className={cn(
-                                "font-medium text-3xl flex items-center gap-2",
-                                getPatientNameColorClass(patient.status, patient.type)
-                            )}>
-                               <PatientNameWithBadges patient={patient} />
-                            </div>
-                            <div className="text-center text-slate-600 flex justify-center">
-                                <PurposeIcon className="h-7 w-7" title={patient.purpose}/>
-                            </div>
-                             <div className="text-center font-medium text-slate-600">
-                                {patient.type}
-                            </div>
-                            <div className="text-center font-semibold text-slate-600">
-                                {waitTime !== null && waitTime >= 0 ? `${waitTime} min` : '-'}
-                            </div>
-                            <div className="text-center font-semibold text-slate-600 flex items-center justify-center gap-1">
-                                <span className="font-bold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>
-                                <span>-</span>
-                                <span className="font-bold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
-                            </div>
-                        </motion.div>
-                        )
-                    })
-                ) : (
-                    !upNext && <p className="text-center text-slate-400 text-2xl pt-16">The waiting queue is empty.</p>
-                )}
-                </AnimatePresence>
+            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-28">
+                <h3 className="text-lg text-gray-600 font-semibold">Yet to Arrive</h3>
+                <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
+                    <Calendar className="h-12 w-12 text-gray-400" />
+                    {yetToArrive.length}
+                </div>
             </div>
         </div>
+
       </main>
     </div>
   );
@@ -740,3 +733,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    
