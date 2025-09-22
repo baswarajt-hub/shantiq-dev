@@ -1250,10 +1250,27 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   const getSession = (time: Date) => {
     const zonedTime = toZonedTime(time, timeZone);
     const morningEndUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.end) : new Date(0);
-    return (zonedTime < morningEndUtc && daySchedule.morning.isOpen) ? 'morning' : 'evening';
+    
+    if (daySchedule.morning.isOpen && zonedTime < morningEndUtc) {
+      const morningStartUtc = sessionLocalToUtc(todayStr, daySchedule.morning.start);
+      if (zonedTime >= morningStartUtc) return 'morning';
+    }
+
+    if (daySchedule.evening.isOpen) {
+      const eveningStartUtc = sessionLocalToUtc(todayStr, daySchedule.evening.start);
+      const eveningEndUtc = sessionLocalToUtc(todayStr, daySchedule.evening.end);
+      if (zonedTime >= eveningStartUtc && zonedTime < eveningEndUtc) return 'evening';
+    }
+
+    return null;
   };
 
   const currentSessionName = getSession(now);
+  
+  if (!currentSessionName) {
+    return { error: 'The clinic is currently closed.' };
+  }
+
   const sessionSchedule = daySchedule[currentSessionName];
   const isSessionClosed = currentSessionName === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
 
