@@ -90,7 +90,7 @@ function WalkInPageContent() {
           return;
       }
       startTransition(async () => {
-          const newMemberData: Omit<FamilyMember, 'id' | 'avatar'> = { phone, name, dob, gender };
+          const newMemberData: Omit<FamilyMember, 'id' | 'avatar'> = { phone, name, dob, gender, isPrimary: false };
           const result = await addNewPatientAction(newMemberData);
           if (result.success && result.patient) {
               handleJoinQueue(result.patient);
@@ -284,10 +284,17 @@ function WalkInPageContent() {
                         </div>
                     )}
                 </div>
+                 <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Important</AlertTitle>
+                    <AlertDescription>
+                        Please get your child’s temperature and weight checked at reception before your turn. If you miss your turn, the appointment will be moved to the next available slot. Select this option only if your child is with you now, otherwise book through reception.
+                    </AlertDescription>
+                </Alert>
             </CardContent>
             <CardFooter>
                  <Button onClick={() => selectedMember && handleJoinQueue(selectedMember)} disabled={isPending || !selectedMember} className="w-full">
-                    {isPending ? 'Joining Queue...' : 'Join Queue & Get Token'}
+                    {isPending ? 'Joining Queue...' : 'Book & Check-in'}
                  </Button>
             </CardFooter>
           </Card>
@@ -339,10 +346,17 @@ function WalkInPageContent() {
                             </div>
                         )}
                     </div>
+                     <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Important</AlertTitle>
+                        <AlertDescription>
+                            Please get your child’s temperature and weight checked at reception before your turn. If you miss your turn, the appointment will be moved to the next available slot. Select this option only if your child is with you now, otherwise book through reception.
+                        </AlertDescription>
+                    </Alert>
                 </CardContent>
                 <CardFooter>
                     <Button onClick={handleCreateAndJoinQueue} disabled={isPending || !name || !dob || !gender} className="w-full">
-                        {isPending ? 'Saving and Joining...' : 'Save & Join Queue'}
+                        {isPending ? 'Saving and Joining...' : 'Save & Check-in'}
                     </Button>
                 </CardFooter>
             </Card>

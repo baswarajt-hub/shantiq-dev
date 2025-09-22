@@ -1368,6 +1368,6 @@ export async function joinQueueAction(member: FamilyMember, purpose: string, ses
   
   const appointmentTime = availableSlot.toISOString();
   
-  // For QR code walk-ins, always use "Book Only" (checkIn = false)
-  return await addAppointmentAction(member, appointmentTime, purpose, true, false);
+  // For QR code walk-ins, always use "Book and Check-in" (checkIn = true)
+  return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }
