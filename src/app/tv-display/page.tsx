@@ -74,6 +74,7 @@ function TVDisplayPageContent() {
   const [time, setTime] = useState('');
   const [averageWait, setAverageWait] = useState(0);
   const [currentSessionName, setCurrentSessionName] = useState<'morning' | 'evening' | null>(null);
+  const [baseUrl, setBaseUrl] = useState('');
   
   const searchParams = useSearchParams();
   const layout = searchParams.get('layout') || '1';
@@ -210,7 +211,7 @@ function TVDisplayPageContent() {
         clearInterval(dataIntervalId);
         clearInterval(clockIntervalId);
     };
-}, [fetchData]);
+  }, [fetchData]);
 
   // Scrolling logic
   useEffect(() => {
@@ -242,7 +243,12 @@ function TVDisplayPageContent() {
     }, 200);
 
     return () => clearInterval(scrollInterval);
-}, [patients, layout]);
+  }, [patients, layout]);
+  
+  useEffect(() => {
+    // This effect runs only on the client, where window is available
+    setBaseUrl(window.location.origin);
+  }, []);
 
   if (!schedule || !doctorStatus) {
     return (
@@ -299,12 +305,6 @@ function TVDisplayPageContent() {
       const sessionEndUTC = fromZonedTime(parseDateFn(`${todayStr} ${todaySchedule[currentSessionName].end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
       isSessionOver = now > sessionEndUTC;
   }
-  
-  const [baseUrl, setBaseUrl] = useState('');
-  useEffect(() => {
-    // This effect runs only on the client, where window is available
-    setBaseUrl(window.location.origin);
-  }, []);
 
   const qrCodeUrl = currentSessionName && baseUrl ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
   const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
@@ -374,25 +374,23 @@ function TVDisplayPageContent() {
                         Avg. Wait: <span className="font-bold">{averageWait} min</span>
                     </div>
                 </div>
+                <div className="text-lg p-2 rounded-md bg-blue-100/50 border border-blue-200">
+                    <div className="flex items-center gap-2 font-semibold text-blue-800">
+                        <Users className="h-6 w-6" />
+                        In Queue: <span className="font-bold">{waitingList.length}</span>
+                    </div>
+                </div>
+                 <div className="text-lg p-2 rounded-md bg-gray-100 border border-gray-200">
+                    <div className="flex items-center gap-2 font-semibold text-gray-800">
+                        <Calendar className="h-6 w-6" />
+                        Yet to Arrive: <span className="font-bold">{yetToArrive.length}</span>
+                    </div>
+                </div>
               </div>
           </div>
 
-          <div className="flex items-center justify-end gap-6">
-                <div className="text-center">
-                    <h3 className="text-lg text-gray-600 font-semibold">In Queue</h3>
-                    <div className="text-5xl font-bold text-slate-800 flex items-center gap-2">
-                        <Users className="h-10 w-10 text-gray-400" />
-                        {waitingList.length}
-                    </div>
-                </div>
-                <div className="text-center">
-                    <h3 className="text-lg text-gray-600 font-semibold">Yet to Arrive</h3>
-                    <div className="text-5xl font-bold text-slate-800 flex items-center gap-2">
-                        <Calendar className="h-10 w-10 text-gray-400" />
-                        {yetToArrive.length}
-                    </div>
-                </div>
-                <div className="text-5xl font-semibold text-slate-900">{time}</div>
+          <div className="flex items-center justify-end">
+            <div className="text-5xl font-semibold text-slate-900">{time}</div>
           </div>
         </header>
 
@@ -422,8 +420,7 @@ function TVDisplayPageContent() {
                     )}
                     </AnimatePresence>
                 </div>
-
-                 <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden flex-1">
+                <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden">
                     <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
                     <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
                         {waitingForReports.length > 0 ? (
@@ -471,19 +468,17 @@ function TVDisplayPageContent() {
                         </div>
                     </div>
                 )}
-                <div className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
+                <div className="grid grid-cols-[80px_1fr_80px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
                     <h3 className="text-center">Token</h3>
                     <h3>Name</h3>
                     <h3 className="text-center">Purpose</h3>
                     <h3>Type</h3>
-                    <h3 className="text-center">Wait Time</h3>
                     <h3 className="text-center">Estimated Consultation Time</h3>
                 </div>
                 <div ref={listRef} className="flex-1 overflow-y-scroll no-scrollbar">
                     <AnimatePresence>
                     {queue.length > 0 ? (
                         queue.map((patient) => {
-                            const waitTime = patient.checkInTime ? differenceInMinutes(new Date(), parseISO(patient.checkInTime)) : null;
                             const PurposeIcon = patient.purpose && purposeIcons[patient.purpose] ? purposeIcons[patient.purpose] : HelpCircle;
 
                             return (
@@ -493,7 +488,7 @@ function TVDisplayPageContent() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, x: -50 }}
-                                className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
+                                className="grid grid-cols-[80px_1fr_80px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
                             >
                                 <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                                 <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
@@ -501,7 +496,6 @@ function TVDisplayPageContent() {
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
                                 <div className="text-center font-medium text-slate-600">{patient.type}</div>
-                                <div className="text-center font-semibold text-slate-600">{waitTime !== null && waitTime >= 0 ? `${waitTime} min` : '-'}</div>
                                 <div className="text-center font-semibold text-slate-600 flex items-center justify-center gap-1">
                                     <span className="font-bold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>
                                     <span>-</span>
@@ -685,16 +679,16 @@ function TVDisplayPageContent() {
         </div>
 
         {/* Right Column */}
-        <div className="flex flex-col gap-4">
-             {showQrCode ? (
+        <div className="flex flex-col gap-4 justify-center">
+            {showQrCode ? (
                 <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200">
                     <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><QrCode /> Scan for Walk-in</h3>
-                    <p className="text-xs text-muted-foreground mb-1">Join the queue directly</p>
+                    <p className="text-sm text-muted-foreground mb-2">Join the queue directly</p>
                     <Image
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrCodeUrl)}`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}`}
                         alt="Walk-in QR Code"
-                        width={150}
-                        height={150}
+                        width={200}
+                        height={200}
                     />
                 </div>
             ) : (
@@ -703,8 +697,8 @@ function TVDisplayPageContent() {
                      <p className="text-sm text-muted-foreground">Enable QR in Admin panel to allow walk-ins.</p>
                  </div>
             )}
-
-            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-28">
+            
+            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-40">
                 <h3 className="text-lg text-gray-600 font-semibold">In Queue</h3>
                 <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
                     <Users className="h-12 w-12 text-gray-400" />
@@ -712,7 +706,7 @@ function TVDisplayPageContent() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-28">
+            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-40">
                 <h3 className="text-lg text-gray-600 font-semibold">Yet to Arrive</h3>
                 <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
                     <Calendar className="h-12 w-12 text-gray-400" />
@@ -733,5 +727,7 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    
 
     
