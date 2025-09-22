@@ -247,7 +247,9 @@ function TVDisplayPageContent() {
   
   useEffect(() => {
     // This effect runs only on the client, where window is available
-    setBaseUrl(window.location.origin);
+    if (window.location.origin) {
+      setBaseUrl(window.location.origin);
+    }
   }, []);
 
   if (!schedule || !doctorStatus) {
@@ -354,14 +356,16 @@ function TVDisplayPageContent() {
           </div>
 
           <div className="text-center px-8">
-              <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
-              <p className="text-lg text-slate-500">{qualifications}</p>
-              
-              <div className="flex justify-center items-center gap-4 mt-2">
+              <div className="flex justify-center items-center gap-4">
+                <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
                 <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
                     {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
                     {doctorStatus.isOnline ? 'Online' : 'Offline'}
                 </div>
+              </div>
+              <p className="text-lg text-slate-500">{qualifications}</p>
+              
+              <div className="flex justify-center items-center gap-4 mt-2">
                 {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
                     <div className="text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
                         <AlertTriangle className="h-4 w-4" />
@@ -564,9 +568,8 @@ function TVDisplayPageContent() {
         </div>
       </header>
 
-      <main className="flex-1 grid grid-cols-2 gap-6 pt-4">
-        {/* Left Column */}
-        <div className="flex flex-col gap-4">
+      <main className="flex-1 flex flex-col gap-4 pt-4 overflow-hidden">
+        <div className="grid grid-cols-4 gap-6">
             <div className="bg-white rounded-2xl p-6 flex flex-col justify-center items-center shadow-lg border-2 border-sky-500">
                 <h2 className="text-3xl text-sky-600 font-semibold">NOW SERVING</h2>
                 <AnimatePresence mode="wait">
@@ -617,7 +620,40 @@ function TVDisplayPageContent() {
                 )}
                 </AnimatePresence>
             </div>
-             <div className="flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
+            {showQrCode ? (
+                <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><QrCode /> Scan for Walk-in</h3>
+                    <p className="text-sm text-muted-foreground mb-2">Join the queue directly</p>
+                    <Image
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}`}
+                        alt="Walk-in QR Code"
+                        width={200}
+                        height={200}
+                    />
+                </div>
+            ) : (
+                 <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center">
+                     <h3 className="text-xl font-bold text-slate-800">Walk-in QR Unavailable</h3>
+                     <p className="text-sm text-muted-foreground">Enable QR in Admin panel to allow walk-ins.</p>
+                 </div>
+            )}
+             <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-full">
+                <h3 className="text-lg text-gray-600 font-semibold">In Queue</h3>
+                <div className="text-7xl font-bold text-slate-800 flex items-center gap-2">
+                    <Users className="h-16 w-16 text-gray-400" />
+                    {waitingList.length}
+                </div>
+            </div>
+            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-full">
+                <h3 className="text-lg text-gray-600 font-semibold">Yet to Arrive</h3>
+                <div className="text-7xl font-bold text-slate-800 flex items-center gap-2">
+                    <Calendar className="h-16 w-16 text-gray-400" />
+                    {yetToArrive.length}
+                </div>
+            </div>
+        </div>
+
+        <div className="flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
                 {upNext && (
                     <div className={cn("rounded-xl p-4 mb-4 flex items-center justify-between shadow-md", upNext.status === 'Priority' ? 'bg-red-200 border-2 border-red-500' : 'bg-amber-100 border-2 border-amber-400')}>
                         <div className="flex items-center gap-4">
@@ -676,45 +712,6 @@ function TVDisplayPageContent() {
                     </AnimatePresence>
                 </div>
             </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="flex flex-col gap-4 justify-center">
-            {showQrCode ? (
-                <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200">
-                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><QrCode /> Scan for Walk-in</h3>
-                    <p className="text-sm text-muted-foreground mb-2">Join the queue directly</p>
-                    <Image
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}`}
-                        alt="Walk-in QR Code"
-                        width={200}
-                        height={200}
-                    />
-                </div>
-            ) : (
-                 <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center">
-                     <h3 className="text-xl font-bold text-slate-800">Walk-in QR Unavailable</h3>
-                     <p className="text-sm text-muted-foreground">Enable QR in Admin panel to allow walk-ins.</p>
-                 </div>
-            )}
-            
-            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-40">
-                <h3 className="text-lg text-gray-600 font-semibold">In Queue</h3>
-                <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
-                    <Users className="h-12 w-12 text-gray-400" />
-                    {waitingList.length}
-                </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200 text-center h-40">
-                <h3 className="text-lg text-gray-600 font-semibold">Yet to Arrive</h3>
-                <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
-                    <Calendar className="h-12 w-12 text-gray-400" />
-                    {yetToArrive.length}
-                </div>
-            </div>
-        </div>
-
       </main>
     </div>
   );
@@ -727,7 +724,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
-
-    
 
     
