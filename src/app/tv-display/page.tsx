@@ -3,7 +3,7 @@
 import { recalculateQueueWithETC, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause, AlertTriangle } from 'lucide-react';
+import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause, AlertTriangle, QrCode } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { parseISO, format, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
@@ -73,6 +73,9 @@ function TVDisplayPageContent() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [time, setTime] = useState('');
   const [averageWait, setAverageWait] = useState(0);
+  const [currentSessionName, setCurrentSessionName] = useState<'morning' | 'evening' | null>(null);
+  const [baseUrl, setBaseUrl] = useState('');
+
   const searchParams = useSearchParams();
   const layout = searchParams.get('layout') || '1';
 
@@ -168,6 +171,7 @@ function TVDisplayPageContent() {
         }
     }
     
+    setCurrentSessionName(sessionToShow);
     const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
     const sessionPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
 
@@ -190,6 +194,9 @@ function TVDisplayPageContent() {
   }, [getSessionForTime, timeZone]);
 
   useEffect(() => {
+    // Set base URL on client-side
+    setBaseUrl(window.location.origin);
+    
     fetchData(); // Initial fetch
     const dataIntervalId = setInterval(fetchData, 15000); // Poll every 15 seconds
 
@@ -280,13 +287,15 @@ function TVDisplayPageContent() {
 
   const now = new Date();
   
-  const currentSessionName = getSessionForTime(now, schedule);
-  
   let isSessionOver = false;
   if (currentSessionName && todaySchedule[currentSessionName]?.isOpen) {
       const sessionEndUTC = fromZonedTime(parseDateFn(`${todayStr} ${todaySchedule[currentSessionName].end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
       isSessionOver = now > sessionEndUTC;
   }
+  
+  const qrCodeUrl = currentSessionName ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
+  const showQrCode = doctorStatus.isOnline && qrCodeUrl;
+
 
   const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
     <span className="font-medium text-3xl flex items-center gap-2 relative">
@@ -384,40 +393,35 @@ function TVDisplayPageContent() {
                     )}
                     </AnimatePresence>
                 </div>
-                
-                 <div className="bg-white rounded-2xl p-4 flex shadow-lg border border-slate-200">
-                    <div className="w-1/2 flex flex-col items-center justify-center border-r pr-2">
-                        <h3 className="text-center text-gray-600 font-semibold">In Queue</h3>
-                        <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
-                            <Users className="h-12 w-12 text-gray-400" />
-                            {waitingList.length}
-                        </div>
-                    </div>
-                     <div className="w-1/2 flex flex-col items-center justify-center pl-2">
-                        <h3 className="text-center text-gray-600 font-semibold">Booked patients yet to arrive</h3>
-                        <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
-                           <Calendar className="h-12 w-12 text-gray-400" />
-                           {yetToArrive.length}
-                        </div>
-                    </div>
-                </div>
-                
-                 <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden flex-1">
-                    <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
-                    <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
-                        {waitingForReports.length > 0 ? (
-                            waitingForReports.map(patient => (
-                                <div key={patient.id} className="bg-purple-100 text-purple-800 p-2 rounded-lg flex items-center gap-2">
-                                    <FileClock className="h-5 w-5 flex-shrink-0" />
-                                    <span className="font-medium">{anonymizeName(patient.name)}</span>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flex-1 flex items-center justify-center h-full"><p className="text-slate-400">None</p></div>
-                        )}
-                    </div>
-                </div>
 
+                {showQrCode ? (
+                    <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200">
+                        <h3 className="text-lg font-bold text-slate-800">Scan for Walk-in</h3>
+                        <p className="text-xs text-muted-foreground mb-2">Join the queue directly</p>
+                        <Image
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrCodeUrl)}`}
+                            alt="Walk-in QR Code"
+                            width={150}
+                            height={150}
+                        />
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden flex-1">
+                        <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
+                        <div className="w-full space-y-2 overflow-y-auto text-sm flex-1">
+                            {waitingForReports.length > 0 ? (
+                                waitingForReports.map(patient => (
+                                    <div key={patient.id} className="bg-purple-100 text-purple-800 p-2 rounded-lg flex items-center gap-2">
+                                        <FileClock className="h-5 w-5 flex-shrink-0" />
+                                        <span className="font-medium">{anonymizeName(patient.name)}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex-1 flex items-center justify-center h-full"><p className="text-slate-400">None</p></div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
             {/* Right Column (75%) */}
             <div className="w-3/4 flex-1 bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col overflow-hidden">
@@ -627,24 +631,37 @@ function TVDisplayPageContent() {
                 )}
             </div>
 
-            <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden col-span-1">
-                <div className="grid grid-rows-2 h-full">
-                    <div className="row-span-1 border-b flex flex-col items-center justify-center">
-                        <h3 className="text-center text-gray-600 font-semibold">In Queue</h3>
-                        <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
-                            <Users className="h-12 w-12 text-gray-400" />
-                            {waitingList.length}
+            {showQrCode ? (
+                <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg border border-slate-200">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><QrCode /> Scan for Walk-in</h3>
+                    <p className="text-xs text-muted-foreground mb-1">Join the queue directly</p>
+                    <Image
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrCodeUrl)}`}
+                        alt="Walk-in QR Code"
+                        width={150}
+                        height={150}
+                    />
+                </div>
+            ) : (
+                <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden col-span-1">
+                    <div className="grid grid-rows-2 h-full">
+                        <div className="row-span-1 border-b flex flex-col items-center justify-center">
+                            <h3 className="text-center text-gray-600 font-semibold">In Queue</h3>
+                            <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
+                                <Users className="h-12 w-12 text-gray-400" />
+                                {waitingList.length}
+                            </div>
                         </div>
-                    </div>
-                    <div className="row-span-1 flex flex-col items-center justify-center">
-                       <h3 className="text-center text-gray-600 font-semibold">Booked patients yet to arrive</h3>
-                        <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
-                           <Calendar className="h-12 w-12 text-gray-400" />
-                           {yetToArrive.length}
+                        <div className="row-span-1 flex flex-col items-center justify-center">
+                        <h3 className="text-center text-gray-600 font-semibold">Booked patients yet to arrive</h3>
+                            <div className="text-6xl font-bold text-slate-800 flex items-center gap-2">
+                            <Calendar className="h-12 w-12 text-gray-400" />
+                            {yetToArrive.length}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
 
         {/* Waiting List */}

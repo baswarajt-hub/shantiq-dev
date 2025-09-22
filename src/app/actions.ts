@@ -1236,7 +1236,7 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
   }
 }
 
-export async function joinQueueAction(member: FamilyMember, purpose: string) {
+export async function joinQueueAction(member: FamilyMember, purpose: string, sessionParam?: 'morning' | 'evening') {
   const schedule = await getDoctorScheduleData();
   const allPatients = await getPatientsData();
 
@@ -1257,7 +1257,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     };
   }
   
-  const getSession = (time: Date): { name: 'morning' | 'evening', schedule: Session } | null => {
+  const getActiveSession = (time: Date): { name: 'morning' | 'evening', schedule: Session } | null => {
     const zonedTime = toZonedTime(time, timeZone);
     
     const checkSession = (sessionName: 'morning' | 'evening'): boolean => {
@@ -1279,10 +1279,14 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     return null;
   };
   
-  const currentSession = getSession(now);
-  
+  const currentSession = getActiveSession(now);
+
   if (!currentSession) {
     return { error: 'The clinic is currently closed or not in session.' };
+  }
+  
+  if (sessionParam && currentSession.name !== sessionParam) {
+    return { error: `Walk-in registration is only open for the ${currentSession.name} session.` };
   }
 
   const sessionSchedule = currentSession.schedule;

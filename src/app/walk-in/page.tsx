@@ -2,8 +2,8 @@
 
 'use client';
 
-import { useState, useTransition, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useTransition, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,13 +20,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
-
-export default function WalkInPage() {
+function WalkInPageContent() {
   const [step, setStep] = useState<'phone' | 'selectOrCreate' | 'create'>('phone');
   const [phone, setPhone] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const sessionParam = searchParams.get('session') as 'morning' | 'evening' | null;
 
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [logo, setLogo] = useState<string | null | undefined>(null);
@@ -66,7 +67,7 @@ export default function WalkInPage() {
 
   const handleJoinQueue = (member: FamilyMember) => {
     startTransition(async () => {
-        const result = await joinQueueAction(member, purpose);
+        const result = await joinQueueAction(member, purpose, sessionParam || undefined);
         if (result.success && result.patient) {
             toast({ title: "Added to Queue!", description: `You have been assigned Token #${result.patient.tokenNo}.`});
             router.push(`/queue-status?id=${result.patient.id}`);
@@ -101,6 +102,7 @@ export default function WalkInPage() {
     setDob('');
     setGender('');
     setPurpose('Consultation');
+    router.replace('/walk-in'); // Reset URL to remove params
   }
 
   return (
@@ -257,4 +259,12 @@ export default function WalkInPage() {
       </div>
     </div>
   );
+}
+
+export default function WalkInPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <WalkInPageContent />
+        </Suspense>
+    );
 }
