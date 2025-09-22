@@ -288,7 +288,8 @@ function WalkInPageContent() {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Important</AlertTitle>
                     <AlertDescription>
-                        Please get your child’s temperature and weight checked at reception before your turn. If you miss your turn, the appointment will be moved to the next available slot. Select this option only if your child is with you now, otherwise book through reception.
+                        <p>1. Select this option only if your child is with you now, otherwise book through reception.</p>
+                        <p>2. Please get your child’s temperature and weight checked at reception before your turn. If you miss your turn, the appointment will be moved to the next available slot.</p>
                     </AlertDescription>
                 </Alert>
             </CardContent>
@@ -350,7 +351,8 @@ function WalkInPageContent() {
                         <AlertTriangle className="h-4 w-4" />
                         <AlertTitle>Important</AlertTitle>
                         <AlertDescription>
-                            Please get your child’s temperature and weight checked at reception before your turn. If you miss your turn, the appointment will be moved to the next available slot. Select this option only if your child is with you now, otherwise book through reception.
+                            <p>1. Select this option only if your child is with you now, otherwise book through reception.</p>
+                            <p>2. Please get your child’s temperature and weight checked at reception before your turn. If you miss your turn, the appointment will be moved to the next available slot.</p>
                         </AlertDescription>
                     </Alert>
                 </CardContent>
