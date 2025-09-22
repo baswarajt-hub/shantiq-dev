@@ -83,7 +83,7 @@ function TVDisplayPageContent() {
   const timeZone = "Asia/Kolkata";
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
-    if (!localSchedule) return null;
+    if (!localSchedule || !localSchedule.days) return null;
     
     const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
     const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
@@ -301,8 +301,13 @@ function TVDisplayPageContent() {
       isSessionOver = now > sessionEndUTC;
   }
   
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
-  const qrCodeUrl = currentSessionName ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
+  const [baseUrl, setBaseUrl] = useState('');
+  useEffect(() => {
+    // This effect runs only on the client, where window is available
+    setBaseUrl(window.location.origin);
+  }, []);
+
+  const qrCodeUrl = currentSessionName && baseUrl ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
   const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
 
 
