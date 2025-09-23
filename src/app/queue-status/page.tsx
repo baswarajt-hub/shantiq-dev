@@ -49,63 +49,49 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   const sessionToCheck = (currentHour < 14 || !daySchedule?.evening.isOpen) ? daySchedule?.morning : daySchedule?.evening;
   const isSessionOver = sessionToCheck ? now > sessionLocalToUtc(todayStr, sessionToCheck.end) : false;
 
-  if (!doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver) {
-    return (
-       <Card className="bg-orange-100/50 border-orange-300">
-          <CardHeader className="p-4">
-            <CardTitle className="text-base flex items-center gap-2"><AlertTriangle/>Doctor is Running Late</CardTitle>
-            <CardDescription className="text-xs">The session will begin with a delay of approx. {doctorStatus.startDelay} min.</CardDescription>
-          </CardHeader>
-        </Card>
-    )
-  }
+  const isOffline = !doctorStatus.isOnline;
+
+  const cardClasses = cn(
+    "border-2 w-full text-center p-4 rounded-xl shadow-lg",
+    isOffline ? "bg-red-100/50 border-red-300" : "bg-green-100/50 border-green-300"
+  );
   
-  if (!doctorStatus.isOnline) {
-    return (
-       <Card className="bg-slate-100/50 border-slate-300">
-          <CardHeader className="p-4">
-            <CardTitle className="text-base flex items-center gap-2"><WifiOff/>Doctor Offline</CardTitle>
-            <CardDescription className="text-xs">The doctor is currently unavailable.</CardDescription>
-          </CardHeader>
-        </Card>
-    )
-  }
-  
-  if (doctorStatus.isPaused) {
-    return (
-       <Card className="bg-yellow-100/50 border-yellow-300">
-          <CardHeader className="p-4">
-            <CardTitle className="text-base flex items-center gap-2"><Pause/>Queue Paused</CardTitle>
-            <CardDescription className="text-xs">The queue is temporarily paused.</CardDescription>
-          </CardHeader>
-        </Card>
-    )
+  let TitleIcon = isOffline ? WifiOff : Hourglass;
+  let titleText = isOffline ? 'Doctor Offline' : 'Now Serving';
+  let descriptionText: string | React.ReactNode = isOffline ? 'The doctor is currently unavailable.' : 'Currently in consultation';
+
+  if (doctorStatus.startDelay && doctorStatus.startDelay > 0 && isOffline && !isSessionOver) {
+    TitleIcon = AlertTriangle;
+    titleText = 'Doctor is Running Late';
+    descriptionText = `The session will begin with a delay of approx. ${doctorStatus.startDelay} min.`;
+  } else if (doctorStatus.isPaused) {
+    TitleIcon = Pause;
+    titleText = 'Queue Paused';
+    descriptionText = 'The queue is temporarily paused.';
+  } else if (!patient && !isOffline) {
+    TitleIcon = UserCheck;
+    titleText = 'Ready for Next';
+    descriptionText = 'The doctor is ready to see the next patient.';
   }
 
-  if (!patient) {
-    return (
-       <Card className="bg-green-100/50 border-green-300">
-          <CardHeader className="p-4">
-            <CardTitle className="text-base flex items-center gap-2"><UserCheck />Ready for Next</CardTitle>
-            <CardDescription className="text-xs">The doctor is ready to see the next patient.</CardDescription>
-          </CardHeader>
-        </Card>
-    )
-  }
-  
   return (
-       <Card className="bg-green-100/50 border-green-300">
-       <CardHeader className="p-4">
-         <CardTitle className="text-base flex items-center gap-2"><Hourglass className="animate-spin" />Now Serving</CardTitle>
-         <CardDescription>Currently in consultation</CardDescription>
-       </CardHeader>
-       <CardContent className="p-4 pt-0">
-          <p className="text-3xl font-bold flex items-center gap-2">
-            Token #{patient.tokenNo}
+    <Card className={cardClasses}>
+      <CardHeader className="p-4">
+        <CardTitle className="text-base flex items-center justify-center gap-2">
+            <TitleIcon className={cn(patient && !isOffline && !doctorStatus.isPaused && 'animate-spin')} />
+            {titleText}
+        </CardTitle>
+        <CardDescription className="text-xs">{descriptionText}</CardDescription>
+      </CardHeader>
+      {patient && (
+        <CardContent className="p-4 pt-0">
+          <p className="text-3xl font-bold flex items-center justify-center gap-2">
+            <span className="text-sky-700">Token #{patient.tokenNo}</span>
             {patient.subStatus === 'Reports' && <span className="text-xl font-semibold text-purple-600">(Reports)</span>}
           </p>
-       </CardContent>
-     </Card>
+        </CardContent>
+      )}
+    </Card>
   )
 }
 
@@ -133,11 +119,11 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
                 <CardDescription className="text-xs">Please proceed to the waiting area.</CardDescription>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-                <p className="text-3xl font-bold flex items-center gap-2">
-                  Token #{patient.tokenNo}
+                <p className="text-3xl font-bold flex items-center justify-center gap-2">
+                  <span className="text-sky-700">Token #{patient.tokenNo}</span>
                   {patient.status === 'Late' && patient.lateBy && patient.lateBy > 0 && <span className="text-xl font-semibold text-orange-600">(Late)</span>}
                 </p>
-                <div className="text-muted-foreground flex items-center gap-2 mt-1 text-xs">
+                <div className="text-muted-foreground flex items-center justify-center gap-2 mt-1 text-xs">
                     <Timer className="h-4 w-4"/> ETC: ~{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}
                 </div>
             </CardContent>
@@ -431,7 +417,7 @@ function QueueStatusPageContent() {
     <div className="flex flex-col min-h-screen bg-muted/40">
       <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
       <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-4">
+        <div className="w-full max-w-sm space-y-4">
             {completedAppointmentForDisplay ? (
                 <CompletionSummary patient={completedAppointmentForDisplay} />
             ) : !hasAnyAppointmentsToday ? (
@@ -508,3 +494,5 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
+
+    
