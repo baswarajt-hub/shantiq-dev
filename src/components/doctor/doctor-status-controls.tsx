@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
@@ -21,16 +21,12 @@ interface DoctorStatusControlsProps {
 
 export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusControlsProps) {
   const [status, setStatus] = useState<DoctorStatus>(initialStatus);
-  const [delay, setDelay] = useState(initialStatus.startDelay || 0);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const delayInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setStatus(initialStatus);
-     // Only update the delay from props if the user is not currently editing it.
-    if (!isPending) {
-      setDelay(initialStatus.startDelay || 0);
-    }
   }, [initialStatus]);
 
 
@@ -40,11 +36,14 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
       const newStatus = { 
         isOnline: isGoingOnline,
         onlineTime: isGoingOnline ? new Date().toISOString() : undefined,
-        startDelay: isGoingOnline ? 0 : delay, // Reset delay when going online
+        startDelay: isGoingOnline ? 0 : (status.startDelay || 0),
       };
       const result = await setDoctorStatusAction(newStatus);
       if (result.success) {
         toast({ title: 'Success', description: `Doctor is now ${isGoingOnline ? 'Online' : 'Offline'}.` });
+        if (isGoingOnline && delayInputRef.current) {
+            delayInputRef.current.value = '0';
+        }
         onUpdate();
       } else {
         toast({ title: 'Error', variant: 'destructive', description: "Could not update status." });
@@ -66,15 +65,18 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
   };
 
   const handleUpdateDelay = () => {
-    startTransition(async () => {
-      const result = await updateDoctorStartDelayAction(delay);
-      if (result.success) {
-        toast({ title: 'Success', description: result.success });
-        onUpdate();
-      } else {
-        toast({ title: 'Error', variant: 'destructive', description: result.error });
-      }
-    });
+    if (delayInputRef.current) {
+        const delay = parseInt(delayInputRef.current.value, 10) || 0;
+        startTransition(async () => {
+            const result = await updateDoctorStartDelayAction(delay);
+            if (result.success) {
+                toast({ title: 'Success', description: result.success });
+                onUpdate();
+            } else {
+                toast({ title: 'Error', variant: 'destructive', description: result.error });
+            }
+        });
+    }
   };
 
   return (
@@ -110,8 +112,8 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
             <Input
               id="doctor-delay"
               type="number"
-              value={delay}
-              onChange={e => setDelay(parseInt(e.target.value) || 0)}
+              ref={delayInputRef}
+              defaultValue={status.startDelay || 0}
               className="w-24"
               disabled={isPending || status.isOnline}
             />

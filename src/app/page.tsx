@@ -22,7 +22,7 @@
 */
 
 'use client';
-import { useState, useEffect, useTransition, useCallback } from 'react';
+import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import Header from '@/components/header';
 import Stats from '@/app/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, VisitPurpose } from '@/lib/types';
@@ -115,7 +115,6 @@ export default function DashboardPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
     const [doctorOnlineTime, setDoctorOnlineTime] = useState('');
-    const [doctorStartDelay, setDoctorStartDelay] = useState(0);
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [averageConsultationTime, setAverageConsultationTime] = useState(0);
     
@@ -132,6 +131,7 @@ export default function DashboardPage() {
     const [showCompleted, setShowCompleted] = useState(false);
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    const delayInputRef = useRef<HTMLInputElement>(null);
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
@@ -201,10 +201,6 @@ export default function DashboardPage() {
                 setDoctorOnlineTime(new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
             } else {
                 setDoctorOnlineTime('');
-            }
-            // Only initialize the delay state if it's not being actively edited
-            if (!isPending) {
-                setDoctorStartDelay(doctorStatus.startDelay || 0);
             }
         }
     }, [doctorStatus, isPending]);
@@ -498,8 +494,7 @@ export default function DashboardPage() {
             const newStatus = {
                 isOnline: isGoingOnline,
                 onlineTime: isGoingOnline ? new Date().toISOString() : undefined,
-                // Reset delay only when going online
-                startDelay: isGoingOnline ? 0 : doctorStartDelay 
+                startDelay: isGoingOnline ? 0 : (doctorStatus?.startDelay || 0) 
             };
             
             const result = await setDoctorStatusAction(newStatus);
@@ -508,9 +503,8 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
                 toast({ title: 'Success', description: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.`});
-                // If we just went online, also reset the local delay input state
-                if (isGoingOnline) {
-                    setDoctorStartDelay(0);
+                if (isGoingOnline && delayInputRef.current) {
+                    delayInputRef.current.value = '0';
                 }
                 await loadData();
             }
@@ -544,15 +538,18 @@ export default function DashboardPage() {
     }
 
     const handleUpdateDelay = () => {
-        startTransition(async () => {
-            const result = await updateDoctorStartDelayAction(doctorStartDelay);
-            if (result?.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive'});
-            } else {
-                toast({ title: 'Success', description: result.success});
-                await loadData();
-            }
-        });
+        if (delayInputRef.current) {
+            const delayValue = parseInt(delayInputRef.current.value, 10) || 0;
+            startTransition(async () => {
+                const result = await updateDoctorStartDelayAction(delayValue);
+                if (result?.error) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive'});
+                } else {
+                    toast({ title: 'Success', description: result.success});
+                    await loadData();
+                }
+            });
+        }
     };
     
     const handleMarkAsLateAndCheckIn = (patientId: number, penalty: number) => {
@@ -869,7 +866,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className='flex items-center space-x-2'>
                                     <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
-                                    <Input id="doctor-delay" type="number" value={doctorStartDelay} onChange={e => setDoctorStartDelay(parseInt(e.target.value) || 0)} className="w-16 h-8" disabled={doctorStatus.isOnline} />
+                                    <Input id="doctor-delay" type="number" ref={delayInputRef} defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={doctorStatus.isOnline} />
                                     <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={doctorStatus.isOnline}>Update</Button>
                                 </div>
                                 <DropdownMenu>
