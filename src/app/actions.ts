@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -44,27 +43,26 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
   const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
   const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
   const dateStr = format(zonedAppt, 'yyyy-MM-dd');
+  
   let dayScheduleInfo = schedule.days[dayOfWeek];
   if (!dayScheduleInfo) return null;
-
+  
   const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
-  if (todayOverride) {
-      if (todayOverride.morningOverride) dayScheduleInfo.morning = todayOverride.morningOverride;
-      if (todayOverride.isMorningClosed) dayScheduleInfo.morning.isOpen = false;
-      if (todayOverride.eveningOverride) dayScheduleInfo.evening = todayOverride.eveningOverride;
-      if (todayOverride.isEveningClosed) dayScheduleInfo.evening.isOpen = false;
-  }
+  const morningSession = todayOverride?.morningOverride ?? dayScheduleInfo.morning;
+  const eveningSession = todayOverride?.eveningOverride ?? dayScheduleInfo.evening;
+  const isMorningClosed = todayOverride?.isMorningClosed ?? !morningSession.isOpen;
+  const isEveningClosed = todayOverride?.isEveningClosed ?? !eveningSession.isOpen;
 
-  const checkSession = (session: Session) => {
-    if (!session.isOpen) return false;
+  const checkSession = (session: Session, isClosed: boolean) => {
+    if (isClosed) return false;
     const startUtc = sessionLocalToUtc(dateStr, session.start);
     const endUtc = sessionLocalToUtc(dateStr, session.end);
     const apptMs = appointmentUtcDate.getTime();
     return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
   };
 
-  if (checkSession(dayScheduleInfo.morning)) return 'morning';
-  if (checkSession(dayScheduleInfo.evening)) return 'evening';
+  if (checkSession(morningSession, isMorningClosed)) return 'morning';
+  if (checkSession(eveningSession, isEveningClosed)) return 'evening';
   return null;
 };
 
@@ -515,7 +513,6 @@ export async function recalculateQueueWithETC() {
         // --- Post-Session Cleanup & Auto Doctor Offline Logic ---
         const sessionEndUtc = sessionLocalToUtc(todayStr, sessionTimes.end);
         const patientCleanupTimeUtc = new Date(sessionEndUtc.getTime() + 60 * 60 * 1000); // 1 hour after session end
-        const doctorAutoOfflineTimeUtc = new Date(sessionEndUtc.getTime() + 2 * 60 * 60 * 1000); // 2 hours after session end
         
         if (now > patientCleanupTimeUtc) {
             sessionPatients.forEach(p => {
@@ -529,20 +526,6 @@ export async function recalculateQueueWithETC() {
             sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id.toString()) }));
         }
 
-        if (now > doctorAutoOfflineTimeUtc) {
-             const onlineSession = doctorStatus.onlineTime ? getSessionForTime(schedule, parseISO(doctorStatus.onlineTime)) : null;
-
-             if (doctorStatus.isOnline && (onlineSession === session || (session === 'evening' && onlineSession === 'morning'))) {
-                 doctorStatus.isOnline = false;
-                 doctorStatus.startDelay = 0;
-                 statusNeedsUpdate = true;
-             }
-             // Manual QR code: Remove automatic deactivation
-             // if (doctorStatus.isQrCodeActive) {
-             //     doctorStatus.isQrCodeActive = false;
-             //     statusNeedsUpdate = true;
-             // }
-        }
         // --- End Cleanup Logic ---
 
 
@@ -1324,47 +1307,57 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   let availableSlot: Date | null = null;
   let slotIndex = 0;
 
+  // Set the starting point for slot search to be 'now' or session start, whichever is later.
+  let searchStartTime = now > slotTime ? now : slotTime;
+  // Align search start time to the next slot duration interval
+  const minutesFromSessionStart = differenceInMinutes(searchStartTime, slotTime);
+  const intervalsPast = Math.ceil(minutesFromSessionStart / schedule.slotDuration);
+  slotTime = addMinutes(slotTime, intervalsPast * schedule.slotDuration);
+  slotIndex = intervalsPast;
+
+
   while (slotTime < endTime) {
-    if (slotTime > now) { // Only consider future slots
-      const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), slotTime)) < 1);
-      
-      if (!isBooked) {
-         let isReservedForWalkIn = false;
-          if (schedule.reserveFirstFive && slotIndex < 5) {
-              isReservedForWalkIn = true;
-          }
+    const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), slotTime)) < 1);
+    
+    if (!isBooked) {
+        let isReservedForWalkIn = false;
+        if (schedule.reserveFirstFive && slotIndex < 5) {
+            isReservedForWalkIn = true;
+        }
 
-          const reservationStrategy = schedule.walkInReservation;
-          const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
-          if (slotIndex >= startIndexForAlternate) {
-              const relativeIndex = slotIndex - startIndexForAlternate;
-              if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-              if (reservationStrategy === 'alternateTwo' && (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)) isReservedForWalkIn = true;
-          }
+        const reservationStrategy = schedule.walkInReservation;
+        const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+        if (slotIndex >= startIndexForAlternate) {
+            const relativeIndex = slotIndex - startIndexForAlternate;
+            if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+            if (reservationStrategy === 'alternateTwo' && (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)) isReservedForWalkIn = true;
+        }
 
-          if (isReservedForWalkIn) {
-            availableSlot = slotTime;
-            break;
-          }
-      }
+        if (isReservedForWalkIn) {
+          availableSlot = slotTime;
+          break;
+        }
     }
     slotTime = addMinutes(slotTime, schedule.slotDuration);
     slotIndex++;
   }
 
   if (!availableSlot) {
-      // If no reserved slot found, find first unbooked slot
+      // If no reserved slot found, find first unbooked slot from now
       slotTime = fromZonedTime(startLocal, timeZone);
-       while (slotTime < endTime) {
-            if (slotTime > now) {
-                 const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), slotTime)) < 1);
-                 if (!isBooked) {
-                     availableSlot = slotTime;
-                     break;
-                 }
-            }
-            slotTime = addMinutes(slotTime, schedule.slotDuration);
-       }
+      searchStartTime = now > slotTime ? now : slotTime;
+      const minutesFromStart = differenceInMinutes(searchStartTime, slotTime);
+      const intervalsPast = Math.ceil(minutesFromStart / schedule.slotDuration);
+      slotTime = addMinutes(slotTime, intervalsPast * schedule.slotDuration);
+
+      while (slotTime < endTime) {
+           const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), slotTime)) < 1);
+           if (!isBooked) {
+               availableSlot = slotTime;
+               break;
+           }
+          slotTime = addMinutes(slotTime, schedule.slotDuration);
+      }
   }
 
   if (!availableSlot) {
@@ -1375,5 +1368,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   
   return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }
+
+    
 
     
