@@ -144,30 +144,30 @@ export default function DashboardPage() {
         return null;
     };
 
-    const loadData = useCallback(async () => {
-        // Prevent re-fetching if a server action is in progress to avoid state overwrites
-        if (isPending) return;
-
-        await recalculateQueueWithETC();
-        const [scheduleData, patientData, familyData, statusData] = await Promise.all([
-            getDoctorScheduleAction(),
-            getPatientsAction(),
-            getFamilyAction(),
-            getDoctorStatusAction()
-        ]);
-
-        setSchedule(scheduleData);
-        setPatients(patientData);
-        setFamily(familyData);
-        setDoctorStatus(statusData);
-    }, []);
-
     useEffect(() => {
+        const loadData = async () => {
+            // Prevent re-fetching if a server action is in progress to avoid state overwrites
+            if (isPending) return;
+
+            await recalculateQueueWithETC();
+            const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+                getDoctorScheduleAction(),
+                getPatientsAction(),
+                getFamilyAction(),
+                getDoctorStatusAction()
+            ]);
+
+            setSchedule(scheduleData);
+            setPatients(patientData);
+            setFamily(familyData);
+            setDoctorStatus(statusData);
+        };
+        
         loadData(); // Initial load
         const intervalId = setInterval(loadData, 5000); // Poll every 5 seconds for faster updates
 
         return () => clearInterval(intervalId); // Cleanup on unmount
-    }, [loadData]);
+    }, [isPending]); // Re-run effect only when a server action is complete
 
 
     useEffect(() => {
@@ -324,7 +324,6 @@ export default function DashboardPage() {
              const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn);
 
             if (result.success) {
-                await loadData();
                 toast({ title: "Success", description: "Appointment booked successfully."});
             } else {
                 toast({ title: "Error", description: result.error, variant: 'destructive'});
@@ -335,7 +334,6 @@ export default function DashboardPage() {
     const handleAddNewPatient = async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
         const result = await addNewPatientAction(newPatientData);
         if (result.patient) {
-            await loadData();
             toast({ title: "Success", description: result.success});
             return result.patient;
         }
@@ -358,7 +356,6 @@ export default function DashboardPage() {
                 const result = await rescheduleAppointmentAction(selectedPatient.id, appointmentTime, newPurpose);
                 if (result.success) {
                     toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
-                    await loadData();
                 } else {
                     toast({ title: "Error", description: result.error, variant: 'destructive' });
                 }
@@ -373,7 +370,6 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
-                await loadData();
             }
         });
     };
@@ -385,7 +381,6 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
-                await loadData();
             }
         });
     };
@@ -397,7 +392,6 @@ export default function DashboardPage() {
               toast({ title: 'Error', description: result.error, variant: 'destructive' });
           } else {
               toast({ title: 'Success', description: result.success });
-              await loadData();
           }
       });
   };
@@ -409,7 +403,6 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
-                await loadData();
             }
         });
     }
@@ -431,7 +424,6 @@ export default function DashboardPage() {
             const result = await cancelAppointmentAction(patientId);
             if (result.success) {
                 toast({ title: 'Success', description: 'Appointment cancelled.' });
-                await loadData();
             } else {
                 toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
             }
@@ -445,7 +437,6 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
-                await loadData();
             }
         });
     };
@@ -456,7 +447,6 @@ export default function DashboardPage() {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
         } else {
             toast({ title: 'Success', description: result.success });
-            await loadData();
         }
     };
     
@@ -504,7 +494,6 @@ export default function DashboardPage() {
                     successMessage = `QR code display is now ${newStatusValue ? 'active' : 'inactive'}.`;
                 }
                 toast({ title: 'Success', description: successMessage });
-                loadData();
             }
         });
     };
@@ -519,7 +508,6 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive'});
                 } else {
                     toast({ title: 'Success', description: result.success});
-                    await loadData();
                 }
             });
         }
@@ -532,7 +520,6 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
-                await loadData();
             }
         });
     };
@@ -544,7 +531,6 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
-                await loadData(); // Reload data to show new estimates
             }
         });
     };
@@ -555,7 +541,6 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
-                await loadData();
             }
         });
     };
@@ -1059,4 +1044,5 @@ export default function DashboardPage() {
     
 
     
+
 
