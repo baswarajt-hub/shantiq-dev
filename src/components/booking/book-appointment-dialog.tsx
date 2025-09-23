@@ -198,9 +198,13 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         }
 
         try {
+            if (typeof Easebuzz === 'undefined' || !schedule.paymentGatewaySettings) {
+                toast({ title: "Error", description: "Payment gateway is not available.", variant: "destructive"});
+                return;
+            }
             var easebuzzPay = new Easebuzz.easebuzz(
-                paymentSettings.key, 
-                paymentSettings.environment
+                schedule.paymentGatewaySettings.key, 
+                schedule.paymentGatewaySettings.environment
             );
             const options = {
                 access_key: paymentResult.access_key,
