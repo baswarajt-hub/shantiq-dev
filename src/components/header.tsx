@@ -30,13 +30,13 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
             <Link href="/">Dashboard</Link>
           </Button>
           <Button variant="ghost" asChild>
-            <Link href="/doctor" className="text-blue-600 font-semibold">Doctor Panel</Link>
+            <Link href="/doctor" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold">Doctor Panel</Link>
           </Button>
           <Button variant="ghost" asChild>
             <Link href="/admin">Admin</Link>
           </Button>
            <Button variant="ghost" asChild>
-            <Link href="/login">Public Queue</Link>
+            <Link href="/login" target="_blank" rel="noopener noreferrer">Public Queue</Link>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -44,20 +44,20 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem asChild>
-                <Link href="/tv-display" target="_blank">Layout 1</Link>
+                <Link href="/tv-display" target="_blank" rel="noopener noreferrer">Layout 1</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/tv-display?layout=2" target="_blank">Layout 2</Link>
+                <Link href="/tv-display?layout=2" target="_blank" rel="noopener noreferrer">Layout 2</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
         <div className="flex items-center justify-end space-x-2">
             <Button variant="outline" size="sm" asChild>
-                <Link href="/walk-in" target="_blank"><QrCode className="mr-2 h-4 w-4"/>Walk-in Portal</Link>
+                <Link href="/walk-in" target="_blank" rel="noopener noreferrer"><QrCode className="mr-2 h-4 w-4"/>Walk-in Portal</Link>
             </Button>
            <Button variant="outline" size="sm" asChild>
-            <Link href="/login">Patient Portal</Link>
+            <Link href="/login" target="_blank" rel="noopener noreferrer">Patient Portal</Link>
           </Button>
         </div>
       </div>
