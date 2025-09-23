@@ -43,44 +43,28 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
   if (!schedule || !schedule.days) return null;
   const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
   const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
-  const dayScheduleInfo = schedule.days[dayOfWeek];
+  const dateStr = format(zonedAppt, 'yyyy-MM-dd');
+  let dayScheduleInfo = schedule.days[dayOfWeek];
   if (!dayScheduleInfo) return null;
 
-  const dateStr = format(zonedAppt, 'yyyy-MM-dd');
-
-  let effectiveDaySchedule = {
-    morning: { ...dayScheduleInfo.morning },
-    evening: { ...dayScheduleInfo.evening }
-  };
   const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
   if (todayOverride) {
-      if (todayOverride.morningOverride) {
-          effectiveDaySchedule.morning = todayOverride.morningOverride;
-      }
-       if (todayOverride.isMorningClosed) {
-          effectiveDaySchedule.morning.isOpen = false;
-      }
-       if (todayOverride.eveningOverride) {
-          effectiveDaySchedule.evening = todayOverride.eveningOverride;
-      }
-       if (todayOverride.isEveningClosed) {
-          effectiveDaySchedule.evening.isOpen = false;
-      }
+      if (todayOverride.morningOverride) dayScheduleInfo.morning = todayOverride.morningOverride;
+      if (todayOverride.isMorningClosed) dayScheduleInfo.morning.isOpen = false;
+      if (todayOverride.eveningOverride) dayScheduleInfo.evening = todayOverride.eveningOverride;
+      if (todayOverride.isEveningClosed) dayScheduleInfo.evening.isOpen = false;
   }
 
   const checkSession = (session: Session) => {
     if (!session.isOpen) return false;
-
-    // Build UTC instants for start and end of the session (so we compare epochs)
     const startUtc = sessionLocalToUtc(dateStr, session.start);
     const endUtc = sessionLocalToUtc(dateStr, session.end);
-
     const apptMs = appointmentUtcDate.getTime();
     return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
   };
 
-  if (checkSession(effectiveDaySchedule.morning)) return 'morning';
-  if (checkSession(effectiveDaySchedule.evening)) return 'evening';
+  if (checkSession(dayScheduleInfo.morning)) return 'morning';
+  if (checkSession(dayScheduleInfo.evening)) return 'evening';
   return null;
 };
 
@@ -553,10 +537,11 @@ export async function recalculateQueueWithETC() {
                  doctorStatus.startDelay = 0;
                  statusNeedsUpdate = true;
              }
-             if (doctorStatus.isQrCodeActive) {
-                 doctorStatus.isQrCodeActive = false;
-                 statusNeedsUpdate = true;
-             }
+             // Manual QR code: Remove automatic deactivation
+             // if (doctorStatus.isQrCodeActive) {
+             //     doctorStatus.isQrCodeActive = false;
+             //     statusNeedsUpdate = true;
+             // }
         }
         // --- End Cleanup Logic ---
 
@@ -1261,22 +1246,19 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
   }
 }
 
-export async function joinQueueAction(member: FamilyMember, purpose: string, sessionParam?: 'morning' | 'evening') {
+export async function joinQueueAction(member: FamilyMember, purpose: string) {
   const schedule = await getDoctorScheduleData();
   const allPatients = await getPatientsData();
 
-  if (!schedule) {
-    return { error: 'Clinic schedule not found.' };
-  }
+  if (!schedule) return { error: 'Clinic schedule not found.' };
 
   const now = new Date();
   const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
   const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
   let daySchedule = schedule.days[dayOfWeek];
-  if (!daySchedule) {
-      return { error: 'Clinic schedule not set for today.' };
-  }
+  if (!daySchedule) return { error: 'Clinic schedule not set for today.' };
+
   const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
   if (specialClosure) {
     daySchedule = {
@@ -1284,34 +1266,52 @@ export async function joinQueueAction(member: FamilyMember, purpose: string, ses
       evening: specialClosure.eveningOverride ?? daySchedule.evening,
     };
   }
-  
-  const getSessionFromParam = (param: 'morning' | 'evening'): { name: 'morning' | 'evening', schedule: Session } | null => {
-      const session = daySchedule[param];
-      if (!session.isOpen) return null;
-      
-      const isClosedByOverride = param === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
-      if (isClosedByOverride) return null;
-      
-      return { name: param, schedule: session };
-  }
-  
-  const currentSessionDetails = sessionParam ? getSessionFromParam(sessionParam) : null;
 
-  if (!currentSessionDetails) {
-    return { error: 'The clinic is currently closed or the session is invalid.' };
+  const getSessionDetails = (sessionName: 'morning' | 'evening'): { name: 'morning' | 'evening'; schedule: Session; startUtc: Date, endUtc: Date } | null => {
+    const session = daySchedule[sessionName];
+    const isClosedByOverride = sessionName === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
+    if (!session.isOpen || isClosedByOverride) return null;
+    
+    return {
+      name: sessionName,
+      schedule: session,
+      startUtc: sessionLocalToUtc(todayStr, session.start),
+      endUtc: sessionLocalToUtc(todayStr, session.end)
+    };
+  };
+
+  const morningDetails = getSessionDetails('morning');
+  const eveningDetails = getSessionDetails('evening');
+  
+  let targetSessionDetails: { name: 'morning' | 'evening'; schedule: Session; startUtc: Date, endUtc: Date } | null = null;
+  
+  // Logic to find the current or next available session
+  if (morningDetails && now < morningDetails.endUtc) {
+    // If it's before the end of the morning session, target morning
+    targetSessionDetails = morningDetails;
+  } else if (eveningDetails && now < eveningDetails.endUtc) {
+    // Otherwise, if it's before the end of the evening session, target evening
+    targetSessionDetails = eveningDetails;
+  } else if(morningDetails && now < morningDetails.startUtc) {
+    // If it's before morning session starts, target morning
+    targetSessionDetails = morningDetails;
+  } else if(eveningDetails && now < eveningDetails.startUtc) {
+    // If it's after morning but before evening, target evening
+    targetSessionDetails = eveningDetails;
+  }
+
+  if (!targetSessionDetails) {
+    return { error: 'The clinic is closed for today. No upcoming sessions available.' };
   }
   
-  const sessionSchedule = currentSessionDetails.schedule;
-  const sessionStartUtc = sessionLocalToUtc(todayStr, sessionSchedule.start);
-  const sessionEndUtc = sessionLocalToUtc(todayStr, sessionSchedule.end);
+  const { schedule: sessionSchedule, startUtc: sessionStartUtc, endUtc: sessionEndUtc, name: sessionName } = targetSessionDetails;
+  
   const registrationOpenTime = subMinutes(sessionStartUtc, 30);
-
   if (now < registrationOpenTime) {
-      return { error: `Walk-in registration for the ${currentSessionDetails.name} session opens at ${format(toZonedTime(registrationOpenTime, timeZone), 'hh:mm a')}.` };
+      return { error: `Walk-in registration for the ${sessionName} session opens at ${format(toZonedTime(registrationOpenTime, timeZone), 'hh:mm a')}.` };
   }
-  
   if (now > sessionEndUtc) {
-      return { error: `The ${currentSessionDetails.name} session is over. Walk-ins are no longer accepted.` };
+      return { error: `The ${sessionName} session is over. Walk-ins are no longer accepted.` };
   }
 
   // Find next available walk-in slot
@@ -1373,6 +1373,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string, ses
   
   const appointmentTime = availableSlot.toISOString();
   
-  // For QR code walk-ins, always use "Book and Check-in" (checkIn = true)
   return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }
+
+    

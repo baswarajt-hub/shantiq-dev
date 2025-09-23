@@ -383,7 +383,7 @@ function TVDisplayPageContent() {
       isSessionOver = now > sessionEndUTC;
   }
 
-  const qrCodeUrl = currentSessionName && baseUrl ? `${baseUrl}/walk-in?session=${currentSessionName}` : '';
+  const qrCodeUrl = baseUrl ? `${baseUrl}/walk-in` : '';
   const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
 
 
@@ -703,5 +703,6 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
 
     

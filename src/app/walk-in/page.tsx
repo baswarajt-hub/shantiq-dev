@@ -26,8 +26,6 @@ function WalkInPageContent() {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { toast } = useToast();
-  const searchParams = useSearchParams();
-  const sessionParam = searchParams.get('session') as 'morning' | 'evening' | null;
 
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [logo, setLogo] = useState<string | null | undefined>(null);
@@ -74,7 +72,7 @@ function WalkInPageContent() {
 
   const handleJoinQueue = (member: FamilyMember) => {
     startTransition(async () => {
-        const result = await joinQueueAction(member, purpose, sessionParam || undefined);
+        const result = await joinQueueAction(member, purpose);
         if (result.success && result.patient) {
             toast({ title: "Added to Queue!", description: `You have been assigned Token #${result.patient.tokenNo}.`});
             router.push(`/queue-status?id=${result.patient.id}`);
@@ -130,7 +128,7 @@ function WalkInPageContent() {
     setSelectedMember(null);
     setName(''); setDob(''); setGender(''); setEmail(''); setLocation(''); setCity('');
     setPurpose('Consultation');
-    router.replace('/walk-in' + (sessionParam ? `?session=${sessionParam}`: ''));
+    router.replace('/walk-in');
   }
   
   const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === purpose);
@@ -376,3 +374,5 @@ export default function WalkInPage() {
         </Suspense>
     );
 }
+
+    
