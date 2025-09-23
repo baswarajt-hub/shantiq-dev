@@ -111,12 +111,9 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
          <CardDescription>Currently in consultation</CardDescription>
        </CardHeader>
        <CardContent>
-          <p className="text-3xl font-bold">
-            {patient.name}
-            {patient.subStatus === 'Reports' && <span className="text-2xl ml-2 font-semibold text-purple-600">(Reports)</span>}
-          </p>
-          <p className="text-muted-foreground flex items-center gap-2 mt-1">
-            <Ticket className="h-4 w-4"/> Token #{patient.tokenNo}
+          <p className="text-3xl font-bold flex items-center gap-2">
+            Token #{patient.tokenNo}
+            {patient.subStatus === 'Reports' && <span className="text-xl font-semibold text-purple-600">(Reports)</span>}
           </p>
        </CardContent>
      </Card>
@@ -147,9 +144,11 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
                 <CardDescription>Please proceed to the waiting area.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-3xl font-bold">{patient.name}</p>
+                <p className="text-3xl font-bold flex items-center gap-2">
+                  Token #{patient.tokenNo}
+                  {patient.status === 'Late' && patient.lateBy && patient.lateBy > 0 && <span className="text-xl font-semibold text-orange-600">(Late)</span>}
+                </p>
                 <div className="text-muted-foreground flex items-center gap-4 mt-1">
-                    <span className="flex items-center gap-1.5"><Ticket className="h-4 w-4"/> Token #{patient.tokenNo}</span>
                     <span className="flex items-center gap-1.5"><Timer className="h-4 w-4"/> ETC: ~{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</span>
                 </div>
             </CardContent>
@@ -204,7 +203,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
                 </CardHeader>
                 <CardContent>
                     <p className="text-4xl font-bold">{patient.name}</p>
-                    <p className="text-muted-foreground flex items-center gap-2 mt-1"><Ticket className="h-4 w-4"/> Token #{patient.tokenNo}</p>
+                    <p className="text-muted-foreground flex items-center gap-2 mt-1"><Ticket className="h-4 w-4"/> Token <b className="text-sky-700">#{patient.tokenNo}</b></p>
                 </CardContent>
             </Card>
         )
@@ -219,7 +218,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
                 </CardHeader>
                  <CardContent>
                     <p className="text-4xl font-bold">{patient.name}</p>
-                    <p className="text-muted-foreground flex items-center gap-2 mt-1"><Ticket className="h-4 w-4"/> Token #{patient.tokenNo}</p>
+                    <p className="text-muted-foreground flex items-center gap-2 mt-1"><Ticket className="h-4 w-4"/> Token <b className="text-sky-700">#{patient.tokenNo}</b></p>
                 </CardContent>
             </Card>
         )
@@ -234,7 +233,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
                 </CardHeader>
                  <CardContent>
                     <p className="text-4xl font-bold">{patient.name}</p>
-                </CardContent>
+                 </CardContent>
             </Card>
         )
     }
@@ -277,9 +276,11 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
                 <CardDescription>You are #{queuePosition} in the waiting list.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-4xl font-bold">{patient.name}</p>
+                <div className="flex items-baseline gap-4">
+                  <p className="text-4xl font-bold">{patient.name}</p>
+                  <p className="text-muted-foreground flex items-center gap-2 mt-1"><Ticket className="h-4 w-4"/> Token <b className="text-sky-700">#{patient.tokenNo}</b></p>
+                </div>
                 <div className="text-muted-foreground mt-2 space-y-2">
-                    <p className="flex items-center gap-2"><Ticket className="h-4 w-4"/> Token #{patient.tokenNo}</p>
                     <div className="flex items-start gap-4 text-sm">
                         <div className="flex-1 space-y-1">
                             <p className="flex items-center gap-2 font-semibold text-green-600">
@@ -529,26 +530,6 @@ function QueueStatusPageContent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule} />
                     <UpNextCard patient={upNext} />
-                    </div>
-                    
-                    <div className="mt-8">
-                        <h2 className="text-2xl font-bold text-center mb-6">Waiting for Reports</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {allSessionPatients.filter(p => isToday(new Date(p.appointmentTime)) && p.status === 'Waiting for Reports').map((patient) => (
-                            <Card key={patient.id} className="bg-purple-100/50 border-purple-300">
-                            <CardContent className="p-4 flex items-center space-x-4">
-                                <div className="flex-shrink-0 text-purple-700"><FileClock className="h-5 w-5" /></div>
-                                <div>
-                                <p className="font-semibold">{patient.name}</p>
-                                <p className="text-sm text-muted-foreground">Please wait to be called</p>
-                                </div>
-                            </CardContent>
-                            </Card>
-                        ))}
-                        </div>
-                         {allSessionPatients.filter(p => isToday(new Date(p.appointmentTime)) && p.status === 'Waiting for Reports').length === 0 && (
-                            <p className="text-center text-muted-foreground">No one is waiting for reports.</p>
-                        )}
                     </div>
                 </>
             </div>
