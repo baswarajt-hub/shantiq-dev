@@ -164,7 +164,6 @@ function WalkInPageContent() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={isPending}
-                  autoFocus
                 />
               </div>
             </CardContent>
