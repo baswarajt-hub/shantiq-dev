@@ -340,8 +340,8 @@ function TVDisplayPageContent() {
   const waitingList = patients
     .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
     .sort((a, b) => {
-        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
-        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : parseISO(a.slotTime).getTime();
+        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime!).getTime();
+        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC!).getTime() : parseISO(a.slotTime!).getTime();
         return timeA - timeB;
     });
 
@@ -526,11 +526,12 @@ function TVDisplayPageContent() {
                         </div>
                     </div>
                 )}
-                <div className="grid grid-cols-[80px_1fr_80px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
+                <div className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 pb-3 border-b-2 mb-2 text-slate-500 font-bold text-lg">
                     <h3 className="text-center">Token</h3>
                     <h3>Name</h3>
                     <h3 className="text-center">Purpose</h3>
                     <h3>Type</h3>
+                    <h3 className="text-center">Wait Time</h3>
                     <h3 className="text-center">Estimated Consultation Time</h3>
                 </div>
                 <div ref={listRef} className="flex-1 overflow-y-scroll no-scrollbar">
@@ -547,15 +548,17 @@ function TVDisplayPageContent() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, x: -50 }}
-                                className="grid grid-cols-[80px_1fr_80px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
+                                className="grid grid-cols-[80px_1fr_80px_150px_150px_300px] gap-4 items-center py-3 text-2xl border-b border-slate-100"
                             >
                                 <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                                 <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
                                     <PatientNameWithBadges patient={patient} />
-                                     {waitTime !== null && waitTime >= 0 && <span className="text-sm text-slate-500 font-normal">({waitTime} min wait)</span>}
                                 </div>
                                 <div className="text-center text-slate-600 flex justify-center"><PurposeIcon className="h-7 w-7" title={patient.purpose}/></div>
                                 <div className="text-center font-medium text-slate-600">{patient.type}</div>
+                                <div className="text-center font-semibold text-slate-600">
+                                    {waitTime !== null && waitTime >= 0 ? `${waitTime} min` : '-'}
+                                </div>
                                 <div className="text-center font-semibold text-slate-600 flex items-center justify-center gap-1">
                                     <span className="font-bold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>
                                     <span>-</span>
