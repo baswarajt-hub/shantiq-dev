@@ -80,9 +80,11 @@ export default function DoctorPage() {
   
   useEffect(() => {
     if (doctorStatus) {
-      setIsQrCodeActive(doctorStatus.isQrCodeActive || false);
+        if (!isPending) {
+            setIsQrCodeActive(doctorStatus.isQrCodeActive || false);
+        }
     }
-  }, [doctorStatus]);
+  }, [doctorStatus, isPending]);
 
   useEffect(() => {
     loadData();
@@ -122,7 +124,7 @@ export default function DoctorPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
                 toast({ title: 'Success', description: `QR code display is now ${newQrStatus ? 'active' : 'inactive'}.`});
-                // No need to call loadData() here, as the polling will catch up
+                loadData();
             }
         });
     }

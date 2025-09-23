@@ -133,7 +133,6 @@ export default function DashboardPage() {
     const [showCompleted, setShowCompleted] = useState(false);
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
-    const delayInputRef = useRef<HTMLInputElement>(null);
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
@@ -201,8 +200,12 @@ export default function DashboardPage() {
 
     // Effect to sync optimistic state with the fetched doctor status
     useEffect(() => {
-        setOptimisticDoctorStatus(doctorStatus);
-    }, [doctorStatus]);
+        // Only update optimistic state if no pending transition is happening
+        // to avoid overwriting an optimistic update with stale server data.
+        if (!isPending) {
+             setOptimisticDoctorStatus(doctorStatus);
+        }
+    }, [doctorStatus, isPending]);
 
 
     const sessionPatients = patients.filter(p => {
@@ -491,34 +494,46 @@ export default function DashboardPage() {
         if (!optimisticDoctorStatus) return;
 
         const newStatusValue = !optimisticDoctorStatus[field];
-        const newStatus = { ...optimisticDoctorStatus, [field]: newStatusValue };
         
-        // For 'isOnline', also reset delay and set onlineTime if turning on
-        if (field === 'isOnline') {
-            newStatus.onlineTime = newStatusValue ? new Date().toISOString() : undefined;
-            if (newStatusValue) {
-                newStatus.startDelay = 0;
-            }
+        let newStatus: DoctorStatus = { ...optimisticDoctorStatus, [field]: newStatusValue };
+
+        if (field === 'isOnline' && newStatusValue) {
+            newStatus = { ...newStatus, startDelay: 0 };
         }
-        
-        setOptimisticDoctorStatus(newStatus);
+        if (field === 'isOnline' && !newStatusValue && optimisticDoctorStatus.isPaused) {
+             newStatus = { ...newStatus, isPaused: false };
+        }
+
+        setOptimisticDoctorStatus(newStatus); // Optimistic update
 
         startTransition(async () => {
-            const result = await setDoctorStatusAction({ [field]: newStatusValue });
+             const updates: Partial<DoctorStatus> = { [field]: newStatusValue };
+             if (field === 'isOnline' && newStatusValue) {
+                updates.startDelay = 0;
+             }
+             if (field === 'isOnline' && !newStatusValue && optimisticDoctorStatus.isPaused) {
+                 updates.isPaused = false;
+             }
+
+            const result = await setDoctorStatusAction(updates);
             if (result.error) {
-                // Revert on error
-                setOptimisticDoctorStatus(doctorStatus);
-                toast({ title: 'Error', description: `Failed to update ${field}.`, variant: 'destructive' });
+                setOptimisticDoctorStatus(doctorStatus); // Revert on error
+                toast({ title: 'Error', description: `Failed to update status.`, variant: 'destructive' });
             } else {
-                toast({ title: 'Success', description: `Doctor status updated.` });
-                // No need to call loadData() immediately, polling will catch up
+                let successMessage = `Doctor status updated.`;
+                if(field === 'isQrCodeActive') {
+                    successMessage = `QR code display is now ${newStatusValue ? 'active' : 'inactive'}.`;
+                }
+                toast({ title: 'Success', description: successMessage });
+                loadData();
             }
         });
     };
-
+    
     const handleUpdateDelay = () => {
-        if (delayInputRef.current) {
-            const delayValue = parseInt(delayInputRef.current.value, 10) || 0;
+        const delayInput = document.getElementById('doctor-delay') as HTMLInputElement;
+        if (delayInput) {
+            const delayValue = parseInt(delayInput.value, 10) || 0;
             startTransition(async () => {
                 const result = await updateDoctorStartDelayAction(delayValue);
                 if (result?.error) {
@@ -848,7 +863,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className='flex items-center space-x-2'>
                                     <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
-                                    <Input id="doctor-delay" type="number" ref={delayInputRef} defaultValue={optimisticDoctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending || optimisticDoctorStatus.isOnline} />
+                                    <Input id="doctor-delay" type="number" defaultValue={optimisticDoctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending || optimisticDoctorStatus.isOnline} />
                                     <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={isPending || optimisticDoctorStatus.isOnline}>Update</Button>
                                 </div>
                                 <DropdownMenu>
@@ -1065,4 +1080,3 @@ export default function DashboardPage() {
     
 
     
-
