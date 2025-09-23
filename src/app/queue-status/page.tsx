@@ -26,6 +26,7 @@ function sessionLocalToUtc(dateStr: string, sessionTime: string) {
 }
 
 function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null, schedule: DoctorSchedule | null }) {
+  const timeZone = "Asia/Kolkata";
   if (!doctorStatus) return null;
   
   const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
@@ -51,13 +52,10 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   if (!doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver) {
     return (
        <Card className="bg-orange-100/50 border-orange-300">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><AlertTriangle/>Doctor is Running Late</CardTitle>
-            <CardDescription>The session will begin with a delay.</CardDescription>
+          <CardHeader className="p-4">
+            <CardTitle className="text-base flex items-center gap-2"><AlertTriangle/>Doctor is Running Late</CardTitle>
+            <CardDescription className="text-xs">The session will begin with a delay of approx. {doctorStatus.startDelay} min.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">Starts approx. {doctorStatus.startDelay} min late</p>
-          </CardContent>
         </Card>
     )
   }
@@ -65,13 +63,10 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   if (!doctorStatus.isOnline) {
     return (
        <Card className="bg-slate-100/50 border-slate-300">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><WifiOff/>Doctor Offline</CardTitle>
-            <CardDescription>The doctor is currently unavailable.</CardDescription>
+          <CardHeader className="p-4">
+            <CardTitle className="text-base flex items-center gap-2"><WifiOff/>Doctor Offline</CardTitle>
+            <CardDescription className="text-xs">The doctor is currently unavailable.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">Please check back later.</p>
-          </CardContent>
         </Card>
     )
   }
@@ -79,13 +74,10 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   if (doctorStatus.isPaused) {
     return (
        <Card className="bg-yellow-100/50 border-yellow-300">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><Pause/>Queue Paused</CardTitle>
-            <CardDescription>The queue is temporarily paused.</CardDescription>
+          <CardHeader className="p-4">
+            <CardTitle className="text-base flex items-center gap-2"><Pause/>Queue Paused</CardTitle>
+            <CardDescription className="text-xs">The queue is temporarily paused.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">Please wait for the queue to resume.</p>
-          </CardContent>
         </Card>
     )
   }
@@ -93,24 +85,21 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   if (!patient) {
     return (
        <Card className="bg-green-100/50 border-green-300">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><UserCheck />Ready for Next</CardTitle>
-            <CardDescription>The doctor is ready to see the next patient.</CardDescription>
+          <CardHeader className="p-4">
+            <CardTitle className="text-base flex items-center gap-2"><UserCheck />Ready for Next</CardTitle>
+            <CardDescription className="text-xs">The doctor is ready to see the next patient.</CardDescription>
           </CardHeader>
-          <CardContent>
-             <p className="text-xl font-bold">No one is currently being served.</p>
-          </CardContent>
         </Card>
     )
   }
   
   return (
        <Card className="bg-green-100/50 border-green-300">
-       <CardHeader>
-         <CardTitle className="text-lg flex items-center gap-2"><Hourglass className="animate-spin" />Now Serving</CardTitle>
+       <CardHeader className="p-4">
+         <CardTitle className="text-base flex items-center gap-2"><Hourglass className="animate-spin" />Now Serving</CardTitle>
          <CardDescription>Currently in consultation</CardDescription>
        </CardHeader>
-       <CardContent>
+       <CardContent className="p-4 pt-0">
           <p className="text-3xl font-bold flex items-center gap-2">
             Token #{patient.tokenNo}
             {patient.subStatus === 'Reports' && <span className="text-xl font-semibold text-purple-600">(Reports)</span>}
@@ -124,9 +113,9 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
     if (!patient) {
         return (
             <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Queue is Empty</CardTitle>
-                    <CardDescription>There are no patients waiting in this session.</CardDescription>
+                <CardHeader className="p-4">
+                    <CardTitle className="text-base">Queue is Empty</CardTitle>
+                    <CardDescription className="text-xs">There are no patients waiting in this session.</CardDescription>
                 </CardHeader>
             </Card>
         )
@@ -136,20 +125,20 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
 
     return (
          <Card className={cn('bg-primary/20 border-primary', isPriority && 'bg-red-100/70 border-red-400')}>
-            <CardHeader>
-                 <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4">
+                 <CardTitle className="text-base flex items-center gap-2">
                     {isPriority ? <Shield className="text-red-600" /> : <ArrowRight />}
                     Up Next
                  </CardTitle>
-                <CardDescription>Please proceed to the waiting area.</CardDescription>
+                <CardDescription className="text-xs">Please proceed to the waiting area.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
                 <p className="text-3xl font-bold flex items-center gap-2">
                   Token #{patient.tokenNo}
                   {patient.status === 'Late' && patient.lateBy && patient.lateBy > 0 && <span className="text-xl font-semibold text-orange-600">(Late)</span>}
                 </p>
-                <div className="text-muted-foreground flex items-center gap-4 mt-1">
-                    <span className="flex items-center gap-1.5"><Timer className="h-4 w-4"/> ETC: ~{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</span>
+                <div className="text-muted-foreground flex items-center gap-2 mt-1 text-xs">
+                    <Timer className="h-4 w-4"/> ETC: ~{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}
                 </div>
             </CardContent>
         </Card>
@@ -166,21 +155,21 @@ function CompletionSummary({ patient }: { patient: Patient }) {
             className="text-center"
         >
             <PartyPopper className="h-16 w-16 mx-auto text-green-500" />
-            <h2 className="text-3xl font-bold mt-4">Thank you for your trust in us!</h2>
-            <p className="text-xl text-muted-foreground mt-2">
+            <h2 className="text-2xl font-bold mt-4">Thank you for your trust in us!</h2>
+            <p className="text-lg text-muted-foreground mt-2">
                 We wish <span className="font-semibold text-primary">{patient.name}</span> a speedy recovery.
             </p>
-            <div className="max-w-md mx-auto mt-8 grid grid-cols-2 gap-4 text-center">
+            <div className="max-w-md mx-auto mt-6 grid grid-cols-2 gap-4 text-center">
                 {waitTime !== null && waitTime >= 0 && (
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Your wait time was</p>
-                        <p className="text-3xl font-bold">{waitTime} min</p>
+                    <div className="bg-muted/50 p-3 rounded-lg">
+                        <p className="text-xs text-muted-foreground">Your wait time was</p>
+                        <p className="text-2xl font-bold">{waitTime} min</p>
                     </div>
                 )}
                  {patient.consultationTime && (
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Consultation took</p>
-                        <p className="text-3xl font-bold">{patient.consultationTime} min</p>
+                    <div className="bg-muted/50 p-3 rounded-lg">
+                        <p className="text-xs text-muted-foreground">Consultation took</p>
+                        <p className="text-2xl font-bold">{patient.consultationTime} min</p>
                     </div>
                 )}
             </div>
@@ -197,13 +186,13 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
     if (isNowServing) {
         return (
             <Card className="bg-green-200 border-green-400">
-                <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2"><Hourglass className="animate-spin" /> You Are Being Served</CardTitle>
-                    <CardDescription>Please proceed to the consultation room.</CardDescription>
+                <CardHeader className="p-4">
+                    <CardTitle className="text-lg flex items-center gap-2"><Hourglass className="animate-spin" /> You Are Being Served</CardTitle>
+                    <CardDescription className="text-sm">Please proceed to the consultation room.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <p className="text-4xl font-bold">{patient.name}</p>
-                    <p className="text-muted-foreground flex items-center gap-2 mt-1"><Ticket className="h-4 w-4"/> Token <b className="text-sky-700">#{patient.tokenNo}</b></p>
+                <CardContent className="p-4 pt-0">
+                    <p className="text-2xl font-bold">{patient.name}</p>
+                    <p className="text-muted-foreground flex items-center gap-2 mt-1 text-sm"><Ticket className="h-4 w-4"/> Token <b className="text-sky-700">#{patient.tokenNo}</b></p>
                 </CardContent>
             </Card>
         )
@@ -212,28 +201,14 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
     if (isUpNext) {
          return (
             <Card className="bg-amber-100 border-amber-400">
-                <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2"><UserCheck /> You Are Up Next!</CardTitle>
-                    <CardDescription>Please be ready, your turn is about to begin.</CardDescription>
+                <CardHeader className="p-4">
+                    <CardTitle className="text-lg flex items-center gap-2"><UserCheck /> You Are Up Next!</CardTitle>
+                    <CardDescription className="text-sm">Please be ready, your turn is about to begin.</CardDescription>
                 </CardHeader>
-                 <CardContent>
-                    <p className="text-4xl font-bold">{patient.name}</p>
-                    <p className="text-muted-foreground flex items-center gap-2 mt-1"><Ticket className="h-4 w-4"/> Token <b className="text-sky-700">#{patient.tokenNo}</b></p>
+                 <CardContent className="p-4 pt-0">
+                    <p className="text-2xl font-bold">{patient.name}</p>
+                    <p className="text-muted-foreground flex items-center gap-2 mt-1 text-sm"><Ticket className="h-4 w-4"/> Token <b className="text-sky-700">#{patient.tokenNo}</b></p>
                 </CardContent>
-            </Card>
-        )
-    }
-    
-    if (patient.status === 'Waiting for Reports') {
-         return (
-            <Card className="bg-purple-100 border-purple-400">
-                <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2"><FileClock /> Waiting for Reports</CardTitle>
-                    <CardDescription>Your reports are being processed. Please wait to be called again.</CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    <p className="text-4xl font-bold">{patient.name}</p>
-                 </CardContent>
             </Card>
         )
     }
@@ -241,13 +216,13 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
     if (patient.status === 'Booked') {
          return (
             <Card className="bg-blue-100 border-blue-400">
-                <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2"><Clock /> Appointment Booked</CardTitle>
-                    <CardDescription>You have not checked in yet. Please check in at the reception upon arrival.</CardDescription>
+                <CardHeader className="p-4">
+                    <CardTitle className="text-lg flex items-center gap-2"><Clock /> Appointment Booked</CardTitle>
+                    <CardDescription className="text-sm">You have not checked in yet. Please check in at the reception upon arrival.</CardDescription>
                 </CardHeader>
-                 <CardContent>
-                    <p className="text-4xl font-bold">{patient.name}</p>
-                    <p className="text-muted-foreground flex items-center gap-2 mt-1">
+                 <CardContent className="p-4 pt-0">
+                    <p className="text-2xl font-bold">{patient.name}</p>
+                    <p className="text-muted-foreground flex items-center gap-2 mt-1 text-sm">
                         Appointment at {format(parseISO(patient.appointmentTime), 'hh:mm a')}
                     </p>
                 </CardContent>
@@ -258,12 +233,12 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
     if (queuePosition <= 0) {
         return (
             <Card className="bg-gray-100 border-gray-300">
-                <CardHeader>
-                    <CardTitle className="text-xl">Calculating your position...</CardTitle>
-                    <CardDescription>Your status is being updated. Please wait a moment.</CardDescription>
+                <CardHeader className="p-4">
+                    <CardTitle className="text-lg">Calculating your position...</CardTitle>
+                    <CardDescription className="text-sm">Your status is being updated. Please wait a moment.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <p className="text-4xl font-bold">{patient.name}</p>
+                <CardContent className="p-4 pt-0">
+                    <p className="text-2xl font-bold">{patient.name}</p>
                 </CardContent>
             </Card>
         )
@@ -271,30 +246,28 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="text-xl">Your Position in Queue</CardTitle>
-                <CardDescription>You are #{queuePosition} in the waiting list.</CardDescription>
+            <CardHeader className="p-4">
+                <CardTitle className="text-lg">Your Position in Queue</CardTitle>
+                <CardDescription className="text-sm">You are #{queuePosition} in the waiting list.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="flex items-baseline gap-4">
-                  <p className="text-4xl font-bold">{patient.name}</p>
-                  <p className="text-muted-foreground flex items-center gap-2 mt-1"><Ticket className="h-4 w-4"/> Token <b className="text-sky-700">#{patient.tokenNo}</b></p>
+            <CardContent className="p-4 pt-0">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold">{patient.name}</p>
+                  <p className="text-muted-foreground flex items-center gap-1.5"><Ticket className="h-4 w-4"/> Token <b className="text-sky-700">#{patient.tokenNo}</b></p>
                 </div>
-                <div className="text-muted-foreground mt-2 space-y-2">
-                    <div className="flex items-start gap-4 text-sm">
+                <div className="text-muted-foreground mt-2 space-y-1">
+                    <div className="flex items-start gap-4 text-xs">
                         <div className="flex-1 space-y-1">
                             <p className="flex items-center gap-2 font-semibold text-green-600">
                                 <Timer className="h-4 w-4" /> Best ETC:
+                                <span className="font-bold">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</span>
                             </p>
-                            <p className="pl-6">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</p>
-                            <p className="text-xs pl-6">(If prior booked appointments don't check-in)</p>
                         </div>
                          <div className="flex-1 space-y-1">
                             <p className="flex items-center gap-2 font-semibold text-orange-600">
                                 <Timer className="h-4 w-4" /> Worst ETC:
+                                 <span className="font-bold">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
                             </p>
-                            <p className="pl-6">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</p>
-                            <p className="text-xs pl-6">(If all booked appointments check-in on time)</p>
                         </div>
                     </div>
                 </div>
@@ -375,45 +348,36 @@ function QueueStatusPageContent() {
     let targetAppointment: Patient | null = null;
     let appointmentsToShow: Patient[] = [];
   
-    // 1. Strictly prioritize the ID from the URL
     if (patientIdParam) {
       const id = parseInt(patientIdParam, 10);
       targetAppointment = todaysPatients.find((p: Patient) => p.id === id) || null;
     }
   
-    // 2. If no target from ID, fall back to active appointments for the user's phone
     if (!targetAppointment) {
       appointmentsToShow = todaysPatients.filter(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled');
       if (appointmentsToShow.length > 0) {
-        // To determine a session, just pick the first one
         targetAppointment = appointmentsToShow[0];
       }
     } else {
-       // If we found a target via ID, that's the only one we'll show in the user status section
       appointmentsToShow = [targetAppointment];
     }
   
     setPatientsToDisplay(appointmentsToShow);
   
-    // 3. Determine the session context from our target appointment
     let sessionToShow: 'morning' | 'evening' | null = null;
     if (targetAppointment) {
       sessionToShow = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData);
     } else {
-      // If still no target, default session based on current time
       sessionToShow = new Date().getHours() < 14 ? 'morning' : 'evening';
     }
     setCurrentSession(sessionToShow);
   
-    // 4. Filter all session patients based on the determined session
     const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     setAllSessionPatients(filteredPatientsForSession);
   
-    // 5. Check if the primary target appointment is completed to show summary
     const appointmentForSummary = targetAppointment && targetAppointment.id === parseInt(patientIdParam || '0', 10) ? targetAppointment : null;
     if (appointmentForSummary && appointmentForSummary.status === 'Completed') {
         const lastCompletedId = localStorage.getItem('completedAppointmentId');
-        // Only show summary if it's a new completion
         if (lastCompletedId !== String(appointmentForSummary.id)) {
             setCompletedAppointmentForDisplay(appointmentForSummary);
             localStorage.setItem('completedAppointmentId', String(appointmentForSummary.id));
@@ -424,7 +388,7 @@ function QueueStatusPageContent() {
         setCompletedAppointmentForDisplay(null);
     }
   
-    setLastUpdated(new Date().toLocaleTimeString());
+    setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   }, [searchParams, getSessionForTime]);
 
 
@@ -466,75 +430,72 @@ function QueueStatusPageContent() {
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
       <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
-      <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-        
-        {completedAppointmentForDisplay ? (
-             <CompletionSummary patient={completedAppointmentForDisplay} />
-        ) : !hasAnyAppointmentsToday ? (
-             <div className="text-center mt-16">
-                 <h1 className="text-3xl font-bold">No Active Appointment</h1>
-                 <p className="text-lg text-muted-foreground mt-2">You do not have an active appointment scheduled for today.</p>
-             </div>
-        ) : (
-          <>
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold tracking-tight">Live Queue Status</h1>
-              <p className="text-lg text-muted-foreground mt-2">
-                Showing status for the {currentSession} session.
-              </p>
-              <p className="text-sm text-muted-foreground">Last updated: {lastUpdated}</p>
-            </div>
-            
-            <div className="mt-8 max-w-4xl mx-auto space-y-8">
+      <main className="flex-1 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-4">
+            {completedAppointmentForDisplay ? (
+                <CompletionSummary patient={completedAppointmentForDisplay} />
+            ) : !hasAnyAppointmentsToday ? (
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold">No Active Appointment</h1>
+                    <p className="text-muted-foreground mt-1">You do not have an active appointment scheduled for today.</p>
+                </div>
+            ) : (
+            <>
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold tracking-tight">Live Queue Status</h1>
+                    <p className="text-sm text-muted-foreground">
+                        {currentSession} session | Last updated: {lastUpdated}
+                    </p>
+                </div>
+                
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="space-y-4"
                 >
-                    <h2 className="text-2xl font-bold text-center">Your Family's Status</h2>
                     <AnimatePresence>
-                      {patientsToDisplay.map(patient => {
-                          const isNowServing = nowServing?.id === patient.id;
-                          const isUpNext = upNext?.id === patient.id;
-                          let queuePosition = -1;
-                          if (['Waiting', 'Late', 'Priority'].includes(patient.status)) {
+                    {patientsToDisplay.map(patient => {
+                        const isNowServing = nowServing?.id === patient.id;
+                        const isUpNext = upNext?.id === patient.id;
+                        let queuePosition = -1;
+                        if (['Waiting', 'Late', 'Priority'].includes(patient.status)) {
                             const position = waitingQueue.findIndex(p => p.id === patient.id);
                             if (position !== -1) {
                                 queuePosition = position + (upNext ? 2 : 1);
                             }
-                          }
-                          return (
-                              <motion.div
+                        }
+                        return (
+                            <motion.div
                                 key={patient.id}
                                 layout
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
-                              >
+                            >
                                 <YourStatusCard 
                                     patient={patient}
                                     queuePosition={queuePosition}
                                     isUpNext={isUpNext}
                                     isNowServing={isNowServing}
                                 />
-                              </motion.div>
-                          );
-                      })}
+                            </motion.div>
+                        );
+                    })}
                     </AnimatePresence>
                     {patientsToDisplay.length === 0 && (
-                        <p className="text-center text-muted-foreground">Your active appointments are not in this session.</p>
+                        <p className="text-center text-muted-foreground text-sm py-4">Your active appointments are not in this session.</p>
                     )}
                 </motion.div>
 
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule} />
-                    <UpNextCard patient={upNext} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule} />
+                        <UpNextCard patient={upNext} />
                     </div>
                 </>
-            </div>
-          </>
-        )}
+            </>
+            )}
+        </div>
       </main>
     </div>
   );
@@ -542,10 +503,8 @@ function QueueStatusPageContent() {
 
 export default function QueueStatusPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="flex h-screen w-full items-center justify-center">Loading...</div>}>
             <QueueStatusPageContent />
         </Suspense>
     )
 }
-
-    
