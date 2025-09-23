@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -48,21 +49,22 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
   if (!dayScheduleInfo) return null;
   
   const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
-  const morningSession = todayOverride?.morningOverride ?? dayScheduleInfo.morning;
-  const eveningSession = todayOverride?.eveningOverride ?? dayScheduleInfo.evening;
-  const isMorningClosed = todayOverride?.isMorningClosed ?? !morningSession.isOpen;
-  const isEveningClosed = todayOverride?.isEveningClosed ?? !eveningSession.isOpen;
+  
+  const checkSession = (sessionName: 'morning' | 'evening') => {
+    const sessionDetails = todayOverride?.[`${sessionName}Override`] ?? dayScheduleInfo[sessionName];
+    const isClosed = todayOverride?.[sessionName === 'morning' ? 'isMorningClosed' : 'isEveningClosed'] ?? !sessionDetails.isOpen;
 
-  const checkSession = (session: Session, isClosed: boolean) => {
     if (isClosed) return false;
-    const startUtc = sessionLocalToUtc(dateStr, session.start);
-    const endUtc = sessionLocalToUtc(dateStr, session.end);
+
+    const startUtc = sessionLocalToUtc(dateStr, sessionDetails.start);
+    const endUtc = sessionLocalToUtc(dateStr, sessionDetails.end);
     const apptMs = appointmentUtcDate.getTime();
+    
     return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
   };
 
-  if (checkSession(morningSession, isMorningClosed)) return 'morning';
-  if (checkSession(eveningSession, isEveningClosed)) return 'evening';
+  if (checkSession('morning')) return 'morning';
+  if (checkSession('evening')) return 'evening';
   return null;
 };
 
@@ -497,7 +499,30 @@ export async function recalculateQueueWithETC() {
     
     const patientUpdates = new Map<string, Partial<Patient>>();
     const sessions: ('morning' | 'evening')[] = ['morning', 'evening'];
-    let statusNeedsUpdate = false;
+    
+    // Auto-offline logic
+    const twoHoursAfterMorningEnd = daySchedule.morning.isOpen ? new Date(sessionLocalToUtc(todayStr, daySchedule.morning.end).getTime() + 2 * 60 * 60 * 1000) : null;
+    const twoHoursAfterEveningEnd = daySchedule.evening.isOpen ? new Date(sessionLocalToUtc(todayStr, daySchedule.evening.end).getTime() + 2 * 60 * 60 * 1000) : null;
+
+    let shouldGoOffline = false;
+    if (twoHoursAfterMorningEnd && now > twoHoursAfterMorningEnd && (!twoHoursAfterEveningEnd || now < twoHoursAfterEveningEnd)) {
+        // If it's after morning cleanup time but before evening cleanup time
+         const morningPatientsStillActive = allPatients.some(p => {
+             const session = getSessionForTime(schedule, parseISO(p.appointmentTime));
+             return session === 'morning' && ['Waiting', 'In-Consultation', 'Up-Next', 'Priority'].includes(p.status);
+         });
+         if (!morningPatientsStillActive) shouldGoOffline = true;
+    }
+    if (twoHoursAfterEveningEnd && now > twoHoursAfterEveningEnd) {
+        // After evening cleanup time, always go offline
+        shouldGoOffline = true;
+    }
+    
+    if (shouldGoOffline && (doctorStatus.isOnline || doctorStatus.isQrCodeActive)) {
+        await updateDoctorStatus({ isOnline: false, isQrCodeActive: false });
+        doctorStatus = await getDoctorStatusData();
+    }
+    // --- End auto-offline logic
 
     for (const session of sessions) {
         const sessionTimes = daySchedule[session];
@@ -510,7 +535,7 @@ export async function recalculateQueueWithETC() {
             return apptSession === session;
         });
 
-        // --- Post-Session Cleanup & Auto Doctor Offline Logic ---
+        // --- Post-Session Cleanup ---
         const sessionEndUtc = sessionLocalToUtc(todayStr, sessionTimes.end);
         const patientCleanupTimeUtc = new Date(sessionEndUtc.getTime() + 60 * 60 * 1000); // 1 hour after session end
         
@@ -686,10 +711,6 @@ export async function recalculateQueueWithETC() {
                 patientUpdates.set(inConsultation.id.toString(), { ...currentUpdates, worstCaseETC: worstETC });
             }
         }
-    }
-
-    if (statusNeedsUpdate) {
-        await updateDoctorStatus(doctorStatus);
     }
     
     const updatedPatients = allPatients.map(p => {
@@ -1270,16 +1291,8 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   
   // Logic to find the current or next available session
   if (morningDetails && now < morningDetails.endUtc) {
-    // If it's before the end of the morning session, target morning
     targetSessionDetails = morningDetails;
   } else if (eveningDetails && now < eveningDetails.endUtc) {
-    // Otherwise, if it's before the end of the evening session, target evening
-    targetSessionDetails = eveningDetails;
-  } else if(morningDetails && now < morningDetails.startUtc) {
-    // If it's before morning session starts, target morning
-    targetSessionDetails = morningDetails;
-  } else if(eveningDetails && now < eveningDetails.startUtc) {
-    // If it's after morning but before evening, target evening
     targetSessionDetails = eveningDetails;
   }
 
@@ -1298,26 +1311,23 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   }
 
   // Find next available walk-in slot
-  const startLocal = parse(`${todayStr} ${sessionSchedule.start}`, 'yyyy-MM-dd HH:mm', new Date());
-  let slotTime = fromZonedTime(startLocal, timeZone);
-
-  const endLocal = parse(`${todayStr} ${sessionSchedule.end}`, 'yyyy-MM-dd HH:mm', new Date());
-  const endTime = fromZonedTime(endLocal, timeZone);
+  let slotTime = sessionStartUtc;
+  const endTime = sessionEndUtc;
 
   let availableSlot: Date | null = null;
-  let slotIndex = 0;
-
+  
   // Set the starting point for slot search to be 'now' or session start, whichever is later.
-  let searchStartTime = now > slotTime ? now : slotTime;
+  let searchStartTime = max([now, slotTime]);
+  
   // Align search start time to the next slot duration interval
   const minutesFromSessionStart = differenceInMinutes(searchStartTime, slotTime);
   const intervalsPast = Math.ceil(minutesFromSessionStart / schedule.slotDuration);
-  slotTime = addMinutes(slotTime, intervalsPast * schedule.slotDuration);
-  slotIndex = intervalsPast;
+  let currentSlotTime = addMinutes(slotTime, intervalsPast * schedule.slotDuration);
+  let slotIndex = intervalsPast;
 
 
-  while (slotTime < endTime) {
-    const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), slotTime)) < 1);
+  while (currentSlotTime < endTime) {
+    const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
     
     if (!isBooked) {
         let isReservedForWalkIn = false;
@@ -1334,29 +1344,28 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
         }
 
         if (isReservedForWalkIn) {
-          availableSlot = slotTime;
+          availableSlot = currentSlotTime;
           break;
         }
     }
-    slotTime = addMinutes(slotTime, schedule.slotDuration);
+    currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
     slotIndex++;
   }
 
   if (!availableSlot) {
       // If no reserved slot found, find first unbooked slot from now
-      slotTime = fromZonedTime(startLocal, timeZone);
-      searchStartTime = now > slotTime ? now : slotTime;
+      searchStartTime = max([now, slotTime]);
       const minutesFromStart = differenceInMinutes(searchStartTime, slotTime);
       const intervalsPast = Math.ceil(minutesFromStart / schedule.slotDuration);
-      slotTime = addMinutes(slotTime, intervalsPast * schedule.slotDuration);
+      currentSlotTime = addMinutes(slotTime, intervalsPast * schedule.slotDuration);
 
-      while (slotTime < endTime) {
-           const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), slotTime)) < 1);
+      while (currentSlotTime < endTime) {
+           const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
            if (!isBooked) {
-               availableSlot = slotTime;
+               availableSlot = currentSlotTime;
                break;
            }
-          slotTime = addMinutes(slotTime, schedule.slotDuration);
+          currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
       }
   }
 
@@ -1368,6 +1377,8 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   
   return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }
+
+    
 
     
 
