@@ -282,10 +282,10 @@ export default function BookingPage() {
   }
 
   return (
-    <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-    <div className="grid gap-8 lg:grid-cols-3">
+    <main className="flex-1 p-4 md:p-6 lg:p-8">
+    <div className="mx-auto w-full max-w-6xl grid gap-8 md:grid-cols-3">
       {/* Left Column */}
-      <div className="lg:col-span-1 space-y-8">
+      <div className="md:col-span-1 space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Today's Schedule</CardTitle>
@@ -350,7 +350,7 @@ export default function BookingPage() {
       </div>
 
       {/* Right Column */}
-      <div className="lg:col-span-2 space-y-8">
+      <div className="md:col-span-2 space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Today's Appointments</CardTitle>

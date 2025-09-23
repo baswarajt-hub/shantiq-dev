@@ -173,7 +173,7 @@ export default function MyAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
-  const [isEditMemberOpen, setEditMemberOpen] = useState(false);
+  const [isEditMemberOpen, setEditMemberOpen] useState(false);
   const [isRescheduleOpen, setRescheduleOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -332,10 +332,10 @@ export default function MyAppointmentsPage() {
   }
 
   return (
-    <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-      <div className="grid gap-8 lg:grid-cols-3">
+    <main className="flex-1 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-6xl grid gap-8 md:grid-cols-3">
         {/* Left Column */}
-        <div className="lg:col-span-1 space-y-8">
+        <div className="md:col-span-1 space-y-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Family Members</CardTitle>
@@ -386,7 +386,7 @@ export default function MyAppointmentsPage() {
         </div>
 
         {/* Right Column */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="md:col-span-2 space-y-8">
           <Card>
             <CardHeader>
               <CardTitle>Today's Appointments</CardTitle>

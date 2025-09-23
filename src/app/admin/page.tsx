@@ -121,8 +121,8 @@ export default function AdminPage() {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Header logoSrc={null} />
-        <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-           <div className="space-y-8">
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
+           <div className="mx-auto w-full max-w-4xl space-y-8">
             <div>
                 <Skeleton className="h-12 w-1/3" />
                 <Skeleton className="h-8 w-2/3 mt-2" />
@@ -142,8 +142,8 @@ export default function AdminPage() {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Header logoSrc={null} />
-        <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-           <p>Could not load schedule. Please try again later.</p>
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
+           <p className="text-center">Could not load schedule. Please try again later.</p>
         </main>
       </div>
     );
@@ -152,8 +152,8 @@ export default function AdminPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header logoSrc={schedule.clinicDetails?.clinicLogo} clinicName={schedule.clinicDetails?.clinicName} />
-      <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-        <div className="space-y-8">
+      <main className="flex-1 p-4 md:p-6 lg:p-8">
+        <div className="mx-auto w-full max-w-4xl space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Admin Settings</h1>
             <p className="text-muted-foreground">Manage clinic details, doctor's schedule, and special closures.</p>
