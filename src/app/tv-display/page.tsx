@@ -157,12 +157,12 @@ function TVDisplayPageContent() {
   const [time, setTime] = useState('');
   const [averageWait, setAverageWait] = useState(0);
   const [currentSessionName, setCurrentSessionName] = useState<'morning' | 'evening' | null>(null);
-  const [baseUrl, setBaseUrl] = useState('');
   const searchParams = useSearchParams();
   const layout = searchParams.get('layout') || '1';
 
   const listRef = useRef<HTMLDivElement>(null);
   const timeZone = "Asia/Kolkata";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule || !localSchedule.days) return null;
@@ -279,11 +279,6 @@ function TVDisplayPageContent() {
     }
   }, [getSessionForTime]);
 
-  useEffect(() => {
-    // This effect runs only on the client, where window is available
-    setBaseUrl(window.location.origin);
-  }, []);
-  
   useEffect(() => {
     fetchData(); // Initial fetch
     const dataIntervalId = setInterval(fetchData, 15000); // Poll every 15 seconds
@@ -581,7 +576,7 @@ function TVDisplayPageContent() {
   // Default Layout 1
   return (
     <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col p-6 font-body">
-      <header className="grid grid-cols-5 items-center pb-4 border-b-2 border-slate-200">
+      <header className="grid grid-cols-5 items-center pb-4 border-b-2 border-slate-200 gap-4">
           <div className="flex items-center space-x-4">
               {clinicLogo ? (
                   <div className="relative h-16 w-16">
@@ -595,17 +590,17 @@ function TVDisplayPageContent() {
               </div>
           </div>
           
-           {showQrCode && (
-              <div className="flex flex-col items-center justify-center">
-                  <h3 className="text-lg font-bold text-slate-800">Scan for Walk-in</h3>
-                  <Image
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrCodeUrl)}`}
-                      alt="Walk-in QR Code"
-                      width={100}
-                      height={100}
-                  />
-              </div>
-          )}
+           {showQrCode ? (
+            <div className="flex flex-col items-center justify-center">
+                <h3 className="text-sm font-bold text-slate-800">Scan for Walk-in</h3>
+                <Image
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrCodeUrl)}`}
+                    alt="Walk-in QR Code"
+                    width={100}
+                    height={100}
+                />
+            </div>
+          ) : <div></div>}
 
           <div className="flex flex-col items-center justify-center">
               <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
@@ -708,3 +703,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    
