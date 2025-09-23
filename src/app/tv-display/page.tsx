@@ -643,12 +643,13 @@ function TVDisplayPageContent() {
             <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule ? { ...schedule, waitingCount: waitingList.length } as any : null} />
         </div>
 
-        <div className="grid grid-cols-[80px_1fr_80px_150px_150px] gap-4 items-center py-2 text-xl border-b-2 border-slate-300 font-bold text-slate-600">
+        <div className="grid grid-cols-[80px_1fr_80px_150px_150px_250px] gap-4 items-center py-2 text-xl border-b-2 border-slate-300 font-bold text-slate-600">
           <h3 className="text-center">Token</h3>
           <h3>Name</h3>
           <h3 className="text-center">Purpose</h3>
           <h3 className="text-center">Type</h3>
           <h3 className="text-center">Wait Time</h3>
+          <h3 className="text-center">ETC</h3>
         </div>
 
         <div ref={listRef} className="flex-1 space-y-3 overflow-y-scroll no-scrollbar">
@@ -660,7 +661,7 @@ function TVDisplayPageContent() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={cn(
-                    "grid grid-cols-[80px_1fr_80px_150px_150px] gap-4 items-center py-3 text-2xl border-2 rounded-lg shadow-md",
+                    "grid grid-cols-[80px_1fr_80px_150px_150px_250px] gap-4 items-center py-3 text-2xl border-2 rounded-lg shadow-md",
                     upNext.status === 'Priority' ? 'border-red-500 bg-red-100/50' : 'border-amber-400 bg-amber-100/50'
                   )}
               >
@@ -673,6 +674,11 @@ function TVDisplayPageContent() {
                   </div>
                   <div className="text-center font-semibold text-slate-600">{upNext.type}</div>
                    <div className="text-center font-semibold text-slate-600">-</div>
+                   <div className="text-center font-semibold text-slate-600 flex items-center justify-center gap-1">
+                        <span className="font-bold text-green-600">{upNext.bestCaseETC ? format(parseISO(upNext.bestCaseETC), 'hh:mm') : '-'}</span>
+                        <span>-</span>
+                        <span className="font-bold text-orange-600">{upNext.worstCaseETC ? format(parseISO(upNext.worstCaseETC), 'hh:mm a') : '-'}</span>
+                    </div>
               </motion.div>
             )}
             
@@ -687,7 +693,7 @@ function TVDisplayPageContent() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -50 }}
-                    className="grid grid-cols-[80px_1fr_80px_150px_150px] gap-4 items-center py-3 text-2xl border-b border-slate-200 bg-white"
+                    className="grid grid-cols-[80px_1fr_80px_150px_150px_250px] gap-4 items-center py-3 text-2xl border-b border-slate-200 bg-white"
                 >
                     <div className="font-bold text-3xl text-center text-sky-600">#{patient.tokenNo}</div>
                     <div className={cn("font-medium text-3xl flex items-center gap-2", getPatientNameColorClass(patient.status, patient.type))}>
@@ -699,6 +705,11 @@ function TVDisplayPageContent() {
                     <div className="text-center font-medium text-slate-600">{patient.type}</div>
                     <div className="text-center font-semibold text-slate-600">
                         {waitTime !== null && waitTime >= 0 ? `${waitTime} min` : '-'}
+                    </div>
+                    <div className="text-center font-semibold text-slate-600 flex items-center justify-center gap-1">
+                        <span className="font-bold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>
+                        <span>-</span>
+                        <span className="font-bold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
                     </div>
                 </motion.div>
                 )
