@@ -215,7 +215,7 @@ export default function DoctorPage() {
                             Advanced Settings
                         </div>
                     </AccordionTrigger>
-                    <AccordionContent className="p-6 pt-2 bg-muted/50">
+                    <AccordionContent className="p-4 md:p-6 pt-2 bg-muted/50">
                         <div className="space-y-6">
                             <div className='flex items-center space-x-2 p-3 rounded-lg bg-background'>
                                 <Switch id="qr-code-status" checked={doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} disabled={isPending}/>

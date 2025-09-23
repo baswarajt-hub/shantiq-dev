@@ -98,7 +98,7 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
   const hasBeenRescheduled = (appointment.rescheduleCount || 0) > 0;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       <TooltipProvider>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
@@ -333,9 +333,9 @@ export default function MyAppointmentsPage() {
 
   return (
     <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-      <div className="grid gap-8 md:grid-cols-3">
+      <div className="grid gap-8 lg:grid-cols-3">
         {/* Left Column */}
-        <div className="md:col-span-1 space-y-8">
+        <div className="lg:col-span-1 space-y-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Family Members</CardTitle>
@@ -386,7 +386,7 @@ export default function MyAppointmentsPage() {
         </div>
 
         {/* Right Column */}
-        <div className="md:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-8">
           <Card>
             <CardHeader>
               <CardTitle>Today's Appointments</CardTitle>
@@ -475,7 +475,7 @@ export default function MyAppointmentsPage() {
                   }
 
                   return (
-                      <div key={appt.id} className="p-4 rounded-lg border bg-background/50 flex items-start justify-between gap-4 opacity-70">
+                      <div key={appt.id} className="p-4 rounded-lg border bg-background/50 flex flex-col sm:flex-row items-start justify-between gap-4 opacity-70">
                           <div className="flex items-center gap-4">
                               <Avatar>
                                   <AvatarImage src={family.find(f=>f.id === appt.familyMemberId)?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />

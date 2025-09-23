@@ -138,7 +138,7 @@ export function DoctorQueue({
         <CardTitle>Live Queue</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="border rounded-md">
+        <div className="border rounded-md overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

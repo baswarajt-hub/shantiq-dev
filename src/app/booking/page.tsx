@@ -64,7 +64,7 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
     <div className="space-y-4">
       {visibleNotifications.map(notification => (
         <Card key={notification.id} className="bg-accent/20 border-accent/50">
-          <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+          <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4">
             <Megaphone className="h-6 w-6 text-blue-800 mt-1" />
             <div className="flex-1">
               <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
@@ -283,9 +283,9 @@ export default function BookingPage() {
 
   return (
     <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-    <div className="grid gap-8 md:grid-cols-3">
+    <div className="grid gap-8 lg:grid-cols-3">
       {/* Left Column */}
-      <div className="md:col-span-1 space-y-8">
+      <div className="lg:col-span-1 space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Today's Schedule</CardTitle>
@@ -350,7 +350,7 @@ export default function BookingPage() {
       </div>
 
       {/* Right Column */}
-      <div className="md:col-span-2 space-y-8">
+      <div className="lg:col-span-2 space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Today's Appointments</CardTitle>
