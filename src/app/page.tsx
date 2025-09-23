@@ -165,6 +165,9 @@ export default function DashboardPage() {
     };
 
     const loadData = useCallback(async () => {
+        // Prevent re-fetching if a server action is in progress to avoid state overwrites
+        if (isPending) return;
+
         await recalculateQueueWithETC();
         const [scheduleData, patientData, familyData, statusData] = await Promise.all([
             getDoctorScheduleAction(),
@@ -177,7 +180,7 @@ export default function DashboardPage() {
         setPatients(patientData);
         setFamily(familyData);
         setDoctorStatus(statusData);
-    }, []);
+    }, [isPending]);
 
     useEffect(() => {
         loadData(); // Initial load
@@ -203,7 +206,7 @@ export default function DashboardPage() {
                 setDoctorOnlineTime('');
             }
         }
-    }, [doctorStatus, isPending]);
+    }, [doctorStatus]);
 
 
     const sessionPatients = patients.filter(p => {
@@ -489,8 +492,13 @@ export default function DashboardPage() {
     };
 
     const handleToggleDoctorStatus = () => {
+        if (!doctorStatus) return;
+        
+        const isGoingOnline = !doctorStatus.isOnline;
+        // Optimistic UI update
+        setDoctorStatus(prev => prev ? {...prev, isOnline: isGoingOnline} : null);
+
         startTransition(async () => {
-            const isGoingOnline = !doctorStatus?.isOnline;
             const newStatus = {
                 isOnline: isGoingOnline,
                 onlineTime: isGoingOnline ? new Date().toISOString() : undefined,
@@ -500,39 +508,47 @@ export default function DashboardPage() {
             const result = await setDoctorStatusAction(newStatus);
             
             if (result?.error) {
+                setDoctorStatus(doctorStatus); // Revert on error
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
                 toast({ title: 'Success', description: `Doctor is now ${newStatus.isOnline ? 'Online' : 'Offline'}.`});
                 if (isGoingOnline && delayInputRef.current) {
                     delayInputRef.current.value = '0';
                 }
-                await loadData();
+                // No loadData() here, let polling handle it to avoid jumpy UI
             }
         });
     }
 
     const handleToggleQueuePause = () => {
+        if (!doctorStatus) return;
+
+        const isPausing = !doctorStatus.isPaused;
+        setDoctorStatus(prev => prev ? {...prev, isPaused: isPausing} : null);
+        
         startTransition(async () => {
-            const newStatus = { isPaused: !doctorStatus?.isPaused };
-            const result = await setDoctorStatusAction(newStatus);
+            const result = await setDoctorStatusAction({ isPaused: isPausing });
             if (result?.error) {
+                 setDoctorStatus(doctorStatus); // Revert
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
-                toast({ title: 'Success', description: `Queue is now ${newStatus.isPaused ? 'paused' : 'resumed'}.`});
-                await loadData();
+                toast({ title: 'Success', description: `Queue is now ${isPausing ? 'paused' : 'resumed'}.`});
             }
         });
     }
     
     const handleToggleQrCode = () => {
+        if (!doctorStatus) return;
+        const newQrStatus = !doctorStatus.isQrCodeActive;
+        setDoctorStatus(prev => prev ? {...prev, isQrCodeActive: newQrStatus} : null);
+
         startTransition(async () => {
-            const newStatus = { isQrCodeActive: !doctorStatus?.isQrCodeActive };
-            const result = await setDoctorStatusAction(newStatus);
+            const result = await setDoctorStatusAction({ isQrCodeActive: newQrStatus });
             if (result?.error) {
+                setDoctorStatus(doctorStatus); // Revert
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
-                toast({ title: 'Success', description: `QR code display is now ${newStatus.isQrCodeActive ? 'active' : 'inactive'}.`});
-                await loadData();
+                toast({ title: 'Success', description: `QR code display is now ${newQrStatus ? 'active' : 'inactive'}.`});
             }
         });
     }
@@ -866,8 +882,8 @@ export default function DashboardPage() {
                                 </div>
                                 <div className='flex items-center space-x-2'>
                                     <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
-                                    <Input id="doctor-delay" type="number" ref={delayInputRef} defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={doctorStatus.isOnline} />
-                                    <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={doctorStatus.isOnline}>Update</Button>
+                                    <Input id="doctor-delay" type="number" ref={delayInputRef} defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending || doctorStatus.isOnline} />
+                                    <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={isPending || doctorStatus.isOnline}>Update</Button>
                                 </div>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1083,3 +1099,4 @@ export default function DashboardPage() {
     
 
     
+

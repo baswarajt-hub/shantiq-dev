@@ -30,6 +30,7 @@ export default function DoctorPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
+  const [isQrCodeActive, setIsQrCodeActive] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -62,6 +63,9 @@ export default function DoctorPage() {
   }, []);
 
   const loadData = useCallback(() => {
+    // Don't refetch if a transition is in progress to avoid state overwrites
+    if (isPending) return;
+    
     startTransition(async () => {
       const [scheduleData, patientData, statusData] = await Promise.all([
         getDoctorScheduleAction(),
@@ -71,8 +75,9 @@ export default function DoctorPage() {
       setSchedule(scheduleData);
       setPatients(patientData);
       setDoctorStatus(statusData);
+      setIsQrCodeActive(statusData?.isQrCodeActive || false);
     });
-  }, []);
+  }, [isPending]);
 
   useEffect(() => {
     loadData();
@@ -102,15 +107,17 @@ export default function DoctorPage() {
   };
 
    const handleToggleQrCode = () => {
-        if (!doctorStatus) return;
+        const newQrStatus = !isQrCodeActive;
+        setIsQrCodeActive(newQrStatus); // Optimistic UI update
+
         startTransition(async () => {
-            const newStatus = { isQrCodeActive: !doctorStatus.isQrCodeActive };
-            const result = await setDoctorStatusAction(newStatus);
+            const result = await setDoctorStatusAction({ isQrCodeActive: newQrStatus });
             if (result?.error) {
+                setIsQrCodeActive(!newQrStatus); // Revert on error
                 toast({ title: 'Error', description: result.error, variant: 'destructive'});
             } else {
-                toast({ title: 'Success', description: `QR code display is now ${newStatus.isQrCodeActive ? 'active' : 'inactive'}.`});
-                loadData();
+                toast({ title: 'Success', description: `QR code display is now ${newQrStatus ? 'active' : 'inactive'}.`});
+                // No need to call loadData() here, as the polling will catch up
             }
         });
     }
@@ -221,9 +228,9 @@ export default function DoctorPage() {
                       <AccordionContent className="p-4 md:p-6 pt-2 bg-muted/50">
                           <div className="space-y-6">
                               <div className='flex items-center space-x-2 p-3 rounded-lg bg-background'>
-                                  <Switch id="qr-code-status" checked={doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} disabled={isPending}/>
+                                  <Switch id="qr-code-status" checked={isQrCodeActive} onCheckedChange={handleToggleQrCode} disabled={isPending}/>
                                   <Label htmlFor="qr-code-status" className={cn('flex items-center text-base')}>
-                                      <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
+                                      <QrCode className={cn("mr-2 h-5 w-5", isQrCodeActive ? "text-green-500" : "text-red-500")} />
                                       Walk-in QR Code on TV
                                   </Label>
                               </div>
