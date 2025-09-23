@@ -363,10 +363,10 @@ function QueueStatusPageContent() {
   
     const appointmentForSummary = targetAppointment && targetAppointment.id === parseInt(patientIdParam || '0', 10) ? targetAppointment : null;
     if (appointmentForSummary && appointmentForSummary.status === 'Completed') {
-        const lastCompletedId = localStorage.getItem('completedAppointmentId');
+        const lastCompletedId = sessionStorage.getItem('completedAppointmentId');
         if (lastCompletedId !== String(appointmentForSummary.id)) {
             setCompletedAppointmentForDisplay(appointmentForSummary);
-            localStorage.setItem('completedAppointmentId', String(appointmentForSummary.id));
+            sessionStorage.setItem('completedAppointmentId', String(appointmentForSummary.id));
         } else {
             setCompletedAppointmentForDisplay(null);
         }
