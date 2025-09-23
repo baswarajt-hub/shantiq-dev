@@ -40,7 +40,6 @@ function sessionLocalToUtc(dateStr: string, sessionTime: string) {
 
 /** Returns 'morning' | 'evening' or null */
 const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 'morning' | 'evening' | null => {
-  // Convert appointment instant to clinic local date to decide which day's schedule to use
   if (!schedule || !schedule.days) return null;
   const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
   const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
@@ -49,13 +48,24 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
 
   const dateStr = format(zonedAppt, 'yyyy-MM-dd');
 
-  let daySchedule = dayScheduleInfo;
+  let effectiveDaySchedule = {
+    morning: { ...dayScheduleInfo.morning },
+    evening: { ...dayScheduleInfo.evening }
+  };
   const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
   if (todayOverride) {
-    daySchedule = {
-      morning: todayOverride.morningOverride ?? daySchedule.morning,
-      evening: todayOverride.eveningOverride ?? daySchedule.evening,
-    };
+      if (todayOverride.morningOverride) {
+          effectiveDaySchedule.morning = todayOverride.morningOverride;
+      }
+       if (todayOverride.isMorningClosed) {
+          effectiveDaySchedule.morning.isOpen = false;
+      }
+       if (todayOverride.eveningOverride) {
+          effectiveDaySchedule.evening = todayOverride.eveningOverride;
+      }
+       if (todayOverride.isEveningClosed) {
+          effectiveDaySchedule.evening.isOpen = false;
+      }
   }
 
   const checkSession = (session: Session) => {
@@ -69,8 +79,8 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
     return apptMs >= startUtc.getTime() && apptMs < endUtc.getTime();
   };
 
-  if (checkSession(daySchedule.morning)) return 'morning';
-  if (checkSession(daySchedule.evening)) return 'evening';
+  if (checkSession(effectiveDaySchedule.morning)) return 'morning';
+  if (checkSession(effectiveDaySchedule.evening)) return 'evening';
   return null;
 };
 
