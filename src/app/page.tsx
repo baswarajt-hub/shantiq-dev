@@ -149,7 +149,6 @@ export default function DashboardPage() {
             // Prevent re-fetching if a server action is in progress to avoid state overwrites
             if (isPending) return;
 
-            await recalculateQueueWithETC();
             const [scheduleData, patientData, familyData, statusData] = await Promise.all([
                 getDoctorScheduleAction(),
                 getPatientsAction(),
@@ -1044,5 +1043,6 @@ export default function DashboardPage() {
     
 
     
+
 
 
