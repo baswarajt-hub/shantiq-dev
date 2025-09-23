@@ -67,6 +67,26 @@ const getPatientNameColorClass = (status: Patient['status'], type: Patient['type
     }
 }
 
+const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
+    <span className="font-medium text-3xl flex items-center gap-2 relative">
+      {anonymizeName(patient.name)}
+      <span className="absolute -top-2 -right-4 flex gap-1">
+        {patient.subType === 'Booked Walk-in' && (
+          <sup className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>
+        )}
+        {patient.lateBy && patient.lateBy > 0 && (
+          <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-xs font-bold">LATE</sup>
+        )}
+        {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
+          <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-xs font-bold">REPORT</sup>
+        )}
+        {patient.status === 'Priority' && (
+            <Shield className="h-6 w-6 text-red-600" title="Priority" />
+        )}
+      </span>
+    </span>
+  );
+
 function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null, schedule: DoctorSchedule | null }) {
   const timeZone = "Asia/Kolkata";
   if (!doctorStatus) return null;
@@ -139,10 +159,9 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
                     <Ticket className="h-6 w-6 text-sky-600"/>
                     <span className="font-bold text-sky-600">#{patient.tokenNo}</span>
                 </p>
-                <p className="text-3xl font-bold">
-                    {patient.name}
-                    {patient.subStatus === 'Reports' && <span className="text-2xl ml-2 font-semibold text-purple-600">(Reports)</span>}
-                </p>
+                <div className={cn("text-3xl font-bold", getPatientNameColorClass(patient.status, patient.type))}>
+                    <PatientNameWithBadges patient={patient} />
+                </div>
               </div>
            </div>
          )}
@@ -386,27 +405,6 @@ function TVDisplayPageContent() {
   const qrCodeUrl = baseUrl ? `${baseUrl}/walk-in` : '';
   const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
 
-
-  const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
-    <span className="font-medium text-3xl flex items-center gap-2 relative">
-      {anonymizeName(patient.name)}
-      <span className="absolute -top-2 -right-4 flex gap-1">
-        {patient.subType === 'Booked Walk-in' && (
-          <sup className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>
-        )}
-        {patient.lateBy && patient.lateBy > 0 && patient.status !== 'In-Consultation' && (
-          <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-xs font-bold">LATE</sup>
-        )}
-        {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
-          <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-xs font-bold">REPORT</sup>
-        )}
-        {patient.status === 'Priority' && (
-            <Shield className="h-6 w-6 text-red-600" title="Priority" />
-        )}
-      </span>
-    </span>
-  );
-  
   if (layout === '2') {
     return (
       <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-body p-4 gap-4">

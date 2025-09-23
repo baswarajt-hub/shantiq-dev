@@ -85,9 +85,10 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
       </CardHeader>
       {patient && (
         <CardContent className="p-4 pt-0">
-          <p className="text-3xl font-bold flex items-center justify-center gap-2">
+          <p className="text-3xl font-bold flex items-center justify-center gap-2 relative">
             <span className="text-sky-700">Token #{patient.tokenNo}</span>
-            {patient.subStatus === 'Reports' && <span className="text-xl font-semibold text-purple-600">(Reports)</span>}
+            {patient.subStatus === 'Reports' && <sup className="absolute -top-1 -right-2 inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-xs font-bold">REPORT</sup>}
+            {patient.subType === 'Booked Walk-in' && <sup className="absolute -top-1 -right-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
           </p>
         </CardContent>
       )}
@@ -119,9 +120,10 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
                 <CardDescription className="text-xs">Please proceed to the waiting area.</CardDescription>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-                <p className="text-3xl font-bold flex items-center justify-center gap-2">
+                <p className="text-3xl font-bold flex items-center justify-center gap-2 relative">
                   <span className="text-sky-700">Token #{patient.tokenNo}</span>
-                  {patient.status === 'Late' && patient.lateBy && patient.lateBy > 0 && <span className="text-xl font-semibold text-orange-600">(Late)</span>}
+                  {patient.lateBy && patient.lateBy > 0 && <sup className="absolute -top-1 -right-2 inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-xs font-bold">LATE</sup>}
+                  {patient.subType === 'Booked Walk-in' && <sup className="absolute -top-1 -right-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>}
                 </p>
                 <div className="text-muted-foreground flex items-center justify-center gap-2 mt-1 text-xs">
                     <Timer className="h-4 w-4"/> ETC: ~{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}
@@ -494,5 +496,3 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
-
-    
