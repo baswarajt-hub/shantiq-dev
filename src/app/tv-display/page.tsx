@@ -277,7 +277,7 @@ function TVDisplayPageContent() {
     }
     
     setCurrentSessionName(sessionToShow);
-    const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)));
+    const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)) && p.status !== 'Cancelled');
     const sessionPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
 
     setPatients(sessionPatients);
