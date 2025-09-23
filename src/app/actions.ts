@@ -1311,33 +1311,37 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
   
   let availableSlot: Date | null = null;
   
-  while (currentSlotTime < sessionEndUtc) {
-    const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
-    
-    if (!isBooked) {
-        let isReservedForWalkIn = false;
-        if (schedule.reserveFirstFive && slotIndex < 5) {
-            isReservedForWalkIn = true;
-        }
+  const reservationStrategy = schedule.walkInReservation;
 
-        const reservationStrategy = schedule.walkInReservation;
-        const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
-        if (slotIndex >= startIndexForAlternate) {
-            const relativeIndex = slotIndex - startIndexForAlternate;
-            if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-            if (reservationStrategy === 'alternateTwo' && (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)) isReservedForWalkIn = true;
-        }
+  // First, check for reserved walk-in slots
+  if (reservationStrategy !== 'none') {
+      while (currentSlotTime < sessionEndUtc) {
+        const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
+        
+        if (!isBooked) {
+            let isReservedForWalkIn = false;
+            if (schedule.reserveFirstFive && slotIndex < 5) {
+                isReservedForWalkIn = true;
+            }
 
-        if (isReservedForWalkIn) {
-          availableSlot = currentSlotTime;
-          break;
+            const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+            if (slotIndex >= startIndexForAlternate) {
+                const relativeIndex = slotIndex - startIndexForAlternate;
+                if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+                if (reservationStrategy === 'alternateTwo' && (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)) isReservedForWalkIn = true;
+            }
+
+            if (isReservedForWalkIn) {
+              availableSlot = currentSlotTime;
+              break;
+            }
         }
-    }
-    currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
-    slotIndex++;
+        currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
+        slotIndex++;
+      }
   }
 
-  // If no reserved slot was found, find the *very next* available unbooked slot from the aligned start time.
+  // If no reserved slot was found (or strategy is 'none'), find the *very next* available unbooked slot.
   if (!availableSlot) {
       currentSlotTime = addMinutes(sessionStartUtc, intervalsPast * schedule.slotDuration);
       while (currentSlotTime < sessionEndUtc) {
@@ -1364,3 +1368,4 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     
 
     
+
