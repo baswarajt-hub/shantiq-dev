@@ -526,13 +526,13 @@ export async function recalculateQueueWithETC() {
         if (now > patientCleanupTimeUtc) {
             sessionPatients.forEach(p => {
                 if (p.status === 'Waiting') {
-                     patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Completed' });
+                     patientUpdates.set(p.id.toString(), { ...patientUpdates.get(p.id.toString()), status: 'Completed' });
                 } else if (p.status === 'Booked' || p.status === 'Confirmed') {
-                     patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Missed' });
+                     patientUpdates.set(p.id.toString(), { ...patientUpdates.get(p.id.toString()), status: 'Missed' });
                 }
             });
              // Map again to include cleanup updates before continuing
-            sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
+            sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id.toString()) }));
         }
 
         if (now > doctorAutoOfflineTimeUtc) {
@@ -595,26 +595,26 @@ export async function recalculateQueueWithETC() {
             const worstCaseETC = new Date(
                 delayedClinicStartTime.getTime() + (p.tokenNo - 1) * schedule.slotDuration * 60000
             ).toISOString();
-            patientUpdates.set(p.id, { ...patientUpdates.get(p.id), worstCaseETC: worstCaseETC, slotTime: worstCaseETC });
+            patientUpdates.set(p.id.toString(), { ...patientUpdates.get(p.id.toString()), worstCaseETC: worstCaseETC, slotTime: worstCaseETC });
             
-            const currentUpdates = patientUpdates.get(p.id) || {};
+            const currentUpdates = patientUpdates.get(p.id.toString()) || {};
             if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && p.type === 'Appointment' && !p.lateLocked && toDate(p.checkInTime)! > toDate(worstCaseETC)!) {
                  const lateBy = differenceInMinutes(toDate(p.checkInTime)!, toDate(worstCaseETC)!);
-                 patientUpdates.set(p.id, { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
+                 patientUpdates.set(p.id.toString(), { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
             }
         });
 
-        let updatedSessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
+        let updatedSessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id.toString()) }));
 
         // Clear Up-Next status from anyone who has it, it will be reassigned.
         updatedSessionPatients.forEach(p => {
             if (p.status === 'Up-Next') {
-                const currentUpdates = patientUpdates.get(p.id) || {};
-                patientUpdates.set(p.id, { ...currentUpdates, status: 'Waiting' });
+                const currentUpdates = patientUpdates.get(p.id.toString()) || {};
+                patientUpdates.set(p.id.toString(), { ...currentUpdates, status: 'Waiting' });
             }
         });
         // Important: map again after clearing Up-Next to ensure subsequent logic uses the correct status
-        updatedSessionPatients = updatedSessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
+        updatedSessionPatients = updatedSessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id.toString()) }));
 
         const inConsultation = updatedSessionPatients.find(p => p.status === 'In-Consultation');
         
@@ -655,10 +655,10 @@ export async function recalculateQueueWithETC() {
         // Designate the new "Up-Next" patient
         if (liveQueue.length > 0) {
             const upNextPatient = liveQueue[0];
-            const currentUpdates = patientUpdates.get(upNextPatient.id) || {};
+            const currentUpdates = patientUpdates.get(upNextPatient.id.toString()) || {};
             // Only set to Up-Next if they are currently Waiting or Late (and not already Priority)
             if (['Waiting', 'Late'].includes(upNextPatient.status)) {
-                patientUpdates.set(upNextPatient.id, { ...currentUpdates, status: 'Up-Next' });
+                patientUpdates.set(upNextPatient.id.toString(), { ...currentUpdates, status: 'Up-Next' });
             }
         }
         
@@ -679,13 +679,13 @@ export async function recalculateQueueWithETC() {
             if (i === 0) {
                 bestCaseETCValue = effectiveDoctorStartTime;
             } else {
-                const previousPatientETC = patientUpdates.get(liveQueue[i - 1].id)?.bestCaseETC || liveQueue[i-1].bestCaseETC!;
+                const previousPatientETC = patientUpdates.get(liveQueue[i - 1].id.toString())?.bestCaseETC || liveQueue[i-1].bestCaseETC!;
                 bestCaseETCValue = new Date(
                     toDate(previousPatientETC)!.getTime() + schedule.slotDuration * 60000
                 );
             }
             
-            const currentUpdates = patientUpdates.get(p.id) || {};
+            const currentUpdates = patientUpdates.get(p.id.toString()) || {};
             let finalUpdates: Partial<Patient> = { ...currentUpdates, bestCaseETC: bestCaseETCValue.toISOString() };
 
             const worstETC = finalUpdates.worstCaseETC || p.worstCaseETC;
@@ -697,15 +697,15 @@ export async function recalculateQueueWithETC() {
                 finalUpdates.worstCaseETC = bestCaseETCValue.toISOString();
             }
 
-            patientUpdates.set(p.id, finalUpdates);
+            patientUpdates.set(p.id.toString(), finalUpdates);
         });
 
         if (inConsultation) {
-            const currentUpdates = patientUpdates.get(inConsultation.id) || {};
+            const currentUpdates = patientUpdates.get(inConsultation.id.toString()) || {};
             const bestETC = currentUpdates.bestCaseETC || inConsultation.bestCaseETC || inConsultation.consultationStartTime;
             if (bestETC) {
                 const worstETC = new Date(toDate(bestETC)!.getTime() + schedule.slotDuration * 60000).toISOString();
-                patientUpdates.set(inConsultation.id, { ...currentUpdates, worstCaseETC: worstETC });
+                patientUpdates.set(inConsultation.id.toString(), { ...currentUpdates, worstCaseETC: worstETC });
             }
         }
     }
@@ -715,8 +715,8 @@ export async function recalculateQueueWithETC() {
     }
     
     const updatedPatients = allPatients.map(p => {
-        if (patientUpdates.has(p.id)) {
-            return { ...p, ...patientUpdates.get(p.id) };
+        if (patientUpdates.has(p.id.toString())) {
+            return { ...p, ...patientUpdates.get(p.id.toString()) };
         }
         return p;
     });

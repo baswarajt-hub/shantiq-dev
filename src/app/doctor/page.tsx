@@ -75,9 +75,14 @@ export default function DoctorPage() {
       setSchedule(scheduleData);
       setPatients(patientData);
       setDoctorStatus(statusData);
-      setIsQrCodeActive(statusData?.isQrCodeActive || false);
     });
   }, [isPending]);
+  
+  useEffect(() => {
+    if (doctorStatus) {
+      setIsQrCodeActive(doctorStatus.isQrCodeActive || false);
+    }
+  }, [doctorStatus]);
 
   useEffect(() => {
     loadData();
