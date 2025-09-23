@@ -187,7 +187,7 @@ export default function DashboardPage() {
 
 
     const sessionPatients = patients.filter(p => {
-        if (!isToday(parseISO(p.appointmentTime))) return false;
+        if (!isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
         
         const apptDate = parseISO(p.appointmentTime);
         const apptSession = getSessionForTime(apptDate);
@@ -1043,6 +1043,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 

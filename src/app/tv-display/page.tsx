@@ -1,4 +1,5 @@
 
+
 'use client';
 import { recalculateQueueWithETC, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
@@ -727,3 +728,4 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
