@@ -51,10 +51,21 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
   const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
   
   const checkSession = (sessionName: 'morning' | 'evening') => {
-    const sessionDetails = todayOverride?.[`${sessionName}Override`] ?? dayScheduleInfo[sessionName];
-    const isClosed = todayOverride?.[sessionName === 'morning' ? 'isMorningClosed' : 'isEveningClosed'] ?? !sessionDetails.isOpen;
+    const sessionDetailsFromWeek = dayScheduleInfo[sessionName];
+    const isClosedFromWeek = !sessionDetailsFromWeek.isOpen;
+    
+    // Check special closure for the whole session
+    const isClosedByOverride = (sessionName === 'morning' && todayOverride?.isMorningClosed) || (sessionName === 'evening' && todayOverride?.isEveningClosed);
+    if(isClosedByOverride) return false;
 
-    if (isClosed) return false;
+    // Use override times if available, otherwise fall back to weekly schedule
+    const sessionDetails = todayOverride?.[`${sessionName}Override`] ?? sessionDetailsFromWeek;
+    
+    // If there's no override, check if the weekly session is open
+    if (!todayOverride?.[`${sessionName}Override`] && isClosedFromWeek) {
+        return false;
+    }
+
 
     const startUtc = sessionLocalToUtc(dateStr, sessionDetails.start);
     const endUtc = sessionLocalToUtc(dateStr, sessionDetails.end);
@@ -500,29 +511,8 @@ export async function recalculateQueueWithETC() {
     const patientUpdates = new Map<string, Partial<Patient>>();
     const sessions: ('morning' | 'evening')[] = ['morning', 'evening'];
     
-    // Auto-offline logic
-    const twoHoursAfterMorningEnd = daySchedule.morning.isOpen ? new Date(sessionLocalToUtc(todayStr, daySchedule.morning.end).getTime() + 2 * 60 * 60 * 1000) : null;
-    const twoHoursAfterEveningEnd = daySchedule.evening.isOpen ? new Date(sessionLocalToUtc(todayStr, daySchedule.evening.end).getTime() + 2 * 60 * 60 * 1000) : null;
-
-    let shouldGoOffline = false;
-    if (twoHoursAfterMorningEnd && now > twoHoursAfterMorningEnd && (!twoHoursAfterEveningEnd || now < twoHoursAfterEveningEnd)) {
-        // If it's after morning cleanup time but before evening cleanup time
-         const morningPatientsStillActive = allPatients.some(p => {
-             const session = getSessionForTime(schedule, parseISO(p.appointmentTime));
-             return session === 'morning' && ['Waiting', 'In-Consultation', 'Up-Next', 'Priority'].includes(p.status);
-         });
-         if (!morningPatientsStillActive) shouldGoOffline = true;
-    }
-    if (twoHoursAfterEveningEnd && now > twoHoursAfterEveningEnd) {
-        // After evening cleanup time, always go offline
-        shouldGoOffline = true;
-    }
-    
-    if (shouldGoOffline && (doctorStatus.isOnline || doctorStatus.isQrCodeActive)) {
-        await updateDoctorStatus({ isOnline: false, isQrCodeActive: false });
-        doctorStatus = await getDoctorStatusData();
-    }
-    // --- End auto-offline logic
+    // --- Manual QR Code Logic: remove auto-offline logic ---
+    // The QR code state is now fully manual and not tied to session times.
 
     for (const session of sessions) {
         const sessionTimes = daySchedule[session];
@@ -1310,23 +1300,18 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
       return { error: `The ${sessionName} session is over. Walk-ins are no longer accepted.` };
   }
 
-  // Find next available walk-in slot
-  let slotTime = sessionStartUtc;
-  const endTime = sessionEndUtc;
+  // Set the starting point for slot search to be 'now' or session start, whichever is later.
+  let searchStartTime = max([now, sessionStartUtc]);
 
+  // Align search start time to the next slot duration interval
+  const minutesFromSessionStart = differenceInMinutes(searchStartTime, sessionStartUtc);
+  const intervalsPast = Math.ceil(minutesFromSessionStart / schedule.slotDuration);
+  let currentSlotTime = addMinutes(sessionStartUtc, intervalsPast * schedule.slotDuration);
+  let slotIndex = intervalsPast;
+  
   let availableSlot: Date | null = null;
   
-  // Set the starting point for slot search to be 'now' or session start, whichever is later.
-  let searchStartTime = max([now, slotTime]);
-  
-  // Align search start time to the next slot duration interval
-  const minutesFromSessionStart = differenceInMinutes(searchStartTime, slotTime);
-  const intervalsPast = Math.ceil(minutesFromSessionStart / schedule.slotDuration);
-  let currentSlotTime = addMinutes(slotTime, intervalsPast * schedule.slotDuration);
-  let slotIndex = intervalsPast;
-
-
-  while (currentSlotTime < endTime) {
+  while (currentSlotTime < sessionEndUtc) {
     const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
     
     if (!isBooked) {
@@ -1352,14 +1337,10 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     slotIndex++;
   }
 
+  // If no reserved slot was found, find the *very next* available unbooked slot from the aligned start time.
   if (!availableSlot) {
-      // If no reserved slot found, find first unbooked slot from now
-      searchStartTime = max([now, slotTime]);
-      const minutesFromStart = differenceInMinutes(searchStartTime, slotTime);
-      const intervalsPast = Math.ceil(minutesFromStart / schedule.slotDuration);
-      currentSlotTime = addMinutes(slotTime, intervalsPast * schedule.slotDuration);
-
-      while (currentSlotTime < endTime) {
+      currentSlotTime = addMinutes(sessionStartUtc, intervalsPast * schedule.slotDuration);
+      while (currentSlotTime < sessionEndUtc) {
            const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
            if (!isBooked) {
                availableSlot = currentSlotTime;
