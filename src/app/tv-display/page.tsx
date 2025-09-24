@@ -440,12 +440,6 @@ function TVDisplayPageContent() {
                 </div>
               
               <div className="flex justify-center items-center gap-4 mt-2">
-                {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && !isSessionOver && (
-                    <div className="text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 bg-orange-100 text-orange-700 font-semibold">
-                        <AlertTriangle className="h-4 w-4" />
-                        Running late by {doctorStatus.startDelay} min.
-                    </div>
-                )}
                  <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
                     <div className="flex items-center gap-2 font-semibold text-amber-800">
                         <Activity className="h-6 w-6" />
@@ -728,4 +722,3 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
-
