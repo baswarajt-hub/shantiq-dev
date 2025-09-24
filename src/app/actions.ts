@@ -1322,52 +1322,18 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     if (currentSlotTime < searchStartTime) {
         currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
     }
-
-    let slotIndex = intervalsPast;
     
     let availableSlot: Date | null = null;
     
-    const reservationStrategy = schedule.walkInReservation;
-
-    // First pass: try to find a reserved slot if applicable
-    if (reservationStrategy !== 'none') {
-        let tempSlotTime = new Date(currentSlotTime.getTime());
-        let tempSlotIndex = slotIndex;
-        while (tempSlotTime < sessionEndUtc) {
-            const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), tempSlotTime)) < 1);
-            
-            if (!isBooked) {
-                let isReservedForWalkIn = false;
-                if (schedule.reserveFirstFive && tempSlotIndex < 5) {
-                    isReservedForWalkIn = true;
-                }
-                const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
-                if (tempSlotIndex >= startIndexForAlternate) {
-                    const relativeIndex = tempSlotIndex - startIndexForAlternate;
-                    if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-                    if (reservationStrategy === 'alternateTwo' && (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)) isReservedForWalkIn = true;
-                }
-                if (isReservedForWalkIn) {
-                    availableSlot = tempSlotTime;
-                    break;
-                }
-            }
-            tempSlotTime = addMinutes(tempSlotTime, schedule.slotDuration);
-            tempSlotIndex++;
+    // Find the very next available slot, ignoring any reservation strategies.
+    let tempSlotTime = new Date(currentSlotTime.getTime());
+    while (tempSlotTime < sessionEndUtc) {
+        const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), tempSlotTime)) < 1);
+        if (!isBooked) {
+            availableSlot = tempSlotTime;
+            break;
         }
-    }
-
-    // Second pass: if no reserved slot is found (or strategy is 'none'), find ANY available slot
-    if (!availableSlot) {
-        let tempSlotTime = new Date(currentSlotTime.getTime());
-        while (tempSlotTime < sessionEndUtc) {
-            const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), tempSlotTime)) < 1);
-            if (!isBooked) {
-                availableSlot = tempSlotTime;
-                break;
-            }
-            tempSlotTime = addMinutes(tempSlotTime, schedule.slotDuration);
-        }
+        tempSlotTime = addMinutes(tempSlotTime, schedule.slotDuration);
     }
 
     if (!availableSlot) {
@@ -1393,5 +1359,6 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
 
     
+
 
 
