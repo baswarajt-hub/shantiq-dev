@@ -37,6 +37,30 @@ type TimeSlot = {
   patientDetails?: Partial<FamilyMember>;
 }
 
+const PatientNameWithBadges = ({ patient, isAnonymized = false }: { patient: Patient, isAnonymized?: boolean }) => {
+  const nameToDisplay = patient.name;
+  return (
+    <span className="flex items-center gap-2 font-semibold relative">
+      {nameToDisplay}
+        <span className="flex gap-1">
+            {patient.subType === 'Booked Walk-in' && (
+            <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
+            )}
+            {patient.lateBy && patient.lateBy > 0 && (
+            <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">LATE</sup>
+            )}
+            {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
+            <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">REPORT</sup>
+            )}
+            {patient.status === 'Priority' && (
+                <Shield className="h-4 w-4 text-red-600" title="Priority" />
+            )}
+        </span>
+    </span>
+  );
+};
+
+
 const statusConfig = {
     Waiting: { icon: Clock, color: 'text-blue-600' },
     'Up-Next': { icon: ChevronsRight, color: 'text-yellow-600' },
@@ -164,7 +188,6 @@ export default function DashboardPage() {
             setSelectedSession('evening');
         }
         
-        // Re-introduce polling at a safer interval
         const intervalId = setInterval(loadData, 30000); // 30 seconds
         return () => clearInterval(intervalId);
 
@@ -621,14 +644,13 @@ export default function DashboardPage() {
 
                 <div className="flex-1 flex flex-col gap-1">
                     <div className={cn(
-                        'flex items-center gap-2 font-semibold',
+                        'flex items-center gap-2',
                         getPatientNameColorClass(patient.status, patient.type)
                     )}>
                         {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={patient.purpose} />}
-                        {patientDetails.name}
+                        <PatientNameWithBadges patient={patient} />
                         {patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : patientDetails.gender === 'Female' ? <FemaleIcon className="h-4 w-4 text-pink-500" /> : null}
                         <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
-                        {patient.status === 'Priority' && <Badge variant="destructive">Priority</Badge>}
                     </div>
                     <div className='flex items-center gap-2 text-xs text-muted-foreground'>
                         <Timer className="h-4 w-4" />
@@ -902,8 +924,7 @@ export default function DashboardPage() {
                                             </div>
                                              <div className="flex-1 flex flex-col gap-1">
                                                 <div className="flex items-center gap-2 font-semibold text-blue-600">
-                                                    {nowServing.name}
-                                                    {nowServing.subStatus === 'Reports' && <span className="text-sm ml-2 font-semibold text-purple-600">(Reports)</span>}
+                                                    <PatientNameWithBadges patient={nowServing} />
                                                 </div>
                                              </div>
                                              <div className="flex items-center gap-2">
@@ -1032,6 +1053,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 

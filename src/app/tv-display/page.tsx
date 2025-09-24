@@ -68,18 +68,20 @@ const getPatientNameColorClass = (status: Patient['status'], type: Patient['type
     }
 }
 
-const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
+const PatientNameWithBadges = ({ patient, isAnonymized = true }: { patient: Patient, isAnonymized?: boolean }) => {
+  const nameToDisplay = isAnonymized ? anonymizeName(patient.name) : patient.name;
+  return (
     <span className="font-medium text-3xl flex items-center gap-2 relative">
-      {anonymizeName(patient.name)}
-      <span className="absolute -top-2 -right-4 flex gap-1">
+      {nameToDisplay}
+      <span className="absolute -top-2 -right-4 flex gap-1 transform translate-x-full">
         {patient.subType === 'Booked Walk-in' && (
-          <sup className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">B</sup>
+          <sup className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold" title="Booked Walk-in">B</sup>
         )}
         {patient.lateBy && patient.lateBy > 0 && (
-          <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-xs font-bold">LATE</sup>
+          <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-xs font-bold" title="Late">LATE</sup>
         )}
         {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
-          <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-xs font-bold">REPORT</sup>
+          <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-xs font-bold" title="Waiting for Reports">REPORT</sup>
         )}
         {patient.status === 'Priority' && (
             <Shield className="h-6 w-6 text-red-600" title="Priority" />
@@ -87,6 +89,8 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
       </span>
     </span>
   );
+};
+
 
 function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null, schedule: DoctorSchedule | null }) {
   const timeZone = "Asia/Kolkata";
@@ -131,7 +135,7 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
 
   if (doctorStatus.startDelay && doctorStatus.startDelay > 0 && isOffline && !isSessionOver) {
     TitleIcon = AlertTriangle;
-    titleText = `Running late by ${doctorStatus.startDelay} min`;
+    titleText = `Running late`;
   } else if (doctorStatus.isPaused) {
     TitleIcon = Pause;
     titleText = 'Queue Paused';
