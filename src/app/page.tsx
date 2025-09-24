@@ -822,21 +822,21 @@ export default function DashboardPage() {
                             </div>
                              <div className="flex items-center gap-2 flex-wrap">
                                  <div className="flex items-center space-x-2">
-                                    <Switch id="doctor-status" checked={doctorStatus.isOnline} onCheckedChange={() => handleToggleStatus('isOnline')} disabled={isPending || !canDoctorCheckIn}/>
-                                    <Label htmlFor="doctor-status" className={cn('flex items-center text-sm', !canDoctorCheckIn && 'text-muted-foreground')}>
+                                    <Switch id="doctor-status" checked={doctorStatus.isOnline} onCheckedChange={() => handleToggleStatus('isOnline')} disabled={isPending}/>
+                                    <Label htmlFor="doctor-status" className="flex items-center text-sm">
                                         {doctorStatus.isOnline ? <LogIn className="mr-2 h-4 w-4 text-green-500" /> : <LogOut className="mr-2 h-4 w-4 text-red-500" />}
                                         {doctorStatus.isOnline ? `Online (since ${doctorOnlineTime})` : 'Offline'}
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
-                                    <Switch id="pause-queue" checked={!!doctorStatus.isPaused} onCheckedChange={() => handleToggleStatus('isPaused')} disabled={isPending || !doctorStatus.isOnline}/>
+                                    <Switch id="pause-queue" checked={!!doctorStatus.isPaused} onCheckedChange={() => handleToggleStatus('isPaused')} disabled={isPending}/>
                                     <Label htmlFor="pause-queue" className='flex items-center text-sm'>
                                         {doctorStatus.isPaused ? <Pause className="mr-2 h-4 w-4 text-orange-500" /> : <Play className="mr-2 h-4 w-4 text-green-500" />}
                                         {doctorStatus.isPaused ? 'Queue Paused' : 'Queue Active'}
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
-                                    <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} />
+                                    <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending} />
                                     <Label htmlFor="qr-code-status" className={cn('flex items-center text-sm')}>
                                         <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
                                         QR Code
@@ -844,8 +844,8 @@ export default function DashboardPage() {
                                 </div>
                                 <div className='flex items-center space-x-2'>
                                     <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
-                                    <Input id="doctor-delay" type="number" defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending || doctorStatus.isOnline} />
-                                    <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={isPending || doctorStatus.isOnline}>Update</Button>
+                                    <Input id="doctor-delay" type="number" defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending} />
+                                    <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={isPending}>Update</Button>
                                 </div>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1060,6 +1060,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
