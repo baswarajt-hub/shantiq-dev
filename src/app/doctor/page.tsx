@@ -62,9 +62,6 @@ export default function DoctorPage() {
   }, []);
 
   const loadData = useCallback(() => {
-    // Don't refetch if a transition is in progress to avoid state overwrites
-    if (isPending) return;
-    
     startTransition(async () => {
       const [scheduleData, patientData, statusData] = await Promise.all([
         getDoctorScheduleAction(),
@@ -75,13 +72,26 @@ export default function DoctorPage() {
       setPatients(patientData);
       setDoctorStatus(statusData);
     });
-  }, [isPending]);
+  }, []);
   
   useEffect(() => {
     loadData();
     const intervalId = setInterval(loadData, 5000); // Poll every 5 seconds for faster updates
     return () => clearInterval(intervalId);
   }, [loadData]);
+
+   const handleToggleQrCode = () => {
+    if (!doctorStatus) return;
+    startTransition(async () => {
+        const result = await setDoctorStatusAction({ isQrCodeActive: !doctorStatus.isQrCodeActive });
+        if (result.error) {
+            toast({ title: 'Error', description: `Failed to update QR code status.`, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: `QR Code is now ${!doctorStatus.isQrCodeActive ? 'active' : 'inactive'}.` });
+            // The polling will update the state, no need for manual state update here to prevent race conditions.
+        }
+    });
+  };
   
   const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
     const result = await updateNotificationsAction(updatedNotifications);
@@ -210,11 +220,11 @@ export default function DoctorPage() {
                       <AccordionContent className="p-4 md:p-6 pt-2 bg-muted/50">
                           <div className="space-y-6">
                               <div className='flex items-center space-x-2 p-3 rounded-lg bg-background'>
-                                  <div className={cn('flex items-center text-base font-medium rounded-full px-3 py-1', doctorStatus.isQrCodeActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                                      <QrCode className="mr-2 h-5 w-5" />
-                                      Walk-in QR Code: {doctorStatus.isQrCodeActive ? 'Active' : 'Inactive'}
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">Controlled from the main Receptionist Dashboard.</p>
+                                 <Label htmlFor="qr-code-status" className={cn('flex items-center text-base font-medium')}>
+                                    <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
+                                     Walk-in QR Code
+                                  </Label>
+                                  <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} disabled={isPending}/>
                               </div>
                              <DoctorNotificationForm 
                                 initialNotifications={schedule.notifications}

@@ -96,9 +96,6 @@ export default function DashboardPage() {
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [averageConsultationTime, setAverageConsultationTime] = useState(0);
     
-    // Optimistic UI state
-    const [optimisticDoctorStatus, setOptimisticDoctorStatus] = useState<DoctorStatus | null>(null);
-
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
@@ -160,35 +157,14 @@ export default function DashboardPage() {
 
 
     useEffect(() => {
-        // Run once on mount
-        startTransition(() => {
-            loadData();
-        });
-
-        const currentHour = new Date().getHours();
-        if (currentHour >= 14) {
-            setSelectedSession('evening');
-        }
-
-        // Set up polling interval
-        const intervalId = setInterval(() => {
-            startTransition(() => {
-                loadData();
-            });
-        }, 15000); // Poll every 15 seconds
-
-        return () => clearInterval(intervalId);
+      startTransition(() => {
+        loadData();
+      });
+      const currentHour = new Date().getHours();
+      if (currentHour >= 14) {
+          setSelectedSession('evening');
+      }
     }, [loadData, isPending]);
-
-    // Effect to sync optimistic state with the fetched doctor status
-    useEffect(() => {
-        // Only update optimistic state if no pending transition is happening
-        // to avoid overwriting an optimistic update with stale server data.
-        if (!isPending) {
-             setOptimisticDoctorStatus(doctorStatus);
-        }
-    }, [doctorStatus, isPending]);
-
 
     const sessionPatients = patients.filter(p => {
         if (!isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
@@ -463,40 +439,27 @@ export default function DashboardPage() {
     };
 
     const handleToggleStatus = (field: keyof DoctorStatus) => {
-        if (!optimisticDoctorStatus) return;
+        if (!doctorStatus) return;
 
-        const newStatusValue = !optimisticDoctorStatus[field];
+        const newStatusValue = !doctorStatus[field];
+        let updates: Partial<DoctorStatus> = { [field]: newStatusValue };
+    
+        if (field === 'isOnline') {
+            if (newStatusValue) { // Going online
+                updates.startDelay = 0; 
+                updates.onlineTime = new Date().toISOString();
+            } else { // Going offline
+                updates.onlineTime = undefined;
+                if(doctorStatus.isPaused) updates.isPaused = false;
+            }
+        }
         
-        let newStatus: DoctorStatus = { ...optimisticDoctorStatus, [field]: newStatusValue };
-
-        if (field === 'isOnline' && newStatusValue) {
-            newStatus = { ...newStatus, startDelay: 0 };
-        }
-        if (field === 'isOnline' && !newStatusValue && optimisticDoctorStatus.isPaused) {
-             newStatus = { ...newStatus, isPaused: false };
-        }
-
-        setOptimisticDoctorStatus(newStatus); // Optimistic update
-
         startTransition(async () => {
-             const updates: Partial<DoctorStatus> = { [field]: newStatusValue };
-             if (field === 'isOnline' && newStatusValue) {
-                updates.startDelay = 0;
-             }
-             if (field === 'isOnline' && !newStatusValue && optimisticDoctorStatus.isPaused) {
-                 updates.isPaused = false;
-             }
-
             const result = await setDoctorStatusAction(updates);
             if (result.error) {
-                setOptimisticDoctorStatus(doctorStatus); // Revert on error
                 toast({ title: 'Error', description: `Failed to update status.`, variant: 'destructive' });
             } else {
-                let successMessage = `Doctor status updated.`;
-                if(field === 'isQrCodeActive') {
-                    successMessage = `QR code display is now ${newStatusValue ? 'active' : 'inactive'}.`;
-                }
-                toast({ title: 'Success', description: successMessage });
+                toast({ title: 'Success', description: result.success });
             }
         });
     };
@@ -586,7 +549,7 @@ export default function DashboardPage() {
     const canDoctorCheckIn = isToday(selectedDate);
 
 
-    if (!schedule || !optimisticDoctorStatus) {
+    if (!schedule || !doctorStatus) {
         return (
             <div className="flex flex-col min-h-screen bg-background">
                 <Header logoSrc={null} clinicName={null} />
@@ -608,7 +571,7 @@ export default function DashboardPage() {
         );
     }
     
-    const doctorOnlineTime = optimisticDoctorStatus.onlineTime ? new Date(optimisticDoctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    const doctorOnlineTime = doctorStatus.onlineTime ? new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
 
     const PatientCard = ({ patient }: { patient: Patient }) => {
@@ -666,12 +629,12 @@ export default function DashboardPage() {
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-check-in text-check-in-foreground hover:bg-check-in/90">Check-in</Button>
                             )}
                              {isNextInLine && !isUpNext && (
-                                <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !optimisticDoctorStatus?.isOnline}>
+                                <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
                                     <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                 </Button>
                             )}
                             {isLastInQueue && (
-                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !optimisticDoctorStatus?.isOnline}>
+                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline}>
                                      <LogIn className="mr-2 h-4 w-4" /> Start Consultation
                                 </Button>
                             )}
@@ -683,7 +646,7 @@ export default function DashboardPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     {isActionable && !isNextInLine && !isUpNext && (
-                                         <DropdownMenuItem onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !optimisticDoctorStatus?.isOnline}>
+                                         <DropdownMenuItem onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
                                             <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                         </DropdownMenuItem>
                                     )}
@@ -711,7 +674,7 @@ export default function DashboardPage() {
                                         </DropdownMenuItem>
                                     )}
                                     {patient.status === 'Waiting for Reports' && (
-                                        <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'In-Consultation')} disabled={isPending || !optimisticDoctorStatus?.isOnline}>
+                                        <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus?.isOnline}>
                                             <ChevronsRight className="mr-2 h-4 w-4" />
                                             Consult (Reports)
                                         </DropdownMenuItem>
@@ -808,30 +771,30 @@ export default function DashboardPage() {
                             </div>
                              <div className="flex items-center gap-2 flex-wrap">
                                  <div className="flex items-center space-x-2">
-                                    <Switch id="doctor-status" checked={optimisticDoctorStatus.isOnline} onCheckedChange={() => handleToggleStatus('isOnline')} disabled={isPending || !canDoctorCheckIn}/>
+                                    <Switch id="doctor-status" checked={doctorStatus.isOnline} onCheckedChange={() => handleToggleStatus('isOnline')} disabled={isPending || !canDoctorCheckIn}/>
                                     <Label htmlFor="doctor-status" className={cn('flex items-center text-sm', !canDoctorCheckIn && 'text-muted-foreground')}>
-                                        {optimisticDoctorStatus.isOnline ? <LogIn className="mr-2 h-4 w-4 text-green-500" /> : <LogOut className="mr-2 h-4 w-4 text-red-500" />}
-                                        {optimisticDoctorStatus.isOnline ? `Online (since ${doctorOnlineTime})` : 'Offline'}
+                                        {doctorStatus.isOnline ? <LogIn className="mr-2 h-4 w-4 text-green-500" /> : <LogOut className="mr-2 h-4 w-4 text-red-500" />}
+                                        {doctorStatus.isOnline ? `Online (since ${doctorOnlineTime})` : 'Offline'}
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
-                                    <Switch id="pause-queue" checked={optimisticDoctorStatus.isPaused} onCheckedChange={() => handleToggleStatus('isPaused')} disabled={isPending || !optimisticDoctorStatus.isOnline}/>
+                                    <Switch id="pause-queue" checked={!!doctorStatus.isPaused} onCheckedChange={() => handleToggleStatus('isPaused')} disabled={isPending || !doctorStatus.isOnline}/>
                                     <Label htmlFor="pause-queue" className='flex items-center text-sm'>
-                                        {optimisticDoctorStatus.isPaused ? <Pause className="mr-2 h-4 w-4 text-orange-500" /> : <Play className="mr-2 h-4 w-4 text-green-500" />}
-                                        {optimisticDoctorStatus.isPaused ? 'Queue Paused' : 'Queue Active'}
+                                        {doctorStatus.isPaused ? <Pause className="mr-2 h-4 w-4 text-orange-500" /> : <Play className="mr-2 h-4 w-4 text-green-500" />}
+                                        {doctorStatus.isPaused ? 'Queue Paused' : 'Queue Active'}
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
-                                    <Switch id="qr-code-status" checked={optimisticDoctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending}/>
+                                    <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending}/>
                                     <Label htmlFor="qr-code-status" className={cn('flex items-center text-sm')}>
-                                        <QrCode className={cn("mr-2 h-5 w-5", optimisticDoctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
+                                        <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
                                         QR Code
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
                                     <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
-                                    <Input id="doctor-delay" type="number" defaultValue={optimisticDoctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending || optimisticDoctorStatus.isOnline} />
-                                    <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={isPending || optimisticDoctorStatus.isOnline}>Update</Button>
+                                    <Input id="doctor-delay" type="number" defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending || doctorStatus.isOnline} />
+                                    <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={isPending || doctorStatus.isOnline}>Update</Button>
                                 </div>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1047,6 +1010,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
