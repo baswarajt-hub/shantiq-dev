@@ -163,6 +163,11 @@ export default function DashboardPage() {
         if (currentHour >= 14) {
             setSelectedSession('evening');
         }
+        
+        // Re-introduce polling at a safer interval
+        const intervalId = setInterval(loadData, 30000); // 30 seconds
+        return () => clearInterval(intervalId);
+
     }, [loadData]);
 
 
@@ -298,7 +303,7 @@ export default function DashboardPage() {
         }
     };
     
-    const handleBookAppointment = async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
+    const handleBookAppointment = useCallback(async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
         startTransition(async () => {
              const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn);
 
@@ -309,9 +314,9 @@ export default function DashboardPage() {
                 toast({ title: "Error", description: result.error, variant: 'destructive'});
             }
         });
-    };
+    }, [loadData, toast]);
 
-    const handleAddNewPatient = async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
+    const handleAddNewPatient = useCallback(async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
         const result = await addNewPatientAction(newPatientData);
         if (result.patient) {
             toast({ title: "Success", description: result.success});
@@ -320,14 +325,14 @@ export default function DashboardPage() {
         }
         toast({ title: "Error", description: result.error, variant: 'destructive'});
         return null;
-    };
+    }, [loadData, toast]);
 
     const handleOpenReschedule = (patient: Patient) => {
         setSelectedPatient(patient);
         setRescheduleOpen(true);
     };
 
-    const handleReschedule = (newDate: string, newTime: string, newPurpose: string) => {
+    const handleReschedule = useCallback((newDate: string, newTime: string, newPurpose: string) => {
         if (selectedPatient) {
             startTransition(async () => {
                 const dateObj = parse(newDate, 'yyyy-MM-dd', new Date());
@@ -343,9 +348,9 @@ export default function DashboardPage() {
                 }
             });
         }
-    };
+    }, [selectedPatient, loadData, toast]);
 
-    const handleUpdateStatus = (patientId: number, status: Patient['status']) => {
+    const handleUpdateStatus = useCallback((patientId: number, status: Patient['status']) => {
         startTransition(async () => {
             const result = await updatePatientStatusAction(patientId, status);
             if (result?.error) {
@@ -355,9 +360,9 @@ export default function DashboardPage() {
                 loadData();
             }
         });
-    };
+    }, [loadData, toast]);
     
-    const handleStartLastConsultation = (patientId: number) => {
+    const handleStartLastConsultation = useCallback((patientId: number) => {
         startTransition(async () => {
             const result = await startLastConsultationAction(patientId);
             if (result?.error) {
@@ -367,9 +372,9 @@ export default function DashboardPage() {
                 loadData();
             }
         });
-    };
+    }, [loadData, toast]);
 
-    const handleAdvanceQueue = (patientId: number) => {
+    const handleAdvanceQueue = useCallback((patientId: number) => {
       startTransition(async () => {
           const result = await advanceQueueAction(patientId);
           if (result?.error) {
@@ -379,9 +384,9 @@ export default function DashboardPage() {
               loadData();
           }
       });
-  };
+  }, [loadData, toast]);
 
-    const handleUpdatePurpose = (patientId: number, purpose: string) => {
+    const handleUpdatePurpose = useCallback((patientId: number, purpose: string) => {
         startTransition(async () => {
             const result = await updatePatientPurposeAction(patientId, purpose);
             if (result?.error) {
@@ -391,9 +396,9 @@ export default function DashboardPage() {
                 loadData();
             }
         });
-    }
+    }, [loadData, toast]);
 
-    const handleSendReminder = (patientId: number) => {
+    const handleSendReminder = useCallback((patientId: number) => {
         startTransition(async () => {
             const result = await sendReminderAction(patientId);
             if (result?.error) {
@@ -403,10 +408,10 @@ export default function DashboardPage() {
                 loadData();
             }
         });
-    };
+    }, [loadData, toast]);
 
 
-    const handleCancelAppointment = (patientId: number) => {
+    const handleCancelAppointment = useCallback((patientId: number) => {
         startTransition(async () => {
             const result = await cancelAppointmentAction(patientId);
             if (result.success) {
@@ -416,9 +421,9 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
             }
         });
-    };
+    }, [loadData, toast]);
 
-    const handleCheckIn = (patientId: number) => {
+    const handleCheckIn = useCallback((patientId: number) => {
         startTransition(async () => {
             const result = await checkInPatientAction(patientId);
             if (result?.error) {
@@ -428,9 +433,9 @@ export default function DashboardPage() {
                 loadData();
             }
         });
-    };
+    }, [loadData, toast]);
 
-    const handleAdjustTiming = async (override: SpecialClosure) => {
+    const handleAdjustTiming = useCallback(async (override: SpecialClosure) => {
         const result = await updateTodayScheduleOverrideAction(override);
         if (result.error) {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -438,7 +443,7 @@ export default function DashboardPage() {
             toast({ title: 'Success', description: result.success });
             loadData();
         }
-    };
+    }, [loadData, toast]);
     
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
@@ -449,7 +454,7 @@ export default function DashboardPage() {
         setNewPatientOpen(true);
     };
 
-    const handleToggleStatus = (field: keyof DoctorStatus) => {
+    const handleToggleStatus = useCallback((field: keyof DoctorStatus) => {
         if (!doctorStatus) return;
 
         const newStatusValue = !doctorStatus[field];
@@ -474,9 +479,9 @@ export default function DashboardPage() {
                 loadData();
             }
         });
-    };
+    }, [doctorStatus, loadData, toast]);
     
-    const handleUpdateDelay = () => {
+    const handleUpdateDelay = useCallback(() => {
         const delayInput = document.getElementById('doctor-delay') as HTMLInputElement;
         if (delayInput) {
             const delayValue = parseInt(delayInput.value, 10) || 0;
@@ -490,9 +495,9 @@ export default function DashboardPage() {
                 }
             });
         }
-    };
+    }, [loadData, toast]);
     
-    const handleMarkAsLateAndCheckIn = (patientId: number, penalty: number) => {
+    const handleMarkAsLateAndCheckIn = useCallback((patientId: number, penalty: number) => {
         startTransition(async () => {
             const result = await markPatientAsLateAndCheckInAction(patientId, penalty);
             if (result?.error) {
@@ -502,9 +507,9 @@ export default function DashboardPage() {
                 loadData();
             }
         });
-    };
+    }, [loadData, toast]);
 
-    const handleRunRecalculation = () => {
+    const handleRunRecalculation = useCallback(() => {
         startTransition(async () => {
             const result = await recalculateQueueWithETC();
             if (result?.error) {
@@ -514,8 +519,9 @@ export default function DashboardPage() {
                 loadData();
             }
         });
-    };
-    const handleEmergencyCancel = () => {
+    }, [loadData, toast]);
+
+    const handleEmergencyCancel = useCallback(() => {
         startTransition(async () => {
             const result = await emergencyCancelAction();
             if (result?.error) {
@@ -525,7 +531,7 @@ export default function DashboardPage() {
                 loadData();
             }
         });
-    };
+    }, [loadData, toast]);
     
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
     const upNext = sessionPatients.find(p => p.status === 'Up-Next');
@@ -1026,6 +1032,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
