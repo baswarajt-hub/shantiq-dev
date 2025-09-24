@@ -480,8 +480,14 @@ export default function DashboardPage() {
     const handleToggleStatus = useCallback((field: keyof DoctorStatus) => {
         if (!doctorStatus) return;
 
-        const newStatusValue = !doctorStatus[field];
+        let newStatusValue = !doctorStatus[field];
         let updates: Partial<DoctorStatus> = { [field]: newStatusValue };
+
+        if (field === 'isQrCodeActive' && newStatusValue) {
+          // Logic to generate a new token is handled in the server action
+        } else if (field === 'isQrCodeActive' && !newStatusValue) {
+          updates.walkInSessionToken = null;
+        }
     
         if (field === 'isOnline') {
             if (newStatusValue) { // Going online
@@ -597,7 +603,6 @@ export default function DashboardPage() {
     if (!schedule || !doctorStatus) {
         return (
             <div className="flex flex-col min-h-screen bg-background">
-                <Header logoSrc={null} clinicName={null} />
                 <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                     <div className="space-y-6">
                         <Skeleton className="h-12 w-1/3" />
@@ -783,7 +788,6 @@ export default function DashboardPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
-            <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
                     <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
@@ -1053,6 +1057,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 

@@ -165,84 +165,78 @@ export default function DoctorPage() {
 
   if (!schedule || !doctorStatus || (isPending && !patients.length)) {
     return (
-      <div className="flex flex-col min-h-screen bg-muted/40">
-        <DoctorHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
-        <main className="flex-1 p-4 space-y-6">
-          <div className="mx-auto w-full max-w-4xl space-y-6">
-            <Skeleton className="h-12 w-1/3" />
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Skeleton className="h-28" />
-              <Skeleton className="h-28" />
-              <Skeleton className="h-28" />
-              <Skeleton className="h-28" />
-            </div>
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
+      <main className="flex-1 p-4 space-y-6">
+        <div className="mx-auto w-full max-w-4xl space-y-6">
+          <Skeleton className="h-12 w-1/3" />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
           </div>
-        </main>
-      </div>
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-muted/40">
-      <DoctorHeader logoSrc={schedule.clinicDetails?.clinicLogo} clinicName={schedule.clinicDetails?.clinicName} />
-      <main className="flex-1 p-4 space-y-6">
-        <div className="mx-auto w-full max-w-4xl space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold">Doctor's Panel</h1>
-            <p className="text-muted-foreground text-lg">
-              {format(new Date(), 'EEEE, MMMM d')} - 
-              <span className={cn("font-semibold", currentSession === 'morning' ? 'text-amber-600' : 'text-blue-600')}>
-                {currentSession === 'morning' ? ' Morning Session' : ' Evening Session'}
-              </span>
-            </p>
-          </div>
-          
-          <DoctorStats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
-
-          <div className="grid gap-6 md:grid-cols-2">
-              <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />
-              <InfoCards schedule={schedule} />
-          </div>
-          
-          <Card>
-              <CardContent className="p-0">
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="item-1">
-                      <AccordionTrigger className="px-6 text-lg font-semibold">
-                          <div className="flex items-center gap-2">
-                              <SlidersHorizontal className="h-5 w-5" />
-                              Advanced Settings
-                          </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="p-4 md:p-6 pt-2 bg-muted/50">
-                          <div className="space-y-6">
-                              <div className='flex items-center space-x-2 p-3 rounded-lg bg-background'>
-                                 <Label htmlFor="qr-code-status" className={cn('flex items-center text-base font-medium')}>
-                                    <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
-                                     Walk-in QR Code
-                                  </Label>
-                                  <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} />
-                              </div>
-                             <DoctorNotificationForm 
-                                initialNotifications={schedule.notifications}
-                                onSave={handleNotificationsSave}
-                              />
-                              <SpecialClosures 
-                                  schedule={schedule}
-                                  onSave={handleClosuresSave}
-                              />
-                          </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-              </CardContent>
-          </Card>
-          
-          <DoctorQueue patients={sessionPatients} onUpdate={loadData} />
+    <main className="flex-1 p-4 space-y-6">
+      <div className="mx-auto w-full max-w-4xl space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Doctor's Panel</h1>
+          <p className="text-muted-foreground text-lg">
+            {format(new Date(), 'EEEE, MMMM d')} - 
+            <span className={cn("font-semibold", currentSession === 'morning' ? 'text-amber-600' : 'text-blue-600')}>
+              {currentSession === 'morning' ? ' Morning Session' : ' Evening Session'}
+            </span>
+          </p>
         </div>
-      </main>
-    </div>
+        
+        <DoctorStats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
+
+        <div className="grid gap-6 md:grid-cols-2">
+            <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />
+            <InfoCards schedule={schedule} />
+        </div>
+        
+        <Card>
+            <CardContent className="p-0">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="item-1">
+                    <AccordionTrigger className="px-6 text-lg font-semibold">
+                        <div className="flex items-center gap-2">
+                            <SlidersHorizontal className="h-5 w-5" />
+                            Advanced Settings
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-4 md:p-6 pt-2 bg-muted/50">
+                        <div className="space-y-6">
+                            <div className='flex items-center space-x-2 p-3 rounded-lg bg-background'>
+                               <Label htmlFor="qr-code-status" className={cn('flex items-center text-base font-medium')}>
+                                  <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
+                                   Walk-in QR Code
+                                </Label>
+                                <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} />
+                            </div>
+                           <DoctorNotificationForm 
+                              initialNotifications={schedule.notifications}
+                              onSave={handleNotificationsSave}
+                            />
+                            <SpecialClosures 
+                                schedule={schedule}
+                                onSave={handleClosuresSave}
+                            />
+                        </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+            </CardContent>
+        </Card>
+        
+        <DoctorQueue patients={sessionPatients} onUpdate={loadData} />
+      </div>
+    </main>
   );
 }

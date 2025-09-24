@@ -1,16 +1,14 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import Header from '@/components/header';
 import { ScheduleForm } from '@/components/admin/schedule-form';
 import { getDoctorScheduleAction, updateDoctorScheduleAction, updatePaymentGatewaySettingsAction } from '@/app/actions';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
 import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction, updateNotificationsAction, updateSmsSettingsAction } from '../actions';
+import { updateSpecialClosuresAction, updateVisitPurposesAction, updateClinicDetailsAction, updateNotificationsAction, updateSmsSettingsAction } from '../../actions';
 import { useToast } from '@/hooks/use-toast';
 import { VisitPurposeForm } from '@/components/admin/visit-purpose-form';
 import { ClinicDetailsForm } from '@/components/admin/clinic-details-form';
@@ -120,87 +118,78 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-background">
-        <Header logoSrc={null} />
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
-           <div className="mx-auto w-full max-w-4xl space-y-8">
-            <div>
-                <Skeleton className="h-12 w-1/3" />
-                <Skeleton className="h-8 w-2/3 mt-2" />
-            </div>
-            <Skeleton className="h-96 w-full" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-96 w-full" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-96 w-full" />
+      <main className="flex-1 p-4 md:p-6 lg:p-8">
+         <div className="mx-auto w-full max-w-4xl space-y-8">
+          <div>
+              <Skeleton className="h-12 w-1/3" />
+              <Skeleton className="h-8 w-2/3 mt-2" />
           </div>
-        </main>
-      </div>
+          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </main>
     );
   }
 
   if (!schedule) {
     return (
-      <div className="flex flex-col min-h-screen bg-background">
-        <Header logoSrc={null} />
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
-           <p className="text-center">Could not load schedule. Please try again later.</p>
-        </main>
-      </div>
+      <main className="flex-1 p-4 md:p-6 lg:p-8">
+         <p className="text-center">Could not load schedule. Please try again later.</p>
+      </main>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header logoSrc={schedule.clinicDetails?.clinicLogo} clinicName={schedule.clinicDetails?.clinicName} />
-      <main className="flex-1 p-4 md:p-6 lg:p-8">
-        <div className="mx-auto w-full max-w-4xl space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Admin Settings</h1>
-            <p className="text-muted-foreground">Manage clinic details, doctor's schedule, and special closures.</p>
-          </div>
-
-          <div className="space-y-8">
-            <PatientImport />
-            <Separator />
-            <ClinicDetailsForm
-              initialDetails={schedule.clinicDetails}
-              onSave={handleClinicDetailsSave}
-            />
-            <Separator />
-            <SmsSettingsForm
-              initialSettings={schedule.smsSettings}
-              onSave={handleSmsSettingsSave}
-            />
-            <Separator />
-            <PaymentGatewaySettingsForm
-              initialSettings={schedule.paymentGatewaySettings}
-              onSave={handlePaymentGatewaySettingsSave}
-            />
-            <Separator />
-            <NotificationForm 
-              initialNotifications={schedule.notifications}
-              onSave={handleNotificationsSave}
-            />
-            <Separator />
-            <ScheduleForm 
-                initialSchedule={schedule} 
-                onSave={handleScheduleSave} 
-            />
-            <Separator />
-             <VisitPurposeForm 
-              initialPurposes={schedule.visitPurposes}
-              onSave={handleVisitPurposesSave}
-            />
-            <Separator />
-            <SpecialClosures 
-                schedule={schedule}
-                onSave={handleClosuresSave}
-            />
-          </div>
+    <main className="flex-1 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-4xl space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Admin Settings</h1>
+          <p className="text-muted-foreground">Manage clinic details, doctor's schedule, and special closures.</p>
         </div>
-      </main>
-    </div>
+
+        <div className="space-y-8">
+          <PatientImport />
+          <Separator />
+          <ClinicDetailsForm
+            initialDetails={schedule.clinicDetails}
+            onSave={handleClinicDetailsSave}
+          />
+          <Separator />
+          <SmsSettingsForm
+            initialSettings={schedule.smsSettings}
+            onSave={handleSmsSettingsSave}
+          />
+          <Separator />
+          <PaymentGatewaySettingsForm
+            initialSettings={schedule.paymentGatewaySettings}
+            onSave={handlePaymentGatewaySettingsSave}
+          />
+          <Separator />
+          <NotificationForm 
+            initialNotifications={schedule.notifications}
+            onSave={handleNotificationsSave}
+          />
+          <Separator />
+          <ScheduleForm 
+              initialSchedule={schedule} 
+              onSave={handleScheduleSave} 
+          />
+          <Separator />
+           <VisitPurposeForm 
+            initialPurposes={schedule.visitPurposes}
+            onSave={handleVisitPurposesSave}
+          />
+          <Separator />
+          <SpecialClosures 
+              schedule={schedule}
+              onSave={handleClosuresSave}
+          />
+        </div>
+      </div>
+    </main>
   );
 }
     

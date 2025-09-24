@@ -102,7 +102,7 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
   let daySchedule;
   if (schedule) {
     const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
-    daySchedule = todayOverride
+    daySchedule = todayOverride 
         ? {
             morning: todayOverride.morningOverride ?? schedule.days[dayName].morning,
             evening: todayOverride.eveningOverride ?? schedule.days[dayName].evening
@@ -400,14 +400,6 @@ function TVDisplayPageContent() {
     };
   }
 
-  const now = new Date();
-  
-  let isSessionOver = false;
-  if (currentSessionName && todaySchedule[currentSessionName]?.isOpen) {
-      const sessionEndUTC = fromZonedTime(parseDateFn(`${todayStr} ${todaySchedule[currentSessionName].end}`, 'yyyy-MM-dd HH:mm', new Date()), timeZone);
-      isSessionOver = now > sessionEndUTC;
-  }
-
   const qrCodeUrl = baseUrl && doctorStatus.walkInSessionToken ? `${baseUrl}/walk-in?token=${doctorStatus.walkInSessionToken}` : '';
   const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
 
@@ -439,10 +431,6 @@ function TVDisplayPageContent() {
                 <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
               </div>
               <p className="text-lg text-slate-500">{qualifications}</p>
-               <div className={cn("text-md px-3 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                    {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-                    {doctorStatus.isOnline ? 'Online' : 'Offline'}
-                </div>
               
               <div className="flex justify-center items-center gap-4 mt-2">
                  <div className="text-lg p-2 rounded-md bg-amber-100/50 border border-amber-200">
@@ -608,10 +596,6 @@ function TVDisplayPageContent() {
           <div className="flex flex-col items-center justify-center">
               <h2 className="text-4xl font-bold text-slate-900">{doctorName}</h2>
               <p className="text-lg text-slate-500">{qualifications}</p>
-               <div className={cn("text-md px-3 mt-2 py-0.5 rounded-full inline-flex items-center gap-2 font-semibold", doctorStatus.isOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                  {doctorStatus.isOnline ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-                  {doctorStatus.isOnline ? 'Online' : 'Offline'}
-              </div>
           </div>
 
           <div className="flex justify-center">
