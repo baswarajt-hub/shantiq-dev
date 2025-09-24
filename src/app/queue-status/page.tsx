@@ -26,9 +26,21 @@ function sessionLocalToUtc(dateStr: string, sessionTime: string) {
   return fromZonedTime(localDate, timeZone);
 }
 
-const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
+const anonymizeName = (name: string) => {
+  if (!name) return '';
+  const parts = name.split(' ');
+  if (parts.length > 1) {
+    return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
+  }
+  return parts[0];
+};
+
+
+const PatientNameWithBadges = ({ patient, isAnonymized = false }: { patient: Patient, isAnonymized?: boolean }) => {
+  const nameToDisplay = isAnonymized ? anonymizeName(patient.name) : patient.name;
+  return (
     <span className="font-bold flex items-center gap-2 relative">
-      {patient.name}
+      {nameToDisplay}
       <span className="flex gap-1">
         {patient.subType === 'Booked Walk-in' && (
           <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
@@ -44,7 +56,8 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
         )}
       </span>
     </span>
-);
+  );
+};
 
 function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null, schedule: DoctorSchedule | null }) {
   const timeZone = "Asia/Kolkata";
