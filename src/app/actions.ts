@@ -1284,6 +1284,9 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     targetSessionDetails = morningDetails;
   } else if (eveningDetails && now < eveningDetails.endUtc) {
     targetSessionDetails = eveningDetails;
+  } else if (morningDetails && eveningDetails && now > morningDetails.endUtc && now < eveningDetails.startUtc) {
+    // If it's between sessions, assign to the upcoming evening session
+    targetSessionDetails = eveningDetails;
   }
 
   if (!targetSessionDetails) {
@@ -1343,7 +1346,14 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
   // If no reserved slot was found (or strategy is 'none'), find the *very next* available unbooked slot.
   if (!availableSlot) {
-      currentSlotTime = addMinutes(sessionStartUtc, intervalsPast * schedule.slotDuration);
+      // Recalculate the starting point for a fresh search
+      const alignedMinutesFromStart = differenceInMinutes(searchStartTime, sessionStartUtc);
+      const alignedIntervalsPast = Math.floor(alignedMinutesFromStart / schedule.slotDuration);
+      currentSlotTime = addMinutes(sessionStartUtc, alignedIntervalsPast * schedule.slotDuration);
+      if (currentSlotTime < searchStartTime) {
+          currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
+      }
+      
       while (currentSlotTime < sessionEndUtc) {
            const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
            if (!isBooked) {
@@ -1368,4 +1378,5 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     
 
     
+
 
