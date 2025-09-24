@@ -340,8 +340,7 @@ function QueueStatusPageContent() {
     let appointmentsToShow: Patient[] = [];
   
     if (patientIdParam) {
-      const id = parseInt(patientIdParam, 10);
-      targetAppointment = todaysPatients.find((p: Patient) => p.id === id) || null;
+      targetAppointment = todaysPatients.find((p: Patient) => p.id === patientIdParam) || null;
       if (targetAppointment) {
           appointmentsToShow = [targetAppointment];
       }
@@ -365,7 +364,7 @@ function QueueStatusPageContent() {
     const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     setAllSessionPatients(filteredPatientsForSession);
   
-    const appointmentForSummary = targetAppointment && patientIdParam && targetAppointment.id === parseInt(patientIdParam, 10) ? targetAppointment : null;
+    const appointmentForSummary = targetAppointment && patientIdParam && targetAppointment.id === patientIdParam ? targetAppointment : null;
     
     if (appointmentForSummary && appointmentForSummary.status === 'Completed') {
         const lastCompletedId = sessionStorage.getItem('completedAppointmentId');
@@ -497,3 +496,5 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
+
+    
