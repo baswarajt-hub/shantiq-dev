@@ -213,7 +213,15 @@ export async function getDoctorStatus(): Promise<DoctorStatus> {
 
 export async function updateDoctorStatus(statusUpdate: Partial<DoctorStatus>): Promise<DoctorStatus> {
   const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-  const newStatus = { ...(settings.status || defaultStatus), ...statusUpdate };
+  
+  // Create a clean update object, converting undefined to null
+  const firestoreUpdates: { [key: string]: any } = {};
+  for (const [key, value] of Object.entries(statusUpdate)) {
+    firestoreUpdates[key] = value === undefined ? null : value;
+  }
+  
+  const newStatus = { ...(settings.status || defaultStatus), ...firestoreUpdates };
+  
   await setDoc(settingsDoc, { status: newStatus }, { merge: true });
   return newStatus;
 }

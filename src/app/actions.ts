@@ -322,7 +322,7 @@ export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
     if (status.isQrCodeActive) {
         updates.walkInSessionToken = randomBytes(16).toString('hex');
     } else if (status.isQrCodeActive === false) {
-        updates.walkInSessionToken = undefined;
+        updates.walkInSessionToken = null;
     }
 
     await updateDoctorStatus(updates);
@@ -1342,6 +1342,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
 
     
+
 
 
 
