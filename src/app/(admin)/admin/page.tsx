@@ -16,6 +16,7 @@ import { NotificationForm } from '@/components/admin/notification-form';
 import { SmsSettingsForm } from '@/components/admin/sms-settings-form';
 import { PaymentGatewaySettingsForm } from '@/components/admin/payment-gateway-settings-form';
 import { PatientImport } from '@/components/admin/patient-import';
+import Header from '@/components/header';
 
 export default function AdminPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -143,53 +144,56 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="flex-1 p-4 md:p-6 lg:p-8">
-      <div className="mx-auto w-full max-w-4xl space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Admin Settings</h1>
-          <p className="text-muted-foreground">Manage clinic details, doctor's schedule, and special closures.</p>
-        </div>
+    <>
+      <Header logoSrc={schedule.clinicDetails?.clinicLogo} clinicName={schedule.clinicDetails?.clinicName} />
+      <main className="flex-1 p-4 md:p-6 lg:p-8">
+        <div className="mx-auto w-full max-w-4xl space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Admin Settings</h1>
+            <p className="text-muted-foreground">Manage clinic details, doctor's schedule, and special closures.</p>
+          </div>
 
-        <div className="space-y-8">
-          <PatientImport />
-          <Separator />
-          <ClinicDetailsForm
-            initialDetails={schedule.clinicDetails}
-            onSave={handleClinicDetailsSave}
-          />
-          <Separator />
-          <SmsSettingsForm
-            initialSettings={schedule.smsSettings}
-            onSave={handleSmsSettingsSave}
-          />
-          <Separator />
-          <PaymentGatewaySettingsForm
-            initialSettings={schedule.paymentGatewaySettings}
-            onSave={handlePaymentGatewaySettingsSave}
-          />
-          <Separator />
-          <NotificationForm 
-            initialNotifications={schedule.notifications}
-            onSave={handleNotificationsSave}
-          />
-          <Separator />
-          <ScheduleForm 
-              initialSchedule={schedule} 
-              onSave={handleScheduleSave} 
-          />
-          <Separator />
-           <VisitPurposeForm 
-            initialPurposes={schedule.visitPurposes}
-            onSave={handleVisitPurposesSave}
-          />
-          <Separator />
-          <SpecialClosures 
-              schedule={schedule}
-              onSave={handleClosuresSave}
-          />
+          <div className="space-y-8">
+            <PatientImport />
+            <Separator />
+            <ClinicDetailsForm
+              initialDetails={schedule.clinicDetails}
+              onSave={handleClinicDetailsSave}
+            />
+            <Separator />
+            <SmsSettingsForm
+              initialSettings={schedule.smsSettings}
+              onSave={handleSmsSettingsSave}
+            />
+            <Separator />
+            <PaymentGatewaySettingsForm
+              initialSettings={schedule.paymentGatewaySettings}
+              onSave={handlePaymentGatewaySettingsSave}
+            />
+            <Separator />
+            <NotificationForm 
+              initialNotifications={schedule.notifications}
+              onSave={handleNotificationsSave}
+            />
+            <Separator />
+            <ScheduleForm 
+                initialSchedule={schedule} 
+                onSave={handleScheduleSave} 
+            />
+            <Separator />
+             <VisitPurposeForm 
+              initialPurposes={schedule.visitPurposes}
+              onSave={handleVisitPurposesSave}
+            />
+            <Separator />
+            <SpecialClosures 
+                schedule={schedule}
+                onSave={handleClosuresSave}
+            />
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
     
