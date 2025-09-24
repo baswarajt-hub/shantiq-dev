@@ -309,17 +309,24 @@ function QueueStatusPageContent() {
 
   useEffect(() => {
     const userPhone = localStorage.getItem('userPhone');
-    if (!userPhone) {
+    const patientIdParam = searchParams.get('id');
+    
+    // A walk-in user might not have a phone in localStorage, but will have an ID in the URL.
+    // A logged-in user might not have an ID in the URL.
+    // If neither is present, redirect.
+    if (!userPhone && !patientIdParam) {
       router.push('/login');
     } else {
-      setPhone(userPhone);
+      // Set phone state if it exists, for polling purposes, but prioritize URL param for initial fetch.
+      if (userPhone) setPhone(userPhone);
     }
-  }, [router]);
+  }, [router, searchParams]);
   
   const fetchData = useCallback(async () => {
     const userPhone = localStorage.getItem('userPhone');
     const patientIdParam = searchParams.get('id');
-    if (!userPhone) return;
+    
+    if (!userPhone && !patientIdParam) return;
   
     const [allPatientData, statusRes, scheduleData] = await Promise.all([
       getPatientsAction(),
@@ -339,15 +346,15 @@ function QueueStatusPageContent() {
     if (patientIdParam) {
       const id = parseInt(patientIdParam, 10);
       targetAppointment = todaysPatients.find((p: Patient) => p.id === id) || null;
-    }
-  
-    if (!targetAppointment) {
+      if (targetAppointment) {
+          appointmentsToShow = [targetAppointment];
+      }
+    } else if (userPhone) {
+      // Fallback to phone number only if no valid ID is in the URL
       appointmentsToShow = todaysPatients.filter(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled');
       if (appointmentsToShow.length > 0) {
         targetAppointment = appointmentsToShow[0];
       }
-    } else {
-      appointmentsToShow = [targetAppointment];
     }
   
     setPatientsToDisplay(appointmentsToShow);
@@ -381,11 +388,12 @@ function QueueStatusPageContent() {
 
 
   useEffect(() => {
-    if (phone) {
-        fetchData();
-        const intervalId = setInterval(() => fetchData(), 15000);
-        return () => clearInterval(intervalId);
-    }
+    // This effect handles the initial data load and sets up polling.
+    // It depends on `phone`, which is set after checking localStorage.
+    // The `fetchData` itself is smart enough to use either the URL param or the phone number.
+    fetchData();
+    const intervalId = setInterval(() => fetchData(), 15000);
+    return () => clearInterval(intervalId);
   }, [fetchData, phone]);
   
   const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
@@ -402,7 +410,7 @@ function QueueStatusPageContent() {
         return timeA - timeB;
     });
 
-  if (!phone) {
+  if (!schedule && !doctorStatus) {
       return (
           <div className="flex flex-col min-h-screen bg-muted/40">
               <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
