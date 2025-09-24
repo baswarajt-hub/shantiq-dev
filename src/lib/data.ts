@@ -20,8 +20,8 @@ async function getSingletonDoc<T>(docRef: any, defaultData: T): Promise<T> {
     if (docSnap.exists()) {
       // Ensure nested objects exist to prevent runtime errors on partial data
       const data = docSnap.data() as T;
-      if ('schedule' in data && data.schedule && typeof data.schedule === 'object') {
-        const schedule = data.schedule as DoctorSchedule;
+      if (data && typeof data === 'object' && 'schedule' in data && (data as any).schedule && typeof (data as any).schedule === 'object') {
+        const schedule = (data as any).schedule as DoctorSchedule;
         if (!schedule.specialClosures) schedule.specialClosures = [];
         if (!schedule.visitPurposes) schedule.visitPurposes = [];
         if (!schedule.notifications) schedule.notifications = [];
@@ -148,7 +148,7 @@ const defaultStatus: DoctorStatus = {
   startDelay: 0,
   isPaused: false,
   isQrCodeActive: false,
-  walkInSessionToken: undefined,
+  walkInSessionToken: null,
 };
 
 const defaultDays = (): DoctorSchedule['days'] => {
@@ -227,16 +227,7 @@ export async function updateDoctorStatus(statusUpdate: Partial<DoctorStatus>): P
 }
 
 export async function getDoctorSchedule(): Promise<DoctorSchedule> {
-  const settingsDocRef = doc(db, 'settings', 'singleton');
-  const docSnap = await getDoc(settingsDocRef);
-
-  if (!docSnap.exists()) {
-    // If the document doesn't exist, create it with the full default schedule.
-    await setDoc(settingsDocRef, { schedule: defaultSchedule, status: defaultStatus });
-    return JSON.parse(JSON.stringify(defaultSchedule));
-  }
-
-  const settings = docSnap.data() as { schedule?: Partial<DoctorSchedule>, status?: DoctorStatus };
+  const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
   const data = settings.schedule || {};
 
   // Normalize the fetched data to ensure all fields are present.
