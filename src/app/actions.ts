@@ -1304,36 +1304,18 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
         return { error: `The ${sessionName} session is over. Walk-ins are no longer accepted.` };
     }
 
-    // Correctly determine where to start searching for a slot
-    let searchStartTime: Date;
-    if (now < sessionStartUtc) {
-        // If before session starts, start searching from the session start time
-        searchStartTime = sessionStartUtc;
-    } else {
-        // If during the session, start searching from now
-        searchStartTime = now;
-    }
-
-    const minutesFromSessionStart = differenceInMinutes(searchStartTime, sessionStartUtc);
-    const intervalsPast = Math.max(0, Math.floor(minutesFromSessionStart / schedule.slotDuration));
-    let currentSlotTime = addMinutes(sessionStartUtc, intervalsPast * schedule.slotDuration);
-    
-    // Ensure the first slot we check is not in the past relative to searchStartTime
-    if (currentSlotTime < searchStartTime) {
-        currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
-    }
+    // Always start searching for a slot from the beginning of the session.
+    let currentSlotTime = new Date(sessionStartUtc.getTime());
     
     let availableSlot: Date | null = null;
     
-    // Find the very next available slot, ignoring any reservation strategies.
-    let tempSlotTime = new Date(currentSlotTime.getTime());
-    while (tempSlotTime < sessionEndUtc) {
-        const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), tempSlotTime)) < 1);
+    while (currentSlotTime < sessionEndUtc) {
+        const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
         if (!isBooked) {
-            availableSlot = tempSlotTime;
+            availableSlot = currentSlotTime;
             break;
         }
-        tempSlotTime = addMinutes(tempSlotTime, schedule.slotDuration);
+        currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
     }
 
     if (!availableSlot) {
@@ -1359,6 +1341,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
 
     
+
 
 
 
