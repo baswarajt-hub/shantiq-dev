@@ -3,7 +3,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -208,7 +208,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
         lateAnchors: undefined,
         lateLockedAt: undefined
       };
-      await updatePatient(currentlyServing.id, completedUpdates);
+      await updatePatient(currentlyServing.id.toString(), completedUpdates);
     }
     
     updates.consultationStartTime = new Date().toISOString();
@@ -227,7 +227,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     updates.subStatus = undefined;
   }
 
-  await updatePatient(patientId, updates);
+  await updatePatient(patientId.toString(), updates);
   await recalculateQueueWithETC();
 
   revalidatePath('/');
@@ -274,7 +274,7 @@ export async function runTimeEstimationAction(aiPatientData: AIPatientData) {
 }
 
 export async function sendReminderAction(patientId: number) {
-  const patient = await findPatientById(patientId);
+  const patient = await findPatientById(patientId.toString());
   if (!patient) {
     return { error: 'Patient not found' };
   }
@@ -468,7 +468,7 @@ export async function searchFamilyMembersAction(searchTerm: string) {
 }
 
 export async function checkInPatientAction(patientId: number) {
-  const patient = await findPatientById(patientId);
+  const patient = await findPatientById(patientId.toString());
   if (!patient) {
     return { error: 'Patient not found' };
   }
@@ -742,7 +742,7 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
 }
 
 export async function updatePatientPurposeAction(patientId: number, purpose: string) {
-    await updatePatient(patientId, { purpose });
+    await updatePatient(patientId.toString(), { purpose });
     await recalculateQueueWithETC();
     revalidatePath('/');
     revalidatePath('/dashboard');
@@ -842,7 +842,7 @@ revalidatePath('/');
 }
 
 export async function cancelAppointmentAction(appointmentId: number) {
-    const patient = await cancelAppointment(appointmentId);
+    const patient = await cancelAppointment(appointmentId.toString());
 if (patient) {
         await recalculateQueueWithETC();
         revalidatePath('/');
@@ -859,7 +859,7 @@ if (patient) {
 }
 
 export async function rescheduleAppointmentAction(appointmentId: number, newAppointmentTime: string, newPurpose: string) {
-    const patient = await findPatientById(appointmentId);
+    const patient = await findPatientById(appointmentId.toString());
     if (!patient) {
         return { error: 'Patient not found' };
     }
@@ -897,7 +897,7 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
     // --- End Recalculation ---
     
 
-    await updatePatient(appointmentId, { 
+    await updatePatient(appointmentId.toString(), { 
         appointmentTime: newAppointmentTime, 
         slotTime: newAppointmentTime,
         purpose: newPurpose,
@@ -935,7 +935,7 @@ export async function getFamilyAction() {
 
 export async function markPatientAsLateAndCheckInAction(patientId: number, penalty: number) {
   const allPatients = await getPatientsData();
-  const patient = allPatients.find((p: Patient) => p.id === patientId);
+  const patient = allPatients.find((p: Patient) => p.id === patientId.toString());
   if (!patient) return { error: 'Patient not found.' };
 
   const now = new Date();
@@ -947,7 +947,7 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
   const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
   const waitingSnapshot = allPatients
     .filter((p: Patient) => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === todayStr)
-    .filter((p: Patient) => p.id !== patientId && ['Waiting', 'Up-Next', 'Late', 'Priority'].includes(p.status))
+    .filter((p: Patient) => p.id !== patientId.toString() && ['Waiting', 'Up-Next', 'Late', 'Priority'].includes(p.status))
     .sort((a: Patient, b: Patient) => {
        if (a.status === 'Priority' && b.status !== 'Priority') return -1;
        if (a.status !== 'Priority' && b.status === 'Priority') return 1;
@@ -968,7 +968,7 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
     lateLockedAt: now.toISOString()
   };
 
-  await updatePatient(patientId, updates);
+  await updatePatient(patient.id, updates);
 
   await recalculateQueueWithETC();
 
@@ -1100,7 +1100,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
   }
 
   // Step 3: Set the selected patient to 'Up-Next'
-  await updatePatient(patientIdToBecomeUpNext, { status: 'Up-Next' });
+  await updatePatient(patientIdToBecomeUpNext.toString(), { status: 'Up-Next' });
 
   // Recalculate the entire queue with the new statuses
   await recalculateQueueWithETC();
@@ -1136,7 +1136,7 @@ export async function startLastConsultationAction(patientId: number) {
   }
 
   // Step 2: Move the target patient (who was Up-Next) to In-Consultation
-  await updatePatient(patientId, {
+  await updatePatient(patientId.toString(), {
     status: 'In-Consultation',
     consultationStartTime: new Date().toISOString(),
     lateLocked: false,
@@ -1328,6 +1328,15 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }
 
+export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avatar'>[]) {
+    try {
+        const result = await batchImportFamilyMembers(data);
+        return { success: `Successfully imported ${result.successCount} patient records. Skipped ${result.skippedCount} duplicates.` };
+    } catch (e: any) {
+        console.error("Patient import failed:", e);
+        return { error: `An error occurred during import: ${e.message}` };
+    }
+}
     
 
     
@@ -1342,6 +1351,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
 
     
+
 
 
 

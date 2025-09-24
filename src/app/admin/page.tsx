@@ -17,6 +17,7 @@ import { ClinicDetailsForm } from '@/components/admin/clinic-details-form';
 import { NotificationForm } from '@/components/admin/notification-form';
 import { SmsSettingsForm } from '@/components/admin/sms-settings-form';
 import { PaymentGatewaySettingsForm } from '@/components/admin/payment-gateway-settings-form';
+import { PatientImport } from '@/components/admin/patient-import';
 
 export default function AdminPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -160,6 +161,8 @@ export default function AdminPage() {
           </div>
 
           <div className="space-y-8">
+            <PatientImport />
+            <Separator />
             <ClinicDetailsForm
               initialDetails={schedule.clinicDetails}
               onSave={handleClinicDetailsSave}

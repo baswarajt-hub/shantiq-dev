@@ -362,6 +362,39 @@ export async function updateFamilyMember(updatedMember: FamilyMember): Promise<F
     return updatedMember;
 }
 
+export async function batchImportFamilyMembers(members: Omit<FamilyMember, 'id' | 'avatar'>[]): Promise<{ successCount: number, skippedCount: number }> {
+    let successCount = 0;
+    let skippedCount = 0;
+    const batch = writeBatch(db);
+
+    // Fetch all existing family members once to check for duplicates in memory
+    const existingFamilySnapshot = await getDocs(familyCollection);
+    const existingMembers = existingFamilySnapshot.docs.map(doc => doc.data() as FamilyMember);
+
+    for (const member of members) {
+        // Check for duplicates based on phone and name
+        const isDuplicate = existingMembers.some(
+            existing => existing.phone === member.phone && existing.name.toLowerCase() === member.name.toLowerCase()
+        );
+
+        if (isDuplicate) {
+            skippedCount++;
+            continue;
+        }
+
+        const newDocRef = doc(familyCollection); // Create a new document reference
+        const memberWithAvatar = {
+            ...member,
+            avatar: `https://picsum.photos/seed/${Math.random()}/200/200`,
+        };
+        batch.set(newDocRef, memberWithAvatar);
+        successCount++;
+    }
+
+    await batch.commit();
+    return { successCount, skippedCount };
+}
+
 
 export async function cancelAppointment(appointmentId: string): Promise<Patient | undefined> {
     const patient = await findPatientById(appointmentId);
