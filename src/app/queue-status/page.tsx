@@ -311,13 +311,9 @@ function QueueStatusPageContent() {
     const userPhone = localStorage.getItem('userPhone');
     const patientIdParam = searchParams.get('id');
     
-    // A walk-in user might not have a phone in localStorage, but will have an ID in the URL.
-    // A logged-in user might not have an ID in the URL.
-    // If neither is present, redirect.
     if (!userPhone && !patientIdParam) {
       router.push('/login');
     } else {
-      // Set phone state if it exists, for polling purposes, but prioritize URL param for initial fetch.
       if (userPhone) setPhone(userPhone);
     }
   }, [router, searchParams]);
@@ -350,7 +346,6 @@ function QueueStatusPageContent() {
           appointmentsToShow = [targetAppointment];
       }
     } else if (userPhone) {
-      // Fallback to phone number only if no valid ID is in the URL
       appointmentsToShow = todaysPatients.filter(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled');
       if (appointmentsToShow.length > 0) {
         targetAppointment = appointmentsToShow[0];
@@ -370,7 +365,8 @@ function QueueStatusPageContent() {
     const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     setAllSessionPatients(filteredPatientsForSession);
   
-    const appointmentForSummary = targetAppointment && targetAppointment.id === parseInt(patientIdParam || '0', 10) ? targetAppointment : null;
+    const appointmentForSummary = targetAppointment && patientIdParam && targetAppointment.id === parseInt(patientIdParam, 10) ? targetAppointment : null;
+    
     if (appointmentForSummary && appointmentForSummary.status === 'Completed') {
         const lastCompletedId = sessionStorage.getItem('completedAppointmentId');
         if (lastCompletedId !== String(appointmentForSummary.id)) {
@@ -388,9 +384,6 @@ function QueueStatusPageContent() {
 
 
   useEffect(() => {
-    // This effect handles the initial data load and sets up polling.
-    // It depends on `phone`, which is set after checking localStorage.
-    // The `fetchData` itself is smart enough to use either the URL param or the phone number.
     fetchData();
     const intervalId = setInterval(() => fetchData(), 15000);
     return () => clearInterval(intervalId);
