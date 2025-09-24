@@ -1243,139 +1243,126 @@ export async function getEasebuzzAccessKey(amount: number, email: string, phone:
 }
 
 export async function joinQueueAction(member: FamilyMember, purpose: string) {
-  const schedule = await getDoctorScheduleData();
-  const allPatients = await getPatientsData();
+    const schedule = await getDoctorScheduleData();
+    const allPatients = await getPatientsData();
 
-  if (!schedule) return { error: 'Clinic schedule not found.' };
+    if (!schedule) return { error: 'Clinic schedule not found.' };
 
-  const now = new Date();
-  const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-  const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+    const now = new Date();
+    const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+    const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
-  let daySchedule = schedule.days[dayOfWeek];
-  if (!daySchedule) return { error: 'Clinic schedule not set for today.' };
+    let daySchedule = schedule.days[dayOfWeek];
+    if (!daySchedule) return { error: 'Clinic schedule not set for today.' };
 
-  const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
-  if (specialClosure) {
-    daySchedule = {
-      morning: specialClosure.morningOverride ?? daySchedule.morning,
-      evening: specialClosure.eveningOverride ?? daySchedule.evening,
-    };
-  }
+    const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
+    if (specialClosure) {
+        daySchedule = {
+            morning: specialClosure.morningOverride ?? daySchedule.morning,
+            evening: specialClosure.eveningOverride ?? daySchedule.evening,
+        };
+    }
 
-  const getSessionDetails = (sessionName: 'morning' | 'evening'): { name: 'morning' | 'evening'; schedule: Session; startUtc: Date, endUtc: Date } | null => {
-    const session = daySchedule[sessionName];
-    const isClosedByOverride = sessionName === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
-    if (!session.isOpen || isClosedByOverride) return null;
-    
-    return {
-      name: sessionName,
-      schedule: session,
-      startUtc: sessionLocalToUtc(todayStr, session.start),
-      endUtc: sessionLocalToUtc(todayStr, session.end)
-    };
-  };
-
-  const morningDetails = getSessionDetails('morning');
-  const eveningDetails = getSessionDetails('evening');
-  
-  let targetSessionDetails: { name: 'morning' | 'evening'; schedule: Session; startUtc: Date, endUtc: Date } | null = null;
-  
-  // Logic to find the current or next available session
-  if (morningDetails && now < morningDetails.endUtc) {
-    targetSessionDetails = morningDetails;
-  } else if (eveningDetails && now < eveningDetails.endUtc) {
-    targetSessionDetails = eveningDetails;
-  } else if (morningDetails && eveningDetails && now > morningDetails.endUtc && now < eveningDetails.startUtc) {
-    // If it's between sessions, assign to the upcoming evening session
-    targetSessionDetails = eveningDetails;
-  }
-
-  if (!targetSessionDetails) {
-    return { error: 'The clinic is closed for today. No upcoming sessions available.' };
-  }
-  
-  const { schedule: sessionSchedule, startUtc: sessionStartUtc, endUtc: sessionEndUtc, name: sessionName } = targetSessionDetails;
-  
-  const registrationOpenTime = subMinutes(sessionStartUtc, 30);
-  if (now < registrationOpenTime) {
-      return { error: `Walk-in registration for the ${sessionName} session opens at ${format(toZonedTime(registrationOpenTime, timeZone), 'hh:mm a')}.` };
-  }
-  if (now > sessionEndUtc) {
-      return { error: `The ${sessionName} session is over. Walk-ins are no longer accepted.` };
-  }
-
-  // Set the starting point for slot search to be 'now' or session start, whichever is later.
-  let searchStartTime = max([now, sessionStartUtc]);
-
-  // Align search start time to the next slot duration interval
-  const minutesFromSessionStart = differenceInMinutes(searchStartTime, sessionStartUtc);
-  const intervalsPast = Math.floor(minutesFromSessionStart / schedule.slotDuration);
-  let currentSlotTime = addMinutes(sessionStartUtc, intervalsPast * schedule.slotDuration);
-   if (currentSlotTime < searchStartTime) {
-      currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
-  }
-  let slotIndex = intervalsPast;
-  
-  let availableSlot: Date | null = null;
-  
-  const reservationStrategy = schedule.walkInReservation;
-
-  // First, check for reserved walk-in slots
-  if (reservationStrategy !== 'none') {
-      while (currentSlotTime < sessionEndUtc) {
-        const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
+    const getSessionDetails = (sessionName: 'morning' | 'evening'): { name: 'morning' | 'evening'; schedule: Session; startUtc: Date, endUtc: Date } | null => {
+        const session = daySchedule[sessionName];
+        const isClosedByOverride = sessionName === 'morning' ? specialClosure?.isMorningClosed : specialClosure?.isEveningClosed;
+        if (!session.isOpen || isClosedByOverride) return null;
         
-        if (!isBooked) {
-            let isReservedForWalkIn = false;
-            if (schedule.reserveFirstFive && slotIndex < 5) {
-                isReservedForWalkIn = true;
-            }
+        return {
+            name: sessionName,
+            schedule: session,
+            startUtc: sessionLocalToUtc(todayStr, session.start),
+            endUtc: sessionLocalToUtc(todayStr, session.end)
+        };
+    };
 
-            const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
-            if (slotIndex >= startIndexForAlternate) {
-                const relativeIndex = slotIndex - startIndexForAlternate;
-                if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-                if (reservationStrategy === 'alternateTwo' && (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)) isReservedForWalkIn = true;
-            }
+    const morningDetails = getSessionDetails('morning');
+    const eveningDetails = getSessionDetails('evening');
+    
+    let targetSessionDetails: { name: 'morning' | 'evening'; schedule: Session; startUtc: Date, endUtc: Date } | null = null;
+    
+    if (morningDetails && now < morningDetails.endUtc) {
+        targetSessionDetails = morningDetails;
+    } else if (eveningDetails && now < eveningDetails.endUtc) {
+        targetSessionDetails = eveningDetails;
+    } else if (morningDetails && eveningDetails && now >= morningDetails.endUtc && now < eveningDetails.startUtc) {
+        targetSessionDetails = eveningDetails;
+    }
 
-            if (isReservedForWalkIn) {
-              availableSlot = currentSlotTime;
-              break;
-            }
-        }
+    if (!targetSessionDetails) {
+        return { error: 'The clinic is closed for today. No upcoming sessions available.' };
+    }
+    
+    const { startUtc: sessionStartUtc, endUtc: sessionEndUtc, name: sessionName } = targetSessionDetails;
+    
+    const registrationOpenTime = subMinutes(sessionStartUtc, 30);
+    if (now < registrationOpenTime) {
+        return { error: `Walk-in registration for the ${sessionName} session opens at ${format(toZonedTime(registrationOpenTime, timeZone), 'hh:mm a')}.` };
+    }
+    if (now > sessionEndUtc) {
+        return { error: `The ${sessionName} session is over. Walk-ins are no longer accepted.` };
+    }
+
+    let searchStartTime = max([now, sessionStartUtc]);
+
+    const minutesFromSessionStart = differenceInMinutes(searchStartTime, sessionStartUtc);
+    const intervalsPast = Math.floor(minutesFromSessionStart / schedule.slotDuration);
+    let currentSlotTime = addMinutes(sessionStartUtc, intervalsPast * schedule.slotDuration);
+    if (currentSlotTime < searchStartTime) {
         currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
-        slotIndex++;
-      }
-  }
+    }
+    let slotIndex = intervalsPast;
+    
+    let availableSlot: Date | null = null;
+    
+    const reservationStrategy = schedule.walkInReservation;
 
-  // If no reserved slot was found (or strategy is 'none'), find the *very next* available unbooked slot.
-  if (!availableSlot) {
-      // Recalculate the starting point for a fresh search
-      const alignedMinutesFromStart = differenceInMinutes(searchStartTime, sessionStartUtc);
-      const alignedIntervalsPast = Math.floor(alignedMinutesFromStart / schedule.slotDuration);
-      currentSlotTime = addMinutes(sessionStartUtc, alignedIntervalsPast * schedule.slotDuration);
-      if (currentSlotTime < searchStartTime) {
-          currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
-      }
-      
-      while (currentSlotTime < sessionEndUtc) {
-           const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), currentSlotTime)) < 1);
-           if (!isBooked) {
-               availableSlot = currentSlotTime;
-               break;
-           }
-          currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
-      }
-  }
+    if (reservationStrategy !== 'none') {
+        let tempSlotTime = new Date(currentSlotTime.getTime());
+        let tempSlotIndex = slotIndex;
+        while (tempSlotTime < sessionEndUtc) {
+            const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), tempSlotTime)) < 1);
+            
+            if (!isBooked) {
+                let isReservedForWalkIn = false;
+                if (schedule.reserveFirstFive && tempSlotIndex < 5) {
+                    isReservedForWalkIn = true;
+                }
+                const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+                if (tempSlotIndex >= startIndexForAlternate) {
+                    const relativeIndex = tempSlotIndex - startIndexForAlternate;
+                    if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+                    if (reservationStrategy === 'alternateTwo' && (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)) isReservedForWalkIn = true;
+                }
+                if (isReservedForWalkIn) {
+                    availableSlot = tempSlotTime;
+                    break;
+                }
+            }
+            tempSlotTime = addMinutes(tempSlotTime, schedule.slotDuration);
+            tempSlotIndex++;
+        }
+    }
 
-  if (!availableSlot) {
-    return { error: 'Sorry, no walk-in slots are available at the moment.' };
-  }
-  
-  const appointmentTime = availableSlot.toISOString();
-  
-  return await addAppointmentAction(member, appointmentTime, purpose, true, true);
+    if (!availableSlot) {
+        let tempSlotTime = new Date(currentSlotTime.getTime());
+        while (tempSlotTime < sessionEndUtc) {
+            const isBooked = allPatients.some(p => p.status !== 'Cancelled' && Math.abs(differenceInMinutes(parseISO(p.appointmentTime), tempSlotTime)) < 1);
+            if (!isBooked) {
+                availableSlot = tempSlotTime;
+                break;
+            }
+            tempSlotTime = addMinutes(tempSlotTime, schedule.slotDuration);
+        }
+    }
+
+    if (!availableSlot) {
+        return { error: 'Sorry, no walk-in slots are available at the moment.' };
+    }
+    
+    const appointmentTime = availableSlot.toISOString();
+    
+    return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }
 
     
@@ -1386,3 +1373,6 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
 
 
+
+
+    
