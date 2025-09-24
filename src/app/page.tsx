@@ -602,6 +602,7 @@ export default function DashboardPage() {
     if (!schedule || !doctorStatus) {
         return (
             <div className="flex flex-col min-h-screen bg-background">
+                 <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
                 <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                     <div className="space-y-6">
                         <Skeleton className="h-12 w-1/3" />
@@ -789,10 +790,11 @@ export default function DashboardPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
+            <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
                     <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-                    <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-4 -mx-4 px-4 border-b shadow-sm">
+                    <div className="sticky top-[57px] bg-background/95 backdrop-blur-sm z-10 py-4 -mx-4 px-4 border-b shadow-sm">
                        <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
                     </div>
                     
@@ -1060,6 +1062,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
