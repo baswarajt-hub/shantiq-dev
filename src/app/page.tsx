@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import Header from '@/components/header';
@@ -606,13 +605,15 @@ export default function DashboardPage() {
                 <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                     <div className="space-y-6">
                         <Skeleton className="h-12 w-1/3" />
-                        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-                            <Skeleton className="h-28 w-full" />
-                            <Skeleton className="h-28 w-full" />
-                            <Skeleton className="h-28 w-full" />
-                             <Skeleton className="h-28 w-full" />
-                            <Skeleton className="h-28 w-full" />
-                            <Skeleton className="h-28 w-full" />
+                        <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-4 border-b">
+                            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                            </div>
                         </div>
                         <Skeleton className="h-96 w-full" />
                     </div>
@@ -791,7 +792,9 @@ export default function DashboardPage() {
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
                     <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-                    <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
+                    <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-4 -mx-4 px-4 border-b shadow-sm">
+                       <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
+                    </div>
                     
                     <Card>
                         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
@@ -1057,6 +1060,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 

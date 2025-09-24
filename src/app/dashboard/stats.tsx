@@ -1,13 +1,34 @@
 
 'use client';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Patient } from "@/lib/types";
-import { Users, Clock, UserCheck, CalendarCheck, CalendarX, BookCheck, Stethoscope, Activity } from "lucide-react";
+import { Users, CalendarCheck, BookCheck, Activity, CalendarX, Stethoscope, Icon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type StatsProps = {
   patients: Patient[];
   averageConsultationTime: number;
 };
+
+const StatCard = ({ title, value, Icon, description, className }: { title: string, value: string | number, Icon: Icon, description?: string, className?: string }) => (
+    <div className={cn("flex items-center gap-4 p-4 bg-card rounded-lg border", className)}>
+        <div className="p-2 bg-muted rounded-md">
+            <Icon className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <div>
+            <div className="text-sm font-medium text-muted-foreground">{title}</div>
+            <div className="text-2xl font-bold">{value}</div>
+        </div>
+    </div>
+);
+
+const CompactStatCard = ({ title, value, Icon, className }: { title: string, value: string | number, Icon: Icon, className?: string }) => (
+    <div className={cn("flex items-center gap-3 p-3 bg-card rounded-lg border flex-1 justify-center", className)}>
+         <Icon className="h-5 w-5 text-muted-foreground" />
+         <div className="text-sm text-muted-foreground">{title}:</div>
+         <div className="text-lg font-bold">{value}</div>
+    </div>
+);
+
 
 export default function Stats({ patients, averageConsultationTime }: StatsProps) {
   const waitingPatients = patients.filter(p => p.status === 'Waiting' || p.status === 'Late' || p.status === 'Up-Next' || p.status === 'Priority');
@@ -24,81 +45,28 @@ export default function Stats({ patients, averageConsultationTime }: StatsProps)
   }, {} as Record<string, number>);
 
   return (
-    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">In Queue</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{waitingPatients.length}</div>
-          <p className="text-xs text-muted-foreground">Patients currently waiting</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
-          <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{totalAppointments}</div>
-          <p className="text-xs text-muted-foreground">For the selected day</p>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <CompactStatCard title="In Queue" value={waitingPatients.length} Icon={Users} />
+      <CompactStatCard title="Total" value={totalAppointments} Icon={CalendarCheck} />
+      <CompactStatCard title="Completed" value={completedPatients.length} Icon={BookCheck} />
+      <CompactStatCard title="Avg. Time" value={`${averageConsultationTime}m`} Icon={Activity} />
+      <CompactStatCard title="Yet to Arrive" value={yetToArrive.length} Icon={CalendarX} />
       
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Completed</CardTitle>
-          <BookCheck className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{completedPatients.length}</div>
-          <p className="text-xs text-muted-foreground">Consultations finished</p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Avg. Consult Time</CardTitle>
-          <Activity className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{averageConsultationTime}<span className="text-sm text-muted-foreground"> min</span></div>
-          <p className="text-xs text-muted-foreground">Based on completed visits</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Yet to Arrive</CardTitle>
-          <CalendarX className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{yetToArrive.length}</div>
-          <p className="text-xs text-muted-foreground">Booked but not checked in</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Visit Purpose</CardTitle>
-          <Stethoscope className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+      <div className="flex items-center gap-3 p-3 bg-card rounded-lg border flex-1 justify-center col-span-2 lg:col-span-1">
+        <Stethoscope className="h-5 w-5 text-muted-foreground" />
+        <div className="text-sm text-muted-foreground">Purpose:</div>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
             {Object.entries(purposeCounts).map(([purpose, count]) => (
-                <div key={purpose} className="flex items-center gap-1">
-                    <span className="font-semibold">{count}</span>
+                <div key={purpose} className="flex items-center gap-1.5">
+                    <span className="font-bold">{count}</span>
                     <span className="text-muted-foreground">{purpose}</span>
                 </div>
             ))}
             {Object.keys(purposeCounts).length === 0 && (
-                <p className="text-xs text-muted-foreground">No purposes specified yet.</p>
+                <p className="text-xs text-muted-foreground">N/A</p>
             )}
-           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
