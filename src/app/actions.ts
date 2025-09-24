@@ -1281,6 +1281,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     
     let targetSessionDetails: { name: 'morning' | 'evening'; schedule: Session; startUtc: Date, endUtc: Date } | null = null;
     
+    // Determine the target session
     if (morningDetails && now < morningDetails.endUtc) {
         targetSessionDetails = morningDetails;
     } else if (eveningDetails && now < eveningDetails.endUtc) {
@@ -1303,21 +1304,32 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
         return { error: `The ${sessionName} session is over. Walk-ins are no longer accepted.` };
     }
 
-    let searchStartTime = max([now, sessionStartUtc]);
+    // Correctly determine where to start searching for a slot
+    let searchStartTime: Date;
+    if (now < sessionStartUtc) {
+        // If before session starts, start searching from the session start time
+        searchStartTime = sessionStartUtc;
+    } else {
+        // If during the session, start searching from now
+        searchStartTime = now;
+    }
 
     const minutesFromSessionStart = differenceInMinutes(searchStartTime, sessionStartUtc);
-    const intervalsPast = Math.floor(minutesFromSessionStart / schedule.slotDuration);
+    const intervalsPast = Math.max(0, Math.floor(minutesFromSessionStart / schedule.slotDuration));
     let currentSlotTime = addMinutes(sessionStartUtc, intervalsPast * schedule.slotDuration);
+    
+    // Ensure the first slot we check is not in the past relative to searchStartTime
     if (currentSlotTime < searchStartTime) {
         currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
     }
+
     let slotIndex = intervalsPast;
     
     let availableSlot: Date | null = null;
     
     const reservationStrategy = schedule.walkInReservation;
 
-    // First pass: try to find a reserved slot
+    // First pass: try to find a reserved slot if applicable
     if (reservationStrategy !== 'none') {
         let tempSlotTime = new Date(currentSlotTime.getTime());
         let tempSlotIndex = slotIndex;
@@ -1345,7 +1357,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
         }
     }
 
-    // Second pass: if no reserved slot is found, find any available slot
+    // Second pass: if no reserved slot is found (or strategy is 'none'), find ANY available slot
     if (!availableSlot) {
         let tempSlotTime = new Date(currentSlotTime.getTime());
         while (tempSlotTime < sessionEndUtc) {
@@ -1381,3 +1393,4 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
 
     
+
