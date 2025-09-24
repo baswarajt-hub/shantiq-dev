@@ -793,7 +793,6 @@ export default function DashboardPage() {
             <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
-                    <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
                     <div className="sticky top-[57px] bg-background/95 backdrop-blur-sm z-10 py-4 -mx-4 px-4 border-b shadow-sm">
                        <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
                     </div>
@@ -1062,19 +1061,3 @@ export default function DashboardPage() {
     
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -26,7 +26,7 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
           <span className="font-bold sm:inline-block text-lg">{clinicName || 'QueueWise'}</span>
         </Link>
         <nav className="flex flex-1 items-center space-x-2">
-           <Button variant="ghost" asChild>
+           <Button variant="secondary" asChild>
             <Link href="/">Dashboard</Link>
           </Button>
           <Button variant="ghost" asChild>
