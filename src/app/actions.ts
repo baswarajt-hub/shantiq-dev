@@ -1317,6 +1317,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     
     const reservationStrategy = schedule.walkInReservation;
 
+    // First pass: try to find a reserved slot
     if (reservationStrategy !== 'none') {
         let tempSlotTime = new Date(currentSlotTime.getTime());
         let tempSlotIndex = slotIndex;
@@ -1344,6 +1345,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
         }
     }
 
+    // Second pass: if no reserved slot is found, find any available slot
     if (!availableSlot) {
         let tempSlotTime = new Date(currentSlotTime.getTime());
         while (tempSlotTime < sessionEndUtc) {
@@ -1373,6 +1375,9 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
 
 
+
+
+    
 
 
     
