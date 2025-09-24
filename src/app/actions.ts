@@ -185,15 +185,6 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     return { error: 'Patient not found' };
   }
 
-  let updates: Partial<Patient> = { status };
-
-  const shouldClearLateLock = ['In-Consultation', 'Completed', 'Cancelled'].includes(status);
-  if (shouldClearLateLock) {
-    updates.lateLocked = false;
-    updates.lateAnchors = undefined;
-    updates.lateLockedAt = undefined;
-  }
-
   if (status === 'In-Consultation') {
     const currentlyServing = patients.find(p => p.status === 'In-Consultation');
     if (currentlyServing && currentlyServing.id !== patientId) {
@@ -211,23 +202,38 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
       await updatePatient(currentlyServing.id.toString(), completedUpdates);
     }
     
-    updates.consultationStartTime = new Date().toISOString();
-    updates.subStatus = undefined;
+    const updates: Partial<Patient> = { 
+        status: 'In-Consultation',
+        consultationStartTime: new Date().toISOString(),
+        subStatus: undefined
+    };
+    await updatePatient(patientId.toString(), updates);
 
-  } else if (status === 'Completed' && patient.consultationStartTime) {
-    const startTime = toDate(patient.consultationStartTime)!;
-    const endTime = new Date();
-    updates.consultationEndTime = endTime.toISOString();
-    updates.consultationTime = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // in minutes
-    updates.subStatus = undefined;
-  } else if (status === 'Waiting for Reports') {
-    updates.subStatus = 'Reports';
-  } else if (patient.status === 'Waiting for Reports' && status === 'In-Consultation') {
-    updates.consultationStartTime = new Date().toISOString();
-    updates.subStatus = undefined;
+  } else {
+    let updates: Partial<Patient> = { status };
+
+    const shouldClearLateLock = ['In-Consultation', 'Completed', 'Cancelled'].includes(status);
+    if (shouldClearLateLock) {
+        updates.lateLocked = false;
+        updates.lateAnchors = undefined;
+        updates.lateLockedAt = undefined;
+    }
+
+    if (status === 'Completed' && patient.consultationStartTime) {
+        const startTime = toDate(patient.consultationStartTime)!;
+        const endTime = new Date();
+        updates.consultationEndTime = endTime.toISOString();
+        updates.consultationTime = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // in minutes
+        updates.subStatus = undefined;
+    } else if (status === 'Waiting for Reports') {
+        updates.subStatus = 'Reports';
+    } else if (patient.status === 'Waiting for Reports' && status === 'In-Consultation') {
+        updates.consultationStartTime = new Date().toISOString();
+        updates.subStatus = undefined;
+    }
+    await updatePatient(patientId.toString(), updates);
   }
 
-  await updatePatient(patientId.toString(), updates);
   await recalculateQueueWithETC();
 
   revalidatePath('/');
@@ -1351,6 +1357,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 
