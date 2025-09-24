@@ -144,31 +144,41 @@ export default function DashboardPage() {
         return null;
     };
 
-    useEffect(() => {
-        const loadData = async () => {
-            const [scheduleData, patientData, familyData, statusData] = await Promise.all([
-                getDoctorScheduleAction(),
-                getPatientsAction(),
-                getFamilyAction(),
-                getDoctorStatusAction()
-            ]);
+    const loadData = useCallback(async () => {
+        const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+            getDoctorScheduleAction(),
+            getPatientsAction(),
+            getFamilyAction(),
+            getDoctorStatusAction()
+        ]);
 
-            setSchedule(scheduleData);
-            setPatients(patientData);
-            setFamily(familyData);
-            setDoctorStatus(statusData);
-        };
-        
-        loadData();
-    }, [isPending]);
+        setSchedule(scheduleData);
+        setPatients(patientData);
+        setFamily(familyData);
+        setDoctorStatus(statusData);
+    }, []);
 
 
     useEffect(() => {
+        // Run once on mount
+        startTransition(() => {
+            loadData();
+        });
+
         const currentHour = new Date().getHours();
         if (currentHour >= 14) {
             setSelectedSession('evening');
         }
-    }, []);
+
+        // Set up polling interval
+        const intervalId = setInterval(() => {
+            startTransition(() => {
+                loadData();
+            });
+        }, 15000); // Poll every 15 seconds
+
+        return () => clearInterval(intervalId);
+    }, [loadData, isPending]);
 
     // Effect to sync optimistic state with the fetched doctor status
     useEffect(() => {
@@ -812,9 +822,9 @@ export default function DashboardPage() {
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
-                                    <Switch id="qr-code-status" checked={optimisticDoctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending || !canDoctorCheckIn}/>
-                                    <Label htmlFor="qr-code-status" className={cn('flex items-center text-sm', !canDoctorCheckIn && 'text-muted-foreground')}>
-                                        <QrCode className={cn("mr-2 h-4 w-4", optimisticDoctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
+                                    <Switch id="qr-code-status" checked={optimisticDoctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending}/>
+                                    <Label htmlFor="qr-code-status" className={cn('flex items-center text-sm')}>
+                                        <QrCode className={cn("mr-2 h-5 w-5", optimisticDoctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
                                         QR Code
                                     </Label>
                                 </div>
@@ -1037,6 +1047,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
