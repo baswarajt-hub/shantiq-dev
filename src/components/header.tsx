@@ -36,7 +36,7 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
             <Link href="/admin">Admin</Link>
           </Button>
            <Button variant="ghost" asChild>
-            <Link href="/login" target="_blank" rel="noopener noreferrer">Public Queue</Link>
+            <Link href="/queue-status" target="_blank" rel="noopener noreferrer">Public Queue</Link>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
