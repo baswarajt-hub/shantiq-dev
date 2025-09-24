@@ -88,7 +88,6 @@ export default function DoctorPage() {
             toast({ title: 'Error', description: `Failed to update QR code status.`, variant: 'destructive' });
         } else {
             toast({ title: 'Success', description: `QR Code is now ${!doctorStatus.isQrCodeActive ? 'active' : 'inactive'}.` });
-            // The polling will update the state, no need for manual state update here to prevent race conditions.
         }
     });
   };
@@ -224,7 +223,7 @@ export default function DoctorPage() {
                                     <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
                                      Walk-in QR Code
                                   </Label>
-                                  <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} disabled={isPending}/>
+                                  <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} />
                               </div>
                              <DoctorNotificationForm 
                                 initialNotifications={schedule.notifications}

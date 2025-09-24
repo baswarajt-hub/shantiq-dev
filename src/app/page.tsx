@@ -141,7 +141,8 @@ export default function DashboardPage() {
         return null;
     };
 
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(() => {
+      startTransition(async () => {
         const [scheduleData, patientData, familyData, statusData] = await Promise.all([
             getDoctorScheduleAction(),
             getPatientsAction(),
@@ -153,18 +154,21 @@ export default function DashboardPage() {
         setPatients(patientData);
         setFamily(familyData);
         setDoctorStatus(statusData);
+      });
     }, []);
 
-
     useEffect(() => {
-      startTransition(() => {
         loadData();
-      });
-      const currentHour = new Date().getHours();
-      if (currentHour >= 14) {
-          setSelectedSession('evening');
-      }
-    }, [loadData, isPending]);
+        const intervalId = setInterval(loadData, 5000); // Poll every 5 seconds for faster updates
+        
+        const currentHour = new Date().getHours();
+        if (currentHour >= 14) {
+            setSelectedSession('evening');
+        }
+        
+        return () => clearInterval(intervalId);
+    }, [loadData]);
+
 
     const sessionPatients = patients.filter(p => {
         if (!isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
@@ -785,7 +789,7 @@ export default function DashboardPage() {
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
-                                    <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending}/>
+                                    <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} />
                                     <Label htmlFor="qr-code-status" className={cn('flex items-center text-sm')}>
                                         <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
                                         QR Code
@@ -793,7 +797,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className='flex items-center space-x-2'>
                                     <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
-                                    <Input id="doctor-delay" type="number" defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending || doctorStatus.isOnline} />
+                                    <Input id="doctor-delay" type="number" defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={doctorStatus.isOnline} />
                                     <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={isPending || doctorStatus.isOnline}>Update</Button>
                                 </div>
                                 <DropdownMenu>
@@ -1010,6 +1014,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
