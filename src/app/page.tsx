@@ -304,6 +304,7 @@ export default function DashboardPage() {
 
             if (result.success) {
                 toast({ title: "Success", description: "Appointment booked successfully."});
+                loadData();
             } else {
                 toast({ title: "Error", description: result.error, variant: 'destructive'});
             }
@@ -314,6 +315,7 @@ export default function DashboardPage() {
         const result = await addNewPatientAction(newPatientData);
         if (result.patient) {
             toast({ title: "Success", description: result.success});
+            loadData();
             return result.patient;
         }
         toast({ title: "Error", description: result.error, variant: 'destructive'});
@@ -335,6 +337,7 @@ export default function DashboardPage() {
                 const result = await rescheduleAppointmentAction(selectedPatient.id, appointmentTime, newPurpose);
                 if (result.success) {
                     toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
+                    loadData();
                 } else {
                     toast({ title: "Error", description: result.error, variant: 'destructive' });
                 }
@@ -349,6 +352,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                loadData();
             }
         });
     };
@@ -360,6 +364,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                loadData();
             }
         });
     };
@@ -371,6 +376,7 @@ export default function DashboardPage() {
               toast({ title: 'Error', description: result.error, variant: 'destructive' });
           } else {
               toast({ title: 'Success', description: result.success });
+              loadData();
           }
       });
   };
@@ -382,6 +388,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                loadData();
             }
         });
     }
@@ -393,6 +400,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                loadData();
             }
         });
     };
@@ -403,6 +411,7 @@ export default function DashboardPage() {
             const result = await cancelAppointmentAction(patientId);
             if (result.success) {
                 toast({ title: 'Success', description: 'Appointment cancelled.' });
+                loadData();
             } else {
                 toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
             }
@@ -416,6 +425,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                loadData();
             }
         });
     };
@@ -426,6 +436,7 @@ export default function DashboardPage() {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
         } else {
             toast({ title: 'Success', description: result.success });
+            loadData();
         }
     };
     
@@ -460,6 +471,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: `Failed to update status.`, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                loadData();
             }
         });
     };
@@ -474,6 +486,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive'});
                 } else {
                     toast({ title: 'Success', description: result.success});
+                    loadData();
                 }
             });
         }
@@ -486,6 +499,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                loadData();
             }
         });
     };
@@ -497,6 +511,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                loadData();
             }
         });
     };
@@ -507,6 +522,7 @@ export default function DashboardPage() {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
+                loadData();
             }
         });
     };
@@ -785,7 +801,7 @@ export default function DashboardPage() {
                                     </Label>
                                 </div>
                                 <div className='flex items-center space-x-2'>
-                                    <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending}/>
+                                    <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} />
                                     <Label htmlFor="qr-code-status" className={cn('flex items-center text-sm')}>
                                         <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
                                         QR Code
@@ -1010,6 +1026,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
