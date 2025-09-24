@@ -42,6 +42,7 @@ export type DoctorStatus = {
   startDelay: number; // in minutes
   isPaused?: boolean;
   isQrCodeActive?: boolean;
+  walkInSessionToken?: string;
 };
 
 export type Session = {

@@ -148,6 +148,7 @@ const defaultStatus: DoctorStatus = {
   startDelay: 0,
   isPaused: false,
   isQrCodeActive: false,
+  walkInSessionToken: undefined,
 };
 
 const defaultDays = (): DoctorSchedule['days'] => {

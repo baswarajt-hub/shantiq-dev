@@ -8,27 +8,29 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { getDoctorScheduleAction, getFamilyByPhoneAction, addNewPatientAction, joinQueueAction, registerUserAction } from '@/app/actions';
+import { getDoctorScheduleAction, getFamilyByPhoneAction, addNewPatientAction, joinQueueAction, registerUserAction, getDoctorStatusAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { StethoscopeIcon } from '@/components/icons';
 import Image from 'next/image';
-import type { FamilyMember, VisitPurpose, DoctorSchedule } from '@/lib/types';
+import type { FamilyMember, VisitPurpose, DoctorSchedule, DoctorStatus } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertTriangle, Info, QrCode } from 'lucide-react';
 
 function WalkInPageContent() {
-  const [step, setStep] = useState<'phone' | 'selectOrCreate' | 'create' | 'registerParent'>('phone');
+  const [step, setStep] = useState<'validate' | 'phone' | 'selectOrCreate' | 'create' | 'registerParent'>('validate');
   const [phone, setPhone] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [logo, setLogo] = useState<string | null | undefined>(null);
+  const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
 
   // State for patient selection/creation
   const [foundFamily, setFoundFamily] = useState<FamilyMember[]>([]);
@@ -46,13 +48,26 @@ function WalkInPageContent() {
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
 
   useEffect(() => {
-    async function fetchSchedule() {
-      const scheduleData = await getDoctorScheduleAction();
+    async function validateTokenAndFetchSchedule() {
+      const token = searchParams.get('token');
+      const [scheduleData, statusData] = await Promise.all([
+        getDoctorScheduleAction(),
+        getDoctorStatusAction()
+      ]);
+
       setSchedule(scheduleData);
       setLogo(scheduleData?.clinicDetails?.clinicLogo);
+
+      if (statusData.isQrCodeActive && token && statusData.walkInSessionToken === token) {
+        setIsValidToken(true);
+        setStep('phone');
+      } else {
+        setIsValidToken(false);
+        setStep('validate');
+      }
     }
-    fetchSchedule();
-  }, []);
+    validateTokenAndFetchSchedule();
+  }, [searchParams]);
 
   const handlePhoneSubmit = () => {
     if (phone.length < 10) {
@@ -146,6 +161,26 @@ function WalkInPageContent() {
             )}
         </div>
         
+        {step === 'validate' && (
+            <Card>
+                <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">QR Code Session</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isValidToken === null && <p className="text-center">Validating session...</p>}
+                    {isValidToken === false && (
+                        <Alert variant="destructive">
+                            <QrCode className="h-4 w-4" />
+                            <AlertTitle>Invalid or Expired QR Code</AlertTitle>
+                            <AlertDescription>
+                                This QR code is no longer valid. Please scan the latest QR code from the clinic's TV display to join the queue.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
+            </Card>
+        )}
+
         {step === 'phone' && (
           <Card>
             <CardHeader className="text-center">

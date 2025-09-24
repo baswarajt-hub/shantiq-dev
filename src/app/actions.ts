@@ -9,7 +9,7 @@ import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time'
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format, parseISO, parse, differenceInMinutes, startOfDay, max, addMinutes, subMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
 const timeZone = "Asia/Kolkata";
 
@@ -178,7 +178,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
 
 
 export async function updatePatientStatusAction(patientId: number, status: Patient['status']) {
-  const patients = await getPatientsData();
+  let patients = await getPatientsData();
   const patient = patients.find(p => p.id === patientId);
 
   if (!patient) {
@@ -187,7 +187,6 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
 
   let updates: Partial<Patient> = { status };
 
-  // Clear late-lock fields when moving to a terminal or in-consultation state
   const shouldClearLateLock = ['In-Consultation', 'Completed', 'Cancelled'].includes(status);
   if (shouldClearLateLock) {
     updates.lateLocked = false;
@@ -196,7 +195,6 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
   }
 
   if (status === 'In-Consultation') {
-    // If we are starting a new consultation, find and complete any existing one.
     const currentlyServing = patients.find(p => p.status === 'In-Consultation');
     if (currentlyServing && currentlyServing.id !== patientId) {
       const startTime = toDate(currentlyServing.consultationStartTime!)!;
@@ -204,7 +202,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
       const completedUpdates: Partial<Patient> = {
         status: 'Completed',
         consultationEndTime: endTime.toISOString(),
-        consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)), // in minutes
+        consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)),
         subStatus: undefined,
         lateLocked: false,
         lateAnchors: undefined,
@@ -213,7 +211,6 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
       await updatePatient(currentlyServing.id, completedUpdates);
     }
     
-    // Now, set the new patient to "In-Consultation"
     updates.consultationStartTime = new Date().toISOString();
     updates.subStatus = undefined;
 
@@ -223,9 +220,6 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
     updates.consultationEndTime = endTime.toISOString();
     updates.consultationTime = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // in minutes
     updates.subStatus = undefined;
-  } else if (status === 'Priority') {
-    // Special handling for priority status, this just sets the status.
-    // The queue recalculation logic will handle the re-ordering.
   } else if (status === 'Waiting for Reports') {
     updates.subStatus = 'Reports';
   } else if (patient.status === 'Waiting for Reports' && status === 'In-Consultation') {
@@ -324,7 +318,14 @@ export async function getDoctorStatusAction() {
 }
 
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
-    await updateDoctorStatus(status);
+    const updates = { ...status };
+    if (status.isQrCodeActive) {
+        updates.walkInSessionToken = randomBytes(16).toString('hex');
+    } else if (status.isQrCodeActive === false) {
+        updates.walkInSessionToken = undefined;
+    }
+
+    await updateDoctorStatus(updates);
     await recalculateQueueWithETC();
     revalidatePath('/', 'layout');
     return { success: `Doctor status updated.` };
@@ -1341,6 +1342,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
 
     
+
 
 
 

@@ -135,7 +135,8 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
 
   if (doctorStatus.startDelay && doctorStatus.startDelay > 0 && isOffline && !isSessionOver) {
     TitleIcon = AlertTriangle;
-    titleText = `Running late`;
+    titleText = `Doctor is Running Late`;
+    descriptionText = `The session will begin with a delay of approx. ${doctorStatus.startDelay} min.`
   } else if (doctorStatus.isPaused) {
     TitleIcon = Pause;
     titleText = 'Queue Paused';
@@ -186,7 +187,7 @@ function TVDisplayPageContent() {
 
   const listRef = useRef<HTMLDivElement>(null);
   const timeZone = "Asia/Kolkata";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule || !localSchedule.days) return null;
@@ -407,7 +408,7 @@ function TVDisplayPageContent() {
       isSessionOver = now > sessionEndUTC;
   }
 
-  const qrCodeUrl = baseUrl ? `${baseUrl}/walk-in` : '';
+  const qrCodeUrl = baseUrl && doctorStatus.walkInSessionToken ? `${baseUrl}/walk-in?token=${doctorStatus.walkInSessionToken}` : '';
   const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
 
   if (layout === '2') {
