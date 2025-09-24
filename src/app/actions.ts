@@ -171,6 +171,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
   revalidatePath('/admin');
   revalidatePath('/api/patients');
   revalidatePath('/api/family');
+  revalidatePath('/walk-in');
   
   return { success: 'Appointment booked successfully.', patient: newPatient };
 }
@@ -479,6 +480,7 @@ export async function checkInPatientAction(patientId: number) {
   revalidatePath('/queue-status');
   revalidatePath('/tv-display');
   revalidatePath('/api/patients');
+  revalidatePath('/walk-in');
   return { success: `${patient.name} has been checked in.` };
 }
 
@@ -1308,8 +1310,11 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
 
   // Align search start time to the next slot duration interval
   const minutesFromSessionStart = differenceInMinutes(searchStartTime, sessionStartUtc);
-  const intervalsPast = Math.ceil(minutesFromSessionStart / schedule.slotDuration);
+  const intervalsPast = Math.floor(minutesFromSessionStart / schedule.slotDuration);
   let currentSlotTime = addMinutes(sessionStartUtc, intervalsPast * schedule.slotDuration);
+   if (currentSlotTime < searchStartTime) {
+      currentSlotTime = addMinutes(currentSlotTime, schedule.slotDuration);
+  }
   let slotIndex = intervalsPast;
   
   let availableSlot: Date | null = null;
@@ -1378,5 +1383,6 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     
 
     
+
 
 

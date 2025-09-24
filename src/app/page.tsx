@@ -146,9 +146,6 @@ export default function DashboardPage() {
 
     useEffect(() => {
         const loadData = async () => {
-            // Prevent re-fetching if a server action is in progress to avoid state overwrites
-            if (isPending) return;
-
             const [scheduleData, patientData, familyData, statusData] = await Promise.all([
                 getDoctorScheduleAction(),
                 getPatientsAction(),
@@ -162,11 +159,8 @@ export default function DashboardPage() {
             setDoctorStatus(statusData);
         };
         
-        loadData(); // Initial load
-        const intervalId = setInterval(loadData, 5000); // Poll every 5 seconds for faster updates
-
-        return () => clearInterval(intervalId); // Cleanup on unmount
-    }, [isPending]); // Re-run effect only when a server action is complete
+        loadData();
+    }, [isPending]);
 
 
     useEffect(() => {
@@ -1043,6 +1037,7 @@ export default function DashboardPage() {
     
 
     
+
 
 
 
