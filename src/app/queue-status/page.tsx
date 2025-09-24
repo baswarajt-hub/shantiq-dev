@@ -108,7 +108,6 @@ function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient 
         <CardContent className="p-4 pt-0">
           <p className="text-3xl font-bold flex items-center justify-center gap-2 relative">
             <span className="text-sky-700">Token #{patient.tokenNo}</span>
-            <PatientNameWithBadges patient={patient} />
           </p>
         </CardContent>
       )}
@@ -142,7 +141,6 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
             <CardContent className="p-4 pt-0">
                 <p className="text-3xl font-bold flex items-center justify-center gap-2 relative">
                   <span className="text-sky-700">Token #{patient.tokenNo}</span>
-                  <PatientNameWithBadges patient={patient} />
                 </p>
                 <div className="text-muted-foreground flex items-center justify-center gap-2 mt-1 text-xs">
                     <Timer className="h-4 w-4"/> ETC: ~{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}
@@ -525,5 +523,3 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
-
-    
