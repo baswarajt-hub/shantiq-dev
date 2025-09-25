@@ -345,8 +345,8 @@ function WalkInPageContent() {
                         <Label htmlFor="name">Patient's Full Name</Label>
                         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Jane Doe" required />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                         <div className="space-y-2">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
                             <Label htmlFor="dob">Date of Birth</Label>
                             <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} required />
                         </div>
