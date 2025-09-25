@@ -346,6 +346,16 @@ function QueueStatusPageContent() {
       if (userPhone) setPhone(userPhone);
     }
   }, [router, searchParams]);
+
+  useEffect(() => {
+    if (completedAppointmentForDisplay) {
+      const timer = setTimeout(() => {
+        router.push('/booking');
+      }, 60000); // 60 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [completedAppointmentForDisplay, router]);
   
   const fetchData = useCallback(async () => {
     const userPhone = localStorage.getItem('userPhone');
@@ -412,10 +422,12 @@ function QueueStatusPageContent() {
 
 
   useEffect(() => {
+    if (completedAppointmentForDisplay) return; // Don't poll if the summary is showing
+
     fetchData();
     const intervalId = setInterval(() => fetchData(), 15000);
     return () => clearInterval(intervalId);
-  }, [fetchData, phone]);
+  }, [fetchData, phone, completedAppointmentForDisplay]);
   
   const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
   const upNext = allSessionPatients.find(p => p.status === 'Up-Next');
