@@ -32,7 +32,7 @@ export default async function LoginPage() {
         </div>
         <div className="text-center mb-6">
            <h1 className="text-2xl font-bold">{clinicName}</h1>
-           <p className="text-lg font-bold text-primary">Doctor Appointments & Live Queue Tracking</p>
+           <p className="text-lg font-bold text-blue-800">Doctor Appointments & Live Queue Tracking</p>
         </div>
         
         <Card>
