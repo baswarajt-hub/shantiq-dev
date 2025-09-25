@@ -14,7 +14,6 @@ import { CalendarIcon, PlusCircle, Trash2, Edit, X } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '../ui/sheet';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 const BLANK_NOTIFICATION: Omit<Notification, 'id'> = {
     message: '',
@@ -152,7 +151,7 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
       </CardContent>
 
       <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full max-w-full sm:max-w-md">
+        <SheetContent className="w-full max-w-full sm:max-w-md overflow-y-auto">
             <SheetHeader>
                 <SheetTitle>{editingId ? 'Edit Notification' : 'Add New Notification'}</SheetTitle>
                 <SheetDescription>
@@ -181,23 +180,13 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
                     </Button>
                 </div>
 
-                <div className="flex justify-center">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start font-normal">
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                             <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={(day) => handleDateTimeChange(editingField, day)}
-                              initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
+                <div className="flex justify-center rounded-md border">
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(day) => handleDateTimeChange(editingField, day)}
+                        initialFocus
+                    />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="time-input">Time for {editingField === 'startTime' ? 'Start Date' : 'End Date'}</Label>
