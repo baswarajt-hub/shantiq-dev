@@ -1166,7 +1166,7 @@ export async function startLastConsultationAction(patientId: number) {
 }
 
 export async function updateNotificationsAction(notifications: Notification[]) {
-  const schedule = await getDoctorSchedule();
+  const schedule = await getDoctorScheduleAction();
   
   const notificationsWithTranslations = await Promise.all(
     notifications.map(async (notification) => {
@@ -1389,6 +1389,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 
