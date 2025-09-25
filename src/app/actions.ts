@@ -1208,6 +1208,8 @@ export async function updateNotificationsAction(notifications: Notification[]) {
               ...notification,
               message: {
                 en: currentMessageText,
+                hi: 'Translation failed', // Indicate failure
+                te: 'Translation failed',
               },
             };
         }
@@ -1411,6 +1413,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 
