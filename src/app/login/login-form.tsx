@@ -60,9 +60,9 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
   return (
     <Card>
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">{clinicName || 'Patient Portal'}</CardTitle>
+        <CardTitle className="text-2xl">Patient Login</CardTitle>
         <CardDescription>
-            {step === 'phone' ? 'Enter your phone number to login or register' : 'An OTP has been sent to your phone'}
+            {step === 'phone' ? 'Enter your 10-digit phone number to begin' : 'An OTP has been sent to your phone'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
