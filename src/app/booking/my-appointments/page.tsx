@@ -336,7 +336,7 @@ export default function MyAppointmentsPage() {
       <div className="mx-auto w-full max-w-6xl grid gap-8 md:grid-cols-3">
         {/* Left Column */}
         <div className="md:col-span-1 space-y-8">
-            <Card className="bg-blue-50/50">
+            <Card className="bg-blue-50">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Family Members</CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => setAddMemberOpen(true)}>
@@ -526,3 +526,5 @@ export default function MyAppointmentsPage() {
     </main>
   );
 }
+
+    
