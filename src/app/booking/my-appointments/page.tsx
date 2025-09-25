@@ -6,18 +6,15 @@ import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Edit, Eye, PlusCircle, Trash2, Ticket, Bell } from 'lucide-react';
+import { Calendar, Clock, Edit, Eye, Trash2, Ticket, Bell } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient } from '@/lib/types';
-import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-appointment-dialog';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
-import { addNewPatientAction, updateFamilyMemberAction, cancelAppointmentAction, rescheduleAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, deleteFamilyMemberAction } from '@/app/actions';
+import { cancelAppointmentAction, rescheduleAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
 import { format, parseISO, isToday, isFuture } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
 const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
@@ -172,10 +169,7 @@ export default function MyAppointmentsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
-  const [isAddMemberOpen, setAddMemberOpen] = useState(false);
-  const [isEditMemberOpen, setEditMemberOpen] = useState(false);
   const [isRescheduleOpen, setRescheduleOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [phone, setPhone] = useState<string|null>(null);
   const { toast } = useToast();
@@ -237,45 +231,6 @@ export default function MyAppointmentsPage() {
   }, [patients, family]);
   
 
-  const handleAddFamilyMember = useCallback((member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
-    if (!phone) return;
-    startTransition(async () => {
-        const result = await addNewPatientAction({ ...member, phone });
-        if(result.success){
-            toast({ title: "Success", description: "Family member added."});
-            loadData(phone);
-        } else {
-            toast({ title: "Error", description: result.error || "Could not add member", variant: 'destructive'});
-        }
-    });
-  }, [phone, toast, loadData]);
-  
-  const handleEditFamilyMember = useCallback((updatedMember: FamilyMember) => {
-     if (!phone) return;
-     startTransition(async () => {
-        const result = await updateFamilyMemberAction(updatedMember);
-         if(result.success){
-            toast({ title: "Success", description: "Family member details updated."});
-            loadData(phone);
-        } else {
-            toast({ title: "Error", description: "Could not update member", variant: 'destructive'});
-        }
-    });
-  }, [phone, toast, loadData]);
-
-  const handleDeleteFamilyMember = useCallback((memberId: string) => {
-      if (!phone) return;
-      startTransition(async () => {
-          const result = await deleteFamilyMemberAction(memberId);
-          if(result.success) {
-              toast({ title: "Success", description: "Family member removed."});
-              loadData(phone);
-          } else {
-              toast({ title: "Error", description: "Could not remove member", variant: 'destructive'});
-          }
-      });
-  }, [phone, toast, loadData]);
-
   const handleCancelAppointment = useCallback((appointmentId: number) => {
     if (!phone) return;
     startTransition(async () => {
@@ -292,11 +247,6 @@ export default function MyAppointmentsPage() {
   const handleOpenReschedule = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setRescheduleOpen(true);
-  }
-  
-  const handleOpenEditMember = (member: FamilyMember) => {
-    setSelectedMember(member);
-    setEditMemberOpen(true);
   }
   
   const handleRescheduleAppointment = useCallback((newDate: string, newTime: string, newPurpose: string) => {
@@ -325,68 +275,14 @@ export default function MyAppointmentsPage() {
   const pastAppointments = appointments.filter(appt => !activeAppointments.some(up => up.id === appt.id));
 
 
-  const familyPatients = family.filter(member => !member.isPrimary);
-
   if (!phone || isPending) {
       return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
   return (
     <main className="flex-1 p-4 md:p-6 lg:p-8">
-      <div className="mx-auto w-full max-w-6xl grid gap-8 md:grid-cols-3">
-        {/* Left Column */}
-        <div className="md:col-span-1 space-y-8">
-            <Card className="bg-blue-50">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Family Members</CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => setAddMemberOpen(true)}>
-                  <PlusCircle className="h-5 w-5" />
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {familyPatients.map(member => (
-                  <div key={member.id} className="flex items-center justify-between p-2 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">{member.name}</p>
-                        <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditMember(member)}><Edit className="h-4 w-4" /></Button>
-                       <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action is permanent and will remove this family member.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteFamilyMember(member.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                  </div>
-                ))}
-                {familyPatients.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">No family members added yet.</p>
-                )}
-              </CardContent>
-            </Card>
-        </div>
-
-        {/* Right Column */}
-        <div className="md:col-span-2 space-y-8">
+      <div className="mx-auto w-full max-w-4xl space-y-8">
+        
           <Card>
             <CardHeader>
               <CardTitle>Today's Appointments</CardTitle>
@@ -497,22 +393,9 @@ export default function MyAppointmentsPage() {
               )}
             </CardContent>
           </Card>
-        </div>
+        
       </div>
     
-      <AddFamilyMemberDialog 
-        isOpen={isAddMemberOpen} 
-        onOpenChange={setAddMemberOpen}
-        onSave={handleAddFamilyMember} 
-      />
-      {selectedMember && (
-          <EditFamilyMemberDialog
-              isOpen={isEditMemberOpen}
-              onOpenChange={setEditMemberOpen}
-              member={selectedMember}
-              onSave={handleEditFamilyMember}
-          />
-      )}
       {selectedAppointment && schedule && (
         <RescheduleAppointmentDialog
           isOpen={isRescheduleOpen}
