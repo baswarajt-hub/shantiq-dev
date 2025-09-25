@@ -3,7 +3,7 @@
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
-import type { Notification } from '@/lib/types';
+import type { Notification, TranslatedMessage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 
 const BLANK_NOTIFICATION: Omit<Notification, 'id'> = {
-    message: { en: '' },
+    message: { en: '', hi: '', te: '' },
     startTime: new Date().toISOString(),
     endTime: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
     enabled: true
@@ -39,11 +39,14 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
     setNotifications(initialNotifications);
   }, [initialNotifications]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+  const handleMessageChange = (lang: keyof TranslatedMessage, value: string) => {
     setCurrentNotification(prev => {
-        const newMessage = typeof prev.message === 'string' ? { en: prev.message } : { ...prev.message };
-        newMessage.en = value;
+        const newMessage = typeof prev.message === 'string' 
+          ? { en: '', hi: '', te: '' } 
+          : { ...prev.message };
+        
+        newMessage[lang] = value;
+
         return { ...prev, message: newMessage };
     });
   };
@@ -78,7 +81,9 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
   const handleSaveOrUpdate = () => {
     startTransition(async () => {
         let updatedNotifications: Notification[];
-        const messageToSave = typeof currentNotification.message === 'string' ? { en: currentNotification.message } : currentNotification.message;
+        const messageToSave = typeof currentNotification.message === 'string' 
+            ? { en: currentNotification.message, hi: '', te: '' } 
+            : currentNotification.message;
         
         if (editingId) {
             // Update existing notification
@@ -99,8 +104,12 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
   const handleEdit = (id: string) => {
     const notificationToEdit = notifications.find(n => n.id === id);
     if (notificationToEdit) {
+        const message = typeof notificationToEdit.message === 'string' 
+            ? { en: notificationToEdit.message, hi: '', te: '' }
+            : notificationToEdit.message;
+
         setEditingId(id);
-        setCurrentNotification(notificationToEdit);
+        setCurrentNotification({...notificationToEdit, message });
     }
   }
 
@@ -159,8 +168,7 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
     );
   }
   
-  const messageText = typeof currentNotification.message === 'string' ? currentNotification.message : currentNotification.message.en;
-
+  const messages = typeof currentNotification.message === 'object' ? currentNotification.message : { en: currentNotification.message || '', hi: '', te: '' };
 
   return (
     <Card>
@@ -171,17 +179,20 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
         <CardContent className="space-y-6">
             <div className="p-4 border rounded-lg space-y-4">
                 <h3 className="font-semibold text-lg">{editingId ? 'Edit Notification' : 'Add New Notification'}</h3>
-                 <div className="space-y-2">
-                    <Label htmlFor="message">Notification Message (in English)</Label>
-                    <Textarea
-                    id="message"
-                    name="message"
-                    value={messageText}
-                    onChange={handleInputChange}
-                    placeholder="e.g. The clinic will be closed from 2 PM to 4 PM today."
-                    />
-                    <p className="text-xs text-muted-foreground">This will be auto-translated to Hindi and Telugu.</p>
+                
+                <div className="space-y-2">
+                    <Label htmlFor="message_en">Message (English)</Label>
+                    <Textarea id="message_en" value={messages.en} onChange={(e) => handleMessageChange('en', e.target.value)} placeholder="Enter English message..." />
                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="message_hi">Message (हिन्दी)</Label>
+                    <Textarea id="message_hi" value={messages.hi || ''} onChange={(e) => handleMessageChange('hi', e.target.value)} placeholder="Enter Hindi message..." />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="message_te">Message (తెలుగు)</Label>
+                    <Textarea id="message_te" value={messages.te || ''} onChange={(e) => handleMessageChange('te', e.target.value)} placeholder="Enter Telugu message..." />
+                </div>
+                
                 <div className="grid md:grid-cols-2 gap-6">
                     <DateTimePicker 
                         label="Display From"
@@ -205,7 +216,7 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
                     <Label htmlFor="enabled">Enable Notification</Label>
                 </div>
                  <div className="flex gap-2">
-                    <Button type="button" onClick={handleSaveOrUpdate} disabled={isPending || !messageText}>
+                    <Button type="button" onClick={handleSaveOrUpdate} disabled={isPending || !messages.en}>
                         {isPending ? 'Saving...' : (editingId ? 'Update Notification' : 'Save Notification')}
                     </Button>
                     {editingId && (

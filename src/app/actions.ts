@@ -7,7 +7,6 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { translateText } from '@/ai/flows/translate-text';
 import { format, parseISO, parse, differenceInMinutes, startOfDay, max, addMinutes, subMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { createHash, randomBytes } from 'crypto';
@@ -1166,61 +1165,8 @@ export async function startLastConsultationAction(patientId: number) {
 }
 
 export async function updateNotificationsAction(notifications: Notification[]) {
-  const schedule = await getDoctorScheduleAction();
-  const existingNotificationsMap = new Map(schedule.notifications.map(n => [n.id, n]));
-
-  const notificationsWithTranslations = await Promise.all(
-    notifications.map(async (notification) => {
-      const existingNotification = existingNotificationsMap.get(notification.id);
-      
-      const currentMessageText = typeof notification.message === 'string' 
-        ? notification.message 
-        : notification.message.en;
-      
-      let oldMessageText = '';
-      if (existingNotification) {
-          oldMessageText = typeof existingNotification.message === 'string' 
-              ? existingNotification.message 
-              : existingNotification.message.en;
-      }
-      
-      // Only re-translate if it's a new notification or the English text has changed.
-      if (!existingNotification || currentMessageText !== oldMessageText) {
-        try {
-            const [hindiRes, teluguRes] = await Promise.all([
-              translateText({ text: currentMessageText, targetLanguage: 'Hindi' }),
-              translateText({ text: currentMessageText, targetLanguage: 'Telugu' }),
-            ]);
-
-            return {
-              ...notification,
-              message: {
-                en: currentMessageText,
-                hi: hindiRes.translation,
-                te: teluguRes.translation,
-              },
-            };
-        } catch (error) {
-            console.error(`Translation failed for notification ID ${notification.id}:`, error);
-            // If translation fails, fall back to saving the English message only
-            // to avoid blocking the entire save operation.
-             return {
-              ...notification,
-              message: {
-                en: currentMessageText,
-                hi: 'Translation failed', // Indicate failure
-                te: 'Translation failed',
-              },
-            };
-        }
-      }
-      
-      // If message is unchanged, return it as is to preserve existing translations
-      return notification;
-    })
-  );
-
-  await updateNotificationData(notificationsWithTranslations as Notification[]);
+  // No AI translation, just save the data directly.
+  await updateNotificationData(notifications);
   revalidatePath('/');
   revalidatePath('/admin');
   revalidatePath('/booking');
@@ -1413,6 +1359,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 
