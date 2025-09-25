@@ -53,22 +53,24 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
             <Label htmlFor="name">Full Name</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Doe" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="dob">Date of Birth</Label>
-            <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="gender">Gender</Label>
-            <Select value={gender} onValueChange={setGender}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dob">Date of Birth</Label>
+              <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gender">Gender</Label>
+              <Select value={gender} onValueChange={setGender}>
+                  <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+              </Select>
+            </div>
           </div>
            <div className="space-y-2">
             <Label htmlFor="clinicId">Clinic ID (Optional)</Label>
