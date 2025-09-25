@@ -1167,11 +1167,15 @@ export async function startLastConsultationAction(patientId: number) {
 
 export async function updateNotificationsAction(notifications: Notification[]) {
   const schedule = await getDoctorScheduleAction();
-  
+  const existingNotificationsMap = new Map(schedule.notifications.map(n => [n.id, n]));
+
   const notificationsWithTranslations = await Promise.all(
     notifications.map(async (notification) => {
-      const existingNotification = schedule.notifications.find(n => n.id === notification.id);
-      const currentMessageText = typeof notification.message === 'string' ? notification.message : notification.message.en;
+      const existingNotification = existingNotificationsMap.get(notification.id);
+      
+      const currentMessageText = typeof notification.message === 'string' 
+        ? notification.message 
+        : notification.message.en;
       
       let oldMessageText = '';
       if (existingNotification) {
@@ -1179,22 +1183,34 @@ export async function updateNotificationsAction(notifications: Notification[]) {
               ? existingNotification.message 
               : existingNotification.message.en;
       }
-
+      
       // Only re-translate if it's a new notification or the English text has changed.
       if (!existingNotification || currentMessageText !== oldMessageText) {
-        const [hindiRes, teluguRes] = await Promise.all([
-          translateText({ text: currentMessageText, targetLanguage: 'Hindi' }),
-          translateText({ text: currentMessageText, targetLanguage: 'Telugu' }),
-        ]);
+        try {
+            const [hindiRes, teluguRes] = await Promise.all([
+              translateText({ text: currentMessageText, targetLanguage: 'Hindi' }),
+              translateText({ text: currentMessageText, targetLanguage: 'Telugu' }),
+            ]);
 
-        return {
-          ...notification,
-          message: {
-            en: currentMessageText,
-            hi: hindiRes.translation,
-            te: teluguRes.translation,
-          },
-        };
+            return {
+              ...notification,
+              message: {
+                en: currentMessageText,
+                hi: hindiRes.translation,
+                te: teluguRes.translation,
+              },
+            };
+        } catch (error) {
+            console.error(`Translation failed for notification ID ${notification.id}:`, error);
+            // If translation fails, fall back to saving the English message only
+            // to avoid blocking the entire save operation.
+             return {
+              ...notification,
+              message: {
+                en: currentMessageText,
+              },
+            };
+        }
       }
       
       // If message is unchanged, return it as is to preserve existing translations
@@ -1395,6 +1411,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 
