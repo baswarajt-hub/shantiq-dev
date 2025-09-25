@@ -21,7 +21,7 @@ import { format, set, addMinutes, parse, parseISO, toDate } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Info } from 'lucide-react';
+import { Info, PlusCircle } from 'lucide-react';
 import { getEasebuzzAccessKey } from '@/app/actions';
 
 // This is required to tell TypeScript about the Easebuzz object from the script
@@ -35,6 +35,7 @@ type BookAppointmentDialogProps = {
   onSave: (familyMember: FamilyMember, date: string, time: string, purpose: string) => void;
   bookedPatients: Patient[];
   initialMemberId?: string | null;
+  onAddNewMember: () => void;
   onDialogClose?: () => void;
 };
 
@@ -46,7 +47,7 @@ type AvailableSlot = {
 };
 
 
-export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, schedule, onSave, bookedPatients, initialMemberId, onDialogClose }: BookAppointmentDialogProps) {
+export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, schedule, onSave, bookedPatients, initialMemberId, onAddNewMember, onDialogClose }: BookAppointmentDialogProps) {
   const [step, setStep] = useState(1);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -271,6 +272,10 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
                     ))}
                   </SelectContent>
                 </Select>
+                 <Button variant="link" size="sm" className="p-0 h-auto" onClick={onAddNewMember}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add New Family Member
+                </Button>
             </div>
              <div className="space-y-2">
                 <Label>Purpose of Visit</Label>

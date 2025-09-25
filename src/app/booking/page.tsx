@@ -1,20 +1,22 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell, AlertTriangle, Megaphone } from 'lucide-react';
+import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell, AlertTriangle, Megaphone, PlusCircle } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
+import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, addNewPatientAction } from '@/app/actions';
 import { format, parseISO, isToday, parse as parseDate, isWithinInterval } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 
 
 const getStatusBadgeClass = (status: string) => {
@@ -86,6 +88,7 @@ export default function BookingPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [isBookingOpen, setBookingOpen] = useState(false);
+  const [isAddMemberOpen, setAddMemberOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [phone, setPhone] = useState<string|null>(null);
@@ -238,6 +241,20 @@ export default function BookingPage() {
         }
     });
   };
+
+  const handleAddFamilyMember = useCallback((member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
+    if (!phone) return;
+    startTransition(async () => {
+        const result = await addNewPatientAction({ ...member, phone });
+        if(result.success){
+            toast({ title: "Success", description: "Family member added."});
+            await loadData(); // Reload data to get new member
+            setBookingOpen(true); // Re-open booking dialog
+        } else {
+            toast({ title: "Error", description: result.error || "Could not add member", variant: 'destructive'});
+        }
+    });
+  }, [phone, toast, loadData]);
   
   const activeAppointments = appointments.filter(appt => !['Completed', 'Cancelled', 'Missed'].includes(appt.status as string));
   const todaysAppointments = activeAppointments.filter(appt => isToday(parseISO(appt.date)));
@@ -335,8 +352,8 @@ export default function BookingPage() {
               <CardDescription>Select a family member and find a time that works for you.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <Button size="lg" onClick={() => setBookingOpen(true)} disabled={familyPatients.length === 0}>
-                {familyPatients.length === 0 ? "Add a family member to book" : "Book an Appointment"}
+              <Button size="lg" onClick={() => setBookingOpen(true)}>
+                Book an Appointment
               </Button>
             </CardContent>
         </Card>
@@ -425,8 +442,17 @@ export default function BookingPage() {
       onSave={handleBookAppointment}
       bookedPatients={patients}
       initialMemberId={selectedMember?.id}
+      onAddNewMember={() => {
+        setBookingOpen(false);
+        setAddMemberOpen(true);
+      }}
       onDialogClose={() => setSelectedMember(null)}
     />
+     <AddFamilyMemberDialog 
+        isOpen={isAddMemberOpen} 
+        onOpenChange={setAddMemberOpen}
+        onSave={handleAddFamilyMember} 
+      />
   </main>
   );
 }
