@@ -1171,23 +1171,29 @@ export async function updateNotificationsAction(notifications: Notification[]) {
   const notificationsWithTranslations = await Promise.all(
     notifications.map(async (notification) => {
       const existingNotification = schedule.notifications.find(n => n.id === notification.id);
-      const currentMessage = typeof notification.message === 'string' ? notification.message : notification.message.en;
-      const oldMessage = existingNotification ? (typeof existingNotification.message === 'string' ? existingNotification.message : existingNotification.message.en) : '';
+      const currentMessageText = typeof notification.message === 'string' ? notification.message : notification.message.en;
+      
+      let oldMessageText = '';
+      if (existingNotification) {
+          oldMessageText = typeof existingNotification.message === 'string' 
+              ? existingNotification.message 
+              : existingNotification.message.en;
+      }
 
-      // Only re-translate if the message is new or the English text has changed.
-      if (!existingNotification || currentMessage !== oldMessage) {
+      // Only re-translate if it's a new notification or the English text has changed.
+      if (!existingNotification || currentMessageText !== oldMessageText) {
         const [hindiRes, teluguRes] = await Promise.all([
-          translateText({ text: currentMessage, targetLanguage: 'Hindi' }),
-          translateText({ text: currentMessage, targetLanguage: 'Telugu' }),
+          translateText({ text: currentMessageText, targetLanguage: 'Hindi' }),
+          translateText({ text: currentMessageText, targetLanguage: 'Telugu' }),
         ]);
 
         return {
           ...notification,
           message: {
-            en: currentMessage,
+            en: currentMessageText,
             hi: hindiRes.translation,
             te: teluguRes.translation,
-          } as TranslatedMessage,
+          },
         };
       }
       
@@ -1389,6 +1395,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 
