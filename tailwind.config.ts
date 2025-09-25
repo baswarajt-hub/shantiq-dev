@@ -74,7 +74,6 @@ export default {
           DEFAULT: '#eeccff',
           foreground: '#38004d',
         },
-        'custom-tab': '#fee8b9',
       },
       borderRadius: {
         lg: 'var(--radius)',
