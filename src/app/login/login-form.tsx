@@ -58,7 +58,7 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
   };
 
   return (
-    <Card>
+    <>
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Patient Login</CardTitle>
         <CardDescription>
@@ -103,6 +103,6 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
           </Button>
         )}
       </CardFooter>
-    </Card>
+    </>
   );
 }

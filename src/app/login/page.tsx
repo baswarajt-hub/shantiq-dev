@@ -4,6 +4,7 @@ import { StethoscopeIcon } from '@/components/icons';
 import Image from 'next/image';
 import { LoginForm } from './login-form';
 import { CheckCircle2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default async function LoginPage() {
   const schedule = await getDoctorScheduleAction();
@@ -31,17 +32,22 @@ export default async function LoginPage() {
         </div>
         <div className="text-center mb-6">
            <h1 className="text-2xl font-bold">{clinicName}</h1>
-           <p className="text-lg text-muted-foreground">Doctor Appointments & Live Queue Tracking</p>
+           <p className="text-lg font-bold text-primary">Doctor Appointments & Live Queue Tracking</p>
         </div>
-        <LoginForm clinicName={clinicName} />
-         <div className="mt-8 text-left text-sm text-muted-foreground space-y-3">
-          {features.map((feature, index) => (
-            <div key={index} className="flex items-start gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <span>{feature}</span>
+        
+        <Card>
+          <LoginForm clinicName={clinicName} />
+          <CardContent className="pt-6">
+            <div className="text-left text-sm text-muted-foreground space-y-3">
+              {features.map((feature, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>{feature}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
