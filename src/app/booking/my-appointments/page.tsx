@@ -173,7 +173,7 @@ export default function MyAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
-  const [isEditMemberOpen, setEditMemberOpen] useState(false);
+  const [isEditMemberOpen, setEditMemberOpen] = useState(false);
   const [isRescheduleOpen, setRescheduleOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
