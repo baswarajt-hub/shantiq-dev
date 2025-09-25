@@ -4,7 +4,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers } from '@/lib/data';
-import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { translateText } from '@/ai/flows/translate-text';
@@ -1166,38 +1166,44 @@ export async function startLastConsultationAction(patientId: number) {
 }
 
 export async function updateNotificationsAction(notifications: Notification[]) {
+  const schedule = await getDoctorSchedule();
+  
   const notificationsWithTranslations = await Promise.all(
     notifications.map(async (notification) => {
-      if (typeof notification.message === 'string') {
-        const englishMessage = notification.message;
+      const existingNotification = schedule.notifications.find(n => n.id === notification.id);
+      const currentMessage = typeof notification.message === 'string' ? notification.message : notification.message.en;
+      const oldMessage = existingNotification ? (typeof existingNotification.message === 'string' ? existingNotification.message : existingNotification.message.en) : '';
+
+      // Only re-translate if the message is new or the English text has changed.
+      if (!existingNotification || currentMessage !== oldMessage) {
         const [hindiRes, teluguRes] = await Promise.all([
-          translateText({ text: englishMessage, targetLanguage: 'Hindi' }),
-          translateText({ text: englishMessage, targetLanguage: 'Telugu' }),
+          translateText({ text: currentMessage, targetLanguage: 'Hindi' }),
+          translateText({ text: currentMessage, targetLanguage: 'Telugu' }),
         ]);
 
         return {
           ...notification,
           message: {
-            en: englishMessage,
+            en: currentMessage,
             hi: hindiRes.translation,
             te: teluguRes.translation,
-          },
+          } as TranslatedMessage,
         };
       }
-      // If it's already an object, assume it's what we want and return it.
-      // A more robust implementation might check if the 'en' key has changed
-      // and re-translate if necessary.
+      
+      // If message is unchanged, return it as is to preserve existing translations
       return notification;
     })
   );
 
-  await updateNotificationData(notificationsWithTranslations);
+  await updateNotificationData(notificationsWithTranslations as Notification[]);
   revalidatePath('/');
   revalidatePath('/admin');
   revalidatePath('/booking');
   revalidatePath('/patient-portal');
   return { success: 'Notifications updated successfully.' };
 }
+
 
 export async function deleteFamilyMemberAction(id: string) {
     await deleteFamilyMemberData(id);
@@ -1383,6 +1389,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 

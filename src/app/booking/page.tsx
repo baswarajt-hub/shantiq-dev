@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell, AlertTriangle, Megaphone, PlusCircle } from 'lucide-react';
-import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification } from '@/lib/types';
+import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification, TranslatedMessage } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -80,11 +80,6 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
               </CardHeader>
               <CardContent className="p-4 pt-0">
                  <Tabs value={lang} onValueChange={(value) => setLang(value as any)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 h-8">
-                        <TabsTrigger value="en" className="text-xs">English</TabsTrigger>
-                        <TabsTrigger value="hi" className="text-xs">हिन्दी</TabsTrigger>
-                        <TabsTrigger value="te" className="text-xs">తెలుగు</TabsTrigger>
-                    </TabsList>
                     <TabsContent value="en" className="mt-2">
                         <p className="text-base text-blue-800/90">{message.en}</p>
                     </TabsContent>
@@ -94,6 +89,11 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
                     <TabsContent value="te" className="mt-2">
                         <p className="text-base text-blue-800/90">{message.te || 'Translation not available.'}</p>
                     </TabsContent>
+                    <TabsList className="grid w-full grid-cols-3 h-8 mt-2">
+                        <TabsTrigger value="en" className="text-xs">English</TabsTrigger>
+                        <TabsTrigger value="hi" className="text-xs">हिन्दी</TabsTrigger>
+                        <TabsTrigger value="te" className="text-xs">తెలుగు</TabsTrigger>
+                    </TabsList>
                 </Tabs>
               </CardContent>
             </Card>
@@ -479,4 +479,5 @@ export default function BookingPage() {
   </main>
   );
 }
+
 
