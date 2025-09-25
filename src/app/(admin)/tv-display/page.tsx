@@ -187,7 +187,7 @@ function TVDisplayPageContent() {
 
   const listRef = useRef<HTMLDivElement>(null);
   const timeZone = "Asia/Kolkata";
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule || !localSchedule.days) return null;
