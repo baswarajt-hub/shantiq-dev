@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
@@ -341,12 +340,6 @@ export default function BookingPage() {
               </Button>
             </CardContent>
         </Card>
-         <Button asChild className="w-full bg-amber-400 text-amber-900 hover:bg-amber-400/90">
-            <Link href="/booking/my-appointments">
-                <Users className="mr-2 h-4 w-4" />
-                My Family & Appointments
-            </Link>
-        </Button>
       </div>
 
       {/* Right Column */}
@@ -403,6 +396,24 @@ export default function BookingPage() {
             )}
           </CardContent>
         </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <Card asChild className="cursor-pointer hover:border-primary/50 hover:bg-primary/5">
+                <Link href="/booking/my-appointments">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Users /> My Family</CardTitle>
+                        <CardDescription>Manage family members and their profiles.</CardDescription>
+                    </CardHeader>
+                </Link>
+            </Card>
+            <Card asChild className="cursor-pointer hover:border-primary/50 hover:bg-primary/5">
+                <Link href="/booking/my-appointments">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Calendar /> My Appointments</CardTitle>
+                        <CardDescription>View and manage all your past and upcoming appointments.</CardDescription>
+                    </CardHeader>
+                </Link>
+            </Card>
+        </div>
       </div>
     </div>
     
