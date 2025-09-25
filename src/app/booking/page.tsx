@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 
 const getStatusBadgeClass = (status: string) => {
@@ -33,6 +34,7 @@ const getStatusBadgeClass = (status: string) => {
 
 function NotificationCard({ notifications }: { notifications?: Notification[] }) {
   const [visibleNotifications, setVisibleNotifications] = useState<Notification[]>([]);
+  const [lang, setLang] = useState<'en' | 'hi' | 'te'>('en');
 
   useEffect(() => {
     if (notifications) {
@@ -63,19 +65,40 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
 
   return (
     <div className="space-y-4">
-      {visibleNotifications.map(notification => (
-        <Card key={notification.id} className="bg-accent/20 border-accent/50">
-          <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4">
-            <Megaphone className="h-6 w-6 text-blue-800 mt-1" />
-            <div className="flex-1">
-              <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
-              <CardDescription className="text-base text-blue-800/90 mt-1">
-                {notification.message}
-              </CardDescription>
-            </div>
-          </CardHeader>
-        </Card>
-      ))}
+      {visibleNotifications.map(notification => {
+          const message = typeof notification.message === 'string' 
+            ? { en: notification.message }
+            : notification.message;
+
+          return (
+            <Card key={notification.id} className="bg-accent/20 border-accent/50">
+              <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4 pb-2">
+                <Megaphone className="h-6 w-6 text-blue-800 mt-1" />
+                <div className="flex-1">
+                  <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                 <Tabs value={lang} onValueChange={(value) => setLang(value as any)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 h-8">
+                        <TabsTrigger value="en" className="text-xs">English</TabsTrigger>
+                        <TabsTrigger value="hi" className="text-xs">हिन्दी</TabsTrigger>
+                        <TabsTrigger value="te" className="text-xs">తెలుగు</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="en" className="mt-2">
+                        <p className="text-base text-blue-800/90">{message.en}</p>
+                    </TabsContent>
+                    <TabsContent value="hi" className="mt-2">
+                        <p className="text-base text-blue-800/90">{message.hi || 'Translation not available.'}</p>
+                    </TabsContent>
+                    <TabsContent value="te" className="mt-2">
+                        <p className="text-base text-blue-800/90">{message.te || 'Translation not available.'}</p>
+                    </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          )
+      })}
     </div>
   );
 }
@@ -456,3 +479,4 @@ export default function BookingPage() {
   </main>
   );
 }
+

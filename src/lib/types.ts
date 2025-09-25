@@ -98,9 +98,15 @@ export type PaymentGatewaySettings = {
   environment: 'test' | 'production';
 };
 
+export type TranslatedMessage = {
+  en: string;
+  hi?: string;
+  te?: string;
+};
+
 export type Notification = {
   id: string;
-  message: string;
+  message: TranslatedMessage | string; // string for backward compatibility
   startTime?: string; // ISO string
   endTime?: string; // ISO string
   enabled: boolean;

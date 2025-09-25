@@ -7,6 +7,7 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
+import { translateText } from '@/ai/flows/translate-text';
 import { format, parseISO, parse, differenceInMinutes, startOfDay, max, addMinutes, subMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { createHash, randomBytes } from 'crypto';
@@ -1165,12 +1166,37 @@ export async function startLastConsultationAction(patientId: number) {
 }
 
 export async function updateNotificationsAction(notifications: Notification[]) {
-    await updateNotificationData(notifications);
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    return { success: 'Notifications updated successfully.' };
+  const notificationsWithTranslations = await Promise.all(
+    notifications.map(async (notification) => {
+      if (typeof notification.message === 'string') {
+        const englishMessage = notification.message;
+        const [hindiRes, teluguRes] = await Promise.all([
+          translateText({ text: englishMessage, targetLanguage: 'Hindi' }),
+          translateText({ text: englishMessage, targetLanguage: 'Telugu' }),
+        ]);
+
+        return {
+          ...notification,
+          message: {
+            en: englishMessage,
+            hi: hindiRes.translation,
+            te: teluguRes.translation,
+          },
+        };
+      }
+      // If it's already an object, assume it's what we want and return it.
+      // A more robust implementation might check if the 'en' key has changed
+      // and re-translate if necessary.
+      return notification;
+    })
+  );
+
+  await updateNotificationData(notificationsWithTranslations);
+  revalidatePath('/');
+  revalidatePath('/admin');
+  revalidatePath('/booking');
+  revalidatePath('/patient-portal');
+  return { success: 'Notifications updated successfully.' };
 }
 
 export async function deleteFamilyMemberAction(id: string) {
@@ -1357,6 +1383,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 

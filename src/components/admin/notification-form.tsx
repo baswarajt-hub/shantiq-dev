@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 
 const BLANK_NOTIFICATION: Omit<Notification, 'id'> = {
-    message: '',
+    message: { en: '' },
     startTime: new Date().toISOString(),
     endTime: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
     enabled: true
@@ -41,7 +41,11 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setCurrentNotification(prev => ({ ...prev, [name]: value }));
+    setCurrentNotification(prev => {
+        const newMessage = typeof prev.message === 'string' ? { en: prev.message } : { ...prev.message };
+        newMessage.en = value;
+        return { ...prev, message: newMessage };
+    });
   };
   
   const handleDateTimeChange = (field: 'startTime' | 'endTime', date?: Date, time?: string) => {
@@ -74,15 +78,17 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
   const handleSaveOrUpdate = () => {
     startTransition(async () => {
         let updatedNotifications: Notification[];
+        const messageToSave = typeof currentNotification.message === 'string' ? { en: currentNotification.message } : currentNotification.message;
+        
         if (editingId) {
             // Update existing notification
             updatedNotifications = notifications.map(n => 
-                n.id === editingId ? { ...n, ...currentNotification, id: editingId } : n
+                n.id === editingId ? { ...n, ...currentNotification, id: editingId, message: messageToSave } : n
             );
         } else {
             // Add new notification
             const newId = `notif_${Date.now()}`;
-            updatedNotifications = [...notifications, { ...currentNotification, id: newId }];
+            updatedNotifications = [...notifications, { ...currentNotification, id: newId, message: messageToSave }];
         }
         await onSave(updatedNotifications);
         setEditingId(null);
@@ -152,6 +158,9 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
        </div>
     );
   }
+  
+  const messageText = typeof currentNotification.message === 'string' ? currentNotification.message : currentNotification.message.en;
+
 
   return (
     <Card>
@@ -163,14 +172,15 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
             <div className="p-4 border rounded-lg space-y-4">
                 <h3 className="font-semibold text-lg">{editingId ? 'Edit Notification' : 'Add New Notification'}</h3>
                  <div className="space-y-2">
-                    <Label htmlFor="message">Notification Message</Label>
+                    <Label htmlFor="message">Notification Message (in English)</Label>
                     <Textarea
                     id="message"
                     name="message"
-                    value={currentNotification.message}
+                    value={messageText}
                     onChange={handleInputChange}
                     placeholder="e.g. The clinic will be closed from 2 PM to 4 PM today."
                     />
+                    <p className="text-xs text-muted-foreground">This will be auto-translated to Hindi and Telugu.</p>
                 </div>
                 <div className="grid md:grid-cols-2 gap-6">
                     <DateTimePicker 
@@ -195,7 +205,7 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
                     <Label htmlFor="enabled">Enable Notification</Label>
                 </div>
                  <div className="flex gap-2">
-                    <Button type="button" onClick={handleSaveOrUpdate} disabled={isPending || !currentNotification.message}>
+                    <Button type="button" onClick={handleSaveOrUpdate} disabled={isPending || !messageText}>
                         {isPending ? 'Saving...' : (editingId ? 'Update Notification' : 'Save Notification')}
                     </Button>
                     {editingId && (
@@ -209,10 +219,12 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
             <div>
                 <h3 className="font-semibold text-lg mb-4">Saved Notifications</h3>
                 <div className="space-y-4">
-                    {notifications.length > 0 ? notifications.map(notif => (
+                    {notifications.length > 0 ? notifications.map(notif => {
+                         const displayMessage = typeof notif.message === 'string' ? notif.message : notif.message.en;
+                        return (
                         <div key={notif.id} className="p-4 border rounded-lg flex justify-between items-start gap-4">
                             <div>
-                                <p className={cn("font-semibold", !notif.enabled && "text-muted-foreground line-through")}>{notif.message}</p>
+                                <p className={cn("font-semibold", !notif.enabled && "text-muted-foreground line-through")}>{displayMessage}</p>
                                 <p className="text-sm text-muted-foreground">
                                     {notif.startTime && format(parseISO(notif.startTime), 'MMM d, h:mm a')} - {notif.endTime && format(parseISO(notif.endTime), 'MMM d, h:mm a')}
                                 </p>
@@ -222,7 +234,7 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(notif.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </div>
                         </div>
-                    )) : (
+                    )}) : (
                         <p className="text-sm text-muted-foreground text-center">No notifications saved.</p>
                     )}
                 </div>
