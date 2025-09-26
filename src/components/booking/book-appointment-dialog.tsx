@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -177,7 +176,10 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     const selectedMember = familyMembers.find(f => f.id.toString() === selectedMemberId);
     if (selectedMember && selectedDate && selectedSlot && selectedPurpose) {
       startTransition(async () => {
-        if (!schedule?.paymentGatewaySettings || schedule.paymentGatewaySettings.provider !== 'easebuzz') {
+        // Check if payment is enabled before proceeding
+        const isPaymentEnabled = schedule?.paymentGatewaySettings?.provider === 'easebuzz';
+
+        if (!isPaymentEnabled) {
             onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
             handleClose(false);
             toast({ title: 'Booking Confirmed!', description: 'Your appointment has been booked.' });
@@ -374,3 +376,5 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     </Dialog>
   );
 }
+
+    
