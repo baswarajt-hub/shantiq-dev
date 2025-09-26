@@ -49,10 +49,10 @@ export default function Stats({ patients, averageConsultationTime, averageWaitTi
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
       <CompactStatCard title="In Queue" value={waitingPatients.length} Icon={Users} />
       <CompactStatCard title="Total" value={totalAppointments} Icon={CalendarCheck} />
+      <CompactStatCard title="Yet to Arrive" value={yetToArrive.length} Icon={CalendarX} />
       <CompactStatCard title="Completed" value={completedPatients.length} Icon={BookCheck} />
       <CompactStatCard title="Avg. Consult" value={`${averageConsultationTime}m`} Icon={Activity} />
       <CompactStatCard title="Avg. Wait" value={`${averageWaitTime}m`} Icon={Clock} />
-      <CompactStatCard title="Yet to Arrive" value={yetToArrive.length} Icon={CalendarX} />
       
       <div className="flex items-center gap-3 p-3 bg-card rounded-lg border flex-1 justify-center col-span-2 lg:col-span-1">
         <Stethoscope className="h-5 w-5 text-muted-foreground" />
