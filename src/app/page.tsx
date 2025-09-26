@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import Header from '@/components/header';
 import Stats from '@/app/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
-import { format, set, addMinutes, parseISO, isToday } from 'date-fns';
+import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -118,6 +118,7 @@ export default function DashboardPage() {
     const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [averageConsultationTime, setAverageConsultationTime] = useState(0);
+    const [averageWaitTime, setAverageWaitTime] = useState(0);
     
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -210,6 +211,22 @@ export default function DashboardPage() {
             setAverageConsultationTime(Math.round(totalTime / completedWithTime.length));
         } else {
             setAverageConsultationTime(schedule?.slotDuration || 0);
+        }
+
+        // Calculate average wait time
+        const currentlyWaiting = sessionPatients.filter(p => 
+            ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status) && p.checkInTime
+        );
+
+        if (currentlyWaiting.length > 0) {
+            const now = new Date();
+            const totalWaitMinutes = currentlyWaiting.reduce((acc, p) => {
+                const wait = differenceInMinutes(now, parseISO(p.checkInTime!));
+                return acc + (wait > 0 ? wait : 0);
+            }, 0);
+            setAverageWaitTime(Math.round(totalWaitMinutes / currentlyWaiting.length));
+        } else if (schedule) {
+            setAverageWaitTime(0); // Set to 0 if no one is waiting
         }
 
     }, [sessionPatients, schedule?.slotDuration]);
@@ -794,7 +811,7 @@ export default function DashboardPage() {
             <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
                 <div className="space-y-6">
                     <div className="sticky top-[57px] bg-background/95 backdrop-blur-sm z-10 py-4 -mx-4 px-4 border-b shadow-sm">
-                       <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
+                       <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} averageWaitTime={averageWaitTime} />
                     </div>
                     
                     <Card>
@@ -1045,18 +1062,27 @@ export default function DashboardPage() {
 
     
 
+    
 
+    
 
+    
 
+    
 
+    
 
+    
 
+    
 
+    
 
+    
 
+    
 
-
-
+    
 
     
 

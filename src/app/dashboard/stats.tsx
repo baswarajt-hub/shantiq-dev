@@ -1,12 +1,13 @@
 
 'use client';
 import type { Patient } from "@/lib/types";
-import { Users, CalendarCheck, BookCheck, Activity, CalendarX, Stethoscope, Icon } from "lucide-react";
+import { Users, CalendarCheck, BookCheck, Activity, CalendarX, Stethoscope, Icon, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type StatsProps = {
   patients: Patient[];
   averageConsultationTime: number;
+  averageWaitTime: number;
 };
 
 const StatCard = ({ title, value, Icon, description, className }: { title: string, value: string | number, Icon: Icon, description?: string, className?: string }) => (
@@ -30,7 +31,7 @@ const CompactStatCard = ({ title, value, Icon, className }: { title: string, val
 );
 
 
-export default function Stats({ patients, averageConsultationTime }: StatsProps) {
+export default function Stats({ patients, averageConsultationTime, averageWaitTime }: StatsProps) {
   const waitingPatients = patients.filter(p => p.status === 'Waiting' || p.status === 'Late' || p.status === 'Up-Next' || p.status === 'Priority');
   const completedPatients = patients.filter(p => p.status === 'Completed');
   const yetToArrive = patients.filter(p => p.status === 'Booked' || p.status === 'Confirmed');
@@ -45,11 +46,12 @@ export default function Stats({ patients, averageConsultationTime }: StatsProps)
   }, {} as Record<string, number>);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
       <CompactStatCard title="In Queue" value={waitingPatients.length} Icon={Users} />
       <CompactStatCard title="Total" value={totalAppointments} Icon={CalendarCheck} />
       <CompactStatCard title="Completed" value={completedPatients.length} Icon={BookCheck} />
-      <CompactStatCard title="Avg. Time" value={`${averageConsultationTime}m`} Icon={Activity} />
+      <CompactStatCard title="Avg. Consult" value={`${averageConsultationTime}m`} Icon={Activity} />
+      <CompactStatCard title="Avg. Wait" value={`${averageWaitTime}m`} Icon={Clock} />
       <CompactStatCard title="Yet to Arrive" value={yetToArrive.length} Icon={CalendarX} />
       
       <div className="flex items-center gap-3 p-3 bg-card rounded-lg border flex-1 justify-center col-span-2 lg:col-span-1">
