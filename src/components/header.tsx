@@ -35,16 +35,6 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
           <Button variant="ghost" asChild>
             <Link href="/doctor" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold">Doctor Panel</Link>
           </Button>
-           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost">Admin</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem asChild>
-                <Link href="/admin">General Settings</Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
            <Button variant="ghost" asChild>
             <Link href="/queue-status" target="_blank" rel="noopener noreferrer">Public Queue</Link>
           </Button>
