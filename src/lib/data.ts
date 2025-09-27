@@ -327,14 +327,26 @@ export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMem
     if (!searchTerm.trim()) return [];
     
     const familySnapshot = await getDocs(familyCollection);
-    const family = familySnapshot.docs.map(doc => ({ ...(doc.data() as Omit<FamilyMember, 'id'>), id: doc.id }));
+    const allMembers = familySnapshot.docs.map(doc => ({ ...(doc.data() as Omit<FamilyMember, 'id'>), id: doc.id }));
     
     const lowercasedTerm = searchTerm.toLowerCase();
-    return family.filter(member =>
+    
+    const matchingMembers = allMembers.filter(member =>
         member.name.toLowerCase().includes(lowercasedTerm) ||
         member.phone.includes(searchTerm) ||
-        (member.clinicId && member.clinicId.toLowerCase().includes(lowercasedTerm))
+        (member.clinicId && member.clinicId.toLowerCase().includes(lowercasedTerm)) ||
+        (member.dob && member.dob.includes(searchTerm))
     );
+
+    if (matchingMembers.length === 0) {
+        return [];
+    }
+
+    // Get all unique phone numbers from the matching members
+    const phoneNumbers = [...new Set(matchingMembers.map(m => m.phone))];
+
+    // Return all members that have one of those phone numbers
+    return allMembers.filter(member => phoneNumbers.includes(member.phone));
 }
 
 export async function addFamilyMember(memberData: Omit<FamilyMember, 'id'>): Promise<FamilyMember> {
