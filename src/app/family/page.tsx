@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useTransition, useCallback } from 'react';
+import { useState, useTransition, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -30,7 +30,7 @@ export default function FamilyAdminPage() {
   const [isPending, startTransition] = useTransition();
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
 
-   useState(() => {
+   useEffect(() => {
     async function loadSchedule() {
       try {
         const scheduleData = await getDoctorScheduleAction();
@@ -40,7 +40,7 @@ export default function FamilyAdminPage() {
       }
     }
     loadSchedule();
-  });
+  }, []);
 
 
   const handleSearch = useCallback(() => {
