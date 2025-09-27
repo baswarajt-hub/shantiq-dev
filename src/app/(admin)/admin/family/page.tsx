@@ -5,7 +5,7 @@ import { useState, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Edit, User, Users, Search, Phone, Mail, Trash2, PlusCircle } from 'lucide-react';
+import { Edit, User, Users, Search, Phone, Mail, Trash2, PlusCircle, X } from 'lucide-react';
 import type { FamilyMember } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { updateFamilyMemberAction, searchFamilyMembersAction, deleteFamilyMemberAction, deleteFamilyByPhoneAction, addNewPatientAction } from '@/app/actions';
@@ -46,6 +46,11 @@ export default function FamilyAdminPage() {
       setFamilies(groupedByPhone);
     });
   }, [searchTerm, toast]);
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setFamilies({});
+  };
 
   const handleEditFamilyMember = useCallback((updatedMember: FamilyMember) => {
      startTransition(async () => {
@@ -138,6 +143,10 @@ export default function FamilyAdminPage() {
               <Button onClick={handleSearch} disabled={isPending}>
                 <Search className="mr-2 h-4 w-4" />
                 {isPending ? 'Searching...' : 'Search'}
+              </Button>
+              <Button onClick={handleReset} variant="outline">
+                <X className="mr-2 h-4 w-4" />
+                Reset
               </Button>
             </div>
           </CardHeader>
