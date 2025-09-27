@@ -4,7 +4,7 @@ import { StethoscopeIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { User, Shield, QrCode } from "lucide-react";
+import { User, Shield, QrCode, Users } from "lucide-react";
 
 type HeaderProps = {
   logoSrc?: string | null;
@@ -32,9 +32,19 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
           <Button variant="ghost" asChild>
             <Link href="/doctor" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold">Doctor Panel</Link>
           </Button>
-          <Button variant="ghost" asChild>
-            <Link href="/admin">Admin</Link>
-          </Button>
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost">Admin</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem asChild>
+                <Link href="/admin">General Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/family">Family Management</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
            <Button variant="ghost" asChild>
             <Link href="/queue-status" target="_blank" rel="noopener noreferrer">Public Queue</Link>
           </Button>
