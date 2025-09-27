@@ -138,7 +138,7 @@ export default function FamilyAdminPage() {
     try {
       // The input is expected to be YYYY-MM-DD from the data
       return format(parseISO(dateString), 'dd-MM-yyyy');
-    } catch (e) => {
+    } catch (e) {
       console.error("Date formatting error:", e);
       return dateString; // Fallback to original string if parsing fails
     }
