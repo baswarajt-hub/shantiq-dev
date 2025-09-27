@@ -332,11 +332,14 @@ export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMem
     
     const lowercasedTerm = searchTerm.toLowerCase();
     
+    // Regex to check if the search term is likely a date
+    const isDateSearch = /^\d{4}-\d{2}-\d{2}$/.test(searchTerm);
+
     const matchingMembers = allMembers.filter(member =>
         member.name.toLowerCase().includes(lowercasedTerm) ||
         member.phone.includes(searchTerm) ||
         (member.clinicId && member.clinicId.toLowerCase().includes(lowercasedTerm)) ||
-        (member.dob && member.dob.includes(searchTerm))
+        (isDateSearch && member.dob === searchTerm)
     );
 
     if (matchingMembers.length === 0) {

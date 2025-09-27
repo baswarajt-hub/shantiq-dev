@@ -116,10 +116,12 @@ export default function FamilyAdminPage() {
   }
   
   const formatDate = (dateString: string) => {
+    if (!dateString) return '';
     try {
-      // The input is expected to be YYYY-MM-DD from the date input
-      return format(parseISO(dateString + 'T00:00:00'), 'dd-MM-yyyy');
+      // The input is expected to be YYYY-MM-DD from the data
+      return format(parseISO(dateString), 'dd-MM-yyyy');
     } catch (e) {
+      console.error("Date formatting error:", e);
       return dateString; // Fallback to original string if parsing fails
     }
   }
