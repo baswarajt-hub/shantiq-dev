@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition, useCallback } from 'react';
@@ -14,6 +15,9 @@ import { AdminEditFamilyMemberDialog } from '@/components/admin/edit-family-memb
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { format, parseISO } from 'date-fns';
+import Header from '@/components/header';
+import { getDoctorScheduleAction } from '@/app/actions';
+import { DoctorSchedule } from '@/lib/types';
 
 export default function FamilyAdminPage() {
   const [families, setFamilies] = useState<Record<string, FamilyMember[]>>({});
@@ -24,6 +28,20 @@ export default function FamilyAdminPage() {
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
+
+   useState(() => {
+    async function loadSchedule() {
+      try {
+        const scheduleData = await getDoctorScheduleAction();
+        setSchedule(scheduleData);
+      } catch (error) {
+        console.error("Failed to load schedule", error);
+      }
+    }
+    loadSchedule();
+  });
+
 
   const handleSearch = useCallback(() => {
     if (!searchTerm.trim()) {
@@ -120,13 +138,15 @@ export default function FamilyAdminPage() {
     try {
       // The input is expected to be YYYY-MM-DD from the data
       return format(parseISO(dateString), 'dd-MM-yyyy');
-    } catch (e) {
+    } catch (e) => {
       console.error("Date formatting error:", e);
       return dateString; // Fallback to original string if parsing fails
     }
   }
 
   return (
+    <>
+    <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
     <main className="flex-1 p-4 md:p-6 lg:p-8">
       <div className="mx-auto w-full max-w-4xl space-y-6">
         <div className="space-y-2">
@@ -276,7 +296,6 @@ export default function FamilyAdminPage() {
         onSave={handleSaveNewMember}
       />
     </main>
+    </>
   );
 }
-
-    
