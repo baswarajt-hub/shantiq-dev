@@ -43,9 +43,6 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
               <DropdownMenuItem asChild>
                 <Link href="/admin">General Settings</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/admin/family">Family Management</Link>
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
            <Button variant="ghost" asChild>
