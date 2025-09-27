@@ -32,6 +32,9 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
            <Button variant="ghost" asChild>
             <Link href="/admin/family">Family</Link>
           </Button>
+           <Button variant="ghost" asChild>
+            <Link href="/admin">Admin</Link>
+          </Button>
           <Button variant="ghost" asChild>
             <Link href="/doctor" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold">Doctor Panel</Link>
           </Button>
