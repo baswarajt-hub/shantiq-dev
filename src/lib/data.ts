@@ -418,6 +418,17 @@ export async function deleteFamilyMember(id: string): Promise<void> {
     await deleteDoc(memberRef);
 }
 
+export async function deleteFamilyByPhone(phone: string): Promise<void> {
+    const q = query(familyCollection, where("phone", "==", phone));
+    const querySnapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    querySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+}
+
+
 export async function deleteTodaysPatientsData(): Promise<void> {
     const today = startOfToday();
     const todayTimestamp = Timestamp.fromDate(today);

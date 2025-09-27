@@ -3,7 +3,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhone as deleteFamilyByPhoneData } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -1189,6 +1189,20 @@ export async function deleteFamilyMemberAction(id: string) {
     return { success: 'Family member deleted.' };
 }
 
+export async function deleteFamilyByPhoneAction(phone: string) {
+    await deleteFamilyByPhoneData(phone);
+    revalidatePath('/');
+    revalidatePath('/admin');
+    revalidatePath('/booking');
+    revalidatePath('/patient-portal');
+    revalidatePath('/dashboard');
+    revalidatePath('/tv-display');
+    revalidatePath('/queue-status');
+    revalidatePath('/api/family');
+    revalidatePath('/walk-in');
+    return { success: 'Family deleted.' };
+}
+
 export async function getEasebuzzAccessKey(amount: number, email: string, phone: string, name: string) {
   'use server';
 
@@ -1359,6 +1373,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 
