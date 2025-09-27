@@ -10,15 +10,28 @@ import Image from "next/image";
 type PatientPortalHeaderProps = {
   logoSrc?: string | null;
   clinicName?: string;
+  googleMapsLink?: string | null;
 }
 
-export function PatientPortalHeader({ logoSrc, clinicName }: PatientPortalHeaderProps) {
+export function PatientPortalHeader({ logoSrc, clinicName, googleMapsLink }: PatientPortalHeaderProps) {
   const router = useRouter();
   
   const handleLogout = () => {
     localStorage.removeItem('userPhone');
     router.push('/login');
   };
+
+  const LogoLinkWrapper = googleMapsLink
+    ? ({ children }: { children: React.ReactNode }) => (
+      <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center">
+        {children}
+      </a>
+    )
+    : ({ children }: { children: React.ReactNode }) => (
+      <Link href="/booking" className="flex flex-col items-center justify-center">
+        {children}
+      </Link>
+    );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -30,7 +43,7 @@ export function PatientPortalHeader({ logoSrc, clinicName }: PatientPortalHeader
           </Link>
         </Button>
         
-        <Link href="/booking" className="flex flex-col items-center justify-center">
+        <LogoLinkWrapper>
            {logoSrc ? (
             <div className="relative h-8 w-8">
               <Image src={logoSrc} alt="Clinic Logo" fill className="object-contain" />
@@ -39,7 +52,7 @@ export function PatientPortalHeader({ logoSrc, clinicName }: PatientPortalHeader
              <StethoscopeIcon className="h-6 w-6 text-primary-foreground fill-primary" />
           )}
           <span className="font-bold sm:inline-block text-xs">{clinicName || 'QueueWise Portal'}</span>
-        </Link>
+        </LogoLinkWrapper>
         
         <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
           <LogOut className="h-4 w-4" />

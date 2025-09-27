@@ -21,7 +21,8 @@ const EMPTY_DETAILS: ClinicDetails = {
   website: '',
   consultationFee: 0,
   paymentQRCode: '',
-  clinicLogo: ''
+  clinicLogo: '',
+  googleMapsLink: ''
 };
 
 type ClinicDetailsFormProps = {
@@ -112,6 +113,10 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
                     <Label htmlFor="website">Website</Label>
                     <Input id="website" name="website" value={details.website} onChange={handleInputChange} />
                 </div>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="googleMapsLink">Google Maps Link</Label>
+                <Input id="googleMapsLink" name="googleMapsLink" value={details.googleMapsLink || ''} onChange={handleInputChange} placeholder="Paste Google Maps URL here" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="clinicLogo">Clinic Logo</Label>

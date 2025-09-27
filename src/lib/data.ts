@@ -178,7 +178,8 @@ const defaultSchedule: DoctorSchedule = {
     website: 'shantichildrensclinic.com',
     consultationFee: 400,
     paymentQRCode: '',
-    clinicLogo: ''
+    clinicLogo: '',
+    googleMapsLink: '',
   },
   smsSettings: {
     provider: 'none',

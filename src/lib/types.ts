@@ -83,6 +83,7 @@ export type ClinicDetails = {
     consultationFee: number;
     paymentQRCode?: string;
     clinicLogo?: string;
+    googleMapsLink?: string;
 };
 
 export type SmsSettings = {
