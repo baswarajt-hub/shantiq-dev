@@ -331,8 +331,7 @@ export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMem
     const allMembers = familySnapshot.docs.map(doc => ({ ...(doc.data() as Omit<FamilyMember, 'id'>), id: doc.id }));
     
     const lowercasedTerm = searchTerm.toLowerCase();
-    
-    // Regex to check if the search term is likely a date
+
     const isDateSearch = /^\d{4}-\d{2}-\d{2}$/.test(searchTerm);
 
     const matchingMembers = allMembers.filter(member =>
@@ -346,12 +345,11 @@ export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMem
         return [];
     }
 
-    // Get all unique phone numbers from the matching members
     const phoneNumbers = [...new Set(matchingMembers.map(m => m.phone))];
 
-    // Return all members that have one of those phone numbers
     return allMembers.filter(member => phoneNumbers.includes(member.phone));
 }
+
 
 export async function addFamilyMember(memberData: Omit<FamilyMember, 'id'>): Promise<FamilyMember> {
     const memberWithAvatar = {
@@ -449,3 +447,6 @@ export async function deleteTodaysPatientsData(): Promise<void> {
 
     await batch.commit();
 }
+
+
+    

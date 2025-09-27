@@ -137,7 +137,7 @@ export default function FamilyAdminPage() {
           <CardHeader>
             <div className="flex gap-2">
               <Input 
-                placeholder="Search by name, phone, clinic ID, or DOB (YYYY-MM-DD)..."
+                placeholder="Search by name, phone, clinic ID, or DOB (DD-MM-YYYY)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -278,3 +278,5 @@ export default function FamilyAdminPage() {
     </main>
   );
 }
+
+    

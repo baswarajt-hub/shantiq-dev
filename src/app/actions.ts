@@ -469,8 +469,19 @@ export async function getFamilyByPhoneAction(phone: string) {
     return getFamilyByPhone(phone);
 }
 
-export async function searchFamilyMembersAction(searchTerm: string) {
-    return searchFamilyMembers(searchTerm);
+export async function searchFamilyMembersAction(searchTerm: string): Promise<FamilyMember[]> {
+    if (!searchTerm.trim()) return [];
+
+    let effectiveSearchTerm = searchTerm;
+    const ddMMyyyyRegex = /^(\d{2})-(\d{2})-(\d{4})$/;
+    const dateMatch = searchTerm.match(ddMMyyyyRegex);
+
+    if (dateMatch) {
+        const [, day, month, year] = dateMatch;
+        effectiveSearchTerm = `${year}-${month}-${day}`;
+    }
+
+    return searchFamilyMembers(effectiveSearchTerm);
 }
 
 export async function checkInPatientAction(patientId: number) {
@@ -1389,3 +1400,6 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
 
+
+
+    
