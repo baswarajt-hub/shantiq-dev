@@ -3,14 +3,15 @@
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Edit, PlusCircle, Trash2 } from 'lucide-react';
+import { Edit, PlusCircle, Trash2, User } from 'lucide-react';
 import type { FamilyMember } from '@/lib/types';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-dialog';
+import { EditProfileDialog } from '@/components/booking/edit-profile-dialog';
 import { addNewPatientAction, updateFamilyMemberAction, getFamilyByPhoneAction, deleteFamilyMemberAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 
@@ -18,6 +19,7 @@ export default function FamilyPage() {
   const [family, setFamily] = useState<FamilyMember[]>([]);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
   const [isEditMemberOpen, setEditMemberOpen] = useState(false);
+  const [isEditProfileOpen, setEditProfileOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [phone, setPhone] = useState<string|null>(null);
   const { toast } = useToast();
@@ -90,6 +92,7 @@ export default function FamilyPage() {
     setEditMemberOpen(true);
   }
 
+  const primaryMember = family.find(member => member.isPrimary);
   const familyPatients = family.filter(member => !member.isPrimary);
 
   if (!phone || isPending) {
@@ -98,7 +101,30 @@ export default function FamilyPage() {
 
   return (
     <main className="flex-1 p-4 md:p-6 lg:p-8">
-      <div className="mx-auto w-full max-w-2xl">
+      <div className="mx-auto w-full max-w-2xl space-y-6">
+        {primaryMember && (
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2"><User />My Profile</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={() => setEditProfileOpen(true)}>
+                        <Edit className="h-5 w-5" />
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                     <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16">
+                            <AvatarImage src={primaryMember.avatar} alt={primaryMember.name} data-ai-hint="person" />
+                            <AvatarFallback>{primaryMember.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <p className="text-xl font-semibold">{primaryMember.name}</p>
+                            <p className="text-sm text-muted-foreground">{primaryMember.phone}</p>
+                            <p className="text-sm text-muted-foreground">{primaryMember.email}</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Family Members</CardTitle>
@@ -108,7 +134,7 @@ export default function FamilyPage() {
             </CardHeader>
             <CardContent className="space-y-4">
             {familyPatients.map(member => (
-                <div key={member.id} className="flex items-center justify-between p-2 rounded-lg">
+                <div key={member.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
                 <div className="flex items-center gap-3">
                     <Avatar>
                     <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
@@ -158,6 +184,14 @@ export default function FamilyPage() {
               isOpen={isEditMemberOpen}
               onOpenChange={setEditMemberOpen}
               member={selectedMember}
+              onSave={handleEditFamilyMember}
+          />
+      )}
+      {primaryMember && (
+          <EditProfileDialog
+              isOpen={isEditProfileOpen}
+              onOpenChange={setEditProfileOpen}
+              member={primaryMember}
               onSave={handleEditFamilyMember}
           />
       )}
