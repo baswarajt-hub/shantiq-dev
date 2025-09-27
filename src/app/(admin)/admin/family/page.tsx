@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { AdminEditFamilyMemberDialog } from '@/components/admin/edit-family-member-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
+import { format, parseISO } from 'date-fns';
 
 export default function FamilyAdminPage() {
   const [families, setFamilies] = useState<Record<string, FamilyMember[]>>({});
@@ -107,6 +108,15 @@ export default function FamilyAdminPage() {
   const handleOpenEditMember = (member: FamilyMember) => {
     setSelectedMember(member);
     setEditMemberOpen(true);
+  }
+  
+  const formatDate = (dateString: string) => {
+    try {
+      // The input is expected to be YYYY-MM-DD from the date input
+      return format(parseISO(dateString + 'T00:00:00'), 'dd-MM-yyyy');
+    } catch (e) {
+      return dateString; // Fallback to original string if parsing fails
+    }
   }
 
   return (
@@ -203,7 +213,7 @@ export default function FamilyAdminPage() {
                                 </Avatar>
                                 <div>
                                 <p className="font-semibold">{member.name}</p>
-                                <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob}</p>
+                                <p className="text-xs text-muted-foreground">{member.gender}, Born {formatDate(member.dob)}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1">

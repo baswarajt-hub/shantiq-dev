@@ -14,7 +14,7 @@ import Image from 'next/image';
 import type { FamilyMember, VisitPurpose, DoctorSchedule, DoctorStatus } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Info, QrCode } from 'lucide-react';
@@ -146,6 +146,15 @@ function WalkInPageContent() {
   }
   
   const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === purpose);
+
+  const formatDate = (dateString: string) => {
+    try {
+      // The input is expected to be YYYY-MM-DD from the date input
+      return format(parseISO(dateString + 'T00:00:00'), 'dd-MM-yyyy');
+    } catch (e) {
+      return dateString; // Fallback to original string if parsing fails
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4 font-body">
@@ -286,7 +295,7 @@ function WalkInPageContent() {
                             </Avatar>
                             <div>
                                 <p className="font-semibold">{member.name}</p>
-                                <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob}</p>
+                                <p className="text-xs text-muted-foreground">{member.gender}, Born {formatDate(member.dob)}</p>
                             </div>
                         </Label>
                     ))}
@@ -407,5 +416,3 @@ export default function WalkInPage() {
         </Suspense>
     );
 }
-
-    

@@ -14,6 +14,7 @@ import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-
 import { EditProfileDialog } from '@/components/booking/edit-profile-dialog';
 import { addNewPatientAction, updateFamilyMemberAction, getFamilyByPhoneAction, deleteFamilyMemberAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
+import { format, parseISO } from 'date-fns';
 
 export default function FamilyPage() {
   const [family, setFamily] = useState<FamilyMember[]>([]);
@@ -95,6 +96,15 @@ export default function FamilyPage() {
   const primaryMember = family.find(member => member.isPrimary);
   const familyPatients = family.filter(member => !member.isPrimary);
 
+  const formatDate = (dateString: string) => {
+    try {
+      // The input is expected to be YYYY-MM-DD from the date input
+      return format(parseISO(dateString + 'T00:00:00'), 'dd-MM-yyyy');
+    } catch (e) {
+      return dateString; // Fallback to original string if parsing fails
+    }
+  }
+
   if (!phone || isPending) {
       return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -142,7 +152,7 @@ export default function FamilyPage() {
                     </Avatar>
                     <div>
                     <p className="font-semibold">{member.name}</p>
-                    <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob}</p>
+                    <p className="text-xs text-muted-foreground">{member.gender}, Born {formatDate(member.dob)}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
