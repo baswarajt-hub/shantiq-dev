@@ -3,6 +3,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -319,7 +320,8 @@ export async function findPatientsByPhoneAction(phone: string) {
 
 
 export async function getDoctorScheduleAction() {
-    return getDoctorScheduleData();
+    const schedule = await getDoctorScheduleData();
+    return JSON.parse(JSON.stringify(schedule));
 }
 
 export async function getDoctorStatusAction() {
@@ -1039,6 +1041,9 @@ export async function checkUserAuthAction(phone: string) {
     const apiKey = smsSettings.apiKey;
     const senderId = smsSettings.senderId;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // In simulation mode, we log the OTP and return it.
+    console.log(`SIMULATING OTP: To=${phone}, OTP=${otp}, Provider=${smsSettings.provider}`);
 
     // The block below is for live integration. It is currently commented out for simulation.
     /*
@@ -1073,9 +1078,6 @@ export async function checkUserAuthAction(phone: string) {
         return { error: "Failed to send OTP. Please try again later." };
     }
     */
-    
-    // In simulation mode, we log the OTP and return it.
-    console.log(`SIMULATING OTP: To=${phone}, OTP=${otp}, Provider=${smsSettings.provider}`);
     
     // Return the generated OTP for verification on the client side.
     return { userExists: !!user, otp: otp, user: user || undefined };
@@ -1431,5 +1433,6 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
