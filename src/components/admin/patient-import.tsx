@@ -8,29 +8,43 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Upload } from 'lucide-react';
-import type { FamilyMember } from '@/lib/types';
 import { patientImportAction } from '@/app/actions';
 
 function parseCSV(csvText: string): any[] {
+    // Remove BOM character if present
+    if (csvText.charCodeAt(0) === 0xFEFF) {
+        csvText = csvText.substring(1);
+    }
+    
     const lines = csvText.trim().split(/\r\n|\n/);
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(',').map(h => h.trim());
+    // Trim headers and handle potential quotes
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    
     const data = [];
+
+    const regex = /(".*?"|[^",]+)(?=\s*,|\s*$)/g;
 
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         if (!line.trim()) continue;
 
-        // This regex handles quoted fields, including those with commas inside.
-        const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-        
-        const entry: any = {};
-        for (let j = 0; j < headers.length; j++) {
-            const value = values[j] || '';
-            entry[headers[j]] = value.trim().replace(/^"|"$/g, ''); // Remove surrounding quotes
+        const values: string[] = [];
+        let match;
+        // This regex handles quoted fields with commas inside
+        while (match = regex.exec(line)) {
+            values.push(match[1].replace(/^"|"$/g, '').trim());
         }
-        data.push(entry);
+
+        if (values.length > 0 && values.length <= headers.length) {
+            const entry: any = {};
+            for (let j = 0; j < headers.length; j++) {
+                // Use header from the file, and map value if it exists
+                entry[headers[j]] = values[j] || '';
+            }
+            data.push(entry);
+        }
     }
     return data;
 }
@@ -60,7 +74,7 @@ export function PatientImport() {
                 const data = parseCSV(text);
                 
                 // Basic validation: Check if there's data and if the first record has a phone number.
-                if (data.length === 0 || !data[0].phone) {
+                if (data.length === 0 || !data[0]?.phone) {
                     throw new Error("Invalid CSV format or empty file. CSV must include at least a 'phone' header.");
                 }
 
