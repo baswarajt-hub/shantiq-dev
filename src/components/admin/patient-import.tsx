@@ -11,31 +11,25 @@ import { Upload } from 'lucide-react';
 import type { FamilyMember } from '@/lib/types';
 import { patientImportAction } from '@/app/actions';
 
-// A simple CSV parser
-function parseCSV(csvText: string): Omit<FamilyMember, 'id' | 'avatar'>[] {
+function parseCSV(csvText: string): any[] {
     const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+
     const headers = lines[0].split(',').map(h => h.trim());
     const data = [];
 
     for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
+        // Handle potential commas within quoted fields
+        const values = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || [];
+        if (values.length !== headers.length) continue; // Skip malformed rows
+        
         const entry: any = {};
         for (let j = 0; j < headers.length; j++) {
-            const header = headers[j];
-            let value: any = values[j];
-
-            if (header === 'isPrimary') {
-                value = value.toLowerCase() === 'true';
-            } else if (!value) {
-                // Assign empty string or undefined for optional fields
-                value = (header === 'email' || header === 'location' || header === 'city' || header === 'clinicId') ? '' : value;
-            }
-            
-            entry[header] = value;
+            entry[headers[j]] = values[j] || '';
         }
         data.push(entry);
     }
-    return data as Omit<FamilyMember, 'id' | 'avatar'>[];
+    return data;
 }
 
 
@@ -63,8 +57,8 @@ export function PatientImport() {
                 const data = parseCSV(text);
                 
                 // Basic validation
-                if (data.length === 0 || !data[0].phone || !data[0].name) {
-                    throw new Error("Invalid CSV format or empty file.");
+                if (data.length === 0 || !data[0].phone || !data[0].name || !data[0].fatherName) {
+                    throw new Error("Invalid CSV format or empty file. Check headers and content.");
                 }
 
                 startTransition(async () => {
@@ -75,11 +69,14 @@ export function PatientImport() {
                         toast({ title: 'Import Successful', description: result.success });
                     }
                     setFile(null);
+                    // Clear the file input visually
+                    const fileInput = document.getElementById('csv-import') as HTMLInputElement;
+                    if(fileInput) fileInput.value = '';
                 });
 
-            } catch (error) {
+            } catch (error: any) {
                 console.error("CSV Parsing Error:", error);
-                toast({ title: 'Parsing Error', description: 'Could not parse the CSV file. Please check the format and try again.', variant: 'destructive'});
+                toast({ title: 'Parsing Error', description: error.message || 'Could not parse the CSV file.', variant: 'destructive'});
             }
         };
         reader.readAsText(file);
@@ -89,19 +86,19 @@ export function PatientImport() {
         <Card>
             <CardHeader>
                 <CardTitle>Import Patient Data</CardTitle>
-                <CardDescription>Upload a CSV file to bulk-add patient and family records.</CardDescription>
+                <CardDescription>Upload a CSV file to bulk-add family and patient records.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Alert>
                     <Upload className="h-4 w-4" />
                     <AlertTitle>CSV File Format</AlertTitle>
                     <AlertDescription>
-                        Ensure your file has the headers: `phone,isPrimary,name,dob,gender,email,location,city,clinicId`.
-                        `dob` must be in YYYY-MM-DD format. `isPrimary` must be TRUE or FALSE.
+                        Headers must be: `phone,fatherName,motherName,primaryContact,email,location,city,name,dob,gender,clinicId`.
+                        `dob` must be `YYYY-MM-DD`. `primaryContact` must be `Father` or `Mother`. `name` is the patient's name.
                     </AlertDescription>
                 </Alert>
                 <div className="flex items-center gap-4">
-                    <Input type="file" accept=".csv" onChange={handleFileChange} />
+                    <Input id="csv-import" type="file" accept=".csv" onChange={handleFileChange} />
                     <Button onClick={handleImport} disabled={isPending || !file}>
                         {isPending ? 'Importing...' : 'Import'}
                     </Button>

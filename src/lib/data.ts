@@ -369,37 +369,84 @@ export async function updateFamilyMember(updatedMember: FamilyMember): Promise<F
     return updatedMember;
 }
 
-export async function batchImportFamilyMembers(members: Omit<FamilyMember, 'id' | 'avatar'>[]): Promise<{ successCount: number, skippedCount: number }> {
+export async function batchImportFamilyMembers(data: any[]): Promise<{ successCount: number, skippedCount: number }> {
     let successCount = 0;
-    let skippedCount = 0;
+    let skippedFamilies = 0;
+    let skippedPatients = 0;
     const batch = writeBatch(db);
 
-    // Fetch all existing family members once to check for duplicates in memory
     const existingFamilySnapshot = await getDocs(familyCollection);
     const existingMembers = existingFamilySnapshot.docs.map(doc => doc.data() as FamilyMember);
 
-    for (const member of members) {
-        // Check for duplicates based on phone and name
-        const isDuplicate = existingMembers.some(
-            existing => existing.phone === member.phone && existing.name.toLowerCase() === member.name.toLowerCase()
-        );
+    const processedPhones = new Set<string>();
 
-        if (isDuplicate) {
-            skippedCount++;
-            continue;
+    for (const row of data) {
+        const phone = row.phone;
+        if (!phone) continue;
+
+        // --- Process Family (Primary) Record ---
+        if (!processedPhones.has(phone)) {
+            const isFamilyDuplicate = existingMembers.some(
+                existing => existing.phone === phone && existing.isPrimary
+            );
+
+            if (isFamilyDuplicate) {
+                skippedFamilies++;
+            } else {
+                const primaryContactName = row.primaryContact === 'Father' ? row.fatherName : row.motherName;
+                const familyRecord: Omit<FamilyMember, 'id'|'avatar'> = {
+                    phone: phone,
+                    isPrimary: true,
+                    name: primaryContactName,
+                    fatherName: row.fatherName,
+                    motherName: row.motherName,
+                    primaryContact: row.primaryContact,
+                    email: row.email || '',
+                    location: row.location || '',
+                    city: row.city || '',
+                    clinicId: row.clinicId || '',
+                };
+                const newFamilyDocRef = doc(familyCollection);
+                batch.set(newFamilyDocRef, {
+                    ...familyRecord,
+                    avatar: `https://picsum.photos/seed/${Math.random()}/200/200`,
+                });
+                successCount++;
+            }
+            processedPhones.add(phone);
         }
 
-        const newDocRef = doc(familyCollection); // Create a new document reference
-        const memberWithAvatar = {
-            ...member,
-            avatar: `https://picsum.photos/seed/${Math.random()}/200/200`,
-        };
-        batch.set(newDocRef, memberWithAvatar);
-        successCount++;
+        // --- Process Patient (Child) Record ---
+        if (row.name && row.dob && row.gender) {
+             const isPatientDuplicate = existingMembers.some(
+                existing => existing.phone === phone && existing.name.toLowerCase() === row.name.toLowerCase() && !existing.isPrimary
+            );
+            if (isPatientDuplicate) {
+                skippedPatients++;
+            } else {
+                const patientRecord: Omit<FamilyMember, 'id'|'avatar'> = {
+                    phone: phone,
+                    isPrimary: false,
+                    name: row.name,
+                    dob: row.dob,
+                    gender: row.gender,
+                    clinicId: row.clinicId || '',
+                     // These fields are not relevant for non-primary members
+                    fatherName: '',
+                    motherName: '',
+                };
+                const newPatientDocRef = doc(familyCollection);
+                 batch.set(newPatientDocRef, {
+                    ...patientRecord,
+                    avatar: `https://picsum.photos/seed/${Math.random()}/200/200`,
+                });
+                successCount++;
+            }
+        }
     }
 
     await batch.commit();
-    return { successCount, skippedCount };
+    return { successCount, skippedCount: skippedFamilies + skippedPatients };
 }
 
 
