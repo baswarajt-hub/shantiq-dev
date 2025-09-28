@@ -14,12 +14,41 @@ const settingsDoc = doc(db, 'settings', 'singleton');
 
 
 // --- Helper Functions ---
+function processFirestoreDoc(docData: any) {
+  if (!docData) return docData;
+
+  const processedData: { [key: string]: any } = {};
+  for (const key in docData) {
+    if (Object.prototype.hasOwnProperty.call(docData, key)) {
+      const value = docData[key];
+      if (value instanceof Timestamp) {
+        // Convert Firestore Timestamps to ISO 8601 strings
+        processedData[key] = value.toDate().toISOString();
+      } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        // Recursively process nested objects
+        processedData[key] = processFirestoreDoc(value);
+      } else if (Array.isArray(value)) {
+         processedData[key] = value.map(item => 
+            (item instanceof Timestamp) ? item.toDate().toISOString() : 
+            (item !== null && typeof item === 'object') ? processFirestoreDoc(item) : item
+        );
+      } else {
+        processedData[key] = value;
+      }
+    }
+  }
+  return processedData;
+}
+
+
 async function getSingletonDoc<T>(docRef: any, defaultData: T): Promise<T> {
   try {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       // Ensure nested objects exist to prevent runtime errors on partial data
-      const data = docSnap.data() as T;
+      const rawData = docSnap.data();
+      const data = processFirestoreDoc(rawData) as T;
+
       if (data && typeof data === 'object' && 'schedule' in data && (data as any).schedule && typeof (data as any).schedule === 'object') {
         const schedule = (data as any).schedule as DoctorSchedule;
         if (!schedule.specialClosures) schedule.specialClosures = [];
@@ -48,7 +77,8 @@ export async function getPatients(): Promise<Patient[]> {
   try {
     const patientSnapshot = await getDocs(patientsCollection);
     const patientsList = patientSnapshot.docs.map(doc => {
-        const data = doc.data() as Omit<Patient, 'id'>;
+        const rawData = doc.data();
+        const data = processFirestoreDoc(rawData) as Omit<Patient, 'id'>;
         // Firestore doesn't store `undefined` but `null`. We need to handle this.
         const patientData: Patient = {
           ...data,
@@ -98,7 +128,7 @@ export async function updatePatient(id: string, updates: Partial<Patient>): Prom
     await updateDoc(patientRef, firestoreUpdates);
     const updatedDoc = await getDoc(patientRef);
     if(updatedDoc.exists()) {
-      return { ...(updatedDoc.data() as Omit<Patient, 'id'>), id: updatedDoc.id };
+      return { ...(processFirestoreDoc(updatedDoc.data()) as Omit<Patient, 'id'>), id: updatedDoc.id };
     }
     return undefined;
 }
@@ -107,7 +137,7 @@ export async function findPatientById(id: string): Promise<Patient | undefined> 
   const patientRef = doc(db, 'patients', id);
   const patientSnap = await getDoc(patientRef);
   if (patientSnap.exists()) {
-    return { ...(patientSnap.data() as Omit<Patient, 'id'>), id: patientSnap.id };
+    return { ...(processFirestoreDoc(patientSnap.data()) as Omit<Patient, 'id'>), id: patientSnap.id };
   }
   return undefined;
 }
@@ -116,7 +146,7 @@ export async function findPatientById(id: string): Promise<Patient | undefined> 
 export async function findPatientsByPhone(phone: string): Promise<Patient[]> {
     const q = query(patientsCollection, where("phone", "==", phone));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ ...(doc.data() as Omit<Patient, 'id'>), id: doc.id }));
+    return querySnapshot.docs.map(doc => ({ ...(processFirestoreDoc(doc.data()) as Omit<Patient, 'id'>), id: doc.id }));
 }
 
 export async function updateAllPatients(newPatients: Patient[]): Promise<void> {
@@ -311,7 +341,7 @@ export async function updateNotificationData(notifications: Notification[]) {
 export async function getFamilyByPhone(phone: string): Promise<FamilyMember[]> {
     const q = query(familyCollection, where("phone", "==", phone));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ ...(doc.data() as Omit<FamilyMember, 'id'>), id: doc.id }));
+    return querySnapshot.docs.map(doc => ({ ...(processFirestoreDoc(doc.data()) as Omit<FamilyMember, 'id'>), id: doc.id }));
 }
 
 export async function findPrimaryUserByPhone(phone: string): Promise<FamilyMember | null> {
@@ -319,7 +349,7 @@ export async function findPrimaryUserByPhone(phone: string): Promise<FamilyMembe
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
-        return { ...(doc.data() as Omit<FamilyMember, 'id'>), id: doc.id };
+        return { ...(processFirestoreDoc(doc.data()) as Omit<FamilyMember, 'id'>), id: doc.id };
     }
     return null;
 }
@@ -328,7 +358,7 @@ export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMem
     if (!searchTerm.trim()) return [];
     
     const familySnapshot = await getDocs(familyCollection);
-    const allMembers = familySnapshot.docs.map(doc => ({ ...(doc.data() as Omit<FamilyMember, 'id'>), id: doc.id }));
+    const allMembers = familySnapshot.docs.map(doc => ({ ...(processFirestoreDoc(doc.data()) as Omit<FamilyMember, 'id'>), id: doc.id }));
     
     const lowercasedTerm = searchTerm.toLowerCase();
 
@@ -465,7 +495,7 @@ export async function cancelAppointment(appointmentId: string): Promise<Patient 
 
 export async function getFamily(): Promise<FamilyMember[]> {
     const familySnapshot = await getDocs(familyCollection);
-    return familySnapshot.docs.map(doc => ({ ...(doc.data() as Omit<FamilyMember, 'id'>), id: doc.id }));
+    return familySnapshot.docs.map(doc => ({ ...(processFirestoreDoc(doc.data()) as Omit<FamilyMember, 'id'>), id: doc.id }));
 }
 
 export async function deleteFamilyMember(id: string): Promise<void> {
@@ -512,5 +542,7 @@ export async function deleteAllFamilies(): Promise<void> {
     
 
 
+
+    
 
     
