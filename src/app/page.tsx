@@ -36,23 +36,23 @@ type TimeSlot = {
   patientDetails?: Partial<FamilyMember>;
 }
 
-const PatientNameWithBadges = ({ patient, isAnonymized = false }: { patient: Patient, isAnonymized?: boolean }) => {
+const PatientNameWithBadges = ({ patient }: { patient: Patient }) => {
   const nameToDisplay = patient.name;
   return (
     <span className="flex items-center gap-2 font-semibold relative">
       {nameToDisplay}
         <span className="flex gap-1">
             {patient.subType === 'Booked Walk-in' && (
-            <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
+              <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
             )}
-            {patient.lateBy && patient.lateBy > 0 && (
-            <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">LATE</sup>
+            {patient.status === 'Late' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">LATE</sup>
             )}
-            {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
-            <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">REPORT</sup>
+            {patient.status === 'Waiting for Reports' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
             )}
             {patient.status === 'Priority' && (
-                <Shield className="h-4 w-4 text-red-600" title="Priority" />
+                <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
             )}
         </span>
     </span>

@@ -53,13 +53,16 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
       {patient.name}
         <span className="flex gap-1">
             {patient.subType === 'Booked Walk-in' && (
-            <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
+              <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
             )}
-            {patient.lateBy && patient.lateBy > 0 && (
-            <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">LATE</sup>
+            {patient.status === 'Late' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">L</sup>
             )}
-            {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
-            <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">REPORT</sup>
+            {patient.status === 'Waiting for Reports' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
+            )}
+            {patient.status === 'Priority' && (
+               <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
             )}
         </span>
     </span>
@@ -140,11 +143,7 @@ export function DoctorQueue({
   const upNext = patients.find(p => p.status === 'Up-Next');
   const waitingList = patients
     .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
-    .sort((a, b) => {
-      if (a.status === 'Priority' && b.status !== 'Priority') return -1;
-      if (a.status !== 'Priority' && b.status === 'Priority') return 1;
-      return (a.tokenNo || 0) - (b.tokenNo || 0);
-    });
+    .sort((a, b) => (a.tokenNo || 0) - (b.tokenNo || 0));
 
   const queue = [
     ...(nowServing ? [nowServing] : []),
@@ -209,7 +208,6 @@ export function DoctorQueue({
                               ?.label
                           }
                           {p.subStatus && ` (${p.subStatus})`}
-                          {p.status === 'Priority' && <Shield className="ml-1.5 h-3.5 w-3.5" />}
                         </Badge>
                       </TableCell>
                       <TableCell>{p.purpose}</TableCell>

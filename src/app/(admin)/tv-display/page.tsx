@@ -77,14 +77,14 @@ const PatientNameWithBadges = ({ patient, isAnonymized = true }: { patient: Pati
         {patient.subType === 'Booked Walk-in' && (
           <sup className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold" title="Booked Walk-in">B</sup>
         )}
-        {patient.lateBy && patient.lateBy > 0 && (
-          <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-xs font-bold" title="Late">LATE</sup>
+        {patient.status === 'Late' && (
+          <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-xs font-bold" title="Late">L</sup>
         )}
-        {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
-          <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-xs font-bold" title="Waiting for Reports">REPORT</sup>
+        {patient.status === 'Waiting for Reports' && (
+          <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-xs font-bold" title="Waiting for Reports">R</sup>
         )}
         {patient.status === 'Priority' && (
-            <Shield className="h-6 w-6 text-red-600" title="Priority" />
+            <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-xs font-bold" title="Priority">P</sup>
         )}
       </span>
     </span>
