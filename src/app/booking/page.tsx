@@ -71,7 +71,7 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
             : notification.message;
 
           return (
-            <Card key={notification.id} className="bg-white">
+            <Card key={notification.id} style={{ backgroundColor: '#ffffff' }}>
               <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4 pb-2">
                 <Megaphone className="h-6 w-6 text-blue-800 mt-1" />
                 <div className="flex-1">
@@ -437,7 +437,7 @@ export default function BookingPage() {
           </CardContent>
         </Card>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#fdbbf3' }}>
+            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#ffffff' }}>
                 <Link href="/booking/family">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Users /> My Family</CardTitle>
@@ -445,7 +445,7 @@ export default function BookingPage() {
                     </CardHeader>
                 </Link>
             </Card>
-            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#fff2db' }}>
+            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#ffffff' }}>
                 <Link href="/booking/my-appointments">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Calendar /> My Appointments</CardTitle>
@@ -479,6 +479,7 @@ export default function BookingPage() {
   </main>
   );
 }
+
 
 
 
