@@ -10,17 +10,17 @@ body {
   :root {
     --background: 210 89% 96%;
     --foreground: 222.2 84% 4.9%;
-    --card: 210 40% 100%;
+    --card: 234 38% 91%;
     --card-foreground: 222.2 84% 4.9%;
-    --popover: 210 40% 100%;
+    --popover: 234 38% 91%;
     --popover-foreground: 222.2 84% 4.9%;
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    --secondary: 234 38% 91%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+    --muted: 234 38% 91%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+    --accent: 234 38% 91%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
