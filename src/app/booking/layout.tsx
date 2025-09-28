@@ -13,7 +13,7 @@ export default async function PatientPortalLayout({
   const googleMapsLink = schedule?.clinicDetails?.googleMapsLink;
 
   return (
-    <div className="flex flex-col min-h-screen bg-muted/40">
+    <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#e0e1ee' }}>
       <PatientPortalHeader logoSrc={logoSrc} clinicName={clinicName} googleMapsLink={googleMapsLink} />
       {children}
     </div>
