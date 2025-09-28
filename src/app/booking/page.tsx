@@ -67,11 +67,11 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
     <div className="space-y-4">
       {visibleNotifications.map(notification => {
           const message = typeof notification.message === 'string' 
-            ? { en: notification.message }
+            ? { en: notification.message } 
             : notification.message;
 
           return (
-            <Card key={notification.id} className="bg-accent/20 border-accent/50">
+            <Card key={notification.id} className="bg-white">
               <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4 pb-2">
                 <Megaphone className="h-6 w-6 text-blue-800 mt-1" />
                 <div className="flex-1">
@@ -325,7 +325,7 @@ export default function BookingPage() {
     <div className="mx-auto w-full max-w-6xl grid gap-8 md:grid-cols-3">
       {/* Left Column */}
       <div className="md:col-span-1 space-y-8">
-        <Card>
+        <Card style={{ backgroundColor: '#ffffff' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Calendar /> Today's Schedule</CardTitle>
             <CardDescription className="font-bold text-lg text-blue-800">{format(currentTime, 'EEEE, MMMM d')}</CardDescription>
@@ -369,7 +369,7 @@ export default function BookingPage() {
         
         <NotificationCard notifications={schedule?.notifications} />
 
-        <Card>
+        <Card style={{ backgroundColor: '#ffffff' }}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl"><PlusCircle /> Book Your Next Visit</CardTitle>
               <CardDescription>Select a family member and find a time that works for you.</CardDescription>
@@ -384,7 +384,7 @@ export default function BookingPage() {
 
       {/* Right Column */}
       <div className="md:col-span-2 space-y-8">
-        <Card>
+        <Card style={{ backgroundColor: '#ffffff' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><List /> Today's Appointments</CardTitle>
           </CardHeader>
@@ -437,7 +437,7 @@ export default function BookingPage() {
           </CardContent>
         </Card>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#ffffff' }}>
+            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#fdbbf3' }}>
                 <Link href="/booking/family">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Users /> My Family</CardTitle>
@@ -445,7 +445,7 @@ export default function BookingPage() {
                     </CardHeader>
                 </Link>
             </Card>
-            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#ffffff' }}>
+            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#fff2db' }}>
                 <Link href="/booking/my-appointments">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Calendar /> My Appointments</CardTitle>
@@ -479,6 +479,7 @@ export default function BookingPage() {
   </main>
   );
 }
+
 
 
 
