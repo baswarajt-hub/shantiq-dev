@@ -43,6 +43,9 @@ function WalkInPageContent() {
   const [email, setEmail] = useState('');
   const [location, setLocation] = useState('');
   const [city, setCity] = useState('');
+  const [fatherName, setFatherName] = useState('');
+  const [motherName, setMotherName] = useState('');
+  const [primaryContact, setPrimaryContact] = useState<'Father' | 'Mother'>('Father');
 
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
 
@@ -113,7 +116,7 @@ function WalkInPageContent() {
   }
 
   const handleRegisterParent = () => {
-    if (!name || !gender || !location || !city || !phone) {
+    if (!fatherName || !motherName || !location || !city || !phone) {
       toast({
         title: 'Missing Information',
         description: 'Please fill out all required fields.',
@@ -122,7 +125,15 @@ function WalkInPageContent() {
       return;
     }
     startTransition(async () => {
-      const result = await registerUserAction({ phone, name, dob, gender, location, city, email });
+      const result = await registerUserAction({
+        phone,
+        fatherName,
+        motherName,
+        primaryContact,
+        location,
+        city,
+        email
+      });
       if (result.success) {
         toast({ title: 'Registration Successful', description: 'Your family account has been created. Now, please add the patient.' });
         const family = await getFamilyByPhoneAction(phone);
@@ -141,13 +152,15 @@ function WalkInPageContent() {
     setFoundFamily([]);
     setSelectedMember(null);
     setName(''); setDob(''); setGender(''); setEmail(''); setLocation(''); setCity('');
+    setFatherName(''); setMotherName(''); setPrimaryContact('Father');
     setPurpose('Consultation');
     router.replace('/walk-in');
   }
   
   const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === purpose);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
     try {
       // The input is expected to be YYYY-MM-DD from the date input
       return format(parseISO(dateString + 'T00:00:00'), 'dd-MM-yyyy');
@@ -224,7 +237,7 @@ function WalkInPageContent() {
             <CardHeader>
                <Button variant="ghost" size="sm" onClick={() => setStep('phone')} className="absolute top-3 left-3">Back</Button>
                <CardTitle className="text-center pt-8">Register Your Family</CardTitle>
-               <CardDescription className="text-center">This phone number is new to us. Please enter the parent's details to create a family account.</CardDescription>
+               <CardDescription className="text-center">This phone number is new to us. Please enter the parents' details to create a family account.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                <Alert variant="destructive">
@@ -234,26 +247,29 @@ function WalkInPageContent() {
                     If you have registered with the doctor before, please contact the receptionist for assistance.
                   </AlertDescription>
               </Alert>
-               <div className="space-y-2">
-                  <Label htmlFor="name">Full Name (Parent's)</Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Parent's Name" style={{ backgroundColor: '#e0e1ee' }}/>
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="fatherName">Father's Name</Label>
+                      <Input id="fatherName" value={fatherName} onChange={(e) => setFatherName(e.target.value)} placeholder="Father's Name" style={{ backgroundColor: '#e0e1ee' }}/>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="motherName">Mother's Name</Label>
+                      <Input id="motherName" value={motherName} onChange={(e) => setMotherName(e.target.value)} placeholder="Mother's Name" style={{ backgroundColor: '#e0e1ee' }}/>
+                  </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                      <Label htmlFor="dob">Date of Birth (Optional)</Label>
-                      <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} style={{ backgroundColor: '#e0e1ee' }}/>
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="gender">Gender</Label>
-                      <Select value={gender} onValueChange={setGender}>
-                          <SelectTrigger style={{ backgroundColor: '#e0e1ee' }}><SelectValue placeholder="Select gender" /></SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="Male">Male</SelectItem>
-                              <SelectItem value="Female">Female</SelectItem>
-                              <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                      </Select>
-                  </div>
+              <div className="space-y-2">
+                  <Label>Primary Contact</Label>
+                  <RadioGroup value={primaryContact} onValueChange={(value: 'Father' | 'Mother') => setPrimaryContact(value)} className="flex gap-4">
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Father" id="father" />
+                          <Label htmlFor="father">Father</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Mother" id="mother" />
+                          <Label htmlFor="mother">Mother</Label>
+                      </div>
+                  </RadioGroup>
+                  <p className="text-xs text-muted-foreground">The primary contact will be used for communication.</p>
               </div>
               <div className="space-y-2">
                   <Label htmlFor="email">Email (Optional)</Label>
