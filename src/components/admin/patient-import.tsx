@@ -22,12 +22,13 @@ function parseCSV(csvText: string): any[] {
         const line = lines[i];
         if (!line.trim()) continue;
 
-        const values = line.split(',');
+        // This regex handles quoted fields, including those with commas inside.
+        const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
         
         const entry: any = {};
         for (let j = 0; j < headers.length; j++) {
-            const value = values[j] || ''; // Ensure value is a string, even if undefined
-            entry[headers[j]] = value.trim().replace(/^"|"$/g, '');
+            const value = values[j] || '';
+            entry[headers[j]] = value.trim().replace(/^"|"$/g, ''); // Remove surrounding quotes
         }
         data.push(entry);
     }
@@ -58,9 +59,9 @@ export function PatientImport() {
             try {
                 const data = parseCSV(text);
                 
-                // Basic validation
+                // Basic validation: Check if there's data and if the first record has a phone number.
                 if (data.length === 0 || !data[0].phone) {
-                    throw new Error("Invalid CSV format or empty file. CSV must include a 'phone' header.");
+                    throw new Error("Invalid CSV format or empty file. CSV must include at least a 'phone' header.");
                 }
 
                 startTransition(async () => {
@@ -95,8 +96,7 @@ export function PatientImport() {
                     <Upload className="h-4 w-4" />
                     <AlertTitle>CSV File Format</AlertTitle>
                     <AlertDescription>
-                        Headers must be: `phone,fatherName,motherName,primaryContact,email,location,city,name,dob,gender,clinicId`.
-                        `phone` and `name` are required for patient records. `dob` must be `YYYY-MM-DD`. `primaryContact` must be `Father` or `Mother`.
+                        Required headers: `phone`, `name`. Optional headers: `fatherName`, `motherName`, `primaryContact`, `email`, `location`, `city`, `dob`, `gender`, `clinicId`. DOB must be `YYYY-MM-DD`.
                     </AlertDescription>
                 </Alert>
                 <div className="flex items-center gap-4">
