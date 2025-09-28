@@ -157,7 +157,7 @@ function WalkInPageContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4 font-body">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 font-body" style={{ backgroundColor: '#e0e1ee' }}>
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
             {logo ? (
@@ -211,7 +211,7 @@ function WalkInPageContent() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handlePhoneSubmit} disabled={isPending || phone.length < 10} className="w-full">
+              <Button onClick={handlePhoneSubmit} disabled={isPending || phone.length < 10} className="w-full" style={{ backgroundColor: '#9d4edd' }}>
                 {isPending ? 'Searching...' : 'Next'}
               </Button>
             </CardFooter>
@@ -270,7 +270,7 @@ function WalkInPageContent() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleRegisterParent} disabled={isPending} className="w-full">
+              <Button onClick={handleRegisterParent} disabled={isPending} className="w-full" style={{ backgroundColor: '#9d4edd' }}>
                 {isPending ? 'Registering...' : 'Register & Add Patient'}
               </Button>
             </CardFooter>
@@ -334,7 +334,7 @@ function WalkInPageContent() {
                 </Alert>
             </CardContent>
             <CardFooter>
-                 <Button onClick={() => selectedMember && handleJoinQueue(selectedMember)} disabled={isPending || !selectedMember} className="w-full">
+                 <Button onClick={() => selectedMember && handleJoinQueue(selectedMember)} disabled={isPending || !selectedMember} className="w-full" style={{ backgroundColor: '#9d4edd' }}>
                     {isPending ? 'Joining Queue...' : 'Book & Check-in'}
                  </Button>
             </CardFooter>
@@ -397,7 +397,7 @@ function WalkInPageContent() {
                     </Alert>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleCreateAndJoinQueue} disabled={isPending || !name || !dob || !gender} className="w-full">
+                    <Button onClick={handleCreateAndJoinQueue} disabled={isPending || !name || !dob || !gender} className="w-full" style={{ backgroundColor: '#9d4edd' }}>
                         {isPending ? 'Saving and Joining...' : 'Save & Check-in'}
                     </Button>
                 </CardFooter>

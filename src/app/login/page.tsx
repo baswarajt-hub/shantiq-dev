@@ -19,7 +19,7 @@ export default async function LoginPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4" style={{ backgroundColor: '#e0e1ee' }}>
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-4">
             {logo ? (

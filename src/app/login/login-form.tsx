@@ -94,11 +94,11 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
       </CardContent>
       <CardFooter>
         {step === 'phone' ? (
-          <Button onClick={handlePhoneSubmit} disabled={isPending || phone.length < 10} className="w-full">
+          <Button onClick={handlePhoneSubmit} disabled={isPending || phone.length < 10} className="w-full" style={{ backgroundColor: '#9d4edd' }}>
             {isPending ? 'Sending OTP...' : 'Send OTP'}
           </Button>
         ) : (
-          <Button onClick={handleOtpSubmit} className="w-full">
+          <Button onClick={handleOtpSubmit} className="w-full" style={{ backgroundColor: '#9d4edd' }}>
             Verify OTP &amp; Continue
           </Button>
         )}
