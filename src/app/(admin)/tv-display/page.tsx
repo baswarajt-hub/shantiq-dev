@@ -92,35 +92,8 @@ const PatientNameWithBadges = ({ patient, isAnonymized = true }: { patient: Pati
 };
 
 
-function NowServingCard({ patient, doctorStatus, schedule }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null, schedule: DoctorSchedule | null }) {
-  const timeZone = "Asia/Kolkata";
+function NowServingCard({ patient, doctorStatus, schedule, isSessionOver }: { patient: Patient | undefined, doctorStatus: DoctorStatus | null, schedule: DoctorSchedule | null, isSessionOver: boolean }) {
   if (!doctorStatus) return null;
-
-  const todayStr = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
-  const dayName = format(toZonedTime(new Date(), timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-
-  let daySchedule;
-  if (schedule) {
-    const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
-    daySchedule = todayOverride 
-        ? {
-            morning: todayOverride.morningOverride ?? schedule.days[dayName].morning,
-            evening: todayOverride.eveningOverride ?? schedule.days[dayName].evening
-          }
-        : schedule.days[dayName];
-  }
-
-  const sessionLocalToUtc = (sessionTime: string) => {
-    let localDate: Date;
-    localDate = parseDateFn(`${todayStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
-    return fromZonedTime(localDate, timeZone);
-  }
-
-  const now = new Date();
-  const currentHour = now.getHours();
-
-  const sessionToCheck = (currentHour < 14 || !daySchedule?.evening.isOpen) ? daySchedule?.morning : daySchedule?.evening;
-  const isSessionOver = sessionToCheck ? now > sessionLocalToUtc(sessionToCheck.end) : false;
 
   const isOffline = !doctorStatus.isOnline;
 
@@ -182,6 +155,7 @@ function TVDisplayPageContent() {
   const [time, setTime] = useState('');
   const [averageWait, setAverageWait] = useState(0);
   const [currentSessionName, setCurrentSessionName] = useState<'morning' | 'evening' | null>(null);
+  const [isSessionOver, setIsSessionOver] = useState(false);
   const searchParams = useSearchParams();
   const layout = searchParams.get('layout') || '1';
 
@@ -247,13 +221,13 @@ function TVDisplayPageContent() {
     setDoctorStatus(statusData);
 
     const now = new Date();
+    const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
     let sessionToShow: 'morning' | 'evening' | null = null;
     
     if (scheduleData) {
         sessionToShow = getSessionForTime(now, scheduleData);
 
         if (!sessionToShow) {
-            const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
             const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
 
             let daySchedule = scheduleData.days[dayName];
@@ -278,6 +252,22 @@ function TVDisplayPageContent() {
                 } else {
                     sessionToShow = 'evening';
                 }
+            }
+        }
+        
+        const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+        const daySchedule = scheduleData.days[dayName];
+        if (daySchedule) {
+            const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
+            const sessionToCheck = (now.getHours() < 14 || !daySchedule.evening.isOpen) 
+                ? (todayOverride?.morningOverride ?? daySchedule.morning) 
+                : (todayOverride?.eveningOverride ?? daySchedule.evening);
+            
+            if (sessionToCheck.isOpen) {
+                const sessionEndUtc = sessionLocalToUtc(todayStr, sessionToCheck.end);
+                setIsSessionOver(now > sessionEndUtc);
+            } else {
+                setIsSessionOver(false);
             }
         }
     }
@@ -462,7 +452,7 @@ function TVDisplayPageContent() {
         <main className="flex-1 flex gap-4 overflow-hidden">
             {/* Left Column (25%) */}
             <div className="w-1/4 flex flex-col gap-4">
-                <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule ? { ...schedule, waitingCount: waitingList.length } as any : null} />
+                <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule ? { ...schedule, waitingCount: waitingList.length } as any : null} isSessionOver={isSessionOver} />
 
                 <div className="bg-white rounded-2xl p-4 flex flex-col shadow-lg border border-slate-200 overflow-hidden">
                     <h2 className="text-lg text-purple-600 font-semibold mb-2 text-center">WAITING FOR REPORTS</h2>
@@ -622,7 +612,7 @@ function TVDisplayPageContent() {
 
       <main className="flex-1 flex flex-col gap-4 pt-4 overflow-hidden">
         <div className="w-full">
-            <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule ? { ...schedule, waitingCount: waitingList.length } as any : null} />
+            <NowServingCard patient={nowServing} doctorStatus={doctorStatus} schedule={schedule ? { ...schedule, waitingCount: waitingList.length } as any : null} isSessionOver={isSessionOver} />
         </div>
 
         <div className="grid grid-cols-[80px_1fr_80px_150px_150px_250px] gap-4 items-center py-2 text-xl border-b-2 border-slate-300 font-bold text-slate-600">
