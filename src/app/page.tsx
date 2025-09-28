@@ -127,12 +127,18 @@ export default function DashboardPage() {
     const [isRescheduleOpen, setRescheduleOpen] = useState(false);
     const [isAdjustTimingOpen, setAdjustTimingOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+
+    useEffect(() => {
+        // Set initial date on client to avoid hydration mismatch
+        setSelectedDate(new Date());
+    }, []);
+
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
@@ -195,7 +201,7 @@ export default function DashboardPage() {
 
 
     const sessionPatients = patients.filter(p => {
-        if (!isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
+        if (!selectedDate || !isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
         
         const apptDate = parseISO(p.appointmentTime);
         const apptSession = getSessionForTime(apptDate);
@@ -233,7 +239,7 @@ export default function DashboardPage() {
 
 
     useEffect(() => {
-        if (!schedule || !schedule.days) return;
+        if (!schedule || !schedule.days || !selectedDate) return;
 
         const familyMap = new Map(family.map(f => [`${f.phone}-${f.name}`, f]));
         
@@ -613,10 +619,10 @@ export default function DashboardPage() {
                (slot.patientDetails.clinicId && slot.patientDetails.clinicId.toLowerCase().includes(lowerSearch));
     });
 
-    const canDoctorCheckIn = isToday(selectedDate);
+    const canDoctorCheckIn = selectedDate ? isToday(selectedDate) : false;
 
 
-    if (!schedule || !doctorStatus) {
+    if (!schedule || !doctorStatus || !selectedDate) {
         return (
             <div className="flex flex-col min-h-screen bg-background">
                  <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
@@ -1010,7 +1016,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-                {schedule && selectedSlot && (
+                {schedule && selectedSlot && selectedDate && (
                     <BookWalkInDialog
                         isOpen={isBookWalkInOpen}
                         onOpenChange={setBookWalkInOpen}
@@ -1028,7 +1034,7 @@ export default function DashboardPage() {
                     phoneToPreFill={phoneToPreFill}
                     onClose={() => setPhoneToPreFill('')}
                     afterSave={(newPatient, purpose, checkIn) => {
-                        if (selectedSlot && purpose) {
+                        if (selectedSlot && selectedDate && purpose) {
                             const date = new Date(selectedDate);
                             const time = parse(selectedSlot, 'hh:mm a', date);
                             handleBookAppointment(newPatient, time.toISOString(), checkIn, purpose);
