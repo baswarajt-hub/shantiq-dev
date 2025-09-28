@@ -45,6 +45,8 @@ export default function Stats({ patients, averageConsultationTime, averageWaitTi
     return acc;
   }, {} as Record<string, number>);
 
+  const orderedPurposes = ['Consultation', 'Follow-up visit', 'Vaccination', 'Others'];
+
   return (
     <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -60,12 +62,16 @@ export default function Stats({ patients, averageConsultationTime, averageWaitTi
                 <Stethoscope className="h-5 w-5 text-muted-foreground" />
                 <div className="text-sm text-muted-foreground">Purpose:</div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
-                    {Object.entries(purposeCounts).map(([purpose, count]) => (
-                        <div key={purpose} className="flex items-center gap-1.5">
-                            <span className="font-bold">{count}</span>
-                            <span className="text-muted-foreground">{purpose}</span>
-                        </div>
-                    ))}
+                    {orderedPurposes.map((purpose) => {
+                        const count = purposeCounts[purpose];
+                        if (!count) return null;
+                        return (
+                            <div key={purpose} className="flex items-center gap-1.5">
+                                <span className="font-bold">{count}</span>
+                                <span className="text-muted-foreground">{purpose}</span>
+                            </div>
+                        )
+                    })}
                     {Object.keys(purposeCounts).length === 0 && (
                         <p className="text-xs text-muted-foreground">N/A</p>
                     )}
