@@ -402,84 +402,80 @@ export async function updateFamilyMember(updatedMember: FamilyMember): Promise<F
 export async function batchImportFamilyMembers(data: any[]): Promise<{ successCount: number, skippedCount: number }> {
     let successCount = 0;
     let skippedCount = 0;
-    const batch = writeBatch(db);
-
+    
     const existingFamilySnapshot = await getDocs(familyCollection);
-    const existingMembers = existingFamilySnapshot.docs.map(doc => doc.data() as FamilyMember);
+    const existingMembers: FamilyMember[] = existingFamilySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamilyMember));
 
+    const newFamilyRecords: Omit<FamilyMember, 'id' | 'avatar'>[] = [];
+    const newPatientRecords: Omit<FamilyMember, 'id' | 'avatar'>[] = [];
     const processedPhones = new Set<string>();
 
     for (const row of data) {
         const phone = row.phone;
         const patientName = row.name;
 
-        // Skip row if essential data is missing
         if (!phone || !patientName) {
             skippedCount++;
             continue;
         }
 
-        // --- Process Family (Primary) Record ---
-        if (!processedPhones.has(phone)) {
-            const isFamilyDuplicate = existingMembers.some(
-                existing => existing.phone === phone && existing.isPrimary
-            );
+        // Check if the primary family record for this phone number already exists or is scheduled for creation
+        const familyExists = existingMembers.some(m => m.phone === phone && m.isPrimary) || processedPhones.has(phone);
 
-            if (!isFamilyDuplicate) {
-                const fatherName = row.fatherName || '';
-                const motherName = row.motherName || '';
-                const primaryContact = row.primaryContact || 'Father';
-                const primaryContactName = primaryContact === 'Father' ? fatherName : motherName;
+        if (!familyExists) {
+            const fatherName = row.fatherName || '';
+            const motherName = row.motherName || '';
+            const primaryContact = row.primaryContact || 'Father';
+            const primaryContactName = primaryContact === 'Father' ? fatherName : motherName;
 
-                const familyRecord: Omit<FamilyMember, 'id' | 'avatar'> = {
-                    phone: phone,
-                    isPrimary: true,
-                    name: primaryContactName || `${patientName}'s Family`, // Fallback name
-                    fatherName: fatherName,
-                    motherName: motherName,
-                    primaryContact: primaryContact,
-                    email: row.email || '',
-                    location: row.location || '',
-                    city: row.city || '',
-                };
-                const newFamilyDocRef = doc(familyCollection);
-                batch.set(newFamilyDocRef, {
-                    ...familyRecord,
-                    avatar: `https://picsum.photos/seed/${Math.random()}/200/200`,
-                });
-                successCount++;
-            }
+            newFamilyRecords.push({
+                phone,
+                isPrimary: true,
+                name: primaryContactName || `${patientName}'s Family`,
+                fatherName,
+                motherName,
+                primaryContact,
+                email: row.email || '',
+                location: row.location || '',
+                city: row.city || '',
+            });
             processedPhones.add(phone);
         }
 
-        // --- Process Patient (Child) Record ---
+        // Check if the specific patient (child) already exists for this family
         const isPatientDuplicate = existingMembers.some(
-            existing => existing.phone === phone && existing.name.toLowerCase() === patientName.toLowerCase() && !existing.isPrimary
+            m => m.phone === phone && m.name.toLowerCase() === patientName.toLowerCase() && !m.isPrimary
         );
+
         if (isPatientDuplicate) {
             skippedCount++;
         } else {
-            const patientRecord: Omit<FamilyMember, 'id' | 'avatar'> = {
-                phone: phone,
+            newPatientRecords.push({
+                phone,
                 isPrimary: false,
                 name: patientName,
                 dob: row.dob || '',
                 gender: row.gender || 'Other',
                 clinicId: row.clinicId || '',
-                // Redundant but included for schema consistency
                 fatherName: row.fatherName || '',
                 motherName: row.motherName || '',
-            };
-            const newPatientDocRef = doc(familyCollection);
-             batch.set(newPatientDocRef, {
-                ...patientRecord,
-                avatar: `https://picsum.photos/seed/${Math.random()}/200/200`,
             });
-            successCount++;
         }
     }
 
+    const batch = writeBatch(db);
+
+    [...newFamilyRecords, ...newPatientRecords].forEach(record => {
+        const newDocRef = doc(familyCollection);
+        batch.set(newDocRef, {
+            ...record,
+            avatar: `https://picsum.photos/seed/${Math.random()}/200/200`,
+        });
+        successCount++;
+    });
+
     await batch.commit();
+
     return { successCount, skippedCount };
 }
 
