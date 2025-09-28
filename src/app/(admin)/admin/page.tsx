@@ -154,8 +154,6 @@ export default function AdminPage() {
           </div>
 
           <div className="space-y-8">
-            <PatientImport />
-            <Separator />
             <ClinicDetailsForm
               initialDetails={schedule.clinicDetails}
               onSave={handleClinicDetailsSave}
@@ -190,6 +188,8 @@ export default function AdminPage() {
                 schedule={schedule}
                 onSave={handleClosuresSave}
             />
+            <Separator />
+            <PatientImport />
           </div>
         </div>
       </main>
