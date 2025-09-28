@@ -2,6 +2,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -1004,79 +1005,79 @@ export async function markPatientAsLateAndCheckInAction(patientId: number, penal
 
 // ========================================================================================
 // ========================================================================================
-// ==  FIND THIS SECTION TO INTEGRATE YOUR SMS PROVIDER ===================================
+// ==  SMS PROVIDER INTEGRATION ==========================================================
 // ========================================================================================
-// ========================================================================================
-// The code below handles OTP generation and sending.
-// The 'fetch' call to the SMS provider is currently commented out.
-// You need to:
-// 1. Uncomment the 'try...catch' block.
-// 2. Replace the placeholder 'apiUrl' with the one from your SMS provider.
-// 3. Adjust the 'headers' and 'body' of the fetch call to match your provider's API documentation.
+// The code below handles OTP generation and sending. It is currently in SIMULATION mode.
+// To enable live OTPs:
+// 1. Configure your SMS Provider in the Admin Panel.
+// 2. Uncomment the 'try...catch' block below.
+// 3. Adjust the 'apiUrl' and 'body' of the fetch call to match your provider's API.
 // ========================================================================================
 export async function checkUserAuthAction(phone: string) {
     const user = await findPrimaryUserByPhone(phone);
-    if (user) {
-        // For existing users, we can proceed to OTP verification.
-    }
-
+    
     // For new or existing users, generate and send OTP.
     const schedule = await getDoctorScheduleData();
-    if (!schedule) {
-        return { error: "Clinic schedule is not configured. Please contact support." };
+    if (!schedule || !schedule.smsSettings) {
+        // Fail gracefully if SMS settings are not configured at all.
+        console.error("SMS settings are not configured in the admin panel.");
+        return { error: "SMS service is not available. Please contact support." };
     }
     const smsSettings = schedule.smsSettings;
 
-    if (!smsSettings || !smsSettings.provider || !smsSettings.provider.toLowerCase().includes('bulksms') || !smsSettings.apiKey || !smsSettings.senderId) {
-        console.error("SMS settings for BulkSMS are not configured in the admin panel.");
-        // Return a more user-friendly error
-        return { error: "SMS service is not configured. Please contact support." };
+    if (smsSettings.provider === 'none') {
+        // If provider is 'none', simulate success without sending SMS.
+        console.log(`OTP check skipped (provider is 'none'). Simulating success for ${phone}.`);
+        return { userExists: !!user, otp: "123456", user: user || undefined }; // Use a fixed OTP for simulation
+    }
+
+    if (!smsSettings.apiKey || !smsSettings.senderId) {
+        console.error(`SMS settings for ${smsSettings.provider} are incomplete.`);
+        return { error: "SMS service is not configured correctly. Please contact support." };
     }
     
     const apiKey = smsSettings.apiKey;
     const senderId = smsSettings.senderId;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // In a real implementation, you would send the OTP via your SMS provider here.
-    // The following is a placeholder to show where the API call would go.
-    // You will need to replace the URL, headers, and body with the correct
-    // values for your specific SMS provider (e.g., BulkSMS, Twilio).
-    console.log(`Simulating OTP send: To=${phone}, OTP=${otp}, Provider=${smsSettings.provider}`);
-    
+    // The block below is for live integration. It is currently commented out for simulation.
     /*
     try {
-        const apiUrl = 'https://account.bulksms.services/index.php/api/bulk-sms.html'; // <--- REPLACE THIS
+        // Replace with your actual SMS provider's API endpoint.
+        const apiUrl = 'https://api.your-sms-provider.com/send'; 
+
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}` // Or a different auth method
+                'Authorization': `Bearer ${apiKey}` // Or other auth method
             },
             body: JSON.stringify({
+                // Adjust this body to match your provider's API requirements.
                 to: phone,
                 from: senderId,
-                message: `Your OTP to login to Shanti Children's Clinic Appointments Booking is: {#var#}`
-                // The body structure will vary based on your provider's API.
+                message: `Your OTP for ${schedule.clinicDetails.clinicName} is: ${otp}`
             })
         });
 
         if (!response.ok) {
-            console.error('SMS API response not OK:', await response.text());
-            throw new Error('Failed to send OTP');
+            const errorText = await response.text();
+            console.error('SMS API response not OK:', errorText);
+            throw new Error('Failed to send OTP via API');
         }
         
-        console.log('OTP sent successfully via API.');
+        console.log('OTP sent successfully via live API.');
 
     } catch (error) {
-        console.error("SMS API Error:", error);
+        console.error("Live SMS API Error:", error);
         return { error: "Failed to send OTP. Please try again later." };
     }
     */
-  
+    
+    // In simulation mode, we log the OTP and return it.
+    console.log(`SIMULATING OTP: To=${phone}, OTP=${otp}, Provider=${smsSettings.provider}`);
     
     // Return the generated OTP for verification on the client side.
-    // In a production app, you might store this OTP in a temporary server-side
-    // cache (like Redis) with an expiry, and verify it in a separate action.
     return { userExists: !!user, otp: otp, user: user || undefined };
 }
 
@@ -1430,4 +1431,5 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
