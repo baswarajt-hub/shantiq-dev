@@ -6,7 +6,7 @@ import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell, AlertTriangle, Megaphone, PlusCircle } from 'lucide-react';
+import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell, AlertTriangle, Megaphone, PlusCircle, List } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification, TranslatedMessage } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -327,7 +327,7 @@ export default function BookingPage() {
       <div className="md:col-span-1 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Today's Schedule</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Calendar /> Today's Schedule</CardTitle>
             <CardDescription className="font-bold text-lg text-blue-800">{format(currentTime, 'EEEE, MMMM d')}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -369,9 +369,9 @@ export default function BookingPage() {
         
         <NotificationCard notifications={schedule?.notifications} />
 
-        <Card className="bg-gradient-to-br from-primary/20 to-background">
+        <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Book Your Next Visit</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-2xl"><PlusCircle /> Book Your Next Visit</CardTitle>
               <CardDescription>Select a family member and find a time that works for you.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -386,7 +386,7 @@ export default function BookingPage() {
       <div className="md:col-span-2 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Today's Appointments</CardTitle>
+            <CardTitle className="flex items-center gap-2"><List /> Today's Appointments</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {todaysAppointments.length > 0 ? todaysAppointments.map(appt => {
@@ -437,7 +437,7 @@ export default function BookingPage() {
           </CardContent>
         </Card>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#fdbbf3' }}>
+            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#ffffff' }}>
                 <Link href="/booking/family">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Users /> My Family</CardTitle>
@@ -445,7 +445,7 @@ export default function BookingPage() {
                     </CardHeader>
                 </Link>
             </Card>
-            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#fff2db' }}>
+            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#ffffff' }}>
                 <Link href="/booking/my-appointments">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Calendar /> My Appointments</CardTitle>
@@ -479,5 +479,6 @@ export default function BookingPage() {
   </main>
   );
 }
+
 
 
