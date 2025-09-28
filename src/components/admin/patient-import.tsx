@@ -57,8 +57,8 @@ export function PatientImport() {
                 const data = parseCSV(text);
                 
                 // Basic validation
-                if (data.length === 0 || !data[0].phone || !data[0].name || !data[0].fatherName) {
-                    throw new Error("Invalid CSV format or empty file. Check headers and content.");
+                if (data.length === 0 || !data[0].phone || !data[0].name) {
+                    throw new Error("Invalid CSV format or empty file. CSV must include at least 'phone' and 'name' headers.");
                 }
 
                 startTransition(async () => {
