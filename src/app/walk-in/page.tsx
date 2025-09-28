@@ -207,6 +207,7 @@ function WalkInPageContent() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={isPending}
+                  style={{ backgroundColor: '#e0e1ee' }}
                 />
               </div>
             </CardContent>
@@ -235,17 +236,17 @@ function WalkInPageContent() {
               </Alert>
                <div className="space-y-2">
                   <Label htmlFor="name">Full Name (Parent's)</Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Parent's Name" />
+                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Parent's Name" style={{ backgroundColor: '#e0e1ee' }}/>
               </div>
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                       <Label htmlFor="dob">Date of Birth (Optional)</Label>
-                      <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
+                      <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} style={{ backgroundColor: '#e0e1ee' }}/>
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="gender">Gender</Label>
                       <Select value={gender} onValueChange={setGender}>
-                          <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                          <SelectTrigger style={{ backgroundColor: '#e0e1ee' }}><SelectValue placeholder="Select gender" /></SelectTrigger>
                           <SelectContent>
                               <SelectItem value="Male">Male</SelectItem>
                               <SelectItem value="Female">Female</SelectItem>
@@ -256,16 +257,16 @@ function WalkInPageContent() {
               </div>
               <div className="space-y-2">
                   <Label htmlFor="email">Email (Optional)</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. parent@example.com" />
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. parent@example.com" style={{ backgroundColor: '#e0e1ee' }}/>
               </div>
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                       <Label htmlFor="location">Location Area</Label>
-                      <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g., Ameerpet" />
+                      <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g., Ameerpet" style={{ backgroundColor: '#e0e1ee' }}/>
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
-                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g., Hyderabad" />
+                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g., Hyderabad" style={{ backgroundColor: '#e0e1ee' }}/>
                   </div>
               </div>
             </CardContent>
@@ -351,17 +352,17 @@ function WalkInPageContent() {
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="name">Patient's Full Name</Label>
-                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Jane Doe" required />
+                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Jane Doe" required style={{ backgroundColor: '#e0e1ee' }}/>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                           <Label htmlFor="dob">Date of Birth</Label>
-                          <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} required />
+                          <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} required style={{ backgroundColor: '#e0e1ee' }}/>
                       </div>
                       <div className="space-y-2">
                           <Label htmlFor="gender">Gender</Label>
                           <Select value={gender} onValueChange={setGender}>
-                              <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                              <SelectTrigger style={{ backgroundColor: '#e0e1ee' }}><SelectValue placeholder="Select gender" /></SelectTrigger>
                               <SelectContent>
                                   <SelectItem value="Male">Male</SelectItem>
                                   <SelectItem value="Female">Female</SelectItem>
@@ -373,7 +374,7 @@ function WalkInPageContent() {
                     <div className="space-y-2">
                         <Label htmlFor="purpose-create">Purpose of Visit</Label>
                         <Select onValueChange={setPurpose} value={purpose}>
-                            <SelectTrigger id="purpose-create"><SelectValue placeholder="Select a reason" /></SelectTrigger>
+                            <SelectTrigger id="purpose-create" style={{ backgroundColor: '#e0e1ee' }}><SelectValue placeholder="Select a reason" /></SelectTrigger>
                             <SelectContent>
                                 {activeVisitPurposes.map(p => (
                                     <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>

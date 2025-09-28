@@ -76,6 +76,7 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={isPending}
+              style={{ backgroundColor: '#e0e1ee' }}
             />
           </div>
         )}
@@ -88,6 +89,7 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
               placeholder="Enter OTP"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
+              style={{ backgroundColor: '#e0e1ee' }}
             />
           </div>
         )}
