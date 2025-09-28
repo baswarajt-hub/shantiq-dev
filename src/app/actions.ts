@@ -398,7 +398,7 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
         const existingSession = getSessionForTime(schedule, existingDate);
         const isSameSession = existingSession === newAppointmentSession;
 
-        const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Up-Next'].includes(p.status);
+        const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Priority', 'Up-Next'].includes(p.status);
         return isSameSession && isActive;
     });
 
@@ -1020,6 +1020,9 @@ export async function checkUserAuthAction(phone: string) {
 
     // For new or existing users, generate and send OTP.
     const schedule = await getDoctorScheduleData();
+    if (!schedule) {
+        return { error: "Clinic schedule is not configured. Please contact support." };
+    }
     const smsSettings = schedule.smsSettings;
 
     if (!smsSettings || !smsSettings.provider || !smsSettings.provider.toLowerCase().includes('bulksms') || !smsSettings.apiKey || !smsSettings.senderId) {
