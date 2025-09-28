@@ -46,29 +46,32 @@ export default function Stats({ patients, averageConsultationTime, averageWaitTi
   }, {} as Record<string, number>);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-      <CompactStatCard title="In Queue" value={waitingPatients.length} Icon={Users} />
-      <CompactStatCard title="Total" value={totalAppointments} Icon={CalendarCheck} />
-      <CompactStatCard title="Yet to Arrive" value={yetToArrive.length} Icon={CalendarX} />
-      <CompactStatCard title="Completed" value={completedPatients.length} Icon={BookCheck} />
-      <CompactStatCard title="Avg. Consult" value={`${averageConsultationTime}m`} Icon={Activity} />
-      <CompactStatCard title="Avg. Wait" value={`${averageWaitTime}m`} Icon={Clock} />
-      
-      <div className="flex items-center gap-3 p-3 bg-card rounded-lg border flex-1 justify-center col-span-2 lg:col-span-1">
-        <Stethoscope className="h-5 w-5 text-muted-foreground" />
-        <div className="text-sm text-muted-foreground">Purpose:</div>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
-            {Object.entries(purposeCounts).map(([purpose, count]) => (
-                <div key={purpose} className="flex items-center gap-1.5">
-                    <span className="font-bold">{count}</span>
-                    <span className="text-muted-foreground">{purpose}</span>
-                </div>
-            ))}
-            {Object.keys(purposeCounts).length === 0 && (
-                <p className="text-xs text-muted-foreground">N/A</p>
-            )}
+    <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <CompactStatCard title="In Queue" value={waitingPatients.length} Icon={Users} />
+            <CompactStatCard title="Total" value={totalAppointments} Icon={CalendarCheck} />
+            <CompactStatCard title="Yet to Arrive" value={yetToArrive.length} Icon={CalendarX} />
+            <CompactStatCard title="Completed" value={completedPatients.length} Icon={BookCheck} />
+            <CompactStatCard title="Avg. Consult" value={`${averageConsultationTime}m`} Icon={Activity} />
+            <CompactStatCard title="Avg. Wait" value={`${averageWaitTime}m`} Icon={Clock} />
         </div>
-      </div>
+        <div className="flex justify-center">
+            <div className="flex items-center gap-3 p-3 bg-card rounded-lg border justify-center">
+                <Stethoscope className="h-5 w-5 text-muted-foreground" />
+                <div className="text-sm text-muted-foreground">Purpose:</div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
+                    {Object.entries(purposeCounts).map(([purpose, count]) => (
+                        <div key={purpose} className="flex items-center gap-1.5">
+                            <span className="font-bold">{count}</span>
+                            <span className="text-muted-foreground">{purpose}</span>
+                        </div>
+                    ))}
+                    {Object.keys(purposeCounts).length === 0 && (
+                        <p className="text-xs text-muted-foreground">N/A</p>
+                    )}
+                </div>
+            </div>
+        </div>
     </div>
   );
 }
