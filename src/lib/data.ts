@@ -371,8 +371,7 @@ export async function updateFamilyMember(updatedMember: FamilyMember): Promise<F
 
 export async function batchImportFamilyMembers(data: any[]): Promise<{ successCount: number, skippedCount: number }> {
     let successCount = 0;
-    let skippedFamilies = 0;
-    let skippedPatients = 0;
+    let skippedCount = 0;
     const batch = writeBatch(db);
 
     const existingFamilySnapshot = await getDocs(familyCollection);
@@ -391,10 +390,10 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
             );
 
             if (isFamilyDuplicate) {
-                skippedFamilies++;
+                // We don't increment a single skipped counter, because a family might be skipped but its patient not.
             } else {
                 const primaryContactName = row.primaryContact === 'Father' ? row.fatherName : row.motherName;
-                const familyRecord: Omit<FamilyMember, 'id'|'avatar'> = {
+                const familyRecord: Omit<FamilyMember, 'id' | 'avatar'> = {
                     phone: phone,
                     isPrimary: true,
                     name: primaryContactName,
@@ -404,7 +403,6 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
                     email: row.email || '',
                     location: row.location || '',
                     city: row.city || '',
-                    clinicId: row.clinicId || '',
                 };
                 const newFamilyDocRef = doc(familyCollection);
                 batch.set(newFamilyDocRef, {
@@ -422,7 +420,7 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
                 existing => existing.phone === phone && existing.name.toLowerCase() === row.name.toLowerCase() && !existing.isPrimary
             );
             if (isPatientDuplicate) {
-                skippedPatients++;
+                skippedCount++;
             } else {
                 const patientRecord: Omit<FamilyMember, 'id'|'avatar'> = {
                     phone: phone,
@@ -432,8 +430,8 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
                     gender: row.gender,
                     clinicId: row.clinicId || '',
                      // These fields are not relevant for non-primary members
-                    fatherName: '',
-                    motherName: '',
+                    fatherName: row.fatherName,
+                    motherName: row.motherName,
                 };
                 const newPatientDocRef = doc(familyCollection);
                  batch.set(newPatientDocRef, {
@@ -446,7 +444,7 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
     }
 
     await batch.commit();
-    return { successCount, skippedCount: skippedFamilies + skippedPatients };
+    return { successCount, skippedCount };
 }
 
 
@@ -497,5 +495,13 @@ export async function deleteTodaysPatientsData(): Promise<void> {
     await batch.commit();
 }
 
-
+export async function deleteAllFamilies(): Promise<void> {
+    const familySnapshot = await getDocs(familyCollection);
+    const batch = writeBatch(db);
+    familySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+}
     
+

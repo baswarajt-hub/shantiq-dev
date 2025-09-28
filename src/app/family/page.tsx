@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Edit, User, Users, Search, Phone, Mail, Trash2, PlusCircle, X } from 'lucide-react';
 import type { FamilyMember } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { updateFamilyMemberAction, searchFamilyMembersAction, deleteFamilyMemberAction, deleteFamilyByPhoneAction, addNewPatientAction } from '@/app/actions';
+import { updateFamilyMemberAction, searchFamilyMembersAction, deleteFamilyMemberAction, deleteFamilyByPhoneAction, addNewPatientAction, deleteAllFamiliesAction } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { AdminEditFamilyMemberDialog } from '@/components/admin/edit-family-member-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -109,6 +109,18 @@ export default function FamilyAdminPage() {
       }
     });
   };
+  
+  const handleDeleteAllFamilies = () => {
+    startTransition(async () => {
+      const result = await deleteAllFamiliesAction();
+      if (result.success) {
+        toast({ title: "Success", description: "All family records have been deleted." });
+        handleReset();
+      } else {
+        toast({ title: "Error", description: "Could not delete all families.", variant: 'destructive' });
+      }
+    });
+  };
 
   const handleAddMember = (phone: string) => {
     setPhoneForNewMember(phone);
@@ -149,9 +161,30 @@ export default function FamilyAdminPage() {
     <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
     <main className="flex-1 p-4 md:p-6 lg:p-8">
       <div className="mx-auto w-full max-w-4xl space-y-6">
-        <div className="space-y-2">
-            <h1 className="text-3xl font-bold">Family Management</h1>
-            <p className="text-muted-foreground">Search for families and manage member details.</p>
+        <div className="flex justify-between items-start">
+            <div>
+                <h1 className="text-3xl font-bold">Family Management</h1>
+                <p className="text-muted-foreground">Search for families and manage member details.</p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete All Families
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete ALL family and patient records from the database. This action cannot be undone and is intended for starting with fresh data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAllFamilies}>Confirm Deletion</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </div>
         <Card>
           <CardHeader>
