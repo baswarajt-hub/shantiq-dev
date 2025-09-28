@@ -133,7 +133,7 @@ export default function FamilyAdminPage() {
     setEditMemberOpen(true);
   }
   
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     try {
       // The input is expected to be YYYY-MM-DD from the data
@@ -220,10 +220,16 @@ export default function FamilyAdminPage() {
                             <div className="flex items-center gap-4">
                                 <Avatar className="h-12 w-12">
                                     <AvatarImage src={primary.avatar} alt={primary.name} />
-                                    <AvatarFallback>{primary.name.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback>{(primary.name || 'P').charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <p className="font-bold flex items-center gap-2">{primary.name} <span className="text-xs font-semibold text-white bg-primary px-1.5 py-0.5 rounded-full">PRIMARY</span></p>
+                                    <p className="font-bold flex items-center gap-2">
+                                        {primary.primaryContact === 'Father' ? primary.fatherName : primary.motherName}
+                                        <span className="text-xs font-semibold text-white bg-primary px-1.5 py-0.5 rounded-full">PRIMARY</span>
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Father: {primary.fatherName}, Mother: {primary.motherName}
+                                    </p>
                                     <p className="text-sm text-muted-foreground flex items-center gap-2"><Mail className="h-3 w-3"/>{primary.email || 'No email'}</p>
                                 </div>
                             </div>

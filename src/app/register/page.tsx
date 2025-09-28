@@ -9,13 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { registerUserAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format } from 'date-fns';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import type { FamilyMember } from '@/lib/types';
+
 
 export default function RegisterPage() {
-  const [name, setName] = useState('');
-  const [gender, setGender] = useState('');
-  const [dob, setDob] = useState('');
+  const [fatherName, setFatherName] = useState('');
+  const [motherName, setMotherName] = useState('');
+  const [primaryContact, setPrimaryContact] = useState<'Father' | 'Mother'>('Father');
   const [email, setEmail] = useState('');
   const [location, setLocation] = useState('');
   const [city, setCity] = useState('');
@@ -34,7 +35,7 @@ export default function RegisterPage() {
   }, [router]);
 
   const handleRegister = () => {
-    if (!name || !gender || !location || !city || !phone) {
+    if (!fatherName || !motherName || !location || !city || !phone) {
       toast({
         title: 'Missing Information',
         description: 'Please fill out all required fields to register.',
@@ -46,9 +47,9 @@ export default function RegisterPage() {
     startTransition(async () => {
       const result = await registerUserAction({
         phone,
-        name,
-        dob,
-        gender,
+        fatherName,
+        motherName,
+        primaryContact,
         location,
         city,
         email,
@@ -63,7 +64,7 @@ export default function RegisterPage() {
       } else {
         toast({
           title: 'Registration Failed',
-          description: 'Something went wrong. Please try again.',
+          description: result.error || 'Something went wrong. Please try again.',
           variant: 'destructive',
         });
       }
@@ -79,7 +80,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-lg">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
+            <CardTitle className="text-2xl">Complete Your Family Profile</CardTitle>
             <CardDescription>
               A few more details and you'll be all set.
             </CardDescription>
@@ -89,28 +90,29 @@ export default function RegisterPage() {
                 <Label>Phone Number</Label>
                 <Input value={phone} disabled style={{ backgroundColor: '#e0e1ee' }} />
             </div>
-             <div className="space-y-2">
-                <Label htmlFor="name">Full Name (Parent's)</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Parent's Name" style={{ backgroundColor: '#e0e1ee' }}/>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="fatherName">Father's Name</Label>
+                    <Input id="fatherName" value={fatherName} onChange={(e) => setFatherName(e.target.value)} placeholder="Father's Name" style={{ backgroundColor: '#e0e1ee' }}/>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="motherName">Mother's Name</Label>
+                    <Input id="motherName" value={motherName} onChange={(e) => setMotherName(e.target.value)} placeholder="Mother's Name" style={{ backgroundColor: '#e0e1ee' }}/>
+                </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth (Optional)</Label>
-                    <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} style={{ backgroundColor: '#e0e1ee' }}/>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select value={gender} onValueChange={setGender}>
-                        <SelectTrigger style={{ backgroundColor: '#e0e1ee' }}>
-                            <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+             <div className="space-y-2">
+                <Label>Primary Contact</Label>
+                <RadioGroup value={primaryContact} onValueChange={(value: 'Father' | 'Mother') => setPrimaryContact(value)} className="flex gap-4">
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Father" id="father" />
+                        <Label htmlFor="father">Father</Label>
+                    </div>
+                     <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Mother" id="mother" />
+                        <Label htmlFor="mother">Mother</Label>
+                    </div>
+                </RadioGroup>
+                <p className="text-xs text-muted-foreground">The primary contact will be used for communication and as the main name on the account.</p>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="email">Email (Optional)</Label>

@@ -1,5 +1,6 @@
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -1027,6 +1028,7 @@ export async function checkUserAuthAction(phone: string) {
 
     if (!smsSettings || !smsSettings.provider || !smsSettings.provider.toLowerCase().includes('bulksms') || !smsSettings.apiKey || !smsSettings.senderId) {
         console.error("SMS settings for BulkSMS are not configured in the admin panel.");
+        // Return a more user-friendly error
         return { error: "SMS service is not configured. Please contact support." };
     }
     
@@ -1077,9 +1079,15 @@ export async function checkUserAuthAction(phone: string) {
     return { userExists: !!user, otp: otp, user: user || undefined };
 }
 
-export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'avatar'>) {
+export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'avatar' | 'name' | 'dob' | 'gender'>) {
+    const name = userData.primaryContact === 'Father' ? userData.fatherName : userData.motherName;
+    if (!name) {
+        return { error: 'Primary contact name is missing.' };
+    }
+
     const newPrimaryMember: Omit<FamilyMember, 'id' | 'avatar'> = {
         ...userData,
+        name: name,
         isPrimary: true
     };
     const newMember = await addFamilyMember(newPrimaryMember);

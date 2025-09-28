@@ -336,6 +336,8 @@ export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMem
 
     const matchingMembers = allMembers.filter(member =>
         member.name.toLowerCase().includes(lowercasedTerm) ||
+        (member.fatherName && member.fatherName.toLowerCase().includes(lowercasedTerm)) ||
+        (member.motherName && member.motherName.toLowerCase().includes(lowercasedTerm)) ||
         member.phone.includes(searchTerm) ||
         (member.clinicId && member.clinicId.toLowerCase().includes(lowercasedTerm)) ||
         (isDateSearch && member.dob === searchTerm)

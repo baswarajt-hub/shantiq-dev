@@ -136,16 +136,20 @@ export type DoctorSchedule = {
 
 export type FamilyMember = {
   id: string;
-  name: string;
-  dob: string; // YYYY-MM-DD
-  gender: 'Male' | 'Female' | 'Other';
+  name: string; // Kept for child patients, but for parent record it will be the primary contact's name
+  dob?: string; // YYYY-MM-DD - Now optional, mainly for child patients
+  gender?: 'Male' | 'Female' | 'Other'; // Now optional, mainly for child patients
   avatar?: string; // URL to avatar image
   clinicId?: string;
   phone: string;
-  isPrimary?: boolean;
+  isPrimary?: boolean; // Indicates if this is the parent/guardian account record
   location?: string;
   city?: string;
   email?: string;
+  // New fields for parent/family account
+  fatherName?: string;
+  motherName?: string;
+  primaryContact?: 'Father' | 'Mother';
 };
 
 export type Appointment = {

@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FamilyMember } from '@/lib/types';
 import { format } from 'date-fns';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 type AdminEditFamilyMemberDialogProps = {
   isOpen: boolean;
@@ -33,11 +34,15 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
     }
   }, [member, isOpen]);
 
-  const handleInputChange = (field: keyof FamilyMember, value: string) => {
+  const handleInputChange = (field: keyof FamilyMember, value: string | boolean) => {
     setFormData(prev => ({...prev, [field]: value}));
   }
 
   const handleSave = () => {
+    // If we're updating the primary contact, also update the top-level name field for compatibility
+    if (formData.isPrimary) {
+      formData.name = formData.primaryContact === 'Father' ? formData.fatherName || '' : formData.motherName || '';
+    }
     onSave(formData);
     onOpenChange(false);
   };
@@ -54,27 +59,59 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input id="phone" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} />
             </div>
-            <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth</Label>
-                    <Input id="dob" type="date" value={formData.dob || ''} onChange={(e) => handleInputChange('dob', e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
+
+            {formData.isPrimary ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="fatherName">Father's Name</Label>
+                      <Input id="fatherName" value={formData.fatherName || ''} onChange={(e) => handleInputChange('fatherName', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="motherName">Mother's Name</Label>
+                      <Input id="motherName" value={formData.motherName || ''} onChange={(e) => handleInputChange('motherName', e.target.value)} />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
-                        <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                    </Select>
+                  <Label>Primary Contact</Label>
+                  <RadioGroup value={formData.primaryContact} onValueChange={(value) => handleInputChange('primaryContact', value)} className="flex gap-4">
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Father" id="admin-father" />
+                          <Label htmlFor="admin-father">Father</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Mother" id="admin-mother" />
+                          <Label htmlFor="admin-mother">Mother</Label>
+                      </div>
+                  </RadioGroup>
                 </div>
-            </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                    <Label htmlFor="name">Patient's Full Name</Label>
+                    <Input id="name" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="dob">Date of Birth</Label>
+                        <Input id="dob" type="date" value={formData.dob || ''} onChange={(e) => handleInputChange('dob', e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="gender">Gender</Label>
+                        <Select value={formData.gender || ''} onValueChange={(value) => handleInputChange('gender', value)}>
+                            <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Male">Male</SelectItem>
+                                <SelectItem value="Female">Female</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+              </>
+            )}
+
             <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" value={formData.email || ''} onChange={(e) => handleInputChange('email', e.target.value)} />
