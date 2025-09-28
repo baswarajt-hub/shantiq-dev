@@ -35,7 +35,7 @@ export default async function LoginPage() {
            <p className="text-lg font-bold text-blue-800">Doctor Appointments & Live Queue Tracking</p>
         </div>
         
-        <Card>
+        <Card style={{ backgroundColor: 'white' }}>
           <LoginForm clinicName={clinicName} />
           <CardContent className="pt-6">
             <div className="text-left text-sm text-muted-foreground space-y-3">
