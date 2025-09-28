@@ -375,7 +375,7 @@ export default function BookingPage() {
               <CardDescription>Select a family member and find a time that works for you.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <Button size="lg" onClick={() => setBookingOpen(true)} style={{ backgroundColor: '#c8b6ff' }}>
+              <Button size="lg" onClick={() => setBookingOpen(true)} style={{ backgroundColor: '#9d4edd' }}>
                 Book an Appointment
               </Button>
             </CardContent>
@@ -479,6 +479,7 @@ export default function BookingPage() {
   </main>
   );
 }
+
 
 
 
