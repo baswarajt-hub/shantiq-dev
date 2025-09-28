@@ -19,13 +19,14 @@ function parseCSV(csvText: string): any[] {
     const data = [];
 
     for (let i = 1; i < lines.length; i++) {
-        // Handle potential commas within quoted fields
-        const values = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || [];
-        if (values.length !== headers.length) continue; // Skip malformed rows
+        const line = lines[i];
+        const values = line.split(',');
+        
+        if (values.length !== headers.length) continue; 
         
         const entry: any = {};
         for (let j = 0; j < headers.length; j++) {
-            entry[headers[j]] = values[j] || '';
+            entry[headers[j]] = values[j].trim().replace(/^"|"$/g, '');
         }
         data.push(entry);
     }
