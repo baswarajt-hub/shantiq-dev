@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,15 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
   const { toast } = useToast();
   const [isNewUser, setIsNewUser] = useState(false);
 
+  const handleSuccessfulLogin = (isNew: boolean) => {
+    localStorage.setItem('userPhone', phone);
+    if (isNew) {
+      router.push('/register');
+    } else {
+      router.push('/booking');
+    }
+  };
+
   const handlePhoneSubmit = () => {
     startTransition(async () => {
       const result = await checkUserAuthAction(phone);
@@ -29,9 +38,14 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
         return;
       }
       
-      // --- OTP BYPASS FOR TESTING ---
+      // If simulation is active, bypass OTP entry immediately.
+      if (result.simulation) {
+        toast({ title: 'Login Successful (Simulation)', description: 'Bypassing OTP for testing.' });
+        handleSuccessfulLogin(!result.userExists);
+        return;
+      }
+      
       if (result.otp) {
-        // Automatically log in using the generated OTP
         setGeneratedOtp(result.otp);
         setIsNewUser(!result.userExists);
         setStep('otp');
@@ -41,13 +55,7 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
 
   const handleOtpSubmit = () => {
     if (otp === generatedOtp) {
-      // Store phone in localStorage to simulate a session
-      localStorage.setItem('userPhone', phone);
-       if (isNewUser) {
-           router.push('/register');
-       } else {
-           router.push('/booking');
-       }
+      handleSuccessfulLogin(isNewUser);
     } else {
       toast({
         title: 'Invalid OTP',

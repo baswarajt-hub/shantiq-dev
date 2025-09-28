@@ -179,7 +179,12 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         // Check if payment is enabled before proceeding
         const isPaymentEnabled = schedule?.paymentGatewaySettings?.provider === 'easebuzz' && schedule?.paymentGatewaySettings?.key && schedule?.paymentGatewaySettings?.salt;
 
-        if (!isPaymentEnabled) {
+        // FOR TESTING: Always simulate payment regardless of settings.
+        const SIMULATE_PAYMENT = true; 
+
+        if (!isPaymentEnabled || SIMULATE_PAYMENT) {
+            toast({ title: 'Simulating Payment...', description: 'This is a test booking.' });
+            await new Promise(resolve => setTimeout(resolve, 1500));
             onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
             handleClose(false);
             toast({ title: 'Booking Confirmed!', description: 'Your appointment has been booked.' });
@@ -187,25 +192,8 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         }
 
         // =========================================================================================
+        // ==  LIVE PAYMENT LOGIC: This block will run if payment is enabled and simulation is off.
         // =========================================================================================
-        // ==  PAYMENT SIMULATION: The code block below is for simulating payment.  ===============
-        // ==  To enable live payments with Easebuzz, comment out this block.       ===============
-        // =========================================================================================
-        toast({ title: 'Simulating Payment...', description: 'This is a test booking.' });
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        onSave(selectedMember, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
-        handleClose(false);
-        // =========================================================================================
-        // ==  END OF PAYMENT SIMULATION BLOCK.                                    ===============
-        // =========================================================================================
-
-
-        // =========================================================================================
-        // =========================================================================================
-        // ==  LIVE PAYMENT LOGIC: Uncomment the block below to enable live payments. =============
-        // ==  This requires you to have configured Easebuzz settings in the admin panel. ==========
-        // =========================================================================================
-        /*
         toast({ title: 'Connecting to Payment Gateway...', description: 'Please wait.' });
         
         const paymentResult = await getEasebuzzAccessKey(
@@ -247,10 +235,6 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
             console.error("Easebuzz client-side error:", e);
             toast({ title: "Error", description: "Could not load payment gateway. Please check your connection and try again.", variant: "destructive"})
         }
-        */
-        // =========================================================================================
-        // ==  END OF LIVE PAYMENT LOGIC.                                          ===============
-        // =========================================================================================
       });
     }
   };
