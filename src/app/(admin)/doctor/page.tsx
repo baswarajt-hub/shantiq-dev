@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session, Notification, SpecialClosure } from '@/lib/types';
-import { getDoctorScheduleAction, getDoctorStatusAction, getPatientsAction, recalculateQueueWithETC, updateNotificationsAction, updateSpecialClosuresAction } from '@/app/actions';
+import { updateNotificationsAction, updateSpecialClosuresAction } from '@/app/actions';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { format, parse } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -62,16 +62,32 @@ export default function DoctorPage() {
 
   const loadData = useCallback(() => {
     startTransition(async () => {
-      const [scheduleData, patientData, statusData] = await Promise.all([
-        getDoctorScheduleAction(),
-        getPatientsAction(),
-        getDoctorStatusAction(),
-      ]);
-      setSchedule(scheduleData);
-      setPatients(patientData);
-      setDoctorStatus(statusData);
+      try {
+        const [scheduleRes, patientRes, statusRes] = await Promise.all([
+          fetch('/api/schedule'),
+          fetch('/api/patients'),
+          fetch('/api/status'),
+        ]);
+
+        if (!scheduleRes.ok || !patientRes.ok || !statusRes.ok) {
+          throw new Error('Failed to fetch initial data');
+        }
+
+        const [scheduleData, patientData, statusData] = await Promise.all([
+          scheduleRes.json(),
+          patientRes.json(),
+          statusRes.json(),
+        ]);
+
+        setSchedule(scheduleData);
+        setPatients(patientData);
+        setDoctorStatus(statusData);
+      } catch (error) {
+        console.error("Failed to load data for Doctor page", error);
+        toast({ title: 'Error', description: 'Failed to load clinic data.', variant: 'destructive'});
+      }
     });
-  }, []);
+  }, [toast]);
   
   useEffect(() => {
     loadData();

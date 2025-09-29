@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getPatients as getPatientsData } from '@/lib/data';
+import { getPatientsAction } from '@/app/actions';
 
 export const revalidate = 0;
 
 export async function GET() {
-  const patients = await getPatientsData();
+  const patients = await getPatientsAction();
   return NextResponse.json(patients, { status: 200 });
 }

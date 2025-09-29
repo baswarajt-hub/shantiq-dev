@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { ScheduleForm } from '@/components/admin/schedule-form';
-import { getDoctorScheduleAction, updateDoctorScheduleAction, updatePaymentGatewaySettingsAction } from '@/app/actions';
+import { updateDoctorScheduleAction, updatePaymentGatewaySettingsAction } from '@/app/actions';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
 import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
@@ -26,7 +26,11 @@ export default function AdminPage() {
   useEffect(() => {
     async function loadSchedule() {
       try {
-        const scheduleData = await getDoctorScheduleAction();
+        const response = await fetch('/api/schedule');
+        if (!response.ok) {
+          throw new Error('Failed to fetch schedule');
+        }
+        const scheduleData = await response.json();
         setSchedule(scheduleData);
       } catch (error) {
         console.error("Failed to load schedule", error);
