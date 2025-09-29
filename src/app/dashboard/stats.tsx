@@ -10,7 +10,7 @@ type StatsProps = {
   averageWaitTime: number;
 };
 
-const StatCard = ({ title, value, Icon, description, className }: { title: string, value: string | number, Icon: Icon, description?: string, className?: string }) => (
+const StatCard = ({ title, value, Icon, description, className }: { title: string, value: string | number, Icon: typeof Clock, description?: string, className?: string }) => (
     <div className={cn("flex items-center gap-4 p-4 bg-card rounded-lg border", className)}>
         <div className="p-2 bg-muted rounded-md">
             <Icon className="h-6 w-6 text-muted-foreground" />
@@ -22,7 +22,7 @@ const StatCard = ({ title, value, Icon, description, className }: { title: strin
     </div>
 );
 
-const CompactStatCard = ({ title, value, Icon, className }: { title: string, value: string | number, Icon: Icon, className?: string }) => (
+const CompactStatCard = ({ title, value, Icon, className }: { title: string, value: string | number, Icon: typeof Clock, className?: string }) => (
     <div className={cn("flex items-center gap-3 p-3 bg-card rounded-lg border flex-1 justify-center", className)}>
          <Icon className="h-5 w-5 text-muted-foreground" />
          <div className="text-sm text-muted-foreground">{title}:</div>

@@ -72,6 +72,7 @@ const statusConfig = {
     Cancelled: { icon: XCircle, color: 'text-red-600' },
     'Waiting for Reports': { icon: FileClock, color: 'text-purple-600' },
     Priority: { icon: Shield, color: 'text-red-700 font-bold' },
+    'Missed': { icon: UserX, color: 'text-yellow-800' }
 };
 
 const purposeIcons: { [key: string]: React.ElementType } = {
@@ -101,7 +102,7 @@ const timeZone = "Asia/Kolkata";
 function sessionLocalToUtc(dateStr: string, sessionTime: string) {
   // Try 24-hour format first
   let localDate: Date;
-  if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+  if (/^d{1,2}:d{2}$/.test(sessionTime)) {
     // "HH:mm" (24-hour)
     localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
   } else {
@@ -494,7 +495,7 @@ export default function DashboardPage() {
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
-        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
+        if (/^d{5,}$/.test(searchTerm.replace(/D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
@@ -652,8 +653,9 @@ export default function DashboardPage() {
 
     const PatientCard = ({ patient }: { patient: Patient }) => {
         const patientDetails = family.find(f => f.phone === patient.phone && f.name === patient.name) || { name: patient.name, gender: 'Other' };
-        const StatusIcon = statusConfig[patient.status]?.icon || HelpCircle;
-        const statusColor = statusConfig[patient.status]?.color || '';
+        const statusKey = patient.status as keyof typeof statusConfig;
+        const StatusIcon = statusConfig[statusKey]?.icon || HelpCircle;
+        const statusColor = statusConfig[statusKey]?.color || '';
         const PurposeIcon = purposeIcons[patient.purpose || ''] || HelpCircle;
         const isUpNext = upNext?.id === patient.id;
         const isNextInLine = nextInLine?.id === patient.id;
