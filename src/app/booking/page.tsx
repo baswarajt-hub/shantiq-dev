@@ -173,7 +173,7 @@ export default function BookingPage() {
             const appointmentDate = parseISO(p.appointmentTime);
             return {
                 id: p.id,
-                familyMemberId: famMember?.id || 0,
+                familyMemberId: Number(famMember?.id) || 0,
                 familyMemberName: p.name,
                 date: p.appointmentTime,
                 time: format(appointmentDate, 'hh:mm a'),
@@ -399,7 +399,7 @@ export default function BookingPage() {
               <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
                    <Avatar>
-                      <AvatarImage src={family.find(f=>f.id === appt.familyMemberId)?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />
+                      <AvatarImage src={family.find(f=> f.id === String(appt.familyMemberId))?.avatar} alt={appt.familyMemberName} data-ai-hint="person" />
                       <AvatarFallback>{appt.familyMemberName.charAt(0)}</AvatarFallback>
                     </Avatar>
                   <div>
