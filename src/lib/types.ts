@@ -42,7 +42,7 @@ export type DoctorStatus = {
   startDelay: number; // in minutes
   isPaused?: boolean;
   isQrCodeActive?: boolean;
-  walkInSessionToken?: string;
+  walkInSessionToken?: string | null;
 };
 
 export type Session = {
@@ -137,8 +137,8 @@ export type DoctorSchedule = {
 export type FamilyMember = {
   id: string;
   name: string; // Kept for child patients, but for parent record it will be the primary contact's name
-  dob?: string; // YYYY-MM-DD - Now optional, mainly for child patients
-  gender?: 'Male' | 'Female' | 'Other'; // Now optional, mainly for child patients
+  dob: string; // YYYY-MM-DD - Now optional, mainly for child patients
+  gender: 'Male' | 'Female' | 'Other'; // Now optional, mainly for child patients
   avatar?: string; // URL to avatar image
   clinicId?: string;
   phone: string;
@@ -154,7 +154,7 @@ export type FamilyMember = {
 
 export type Appointment = {
   id: string;
-  familyMemberId: string;
+  familyMemberId: number;
   familyMemberName: string;
   date: string; // ISO string format from Patient.appointmentTime
   time: string;
