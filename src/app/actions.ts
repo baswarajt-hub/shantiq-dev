@@ -306,23 +306,24 @@ export async function sendReminderAction(patientId: number) {
 
 export async function getPatientsAction() {
     const patients = await getPatientsData();
-    return patients;
+    return JSON.parse(JSON.stringify(patients));
 }
 
 export async function findPatientsByPhoneAction(phone: string) {
     await recalculateQueueWithETC();
-    return findPatientsByPhone(phone);
+    const patients = await findPatientsByPhone(phone);
+    return JSON.parse(JSON.stringify(patients));
 }
 
 
 export async function getDoctorScheduleAction() {
     const schedule = await getDoctorScheduleData();
-    return schedule;
+    return JSON.parse(JSON.stringify(schedule));
 }
 
 export async function getDoctorStatusAction() {
     const status = await getDoctorStatusData();
-    return status;
+    return JSON.parse(JSON.stringify(status));
 }
 
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {

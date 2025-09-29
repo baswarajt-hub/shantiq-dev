@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { ScheduleForm } from '@/components/admin/schedule-form';
-import { updateDoctorScheduleAction, updatePaymentGatewaySettingsAction } from '@/app/actions';
+import { updateDoctorScheduleAction, updatePaymentGatewaySettingsAction, getDoctorScheduleAction } from '@/app/actions';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { Separator } from '@/components/ui/separator';
 import type { ClinicDetails, DoctorSchedule, SpecialClosure, VisitPurpose, Notification, SmsSettings, PaymentGatewaySettings } from '@/lib/types';
@@ -22,15 +22,12 @@ export default function AdminPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    async function loadSchedule() {
+    startTransition(async () => {
       try {
-        const response = await fetch('/api/schedule');
-        if (!response.ok) {
-          throw new Error('Failed to fetch schedule');
-        }
-        const scheduleData = await response.json();
+        const scheduleData = await getDoctorScheduleAction();
         setSchedule(scheduleData);
       } catch (error) {
         console.error("Failed to load schedule", error);
@@ -38,8 +35,7 @@ export default function AdminPage() {
       } finally {
         setLoading(false);
       }
-    }
-    loadSchedule();
+    });
   }, [toast]);
 
   const handleClinicDetailsSave = async (updatedDetails: ClinicDetails) => {
@@ -121,7 +117,7 @@ export default function AdminPage() {
     }
   };
 
-  if (loading) {
+  if (loading || isPending) {
     return (
         <div className="flex flex-col min-h-screen">
             <Header />
