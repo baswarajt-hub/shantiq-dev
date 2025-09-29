@@ -296,7 +296,7 @@ function TVDisplayPageContent() {
 
         setPatients(sessionPatients);
         
-        const currentlyWaiting = sessionPatients.filter(p => 
+        const currentlyWaiting = sessionPatients.filter((p: Patient) => 
             ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status) && p.checkInTime
         );
 
@@ -726,3 +726,4 @@ export default function TVDisplayPage() {
     
 
     
+
