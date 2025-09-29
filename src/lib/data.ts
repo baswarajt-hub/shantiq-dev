@@ -1,11 +1,16 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, writeBatch, updateDoc, query, where, documentId, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+
+const settingsDoc = doc(db, 'settings', 'live');
+const patientsCollection = collection(db, 'patients');
+const familyCollection = collection(db, 'family');
 
 
 // --- Helper Functions ---
