@@ -17,7 +17,7 @@ import { cancelAppointmentAction, rescheduleAppointmentAction, getFamilyByPhoneA
 import { format, parseISO, isToday, isFuture } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
-const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: number) => void }) => {
+const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: string) => void }) => {
   const [isQueueButtonActive, setQueueButtonActive] = useState(false);
   const [tooltipMessage, setTooltipMessage] = useState("You can view live queue status an hour before the doctor's session starts.");
 
@@ -231,7 +231,7 @@ export default function MyAppointmentsPage() {
   }, [patients, family]);
   
 
-  const handleCancelAppointment = useCallback((appointmentId: number) => {
+  const handleCancelAppointment = useCallback((appointmentId: string) => {
     if (!phone) return;
     startTransition(async () => {
         const result = await cancelAppointmentAction(appointmentId);
@@ -409,3 +409,5 @@ export default function MyAppointmentsPage() {
     </main>
   );
 }
+
+    

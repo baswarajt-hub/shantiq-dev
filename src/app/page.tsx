@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import Header from '@/components/header';
@@ -395,7 +396,7 @@ export default function DashboardPage() {
         }
     }, [selectedPatient, loadData, toast]);
 
-    const handleUpdateStatus = useCallback((patientId: number, status: Patient['status']) => {
+    const handleUpdateStatus = useCallback((patientId: string, status: Patient['status']) => {
         startTransition(async () => {
             const result = await updatePatientStatusAction(patientId, status);
             if (result?.error) {
@@ -407,7 +408,7 @@ export default function DashboardPage() {
         });
     }, [loadData, toast]);
     
-    const handleStartLastConsultation = useCallback((patientId: number) => {
+    const handleStartLastConsultation = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await startLastConsultationAction(patientId);
             if (result?.error) {
@@ -419,7 +420,7 @@ export default function DashboardPage() {
         });
     }, [loadData, toast]);
 
-    const handleAdvanceQueue = useCallback((patientId: number) => {
+    const handleAdvanceQueue = useCallback((patientId: string) => {
       startTransition(async () => {
           const result = await advanceQueueAction(patientId);
           if (result?.error) {
@@ -431,7 +432,7 @@ export default function DashboardPage() {
       });
   }, [loadData, toast]);
 
-    const handleUpdatePurpose = useCallback((patientId: number, purpose: string) => {
+    const handleUpdatePurpose = useCallback((patientId: string, purpose: string) => {
         startTransition(async () => {
             const result = await updatePatientPurposeAction(patientId, purpose);
             if (result?.error) {
@@ -443,7 +444,7 @@ export default function DashboardPage() {
         });
     }, [loadData, toast]);
 
-    const handleSendReminder = useCallback((patientId: number) => {
+    const handleSendReminder = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await sendReminderAction(patientId);
             if (result?.error) {
@@ -456,7 +457,7 @@ export default function DashboardPage() {
     }, [loadData, toast]);
 
 
-    const handleCancelAppointment = useCallback((patientId: number) => {
+    const handleCancelAppointment = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await cancelAppointmentAction(patientId);
             if (result.success) {
@@ -468,7 +469,7 @@ export default function DashboardPage() {
         });
     }, [loadData, toast]);
 
-    const handleCheckIn = useCallback((patientId: number) => {
+    const handleCheckIn = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await checkInPatientAction(patientId);
             if (result?.error) {
@@ -548,7 +549,7 @@ export default function DashboardPage() {
         }
     }, [loadData, toast]);
     
-    const handleMarkAsLateAndCheckIn = useCallback((patientId: number, penalty: number) => {
+    const handleMarkAsLateAndCheckIn = useCallback((patientId: string, penalty: number) => {
         startTransition(async () => {
             const result = await markPatientAsLateAndCheckInAction(patientId, penalty);
             if (result?.error) {
@@ -1064,6 +1065,8 @@ export default function DashboardPage() {
         </div>
     );
 }
+    
+
     
 
     

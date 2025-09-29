@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -176,7 +177,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
 }
 
 
-export async function updatePatientStatusAction(patientId: number, status: Patient['status']) {
+export async function updatePatientStatusAction(patientId: string, status: Patient['status']) {
   let patients = await getPatientsData();
   const patient = patients.find(p => p.id === patientId);
 
@@ -206,7 +207,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
         consultationStartTime: new Date().toISOString(),
         subStatus: undefined
     };
-    await updatePatient(patientId.toString(), updates);
+    await updatePatient(patientId, updates);
 
   } else {
     let updates: Partial<Patient> = { status };
@@ -230,7 +231,7 @@ export async function updatePatientStatusAction(patientId: number, status: Patie
         updates.consultationStartTime = new Date().toISOString();
         updates.subStatus = undefined;
     }
-    await updatePatient(patientId.toString(), updates);
+    await updatePatient(patientId, updates);
   }
 
   await recalculateQueueWithETC();
@@ -278,8 +279,8 @@ export async function runTimeEstimationAction(aiPatientData: AIPatientData) {
   }
 }
 
-export async function sendReminderAction(patientId: number) {
-  const patient = await findPatientById(patientId.toString());
+export async function sendReminderAction(patientId: string) {
+  const patient = await findPatientById(patientId);
   if (!patient) {
     return { error: 'Patient not found' };
   }
@@ -491,8 +492,8 @@ export async function searchFamilyMembersAction(searchTerm: string): Promise<Fam
     return searchFamilyMembers(effectiveSearchTerm);
 }
 
-export async function checkInPatientAction(patientId: number) {
-  const patient = await findPatientById(patientId.toString());
+export async function checkInPatientAction(patientId: string) {
+  const patient = await findPatientById(patientId);
   if (!patient) {
     return { error: 'Patient not found' };
   }
@@ -765,9 +766,9 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
     return { success: "Today's schedule has been updated." };
 }
 
-export async function updatePatientPurposeAction(patientId: number, purpose: string) {
+export async function updatePatientPurposeAction(patientId: string, purpose: string) {
     try {
-        await updatePatient(patientId.toString(), { purpose });
+        await updatePatient(patientId, { purpose });
         await recalculateQueueWithETC();
         revalidatePath('/');
         revalidatePath('/dashboard');
@@ -802,7 +803,7 @@ export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedul
     }
 }
 
-export async function updateClinicDetailsAction(details: ClinicDetails) {
+export async function updateClinicDetailsAction(details: ClinicDetails): Promise<{success: string} | {error: string}> {
     try {
         await updateClinicDetailsData(details);
         revalidatePath('/');
@@ -820,7 +821,7 @@ export async function updateClinicDetailsAction(details: ClinicDetails) {
     }
 }
 
-export async function updateSmsSettingsAction(smsSettings: SmsSettings) {
+export async function updateSmsSettingsAction(smsSettings: SmsSettings): Promise<{success: string} | {error: string}> {
     try {
         await updateSmsSettingsData(smsSettings);
         revalidatePath('/');
@@ -831,7 +832,7 @@ export async function updateSmsSettingsAction(smsSettings: SmsSettings) {
     }
 }
 
-export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings: PaymentGatewaySettings) {
+export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings: PaymentGatewaySettings): Promise<{success: string} | {error: string}> {
     try {
         await updatePaymentGatewaySettingsData(paymentGatewaySettings);
         revalidatePath('/');
@@ -842,7 +843,7 @@ export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings:
     }
 }
 
-export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
+export async function updateSpecialClosuresAction(closures: SpecialClosure[]): Promise<{success: string} | {error: string}> {
     try {
         await updateSpecialClosures(closures);
         await recalculateQueueWithETC();
@@ -861,7 +862,7 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
     }
 }
 
-export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
+export async function updateVisitPurposesAction(purposes: VisitPurpose[]): Promise<{success: string} | {error: string}> {
     try {
         await updateVisitPurposesData(purposes);
         revalidatePath('/');
@@ -879,7 +880,7 @@ export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
     }
 }
 
-export async function updateNotificationsAction(notifications: Notification[]) {
+export async function updateNotificationsAction(notifications: Notification[]): Promise<{success: string} | {error: string}> {
   try {
     await updateNotificationData(notifications);
     revalidatePath('/');
@@ -910,9 +911,9 @@ export async function updateFamilyMemberAction(member: FamilyMember) {
     }
 }
 
-export async function cancelAppointmentAction(appointmentId: number) {
+export async function cancelAppointmentAction(appointmentId: string) {
     try {
-        const patient = await cancelAppointment(appointmentId.toString());
+        const patient = await cancelAppointment(appointmentId);
         if (patient) {
             await recalculateQueueWithETC();
             revalidatePath('/');
@@ -931,8 +932,8 @@ export async function cancelAppointmentAction(appointmentId: number) {
     }
 }
 
-export async function rescheduleAppointmentAction(appointmentId: number, newAppointmentTime: string, newPurpose: string) {
-    const patient = await findPatientById(appointmentId.toString());
+export async function rescheduleAppointmentAction(appointmentId: string, newAppointmentTime: string, newPurpose: string) {
+    const patient = await findPatientById(appointmentId);
     if (!patient) {
         return { error: 'Patient not found' };
     }
@@ -970,7 +971,7 @@ export async function rescheduleAppointmentAction(appointmentId: number, newAppo
     // --- End Recalculation ---
     
 
-    await updatePatient(appointmentId.toString(), { 
+    await updatePatient(appointmentId, { 
         appointmentTime: newAppointmentTime, 
         slotTime: newAppointmentTime,
         purpose: newPurpose,
@@ -1006,9 +1007,9 @@ export async function getFamilyAction() {
     return getFamily();
 }
 
-export async function markPatientAsLateAndCheckInAction(patientId: number, penalty: number) {
+export async function markPatientAsLateAndCheckInAction(patientId: string, penalty: number) {
   const allPatients = await getPatientsData();
-  const patient = allPatients.find((p: Patient) => p.id === patientId.toString());
+  const patient = allPatients.find((p: Patient) => p.id === patientId);
   if (!patient) return { error: 'Patient not found.' };
 
   const now = new Date();
@@ -1157,7 +1158,7 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
 }
     
 
-export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
+export async function advanceQueueAction(patientIdToBecomeUpNext: string) {
   // Step 1: Complete the current 'In-Consultation' patient
   let allPatients = await getPatientsData();
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
@@ -1189,7 +1190,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
   }
 
   // Step 3: Set the selected patient to 'Up-Next'
-  await updatePatient(patientIdToBecomeUpNext.toString(), { status: 'Up-Next' });
+  await updatePatient(patientIdToBecomeUpNext, { status: 'Up-Next' });
 
   // Recalculate the entire queue with the new statuses
   await recalculateQueueWithETC();
@@ -1207,7 +1208,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: number) {
   return { success: 'Queue advanced successfully.' };
 }
     
-export async function startLastConsultationAction(patientId: number) {
+export async function startLastConsultationAction(patientId: string) {
   // Step 1: Complete any currently serving patient
   let allPatients = await getPatientsData();
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
@@ -1225,7 +1226,7 @@ export async function startLastConsultationAction(patientId: number) {
   }
 
   // Step 2: Move the target patient (who was Up-Next) to In-Consultation
-  await updatePatient(patientId.toString(), {
+  await updatePatient(patientId, {
     status: 'In-Consultation',
     consultationStartTime: new Date().toISOString(),
     lateLocked: false,
@@ -1498,5 +1499,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
 
+
+    
 
     
