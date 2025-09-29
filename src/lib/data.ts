@@ -1,5 +1,6 @@
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -7,14 +8,8 @@ import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, writeBatch, updateDoc, query, where, documentId, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 
 
-// --- Firestore Collection References ---
-const patientsCollection = collection(db, 'patients');
-const familyCollection = collection(db, 'family');
-const settingsDoc = doc(db, 'settings', 'singleton');
-
-
 // --- Helper Functions ---
-function processFirestoreDoc(docData: any) {
+function processFirestoreDoc(docData: any): any {
   if (!docData) return docData;
 
   const processedData: { [key: string]: any } = {};
@@ -47,17 +42,7 @@ async function getSingletonDoc<T>(docRef: any, defaultData: T): Promise<T> {
     if (docSnap.exists()) {
       // Ensure nested objects exist to prevent runtime errors on partial data
       const rawData = docSnap.data();
-      const data = processFirestoreDoc(rawData) as T;
-
-      if (data && typeof data === 'object' && 'schedule' in data && (data as any).schedule && typeof (data as any).schedule === 'object') {
-        const schedule = (data as any).schedule as DoctorSchedule;
-        if (!schedule.specialClosures) schedule.specialClosures = [];
-        if (!schedule.visitPurposes) schedule.visitPurposes = [];
-        if (!schedule.notifications) schedule.notifications = [];
-        if (!schedule.smsSettings) schedule.smsSettings = { provider: 'none', apiKey: '', senderId: ''};
-        if (!schedule.paymentGatewaySettings) schedule.paymentGatewaySettings = { provider: 'none', key: '', salt: '', environment: 'test' };
-      }
-      return data;
+      return processFirestoreDoc(rawData) as T;
     } else {
       // If the doc doesn't exist, create it with default data
       await setDoc(docRef, defaultData);
@@ -239,7 +224,7 @@ const defaultSchedule: DoctorSchedule = {
 
 export async function getDoctorStatus(): Promise<DoctorStatus> {
   const settings = await getSingletonDoc(settingsDoc, { status: defaultStatus, schedule: defaultSchedule });
-  return JSON.parse(JSON.stringify(settings.status || defaultStatus));
+  return settings.status || defaultStatus;
 }
 
 export async function updateDoctorStatus(statusUpdate: Partial<DoctorStatus>): Promise<DoctorStatus> {
@@ -275,13 +260,11 @@ export async function getDoctorSchedule(): Promise<DoctorSchedule> {
     specialClosures: data.specialClosures ?? defaultSchedule.specialClosures,
   };
   
-  // Final sanitization to ensure the object is clean before returning.
-  return JSON.parse(JSON.stringify(normalizedSchedule));
+  return normalizedSchedule;
 }
 
 export async function getDoctorScheduleData(): Promise<DoctorSchedule> {
   const schedule = await getDoctorSchedule();
-  // Force serialization to prevent issues with non-plain objects like Firestore Timestamps
   return JSON.parse(JSON.stringify(schedule));
 }
 
@@ -553,3 +536,6 @@ export async function deleteAllFamilies(): Promise<void> {
     
 
 
+
+
+    
