@@ -304,26 +304,22 @@ export async function sendReminderAction(patientId: number) {
   }
 }
 
-export async function getPatientsAction() {
-    const patients = await getPatientsData();
-    return patients;
+export async function getPatientsAction(): Promise<Patient[]> {
+    return JSON.parse(JSON.stringify(await getPatientsData()));
 }
 
 export async function findPatientsByPhoneAction(phone: string) {
     await recalculateQueueWithETC();
-    const patients = await findPatientsByPhone(phone);
-    return patients;
+    return JSON.parse(JSON.stringify(await findPatientsByPhone(phone)));
 }
 
 
-export async function getDoctorScheduleAction() {
-    const schedule = await getDoctorScheduleData();
-    return schedule;
+export async function getDoctorScheduleAction(): Promise<DoctorSchedule> {
+    return JSON.parse(JSON.stringify(await getDoctorScheduleData()));
 }
 
-export async function getDoctorStatusAction() {
-    const status = await getDoctorStatusData();
-    return status;
+export async function getDoctorStatusAction(): Promise<DoctorStatus> {
+    return JSON.parse(JSON.stringify(await getDoctorStatusData()));
 }
 
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
@@ -883,6 +879,19 @@ export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
     }
 }
 
+export async function updateNotificationsAction(notifications: Notification[]) {
+  try {
+    await updateNotificationData(notifications);
+    revalidatePath('/');
+    revalidatePath('/admin');
+    revalidatePath('/booking');
+    revalidatePath('/patient-portal');
+    return { success: 'Notifications updated successfully.' };
+  } catch (e: any) {
+    return { error: e.message || 'Failed to update notifications.' };
+  }
+}
+
 export async function updateFamilyMemberAction(member: FamilyMember) {
     try {
         await updateFamilyMember(member);
@@ -1238,18 +1247,7 @@ export async function startLastConsultationAction(patientId: number) {
   return { success: 'Started final consultation.' };
 }
 
-export async function updateNotificationsAction(notifications: Notification[]) {
-  try {
-    await updateNotificationData(notifications);
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    return { success: 'Notifications updated successfully.' };
-  } catch (e: any) {
-    return { error: e.message || 'Failed to update notifications.' };
-  }
-}
+
 
 
 export async function deleteFamilyMemberAction(id: string) {
@@ -1499,3 +1497,6 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     
 
 
+
+
+    
