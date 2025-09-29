@@ -184,58 +184,66 @@ export async function updatePatientStatusAction(patientId: string, status: Patie
   if (!patient) {
     return { error: 'Patient not found' };
   }
+  
+  let updates: Partial<Patient> = { status };
 
-  if (status === 'In-Consultation') {
-    const currentlyServing = patients.find(p => p.status === 'In-Consultation');
-    if (currentlyServing && currentlyServing.id !== patientId) {
-      const startTime = toDate(currentlyServing.consultationStartTime!)!;
-      const endTime = new Date();
-      const completedUpdates: Partial<Patient> = {
-        status: 'Completed',
-        consultationEndTime: endTime.toISOString(),
-        consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)),
-        subStatus: undefined,
-        lateLocked: false,
-        lateAnchors: undefined,
-        lateLockedAt: undefined
-      };
-      await updatePatient(currentlyServing.id.toString(), completedUpdates);
-    }
-    
-    const updates: Partial<Patient> = { 
-        status: 'In-Consultation',
-        consultationStartTime: new Date().toISOString(),
-        subStatus: undefined
-    };
-    await updatePatient(patientId, updates);
+  switch (status) {
+    case 'In-Consultation':
+      const currentlyServing = patients.find(p => p.status === 'In-Consultation');
+      if (currentlyServing && currentlyServing.id !== patientId) {
+        const startTime = toDate(currentlyServing.consultationStartTime!)!;
+        const endTime = new Date();
+        const completedUpdates: Partial<Patient> = {
+          status: 'Completed',
+          consultationEndTime: endTime.toISOString(),
+          consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)),
+          subStatus: undefined,
+          lateLocked: false,
+          lateAnchors: undefined,
+          lateLockedAt: undefined
+        };
+        await updatePatient(currentlyServing.id, completedUpdates);
+      }
+      
+      updates.consultationStartTime = new Date().toISOString();
+      updates.subStatus = undefined;
+      updates.lateLocked = false;
+      updates.lateAnchors = undefined;
+      updates.lateLockedAt = undefined;
+      break;
 
-  } else {
-    let updates: Partial<Patient> = { status };
-
-    const shouldClearLateLock = ['In-Consultation', 'Completed', 'Cancelled'].includes(status);
-    if (shouldClearLateLock) {
-        updates.lateLocked = false;
-        updates.lateAnchors = undefined;
-        updates.lateLockedAt = undefined;
-    }
-
-    if (status === 'Completed' && patient.consultationStartTime) {
+    case 'Completed':
+      if (patient.consultationStartTime) {
         const startTime = toDate(patient.consultationStartTime)!;
         const endTime = new Date();
         updates.consultationEndTime = endTime.toISOString();
         updates.consultationTime = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // in minutes
-        updates.subStatus = undefined;
-    } else if (status === 'Waiting for Reports') {
-        updates.subStatus = 'Reports';
-    } else if (patient.status === 'Waiting for Reports' && status === 'In-Consultation') {
-        updates.consultationStartTime = new Date().toISOString();
-        updates.subStatus = undefined;
-    }
-    await updatePatient(patientId, updates);
+      }
+      updates.subStatus = undefined;
+      updates.lateLocked = false;
+      updates.lateAnchors = undefined;
+      updates.lateLockedAt = undefined;
+      break;
+
+    case 'Waiting for Reports':
+      updates.subStatus = 'Reports';
+      break;
+      
+    case 'Cancelled':
+      updates.lateLocked = false;
+      updates.lateAnchors = undefined;
+      updates.lateLockedAt = undefined;
+      break;
+      
+    default:
+      // For other statuses like 'Waiting', 'Late', 'Priority', etc., just update the status.
+      // The late lock logic is handled in recalculateQueueWithETC and markAsLate.
+      break;
   }
-
+  
+  await updatePatient(patientId, updates);
   await recalculateQueueWithETC();
-
+  
   revalidatePath('/');
   revalidatePath('/dashboard');
   revalidatePath('/booking');
