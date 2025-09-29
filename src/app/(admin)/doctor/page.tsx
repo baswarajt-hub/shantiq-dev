@@ -99,7 +99,7 @@ export default function DoctorPage() {
   
   const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
     const result = await updateNotificationsAction(updatedNotifications);
-    if (result.error) {
+    if ('error' in result) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
@@ -110,7 +110,7 @@ export default function DoctorPage() {
   const handleClosuresSave = async (updatedClosures: SpecialClosure[]) => {
      if (!schedule) return;
     const result = await updateSpecialClosuresAction(updatedClosures);
-     if (result.error) {
+     if ('error' in result) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
         toast({ title: 'Success', description: 'Closure updated successfully.' });
@@ -251,5 +251,3 @@ export default function DoctorPage() {
     </>
   );
 }
-
-    

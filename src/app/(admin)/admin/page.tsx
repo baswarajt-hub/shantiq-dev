@@ -41,7 +41,7 @@ export default function AdminPage() {
   const handleClinicDetailsSave = async (updatedDetails: ClinicDetails) => {
     if (!schedule) return;
     const result = await updateClinicDetailsAction(updatedDetails);
-    if (result.error) {
+    if ('error' in result) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
@@ -52,7 +52,7 @@ export default function AdminPage() {
   const handleSmsSettingsSave = async (updatedSmsSettings: SmsSettings) => {
     if (!schedule) return;
     const result = await updateSmsSettingsAction(updatedSmsSettings);
-    if (result.error) {
+    if ('error' in result) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
@@ -63,7 +63,7 @@ export default function AdminPage() {
   const handlePaymentGatewaySettingsSave = async (updatedPaymentGatewaySettings: PaymentGatewaySettings) => {
     if (!schedule) return;
     const result = await updatePaymentGatewaySettingsAction(updatedPaymentGatewaySettings);
-    if (result.error) {
+    if ('error' in result) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
@@ -74,7 +74,7 @@ export default function AdminPage() {
   const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
     if (!schedule) return;
     const result = await updateNotificationsAction(updatedNotifications);
-    if (result.error) {
+    if ('error' in result) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
@@ -85,7 +85,7 @@ export default function AdminPage() {
   const handleScheduleSave = async (updatedScheduleData: Partial<DoctorSchedule>) => {
     const result = await updateDoctorScheduleAction(updatedScheduleData);
 
-    if (result.error) {
+    if ('error' in result) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
@@ -98,7 +98,7 @@ export default function AdminPage() {
   const handleClosuresSave = async (updatedClosures: SpecialClosure[]) => {
     if (!schedule) return;
     const result = await updateSpecialClosuresAction(updatedClosures);
-     if (result.error) {
+     if ('error' in result) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
         toast({ title: 'Success', description: 'Closure updated successfully.' });
@@ -109,7 +109,7 @@ export default function AdminPage() {
   const handleVisitPurposesSave = async (updatedPurposes: VisitPurpose[]) => {
     if (!schedule) return;
     const result = await updateVisitPurposesAction(updatedPurposes);
-    if (result.error) {
+    if ('error' in result) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: result.success });
