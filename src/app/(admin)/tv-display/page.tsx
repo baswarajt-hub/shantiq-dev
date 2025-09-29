@@ -46,6 +46,15 @@ const purposeIcons: { [key: string]: React.ElementType } = {
     'Others': HelpCircle,
 };
 
+const sessionLocalToUtc = (dateStr: string, sessionTime: string) => {
+    let localDate: Date;
+    if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+        localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+    } else {
+        localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
+    }
+    return fromZonedTime(localDate, "Asia/Kolkata");
+}
 
 const getPatientNameColorClass = (status: Patient['status'], type: Patient['type']) => {
     switch (status) {
@@ -174,7 +183,7 @@ function TVDisplayPageContent() {
 
     if (!daySchedule) return null;
 
-    const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
+    const todayOverride = localSchedule.specialClosures.find((c: SpecialClosure) => c.date === dateStr);
     if (todayOverride) {
       daySchedule = {
         morning: todayOverride.morningOverride ?? daySchedule.morning,
@@ -394,7 +403,7 @@ function TVDisplayPageContent() {
         </div>
       );
   }
-  const todayOverride = schedule.specialClosures.find(c => c.date === todayStr);
+  const todayOverride = schedule.specialClosures.find((c: SpecialClosure) => c.date === todayStr);
   if(todayOverride) {
     todaySchedule = {
         morning: todayOverride.morningOverride ?? schedule.days[dayName].morning,
