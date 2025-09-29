@@ -80,7 +80,7 @@ export function DoctorQueue({
   const handleUpdateStatus = (patientId: string, status: Patient['status']) => {
     startTransition(async () => {
       const result = await updatePatientStatusAction(patientId, status);
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: 'Success', description: result.success });
         onUpdate();
       } else {
@@ -96,7 +96,7 @@ export function DoctorQueue({
   const handleAdvanceQueue = (patientId: string) => {
     startTransition(async () => {
       const result = await advanceQueueAction(patientId);
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: 'Success', description: result.success });
         onUpdate();
       } else {
@@ -112,7 +112,7 @@ export function DoctorQueue({
   const handleStartLastConsultation = (patientId: string) => {
     startTransition(async () => {
         const result = await startLastConsultationAction(patientId);
-        if(result.success) {
+        if("success" in result) {
             toast({ title: 'Success', description: result.success});
             onUpdate();
         } else {
@@ -124,7 +124,7 @@ export function DoctorQueue({
   const handleCancel = (patientId: string) => {
     startTransition(async () => {
       const result = await cancelAppointmentAction(patientId);
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: 'Success', description: result.success });
         onUpdate();
       } else {
