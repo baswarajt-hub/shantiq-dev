@@ -302,7 +302,7 @@ function TVDisplayPageContent() {
 
         if (currentlyWaiting.length > 0) {
             const now = new Date();
-            const totalWaitMinutes = currentlyWaiting.reduce((acc, p) => {
+            const totalWaitMinutes = currentlyWaiting.reduce((acc: number, p: Patient) => {
                 const wait = differenceInMinutes(now, parseISO(p.checkInTime!));
                 return acc + (wait > 0 ? wait : 0);
             }, 0);
@@ -726,4 +726,5 @@ export default function TVDisplayPage() {
     
 
     
+
 
