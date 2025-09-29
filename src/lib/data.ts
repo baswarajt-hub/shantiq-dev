@@ -275,6 +275,7 @@ export async function getDoctorSchedule(): Promise<DoctorSchedule> {
     specialClosures: data.specialClosures ?? defaultSchedule.specialClosures,
   };
   
+  // Final sanitization to ensure the object is clean before returning.
   return JSON.parse(JSON.stringify(normalizedSchedule));
 }
 
@@ -427,12 +428,12 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
             const fatherName = row.fatherName || '';
             const motherName = row.motherName || '';
             const primaryContact = row.primaryContact || 'Father';
-            const primaryContactName = primaryContact === 'Father' ? fatherName : motherName;
+            const primaryContactName = primaryContact === 'Father' ? fatherName : (motherName || `${patientName}'s Family`);
 
             newFamilyRecords.push({
                 phone,
                 isPrimary: true,
-                name: primaryContactName || `${patientName}'s Family`,
+                name: primaryContactName,
                 fatherName,
                 motherName,
                 primaryContact,
@@ -544,3 +545,4 @@ export async function deleteAllFamilies(): Promise<void> {
     
 
     
+
