@@ -210,87 +210,99 @@ function TVDisplayPageContent() {
   }, []);
 
   const fetchData = useCallback(async () => {
-    const [patientData, statusRes, scheduleData] = await Promise.all([
-        getPatientsAction(),
-        fetch('/api/status'),
-        getDoctorScheduleAction()
-    ]);
-    
-    const statusData = await statusRes.json();
-    setSchedule(scheduleData);
-    setDoctorStatus(statusData);
+    try {
+        const [patientsRes, statusRes, scheduleRes] = await Promise.all([
+            fetch('/api/patients'),
+            fetch('/api/status'),
+            fetch('/api/schedule')
+        ]);
+        
+        if (!patientsRes.ok || !statusRes.ok || !scheduleRes.ok) {
+            console.error("Failed to fetch data");
+            return;
+        }
 
-    const now = new Date();
-    const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-    let sessionToShow: 'morning' | 'evening' | null = null;
-    
-    if (scheduleData) {
-        sessionToShow = getSessionForTime(now, scheduleData);
+        const patientData = await patientsRes.json();
+        const statusData = await statusRes.json();
+        const scheduleData = await scheduleRes.json();
 
-        if (!sessionToShow) {
+        setSchedule(scheduleData);
+        setDoctorStatus(statusData);
+
+        const now = new Date();
+        const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+        let sessionToShow: 'morning' | 'evening' | null = null;
+        
+        if (scheduleData) {
+            sessionToShow = getSessionForTime(now, scheduleData);
+
+            if (!sessionToShow) {
+                const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+
+                let daySchedule = scheduleData.days[dayName];
+                if (daySchedule) {
+                    const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
+                    if (todayOverride) {
+                        daySchedule = {
+                            morning: todayOverride.morningOverride ?? daySchedule.morning,
+                            evening: todayOverride.eveningOverride ?? daySchedule.evening,
+                        };
+                    }
+                    
+                    const morningSession = daySchedule.morning;
+                    if (morningSession.isOpen) {
+                        const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
+                        const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
+                        if (now > morningEndUtc) {
+                            sessionToShow = 'evening';
+                        } else {
+                            sessionToShow = 'morning';
+                        }
+                    } else {
+                        sessionToShow = 'evening';
+                    }
+                }
+            }
+            
             const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-
-            let daySchedule = scheduleData.days[dayName];
+            const daySchedule = scheduleData.days[dayName];
             if (daySchedule) {
                 const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
-                if (todayOverride) {
-                    daySchedule = {
-                        morning: todayOverride.morningOverride ?? daySchedule.morning,
-                        evening: todayOverride.eveningOverride ?? daySchedule.evening,
-                    };
-                }
+                const sessionToCheck = (now.getHours() < 14 || !daySchedule.evening.isOpen) 
+                    ? (todayOverride?.morningOverride ?? daySchedule.morning) 
+                    : (todayOverride?.eveningOverride ?? daySchedule.evening);
                 
-                const morningSession = daySchedule.morning;
-                if (morningSession.isOpen) {
-                    const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-                    const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-                    if (now > morningEndUtc) {
-                        sessionToShow = 'evening';
-                    } else {
-                        sessionToShow = 'morning';
-                    }
+                if (sessionToCheck.isOpen) {
+                    const sessionEndUtc = sessionLocalToUtc(todayStr, sessionToCheck.end);
+                    setIsSessionOver(now > sessionEndUtc);
                 } else {
-                    sessionToShow = 'evening';
+                    setIsSessionOver(false);
                 }
             }
         }
         
-        const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-        const daySchedule = scheduleData.days[dayName];
-        if (daySchedule) {
-            const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
-            const sessionToCheck = (now.getHours() < 14 || !daySchedule.evening.isOpen) 
-                ? (todayOverride?.morningOverride ?? daySchedule.morning) 
-                : (todayOverride?.eveningOverride ?? daySchedule.evening);
-            
-            if (sessionToCheck.isOpen) {
-                const sessionEndUtc = sessionLocalToUtc(todayStr, sessionToCheck.end);
-                setIsSessionOver(now > sessionEndUtc);
-            } else {
-                setIsSessionOver(false);
-            }
+        setCurrentSessionName(sessionToShow);
+        const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)) && p.status !== 'Cancelled');
+        const sessionPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+
+        setPatients(sessionPatients);
+        
+        const currentlyWaiting = sessionPatients.filter(p => 
+            ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status) && p.checkInTime
+        );
+
+        if (currentlyWaiting.length > 0) {
+            const now = new Date();
+            const totalWaitMinutes = currentlyWaiting.reduce((acc, p) => {
+                const wait = differenceInMinutes(now, parseISO(p.checkInTime!));
+                return acc + (wait > 0 ? wait : 0);
+            }, 0);
+            setAverageWait(Math.round(totalWaitMinutes / currentlyWaiting.length));
+        } else if (scheduleData) {
+            setAverageWait(scheduleData.slotDuration); // Default if no one is waiting
         }
-    }
-    
-    setCurrentSessionName(sessionToShow);
-    const todaysPatients = patientData.filter((p: Patient) => isToday(parseISO(p.appointmentTime)) && p.status !== 'Cancelled');
-    const sessionPatients = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
-
-    setPatients(sessionPatients);
-    
-    const currentlyWaiting = sessionPatients.filter(p => 
-        ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status) && p.checkInTime
-    );
-
-    if (currentlyWaiting.length > 0) {
-        const now = new Date();
-        const totalWaitMinutes = currentlyWaiting.reduce((acc, p) => {
-            const wait = differenceInMinutes(now, parseISO(p.checkInTime!));
-            return acc + (wait > 0 ? wait : 0);
-        }, 0);
-        setAverageWait(Math.round(totalWaitMinutes / currentlyWaiting.length));
-    } else if (scheduleData) {
-        setAverageWait(scheduleData.slotDuration); // Default if no one is waiting
+    } catch(error) {
+        console.error("Error in fetchData:", error);
     }
   }, [getSessionForTime]);
 
@@ -701,3 +713,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    
