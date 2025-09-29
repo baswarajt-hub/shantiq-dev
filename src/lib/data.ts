@@ -405,6 +405,7 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
     
     const existingFamilySnapshot = await getDocs(familyCollection);
     const existingMembers: FamilyMember[] = existingFamilySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamilyMember));
+    const existingPhonesWithPrimary = new Set(existingMembers.filter(m => m.isPrimary).map(m => m.phone));
 
     const newFamilyRecords: Omit<FamilyMember, 'id' | 'avatar'>[] = [];
     const newPatientRecords: Omit<FamilyMember, 'id' | 'avatar'>[] = [];
@@ -419,8 +420,8 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
             continue;
         }
 
-        // Check if the primary family record for this phone number already exists or is scheduled for creation
-        const familyExists = existingMembers.some(m => m.phone === phone && m.isPrimary) || processedPhones.has(phone);
+        // Check if a primary family record needs to be created for this phone number
+        const familyExists = existingPhonesWithPrimary.has(phone) || processedPhones.has(phone);
 
         if (!familyExists) {
             const fatherName = row.fatherName || '';
@@ -457,7 +458,7 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
                 dob: row.dob || '',
                 gender: row.gender || 'Other',
                 clinicId: row.clinicId || '',
-                fatherName: row.fatherName || '',
+                fatherName: row.fatherName || '', // Carry over for context if needed later
                 motherName: row.motherName || '',
             });
         }
@@ -478,6 +479,7 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
 
     return { successCount, skippedCount };
 }
+
 
 
 export async function cancelAppointment(appointmentId: string): Promise<Patient | undefined> {
