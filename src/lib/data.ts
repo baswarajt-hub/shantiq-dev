@@ -2,6 +2,7 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -270,6 +271,7 @@ export async function getDoctorSchedule(): Promise<DoctorSchedule> {
 
 export async function getDoctorScheduleData(): Promise<DoctorSchedule> {
   const schedule = await getDoctorSchedule();
+  // Force a deep clone and serialization to remove any complex objects
   return JSON.parse(JSON.stringify(schedule));
 }
 
@@ -542,5 +544,7 @@ export async function deleteAllFamilies(): Promise<void> {
 
 
 
+
+    
 
     
