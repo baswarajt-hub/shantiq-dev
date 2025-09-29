@@ -11,14 +11,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Patient } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import {
   ChevronsRight,
   CircleCheck,
@@ -27,8 +27,8 @@ import {
   Shield,
   Trash2,
 } from 'lucide-react';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useTransition } from 'react';
 import {
   advanceQueueAction,

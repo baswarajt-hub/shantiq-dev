@@ -4,10 +4,10 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import type { SpecialClosure, DoctorSchedule } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { type DayContentProps } from 'react-day-picker';
 import { format, isPast } from 'date-fns';
-import { Skeleton } from '../ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

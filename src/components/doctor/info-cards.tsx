@@ -2,7 +2,7 @@
 'use client';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import type { DoctorSchedule, SpecialClosure, Notification } from "@/lib/types";
 import { format, isWithinInterval, parseISO, parse } from "date-fns";
 import { Bell, Megaphone, Clock } from "lucide-react";

@@ -14,14 +14,14 @@ import {
 } from '@/components/ui/dialog';
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import type { Patient, DoctorSchedule } from '@/lib/types';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Label } from '../ui/label';
-import { format, set, addMinutes, parseISO, toDate } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Info } from 'lucide-react';
+import { addMinutes, format, set, parseISO, toDate } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 type RescheduleDialogProps = {

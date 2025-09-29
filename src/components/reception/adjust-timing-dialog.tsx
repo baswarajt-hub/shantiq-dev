@@ -40,7 +40,7 @@ export function AdjustTimingDialog({ isOpen, onOpenChange, schedule, onSave }: A
       setMorningSession(todayOverride?.morningOverride ?? schedule.days[dayName].morning);
       setEveningSession(todayOverride?.eveningOverride ?? schedule.days[dayName].evening);
     }
-  }, [isOpen]); // Depend only on `isOpen` to prevent overwriting user input.
+  }, [isOpen, schedule]); // Depend only on `isOpen` to prevent overwriting user input.
 
   const handleSave = () => {
     startTransition(() => {
