@@ -5,7 +5,7 @@ import { recalculateQueueWithETC, getPatientsAction, getDoctorScheduleAction } f
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause, AlertTriangle, QrCode } from 'lucide-react';
-import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
+import type { DoctorSchedule, DoctorStatus, Patient, Session, SpecialClosure } from '@/lib/types';
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { parseISO, format, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -241,7 +241,7 @@ function TVDisplayPageContent() {
 
                 let daySchedule = scheduleData.days[dayName];
                 if (daySchedule) {
-                    const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
+                    const todayOverride = scheduleData.specialClosures.find((c: SpecialClosure) => c.date === todayStr);
                     if (todayOverride) {
                         daySchedule = {
                             morning: todayOverride.morningOverride ?? daySchedule.morning,
@@ -267,7 +267,7 @@ function TVDisplayPageContent() {
             const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
             const daySchedule = scheduleData.days[dayName];
             if (daySchedule) {
-                const todayOverride = scheduleData.specialClosures.find(c => c.date === todayStr);
+                const todayOverride = scheduleData.specialClosures.find((c: SpecialClosure) => c.date === todayStr);
                 const sessionToCheck = (now.getHours() < 14 || !daySchedule.evening.isOpen) 
                     ? (todayOverride?.morningOverride ?? daySchedule.morning) 
                     : (todayOverride?.eveningOverride ?? daySchedule.evening);
@@ -713,5 +713,7 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    
 
     
