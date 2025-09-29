@@ -279,6 +279,12 @@ export async function getDoctorSchedule(): Promise<DoctorSchedule> {
   return JSON.parse(JSON.stringify(normalizedSchedule));
 }
 
+export async function getDoctorScheduleData(): Promise<DoctorSchedule> {
+  const schedule = await getDoctorSchedule();
+  // Force serialization to prevent issues with non-plain objects like Firestore Timestamps
+  return JSON.parse(JSON.stringify(schedule));
+}
+
 export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedule>): Promise<DoctorSchedule> {
     const currentSchedule = await getDoctorSchedule();
     const newSchedule: DoctorSchedule = {
@@ -545,4 +551,5 @@ export async function deleteAllFamilies(): Promise<void> {
     
 
     
+
 

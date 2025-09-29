@@ -27,7 +27,9 @@ export default function AdminPage() {
     async function loadSchedule() {
       try {
         const scheduleData = await getDoctorScheduleAction();
-        setSchedule(scheduleData);
+        // Final client-side sanitization as a safeguard
+        const cleanSchedule = JSON.parse(JSON.stringify(scheduleData));
+        setSchedule(cleanSchedule);
       } catch (error) {
         console.error("Failed to load schedule", error);
         toast({ title: 'Error', description: 'Failed to load schedule data.', variant: 'destructive' });
