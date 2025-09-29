@@ -28,7 +28,7 @@ export default function AdminPage() {
     startTransition(async () => {
       try {
         const scheduleData = await getDoctorScheduleAction();
-        setSchedule(scheduleData);
+        setSchedule(JSON.parse(JSON.stringify(scheduleData)));
       } catch (error) {
         console.error("Failed to load schedule", error);
         toast({ title: 'Error', description: 'Failed to load schedule data.', variant: 'destructive' });

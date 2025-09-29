@@ -306,51 +306,59 @@ export async function sendReminderAction(patientId: number) {
 
 export async function getPatientsAction() {
     const patients = await getPatientsData();
-    return JSON.parse(JSON.stringify(patients));
+    return patients;
 }
 
 export async function findPatientsByPhoneAction(phone: string) {
     await recalculateQueueWithETC();
     const patients = await findPatientsByPhone(phone);
-    return JSON.parse(JSON.stringify(patients));
+    return patients;
 }
 
 
 export async function getDoctorScheduleAction() {
     const schedule = await getDoctorScheduleData();
-    return JSON.parse(JSON.stringify(schedule));
+    return schedule;
 }
 
 export async function getDoctorStatusAction() {
     const status = await getDoctorStatusData();
-    return JSON.parse(JSON.stringify(status));
+    return status;
 }
 
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
-    const updates = { ...status };
-    if (status.isQrCodeActive) {
-        updates.walkInSessionToken = randomBytes(16).toString('hex');
-    } else if (status.isQrCodeActive === false) {
-        updates.walkInSessionToken = null;
-    }
+    try {
+        const updates = { ...status };
+        if (status.isQrCodeActive) {
+            updates.walkInSessionToken = randomBytes(16).toString('hex');
+        } else if (status.isQrCodeActive === false) {
+            updates.walkInSessionToken = null;
+        }
 
-    const newStatus = await updateDoctorStatus(updates);
-    await recalculateQueueWithETC();
-    revalidatePath('/', 'layout');
-    return { success: `Doctor status updated.`, status: newStatus };
+        const newStatus = await updateDoctorStatus(updates);
+        await recalculateQueueWithETC();
+        revalidatePath('/', 'layout');
+        return { success: `Doctor status updated.`, status: newStatus };
+    } catch (e: any) {
+        return { error: e.message || "Failed to update doctor status." };
+    }
 }
 
 
 export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
-    await updateDoctorStatus({ startDelay: startDelayMinutes });
-    await recalculateQueueWithETC();
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/patient-portal');
-    revalidatePath('/booking');
-    return { success: `Doctor delay updated to ${startDelayMinutes} minutes.` };
+    try {
+        await updateDoctorStatus({ startDelay: startDelayMinutes });
+        await recalculateQueueWithETC();
+        revalidatePath('/');
+        revalidatePath('/dashboard');
+        revalidatePath('/tv-display');
+        revalidatePath('/queue-status');
+        revalidatePath('/patient-portal');
+        revalidatePath('/booking');
+        return { success: `Doctor delay updated to ${startDelayMinutes} minutes.` };
+    } catch (e: any) {
+        return { error: e.message || "Failed to update doctor's delay." };
+    }
 }
 
 export async function emergencyCancelAction() {
@@ -762,108 +770,8 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
 }
 
 export async function updatePatientPurposeAction(patientId: number, purpose: string) {
-    await updatePatient(patientId.toString(), { purpose });
-    await recalculateQueueWithETC();
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/queue-status');
-    revalidatePath('/tv-display');
-    revalidatePath('/api/patients');
-    revalidatePath('/walk-in');
-    return { success: 'Visit purpose updated.' };
-}
-
-export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedule>) {
-    const updated = await updateDoctorSchedule(schedule);
-    await recalculateQueueWithETC();
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/dashboard');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/api/schedule');
-    revalidatePath('/walk-in');
-    return { success: 'Doctor schedule updated successfully.', schedule: updated };
-}
-
-export async function updateClinicDetailsAction(details: ClinicDetails) {
-    await updateClinicDetailsData(details);
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/api/schedule');
-    revalidatePath('/walk-in');
-    return { success: 'Clinic details updated successfully.' };
-}
-
-export async function updateSmsSettingsAction(smsSettings: SmsSettings) {
-    await updateSmsSettingsData(smsSettings);
-     revalidatePath('/');
-    revalidatePath('/admin');
-    return { success: 'SMS settings updated successfully.' };
-}
-
-export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings: PaymentGatewaySettings) {
-    await updatePaymentGatewaySettingsData(paymentGatewaySettings);
-     revalidatePath('/');
-    revalidatePath('/admin');
-    return { success: 'Payment Gateway settings updated successfully.' };
-}
-
-export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
-    await updateSpecialClosures(closures);
-    await recalculateQueueWithETC();
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/api/schedule');
-    revalidatePath('/walk-in');
-    return { success: 'Special closures updated successfully.' };
-}
-
-export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
-    await updateVisitPurposesData(purposes);
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/api/schedule');
-    revalidatePath('/walk-in');
-    return { success: 'Visit purposes updated successfully.' };
-}
-
-export async function updateFamilyMemberAction(member: FamilyMember) {
-    await updateFamilyMember(member);
-revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/api/family');
-    revalidatePath('/walk-in');
-    return { success: 'Family member updated.' };
-}
-
-export async function cancelAppointmentAction(appointmentId: number) {
-    const patient = await cancelAppointment(appointmentId.toString());
-if (patient) {
+    try {
+        await updatePatient(patientId.toString(), { purpose });
         await recalculateQueueWithETC();
         revalidatePath('/');
         revalidatePath('/dashboard');
@@ -873,9 +781,145 @@ if (patient) {
         revalidatePath('/tv-display');
         revalidatePath('/api/patients');
         revalidatePath('/walk-in');
-        return { success: 'Appointment cancelled.' };
+        return { success: 'Visit purpose updated.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to update visit purpose.' };
     }
-    return { error: 'Could not find appointment to cancel.' };
+}
+
+export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedule>) {
+    try {
+        const updated = await updateDoctorSchedule(schedule);
+        await recalculateQueueWithETC();
+        revalidatePath('/');
+        revalidatePath('/admin');
+        revalidatePath('/dashboard');
+        revalidatePath('/booking');
+        revalidatePath('/patient-portal');
+        revalidatePath('/tv-display');
+        revalidatePath('/queue-status');
+        revalidatePath('/api/schedule');
+        revalidatePath('/walk-in');
+        return { success: 'Doctor schedule updated successfully.', schedule: updated };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to update doctor schedule.' };
+    }
+}
+
+export async function updateClinicDetailsAction(details: ClinicDetails) {
+    try {
+        await updateClinicDetailsData(details);
+        revalidatePath('/');
+        revalidatePath('/admin');
+        revalidatePath('/booking');
+        revalidatePath('/patient-portal');
+        revalidatePath('/dashboard');
+        revalidatePath('/tv-display');
+        revalidatePath('/queue-status');
+        revalidatePath('/api/schedule');
+        revalidatePath('/walk-in');
+        return { success: 'Clinic details updated successfully.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to update clinic details.' };
+    }
+}
+
+export async function updateSmsSettingsAction(smsSettings: SmsSettings) {
+    try {
+        await updateSmsSettingsData(smsSettings);
+        revalidatePath('/');
+        revalidatePath('/admin');
+        return { success: 'SMS settings updated successfully.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to update SMS settings.' };
+    }
+}
+
+export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings: PaymentGatewaySettings) {
+    try {
+        await updatePaymentGatewaySettingsData(paymentGatewaySettings);
+        revalidatePath('/');
+        revalidatePath('/admin');
+        return { success: 'Payment Gateway settings updated successfully.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to update payment gateway settings.' };
+    }
+}
+
+export async function updateSpecialClosuresAction(closures: SpecialClosure[]) {
+    try {
+        await updateSpecialClosures(closures);
+        await recalculateQueueWithETC();
+        revalidatePath('/');
+        revalidatePath('/admin');
+        revalidatePath('/booking');
+        revalidatePath('/patient-portal');
+        revalidatePath('/dashboard');
+        revalidatePath('/tv-display');
+        revalidatePath('/queue-status');
+        revalidatePath('/api/schedule');
+        revalidatePath('/walk-in');
+        return { success: 'Special closures updated successfully.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to update special closures.' };
+    }
+}
+
+export async function updateVisitPurposesAction(purposes: VisitPurpose[]) {
+    try {
+        await updateVisitPurposesData(purposes);
+        revalidatePath('/');
+        revalidatePath('/admin');
+        revalidatePath('/booking');
+        revalidatePath('/patient-portal');
+        revalidatePath('/dashboard');
+        revalidatePath('/tv-display');
+        revalidatePath('/queue-status');
+        revalidatePath('/api/schedule');
+        revalidatePath('/walk-in');
+        return { success: 'Visit purposes updated successfully.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to update visit purposes.' };
+    }
+}
+
+export async function updateFamilyMemberAction(member: FamilyMember) {
+    try {
+        await updateFamilyMember(member);
+        revalidatePath('/');
+        revalidatePath('/admin');
+        revalidatePath('/booking');
+        revalidatePath('/patient-portal');
+        revalidatePath('/dashboard');
+        revalidatePath('/tv-display');
+        revalidatePath('/queue-status');
+        revalidatePath('/api/family');
+        revalidatePath('/walk-in');
+        return { success: 'Family member updated.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to update family member.' };
+    }
+}
+
+export async function cancelAppointmentAction(appointmentId: number) {
+    try {
+        const patient = await cancelAppointment(appointmentId.toString());
+        if (patient) {
+            await recalculateQueueWithETC();
+            revalidatePath('/');
+            revalidatePath('/dashboard');
+            revalidatePath('/booking');
+            revalidatePath('/patient-portal');
+            revalidatePath('/queue-status');
+            revalidatePath('/tv-display');
+            revalidatePath('/api/patients');
+            revalidatePath('/walk-in');
+            return { success: 'Appointment cancelled.' };
+        }
+        return { error: 'Could not find appointment to cancel.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to cancel appointment.' };
+    }
 }
 
 export async function rescheduleAppointmentAction(appointmentId: number, newAppointmentTime: string, newPurpose: string) {
@@ -1195,13 +1239,16 @@ export async function startLastConsultationAction(patientId: number) {
 }
 
 export async function updateNotificationsAction(notifications: Notification[]) {
-  // No AI translation, just save the data directly.
-  await updateNotificationData(notifications);
-  revalidatePath('/');
-  revalidatePath('/admin');
-  revalidatePath('/booking');
-  revalidatePath('/patient-portal');
-  return { success: 'Notifications updated successfully.' };
+  try {
+    await updateNotificationData(notifications);
+    revalidatePath('/');
+    revalidatePath('/admin');
+    revalidatePath('/booking');
+    revalidatePath('/patient-portal');
+    return { success: 'Notifications updated successfully.' };
+  } catch (e: any) {
+    return { error: e.message || 'Failed to update notifications.' };
+  }
 }
 
 
@@ -1450,4 +1497,5 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 

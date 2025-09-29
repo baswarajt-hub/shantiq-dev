@@ -69,9 +69,9 @@ export default function DoctorPage() {
           getDoctorStatusAction(),
         ]);
 
-        setSchedule(scheduleData);
-        setPatients(patientData);
-        setDoctorStatus(statusData);
+        setSchedule(JSON.parse(JSON.stringify(scheduleData)));
+        setPatients(JSON.parse(JSON.stringify(patientData)));
+        setDoctorStatus(JSON.parse(JSON.stringify(statusData)));
       } catch (error) {
         console.error("Failed to load data for Doctor page", error);
         toast({ title: 'Error', description: 'Failed to load clinic data.', variant: 'destructive'});
