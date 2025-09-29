@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import * as XLSX from 'xlsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,46 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Upload } from 'lucide-react';
 import { patientImportAction } from '@/app/actions';
-
-function parseCSV(csvText: string): any[] {
-    // Remove BOM character if present
-    if (csvText.charCodeAt(0) === 0xFEFF) {
-        csvText = csvText.substring(1);
-    }
-    
-    const lines = csvText.trim().split(/\r\n|\n/);
-    if (lines.length < 2) return [];
-
-    // Trim headers and handle potential quotes
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    
-    const data = [];
-
-    const regex = /(".*?"|[^",]+)(?=\s*,|\s*$)/g;
-
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line.trim()) continue;
-
-        const values: string[] = [];
-        let match;
-        // This regex handles quoted fields with commas inside
-        while (match = regex.exec(line)) {
-            values.push(match[1].replace(/^"|"$/g, '').trim());
-        }
-
-        if (values.length > 0 && values.length <= headers.length) {
-            const entry: any = {};
-            for (let j = 0; j < headers.length; j++) {
-                // Use header from the file, and map value if it exists
-                entry[headers[j]] = values[j] || '';
-            }
-            data.push(entry);
-        }
-    }
-    return data;
-}
-
 
 export function PatientImport() {
     const [file, setFile] = useState<File | null>(null);
@@ -63,19 +24,26 @@ export function PatientImport() {
 
     const handleImport = () => {
         if (!file) {
-            toast({ title: 'No file selected', description: 'Please select a CSV file to import.', variant: 'destructive' });
+            toast({ title: 'No file selected', description: 'Please select an Excel file to import.', variant: 'destructive' });
             return;
         }
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            const text = e.target?.result as string;
+            const arrayBuffer = e.target?.result;
+            if (!arrayBuffer) {
+                 toast({ title: 'Error reading file', description: 'Could not read the selected file.', variant: 'destructive'});
+                 return;
+            }
+
             try {
-                const data = parseCSV(text);
-                
-                // Basic validation: Check if there's data and if the first record has a phone number.
-                if (data.length === 0 || !data[0]?.phone) {
-                    throw new Error("Invalid CSV format or empty file. CSV must include at least a 'phone' header.");
+                const workbook = XLSX.read(arrayBuffer, { type: 'buffer' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const data = XLSX.utils.sheet_to_json(worksheet);
+
+                if (data.length === 0 || !(data[0] as any)?.phone) {
+                    throw new Error("Invalid Excel format or empty file. File must include at least a 'phone' header.");
                 }
 
                 startTransition(async () => {
@@ -86,35 +54,34 @@ export function PatientImport() {
                         toast({ title: 'Import Successful', description: result.success });
                     }
                     setFile(null);
-                    // Clear the file input visually
-                    const fileInput = document.getElementById('csv-import') as HTMLInputElement;
+                    const fileInput = document.getElementById('excel-import') as HTMLInputElement;
                     if(fileInput) fileInput.value = '';
                 });
 
             } catch (error: any) {
-                console.error("CSV Parsing Error:", error);
-                toast({ title: 'Parsing Error', description: error.message || 'Could not parse the CSV file.', variant: 'destructive'});
+                console.error("Excel Parsing Error:", error);
+                toast({ title: 'Parsing Error', description: error.message || 'Could not parse the Excel file.', variant: 'destructive'});
             }
         };
-        reader.readAsText(file);
+        reader.readAsArrayBuffer(file);
     };
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Import Patient Data</CardTitle>
-                <CardDescription>Upload a CSV file to bulk-add family and patient records.</CardDescription>
+                <CardDescription>Upload an Excel file (.xlsx) to bulk-add family and patient records.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Alert>
                     <Upload className="h-4 w-4" />
-                    <AlertTitle>CSV File Format</AlertTitle>
+                    <AlertTitle>Excel File Format</AlertTitle>
                     <AlertDescription>
                         Required headers: `phone`, `name`. Optional headers: `fatherName`, `motherName`, `primaryContact`, `email`, `location`, `city`, `dob`, `gender`, `clinicId`. DOB must be `YYYY-MM-DD`.
                     </AlertDescription>
                 </Alert>
                 <div className="flex items-center gap-4">
-                    <Input id="csv-import" type="file" accept=".csv" onChange={handleFileChange} />
+                    <Input id="excel-import" type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
                     <Button onClick={handleImport} disabled={isPending || !file}>
                         {isPending ? 'Importing...' : 'Import'}
                     </Button>
