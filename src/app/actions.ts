@@ -10,6 +10,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -317,7 +318,7 @@ export async function sendReminderAction(patientId: number) {
 
 export async function getPatientsAction() {
     const patients = await getPatientsData();
-    return JSON.parse(JSON.stringify(patients));
+    return patients;
 }
 
 export async function findPatientsByPhoneAction(phone: string) {
@@ -328,12 +329,12 @@ export async function findPatientsByPhoneAction(phone: string) {
 
 export async function getDoctorScheduleAction() {
     const schedule = await getDoctorScheduleData();
-    return JSON.parse(JSON.stringify(schedule));
+    return schedule;
 }
 
 export async function getDoctorStatusAction() {
     const status = await getDoctorStatusData();
-    return JSON.parse(JSON.stringify(status));
+    return status;
 }
 
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {

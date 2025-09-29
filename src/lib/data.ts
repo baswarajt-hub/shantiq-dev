@@ -3,6 +3,7 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -93,7 +94,7 @@ export async function getPatients(): Promise<Patient[]> {
         };
         return patientData;
     });
-    return JSON.parse(JSON.stringify(patientsList));
+    return patientsList;
   } catch (error) {
     console.error("Error getting patients from Firestore:", error);
     return [];
@@ -271,8 +272,7 @@ export async function getDoctorSchedule(): Promise<DoctorSchedule> {
 
 export async function getDoctorScheduleData(): Promise<DoctorSchedule> {
   const schedule = await getDoctorSchedule();
-  // Force a deep clone and serialization to remove any complex objects
-  return JSON.parse(JSON.stringify(schedule));
+  return schedule;
 }
 
 export async function updateDoctorSchedule(scheduleUpdate: Partial<DoctorSchedule>): Promise<DoctorSchedule> {
