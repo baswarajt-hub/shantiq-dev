@@ -5,6 +5,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -322,6 +323,7 @@ export async function findPatientsByPhoneAction(phone: string) {
 
 export async function getDoctorScheduleAction() {
     const schedule = await getDoctorScheduleData();
+    // Force serialization to prevent issues with non-plain objects like Firestore Timestamps
     return JSON.parse(JSON.stringify(schedule));
 }
 
@@ -1440,6 +1442,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
     
+
 
 
 
