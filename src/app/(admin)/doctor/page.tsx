@@ -68,9 +68,9 @@ export default function DoctorPage() {
         getPatientsAction(),
         getDoctorStatusAction(),
       ]);
-      setSchedule(JSON.parse(JSON.stringify(scheduleData)));
-      setPatients(JSON.parse(JSON.stringify(patientData)));
-      setDoctorStatus(JSON.parse(JSON.stringify(statusData)));
+      setSchedule(scheduleData);
+      setPatients(patientData);
+      setDoctorStatus(statusData);
     });
   }, []);
   
