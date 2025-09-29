@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
@@ -218,7 +217,6 @@ export default function BookingPage() {
         return { time: 'Doctor Not Available', status: 'Closed', statusColor: 'text-red-600', isOver: true };
       }
 
-
       const timeStr = `${formatTime(session.start)} - ${formatTime(session.end)}`;
       const startTime = parseDate(session.start, 'HH:mm', today);
       const endTime = parseDate(session.end, 'HH:mm', today);
@@ -230,14 +228,12 @@ export default function BookingPage() {
       if (isOver) {
           status = 'Completed';
           statusColor = 'text-green-600';
-      } else if (today >= startTime) {
-           if (doctorStatus?.isOnline) {
-                status = `Online (since ${format(parseISO(doctorStatus.onlineTime!), 'hh:mm a')})`;
-                statusColor = 'text-green-600';
-           } else {
-                status = 'Offline';
-                statusColor = 'text-red-600';
-           }
+      } else if (today >= startTime && doctorStatus?.isOnline) {
+           status = `Online (since ${format(parseISO(doctorStatus.onlineTime!), 'hh:mm a')})`;
+           statusColor = 'text-green-600';
+      } else if (today >= startTime && !doctorStatus?.isOnline) {
+            status = 'Offline';
+            statusColor = 'text-red-600';
       }
 
       return { time: timeStr, status, statusColor, isOver };
@@ -479,10 +475,3 @@ export default function BookingPage() {
   </main>
   );
 }
-
-
-
-
-
-
-

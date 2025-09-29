@@ -1,16 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -63,20 +51,20 @@ const getSessionForTime = (schedule: DoctorSchedule, appointmentUtcDate: Date): 
   
   const checkSession = (sessionName: 'morning' | 'evening') => {
     const sessionDetailsFromWeek = dayScheduleInfo[sessionName];
-    const isClosedFromWeek = !sessionDetailsFromWeek.isOpen;
-    
-    // Check special closure for the whole session
+    // A session must first be open in the weekly schedule.
+    if (!sessionDetailsFromWeek.isOpen) return false;
+
+    // Check if a special closure explicitly closes this session for today.
     const isClosedByOverride = (sessionName === 'morning' && todayOverride?.isMorningClosed) || (sessionName === 'evening' && todayOverride?.isEveningClosed);
     if(isClosedByOverride) return false;
 
-    // Use override times if available, otherwise fall back to weekly schedule
+    // Use override times if available, otherwise fall back to weekly schedule times.
     const sessionDetails = todayOverride?.[`${sessionName}Override`] ?? sessionDetailsFromWeek;
     
-    // If there's no override, check if the weekly session is open
-    if (!todayOverride?.[`${sessionName}Override`] && isClosedFromWeek) {
+    // The override might itself be marked as not open.
+    if (!sessionDetails.isOpen) {
         return false;
     }
-
 
     const startUtc = sessionLocalToUtc(dateStr, sessionDetails.start);
     const endUtc = sessionLocalToUtc(dateStr, sessionDetails.end);
@@ -318,7 +306,7 @@ export async function sendReminderAction(patientId: number) {
 
 export async function getPatientsAction() {
     const patients = await getPatientsData();
-    return patients;
+    return JSON.parse(JSON.stringify(patients));
 }
 
 export async function findPatientsByPhoneAction(phone: string) {
@@ -329,12 +317,12 @@ export async function findPatientsByPhoneAction(phone: string) {
 
 export async function getDoctorScheduleAction() {
     const schedule = await getDoctorScheduleData();
-    return schedule;
+    return JSON.parse(JSON.stringify(schedule));
 }
 
 export async function getDoctorStatusAction() {
     const status = await getDoctorStatusData();
-    return status;
+    return JSON.parse(JSON.stringify(status));
 }
 
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {

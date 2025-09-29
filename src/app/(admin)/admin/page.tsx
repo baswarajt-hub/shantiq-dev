@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -120,19 +119,22 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <main className="flex-1 p-4 md:p-6 lg:p-8">
-         <div className="mx-auto w-full max-w-4xl space-y-8">
-          <div>
-              <Skeleton className="h-12 w-1/3" />
-              <Skeleton className="h-8 w-2/3 mt-2" />
-          </div>
-          <Skeleton className="h-96 w-full" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-96 w-full" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-96 w-full" />
+        <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-1 p-4 md:p-6 lg:p-8">
+                <div className="mx-auto w-full max-w-4xl space-y-8">
+                <div>
+                    <Skeleton className="h-12 w-1/3" />
+                    <Skeleton className="h-8 w-2/3 mt-2" />
+                </div>
+                <Skeleton className="h-96 w-full" />
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-96 w-full" />
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-96 w-full" />
+                </div>
+            </main>
         </div>
-      </main>
     );
   }
 
@@ -197,8 +199,3 @@ export default function AdminPage() {
     </>
   );
 }
-    
-
-    
-
-    
