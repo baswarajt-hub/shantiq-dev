@@ -177,17 +177,17 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
 }
 
 
-export async function updatePatientStatusAction(patientId: string, status: Patient['status']) {
+export async function updatePatientStatusAction(patientId: string, newStatus: Patient['status']) {
   let patients = await getPatientsData();
   const patient = patients.find(p => p.id === patientId);
 
   if (!patient) {
     return { error: 'Patient not found' };
   }
-  
-  let updates: Partial<Patient> = { status };
 
-  switch (status) {
+  const updates: Partial<Patient> = { status: newStatus };
+
+  switch (newStatus) {
     case 'In-Consultation':
       const currentlyServing = patients.find(p => p.status === 'In-Consultation');
       if (currentlyServing && currentlyServing.id !== patientId) {
@@ -206,7 +206,7 @@ export async function updatePatientStatusAction(patientId: string, status: Patie
       }
       
       updates.consultationStartTime = new Date().toISOString();
-      updates.subStatus = undefined;
+      updates.subStatus = undefined; // Clear sub-status when starting consultation
       updates.lateLocked = false;
       updates.lateAnchors = undefined;
       updates.lateLockedAt = undefined;
@@ -228,16 +228,18 @@ export async function updatePatientStatusAction(patientId: string, status: Patie
     case 'Waiting for Reports':
       updates.subStatus = 'Reports';
       break;
-      
+
     case 'Cancelled':
-      updates.lateLocked = false;
-      updates.lateAnchors = undefined;
-      updates.lateLockedAt = undefined;
-      break;
-      
-    default:
-      // For other statuses like 'Waiting', 'Late', 'Priority', etc., just update the status.
-      // The late lock logic is handled in recalculateQueueWithETC and markAsLate.
+    case 'Waiting':
+    case 'Late':
+    case 'Priority':
+    case 'Up-Next':
+      updates.subStatus = undefined; // Clear sub-status for these states
+      if (newStatus !== 'Late' && newStatus !== 'Cancelled') {
+        updates.lateLocked = false;
+        updates.lateAnchors = undefined;
+        updates.lateLockedAt = undefined;
+      }
       break;
   }
   
@@ -253,7 +255,7 @@ export async function updatePatientStatusAction(patientId: string, status: Patie
   revalidatePath('/admin');
   revalidatePath('/api/patients');
   
-  return { success: `Patient status updated to ${status}` };
+  return { success: `Patient status updated to ${newStatus}` };
 }
 
 export async function runTimeEstimationAction(aiPatientData: AIPatientData) {
@@ -1154,12 +1156,20 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
     if (!name) {
         return { error: 'Primary contact name is missing.' };
     }
-
+    
+    // The user's provided fix is to destructure userData, but dob and gender aren't in the type.
+    // A primary member (parent account) does not have a dob or gender.
+    // The type `Omit<FamilyMember, 'id' | 'avatar' | 'name' | 'dob' | 'gender'>` confirms this.
+    // The correct approach is to satisfy the target type `Omit<FamilyMember, 'id' | 'avatar'>`
+    // by providing all required fields, including dob and gender, even if they are empty strings.
     const newPrimaryMember: Omit<FamilyMember, 'id' | 'avatar'> = {
         ...userData,
         name: name,
-        isPrimary: true
+        isPrimary: true,
+        dob: '', // Parent/Primary account does not have a DOB
+        gender: 'Other', // Parent/Primary account does not have a gender
     };
+
     const newMember = await addFamilyMember(newPrimaryMember);
     revalidatePath('/api/family');
     return { success: true, user: newMember };
@@ -1511,4 +1521,5 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     
 
     
+
 
