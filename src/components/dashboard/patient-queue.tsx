@@ -15,9 +15,38 @@ import {
   User,
   UserX,
   XCircle,
+  FileText,
+  Check,
+  Star,
+  ChevronsRight,
+  Shield,
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { PatientCardActions } from './patient-card-actions';
+
+const statusConfig: Record<Patient['status'], { icon: React.ElementType; color: string }> = {
+    Waiting: {
+      icon: Clock,
+      color: 'bg-blue-100 text-blue-800 border-blue-300',
+    },
+    'In-Consultation': {
+      icon: Hourglass,
+      color: 'bg-yellow-100 text-yellow-800 border-yellow-300 animate-pulse',
+    },
+    Completed: {
+      icon: CheckCircle,
+      color: 'bg-green-100 text-green-800 border-green-300',
+    },
+    Late: { icon: UserX, color: 'bg-orange-100 text-orange-800 border-orange-300' },
+    Cancelled: { icon: XCircle, color: 'bg-red-100 text-red-800 border-red-300' },
+    'Waiting for Reports': { icon: FileText, color: 'bg-purple-100 text-purple-800 border-purple-300' },
+    Confirmed: { icon: Check, color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
+    Booked: { icon: Calendar, color: 'bg-teal-100 text-teal-800 border-teal-300' },
+    Priority: { icon: Shield, color: 'bg-pink-100 text-pink-800 border-pink-300' },
+    'Up-Next': { icon: ChevronsRight, color: 'bg-cyan-100 text-cyan-800 border-cyan-300' },
+    Missed: { icon: UserX, color: 'bg-gray-100 text-gray-800 border-gray-300' },
+};
+
 
 function PatientCard({ patient }: { patient: Patient }) {
   const [formattedTime, setFormattedTime] = useState('');
@@ -33,22 +62,6 @@ function PatientCard({ patient }: { patient: Patient }) {
     );
   }, [patient.appointmentTime]);
 
-  const statusConfig = {
-    Waiting: {
-      icon: Clock,
-      color: 'bg-blue-100 text-blue-800 border-blue-300',
-    },
-    'In-Consultation': {
-      icon: Hourglass,
-      color: 'bg-yellow-100 text-yellow-800 border-yellow-300 animate-pulse',
-    },
-    Completed: {
-      icon: CheckCircle,
-      color: 'bg-green-100 text-green-800 border-green-300',
-    },
-    Late: { icon: UserX, color: 'bg-orange-100 text-orange-800 border-orange-300' },
-    Cancelled: { icon: XCircle, color: 'bg-red-100 text-red-800 border-red-300' },
-  };
   const currentStatus = statusConfig[patient.status];
   const StatusIcon = currentStatus.icon;
 

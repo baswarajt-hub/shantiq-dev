@@ -26,6 +26,16 @@ import {
   MoreVertical,
   Shield,
   Trash2,
+  AlertTriangle,
+  XCircle,
+  Check,
+  Calendar,
+  Star,
+  X,
+  Clock,
+  User,
+  Hourglass,
+  UserX
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,27 +50,36 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const statusConfig = {
+const statusConfig: Record<Patient['status'], { color: string, label: string }> = {
   Waiting: { color: 'text-blue-600', label: 'Waiting' },
   'Up-Next': { color: 'text-yellow-600', label: 'Up Next' },
   'In-Consultation': { color: 'text-green-600', label: 'In Consultation' },
   Late: { color: 'text-orange-600', label: 'Late' },
   Priority: { color: 'text-red-700', label: 'Priority' },
   'Waiting for Reports': { color: 'text-purple-600', label: 'Reports' },
+  Completed: { color: 'text-green-600', label: 'Completed' },
+  Cancelled: { color: 'text-red-600', label: 'Cancelled' },
+  Confirmed: { color: 'text-indigo-800', label: 'Confirmed' },
+  Booked: { color: 'text-teal-800', label: 'Booked' },
+  Missed: { color: 'text-gray-800', label: 'Missed' },
 };
+
 
 const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
     <span className="flex items-center gap-2">
       {patient.name}
         <span className="flex gap-1">
             {patient.subType === 'Booked Walk-in' && (
-            <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
+              <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
             )}
-            {patient.lateBy && patient.lateBy > 0 && (
-            <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">LATE</sup>
+            {patient.status === 'Late' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">L</sup>
             )}
-            {(patient.status === 'Waiting for Reports' || patient.subStatus === 'Reports') && (
-            <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">REPORT</sup>
+            {patient.status === 'Waiting for Reports' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
+            )}
+            {patient.status === 'Priority' && (
+               <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
             )}
         </span>
     </span>
