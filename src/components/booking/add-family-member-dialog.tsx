@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -26,7 +25,7 @@ type AddFamilyMemberDialogProps = {
 export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamilyMemberDialogProps) {
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
-  const [gender, setGender] = useState('');
+  const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
   const [clinicId, setClinicId] = useState('');
 
   const handleSave = () => {
@@ -60,7 +59,7 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
             </div>
             <div className="space-y-2">
               <Label htmlFor="gender">Gender</Label>
-              <Select value={gender} onValueChange={setGender}>
+              <Select value={gender} onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Other')}>
                   <SelectTrigger>
                       <SelectValue placeholder="Select gender" />
                   </SelectTrigger>

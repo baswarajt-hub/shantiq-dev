@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useCallback, useEffect } from 'react';
@@ -28,8 +27,8 @@ type PatientFormProps = {
     setName: (value: string) => void;
     dob: string;
     setDob: (value: string) => void;
-    gender: string;
-    setGender: (value: string) => void;
+    gender: 'Male' | 'Female' | 'Other' | '';
+    setGender: (value: 'Male' | 'Female' | 'Other' | '') => void;
     clinicId: string;
     setClinicId: (value: string) => void;
     purpose: string;
@@ -54,7 +53,7 @@ const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, cli
             </div>
             <div className="space-y-2">
                 <Label htmlFor="gender">Gender</Label>
-                <Select value={gender} onValueChange={setGender}>
+                <Select value={gender} onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Other')}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
@@ -101,7 +100,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
-  const [gender, setGender] = useState('');
+  const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
   const [clinicId, setClinicId] = useState('');
   const [purpose, setPurpose] = useState('Consultation');
   const [isPending, startTransition] = useTransition();
@@ -239,5 +238,3 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     </Dialog>
   );
 }
-
-    

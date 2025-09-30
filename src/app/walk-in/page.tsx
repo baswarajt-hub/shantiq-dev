@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useCallback, Suspense } from 'react';
@@ -39,7 +38,7 @@ function WalkInPageContent() {
   // State for new member/parent form
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
-  const [gender, setGender] = useState('');
+  const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
   const [email, setEmail] = useState('');
   const [location, setLocation] = useState('');
   const [city, setCity] = useState('');
@@ -105,7 +104,7 @@ function WalkInPageContent() {
           return;
       }
       startTransition(async () => {
-          const newMemberData: Omit<FamilyMember, 'id' | 'avatar'> = { phone, name, dob, gender: gender as "Male" | "Female" | "Other", isPrimary: false };
+          const newMemberData: Omit<FamilyMember, 'id' | 'avatar'> = { phone, name, dob, gender, isPrimary: false };
           const result = await addNewPatientAction(newMemberData);
           if ("success" in result && result.patient) {
               handleJoinQueue(result.patient);
@@ -377,7 +376,7 @@ function WalkInPageContent() {
                       </div>
                       <div className="space-y-2">
                           <Label htmlFor="gender">Gender</Label>
-                          <Select value={gender} onValueChange={setGender}>
+                          <Select value={gender} onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Other')}>
                               <SelectTrigger style={{ backgroundColor: '#e0e1ee' }}><SelectValue placeholder="Select gender" /></SelectTrigger>
                               <SelectContent>
                                   <SelectItem value="Male">Male</SelectItem>
