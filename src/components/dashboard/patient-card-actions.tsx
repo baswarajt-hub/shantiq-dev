@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -30,10 +31,10 @@ export function PatientCardActions({ patient }: { patient: Patient }) {
   const handleUpdateStatus = (status: Patient['status']) => {
     startTransition(async () => {
       const result = await updatePatientStatusAction(patient.id, status);
-      if (result?.error) {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
-      } else {
+      if ("success" in result) {
         toast({ title: 'Success', description: result.success });
+      } else {
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
       }
     });
   };
@@ -41,10 +42,10 @@ export function PatientCardActions({ patient }: { patient: Patient }) {
   const handleSendReminder = () => {
     startTransition(async () => {
       const result = await sendReminderAction(patient.id);
-      if (result?.error) {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
-      } else {
+      if ("success" in result) {
         toast({ title: 'Success', description: result.success });
+      } else {
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
       }
     });
   };
