@@ -5,6 +5,7 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -72,26 +73,26 @@ export async function getPatients(): Promise<Patient[]> {
     const patientsList = patientSnapshot.docs.map(doc => {
         const rawData = doc.data();
         const data = processFirestoreDoc(rawData) as Omit<Patient, 'id'>;
-        // Firestore doesn't store `undefined` but `null`. We need to handle this.
+        
         const patientData: Patient = {
           ...data,
           id: doc.id,
-          subType: data.subType || undefined,
-          checkInTime: data.checkInTime || undefined,
-          subStatus: data.subStatus || undefined,
-          consultationTime: data.consultationTime || undefined,
-          consultationStartTime: data.consultationStartTime || undefined,
-          consultationEndTime: data.consultationEndTime || undefined,
-          purpose: data.purpose || undefined,
-          rescheduleCount: data.rescheduleCount || undefined,
-          bestCaseETC: data.bestCaseETC || undefined,
-          worstCaseETC: data.worstCaseETC || undefined,
-          lateBy: data.lateBy || undefined,
-          latePenalty: data.latePenalty || undefined,
-          latePosition: data.latePosition || undefined,
-          lateLocked: data.lateLocked || false,
-          lateLockedAt: data.lateLockedAt || undefined,
-          lateAnchors: data.lateAnchors || undefined,
+          subType: data.subType ?? undefined,
+          checkInTime: data.checkInTime ?? undefined,
+          subStatus: data.subStatus ?? undefined,
+          consultationTime: data.consultationTime ?? undefined,
+          consultationStartTime: data.consultationStartTime ?? undefined,
+          consultationEndTime: data.consultationEndTime ?? undefined,
+          purpose: data.purpose ?? null,
+          rescheduleCount: data.rescheduleCount ?? 0,
+          bestCaseETC: data.bestCaseETC ?? undefined,
+          worstCaseETC: data.worstCaseETC ?? undefined,
+          lateBy: data.lateBy ?? undefined,
+          latePenalty: data.latePenalty ?? undefined,
+          latePosition: data.latePosition ?? undefined,
+          lateLocked: data.lateLocked ?? false,
+          lateLockedAt: data.lateLockedAt ?? undefined,
+          lateAnchors: data.lateAnchors ?? undefined,
         };
         return patientData;
     });
@@ -437,6 +438,8 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
                 email: row.email || '',
                 location: row.location || '',
                 city: row.city || '',
+                dob: null,
+                gender: null,
             });
             processedPhones.add(phone);
         }
@@ -453,7 +456,7 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
                 phone,
                 isPrimary: false,
                 name: patientName,
-                dob: row.dob || '',
+                dob: row.dob || null,
                 gender: row.gender || 'Other',
                 clinicId: row.clinicId || '',
                 fatherName: row.fatherName || '', // Carry over for context if needed later
