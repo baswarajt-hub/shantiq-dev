@@ -3,7 +3,7 @@
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import type { DoctorSchedule, SpecialClosure, Notification } from "@/lib/types";
+import type { DoctorSchedule, SpecialClosure, Notification, TranslatedMessage } from "@/lib/types";
 import { format, isWithinInterval, parseISO, parse } from "date-fns";
 import { Bell, Megaphone, Clock } from "lucide-react";
 
@@ -49,14 +49,17 @@ function ActiveNotifications({ notifications }: { notifications: Notification[] 
 
     return (
         <div className="space-y-4">
-            {active.map(n => (
-                <div key={n.id} className="p-3 rounded-md bg-blue-50 border border-blue-200 text-blue-800">
-                    <p className="font-medium">{n.message}</p>
-                    <p className="text-xs text-blue-600 mt-1">
-                        Active until {format(parseISO(n.endTime!), 'h:mm a')}
-                    </p>
-                </div>
-            ))}
+            {active.map(n => {
+                const messageText = typeof n.message === 'string' ? n.message : n.message.en;
+                return (
+                    <div key={n.id} className="p-3 rounded-md bg-blue-50 border border-blue-200 text-blue-800">
+                        <p className="font-medium">{messageText}</p>
+                        <p className="text-xs text-blue-600 mt-1">
+                            Active until {format(parseISO(n.endTime!), 'h:mm a')}
+                        </p>
+                    </div>
+                )
+            })}
         </div>
     )
 }

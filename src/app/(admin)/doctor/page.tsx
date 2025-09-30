@@ -89,7 +89,7 @@ export default function DoctorPage() {
     if (!doctorStatus) return;
     startTransition(async () => {
         const result = await setDoctorStatusAction({ isQrCodeActive: !doctorStatus.isQrCodeActive });
-        if (result.error) {
+        if ("error" in result) {
             toast({ title: 'Error', description: `Failed to update QR code status.`, variant: 'destructive' });
         } else {
             toast({ title: 'Success', description: `QR Code is now ${!doctorStatus.isQrCodeActive ? 'active' : 'inactive'}.` });

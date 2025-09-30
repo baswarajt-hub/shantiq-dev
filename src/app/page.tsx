@@ -61,7 +61,7 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => {
 };
 
 
-const statusConfig = {
+const statusConfig: Record<Patient['status'], { icon: React.ElementType; color: string }> = {
     Waiting: { icon: Clock, color: 'text-blue-600' },
     'Up-Next': { icon: ChevronsRight, color: 'text-yellow-600' },
     'Booked': { icon: CalendarIcon, color: 'text-gray-500' },
@@ -1100,4 +1100,3 @@ export default function DashboardPage() {
     
 
     
-
