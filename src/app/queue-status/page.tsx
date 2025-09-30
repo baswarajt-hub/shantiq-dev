@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PatientPortalHeader } from '@/components/patient-portal-header';
@@ -443,7 +442,7 @@ function QueueStatusPageContent() {
         return timeA - timeB;
     });
 
-  if (!schedule && !doctorStatus) {
+  if (!schedule || !doctorStatus) {
       return (
           <div className="flex flex-col min-h-screen bg-muted/40">
               <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
