@@ -3,6 +3,7 @@
 
 import { Calendar, type CalendarProps } from "@/components/ui/calendar";
 import type { DoctorSchedule } from "@/lib/types";
+import type { Matcher } from "react-day-picker";
 
 type ScheduleCalendarProps = CalendarProps & {
     schedule: DoctorSchedule;
@@ -11,14 +12,14 @@ type ScheduleCalendarProps = CalendarProps & {
 const dayOfWeekMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function ScheduleCalendar({ schedule, ...props }: ScheduleCalendarProps) {
-    const disabledDays = [{ before: new Date(new Date().setDate(new Date().getDate())) }];
+    const disabledDays: Matcher[] = [{ before: new Date(new Date().setDate(new Date().getDate())) }];
 
     if (schedule && schedule.days) {
         Object.entries(schedule.days).forEach(([dayName, daySchedule]) => {
             if (!daySchedule.morning.isOpen && !daySchedule.evening.isOpen) {
                 const dayIndex = dayOfWeekMap.indexOf(dayName);
                 if(dayIndex !== -1) {
-                    disabledDays.push({ dayOfWeek: [dayIndex] });
+                    disabledDays.push((date: Date) => date.getDay() === dayIndex);
                 }
             }
         });
