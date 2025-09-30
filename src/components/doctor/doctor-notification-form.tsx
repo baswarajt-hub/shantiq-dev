@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
-import type { Notification } from '@/lib/types';
+import type { Notification, TranslatedMessage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 
 const BLANK_NOTIFICATION: Omit<Notification, 'id'> = {
-    message: '',
+    message: { en: '', hi: '', te: '' },
     startTime: new Date().toISOString(),
     endTime: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
     enabled: true
@@ -41,9 +42,16 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
     setNotifications(initialNotifications);
   }, [initialNotifications]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setCurrentNotification(prev => ({ ...prev, [name]: value }));
+  const handleMessageChange = (lang: keyof TranslatedMessage, value: string) => {
+    setCurrentNotification(prev => {
+        const newMessage = typeof prev.message === 'string' 
+          ? { en: '', hi: '', te: '' } 
+          : { ...prev.message };
+        
+        newMessage[lang] = value;
+
+        return { ...prev, message: newMessage };
+    });
   };
   
   const handleDateTimeChange = (field: 'startTime' | 'endTime', date: Date | undefined, time?: string) => {
@@ -76,13 +84,17 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
   const handleSaveOrUpdate = () => {
     startTransition(async () => {
         let updatedNotifications: Notification[];
+         const messageToSave = typeof currentNotification.message === 'string' 
+            ? { en: currentNotification.message, hi: '', te: '' } 
+            : currentNotification.message;
+
         if (editingId) {
             updatedNotifications = notifications.map(n => 
-                n.id === editingId ? { ...n, ...currentNotification, id: editingId } : n
+                n.id === editingId ? { ...n, ...currentNotification, id: editingId, message: messageToSave } : n
             );
         } else {
             const newId = `notif_${Date.now()}`;
-            updatedNotifications = [...notifications, { ...currentNotification, id: newId }];
+            updatedNotifications = [...notifications, { ...currentNotification, id: newId, message: messageToSave }];
         }
         await onSave(updatedNotifications);
         setSheetOpen(false);
@@ -99,8 +111,11 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
   const handleEdit = (id: string) => {
     const notificationToEdit = notifications.find(n => n.id === id);
     if (notificationToEdit) {
+        const message = typeof notificationToEdit.message === 'string' 
+            ? { en: notificationToEdit.message, hi: '', te: '' }
+            : notificationToEdit.message;
         setEditingId(id);
-        setCurrentNotification(notificationToEdit);
+        setCurrentNotification({...notificationToEdit, message });
         setEditingField('startTime');
         setSheetOpen(true);
     }
@@ -118,6 +133,7 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
     : (currentNotification.endTime ? parseISO(currentNotification.endTime) : undefined);
     
   const timeValue = selectedDate ? format(selectedDate, 'HH:mm') : '';
+  const messages = typeof currentNotification.message === 'object' && currentNotification.message !== null ? currentNotification.message : { en: (currentNotification.message as string) || '', hi: '', te: '' };
 
   return (
     <Card>
@@ -131,10 +147,11 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
       <CardContent className="space-y-2">
         {notifications.length > 0 ? notifications.map(notif => {
             const isActive = notif.startTime && notif.endTime && isFuture(parseISO(notif.endTime));
+            const displayMessage = typeof notif.message === 'string' ? notif.message : notif.message.en;
             return (
             <div key={notif.id} className={cn("p-3 border rounded-lg flex justify-between items-start gap-4", !isActive && "opacity-60 bg-muted/50")}>
                 <div>
-                    <p className={cn("font-semibold", !notif.enabled && "line-through")}>{notif.message}</p>
+                    <p className={cn("font-semibold", !notif.enabled && "line-through")}>{displayMessage}</p>
                     <p className="text-xs text-muted-foreground">
                         {notif.startTime && format(parseISO(notif.startTime), 'MMM d, h:mm a')} - {notif.endTime && format(parseISO(notif.endTime), 'MMM d, h:mm a')}
                     </p>
@@ -160,15 +177,16 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
             </SheetHeader>
             <div className="py-4 space-y-4">
                  <div className="space-y-2">
-                    <Label htmlFor="message">Notification Message</Label>
-                    <Textarea
-                        id="message"
-                        name="message"
-                        value={currentNotification.message}
-                        onChange={handleInputChange}
-                        placeholder="e.g. The clinic will be closed..."
-                        rows={5}
-                    />
+                    <Label htmlFor="message_en_doc">Message (English)</Label>
+                    <Textarea id="message_en_doc" value={messages.en} onChange={(e) => handleMessageChange('en', e.target.value)} placeholder="Enter English message..." rows={4}/>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="message_hi_doc">Message (हिन्दी)</Label>
+                    <Textarea id="message_hi_doc" value={messages.hi || ''} onChange={(e) => handleMessageChange('hi', e.target.value)} placeholder="Enter Hindi message..." rows={4}/>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="message_te_doc">Message (తెలుగు)</Label>
+                    <Textarea id="message_te_doc" value={messages.te || ''} onChange={(e) => handleMessageChange('te', e.target.value)} placeholder="Enter Telugu message..." rows={4}/>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -211,7 +229,7 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
             </div>
             <SheetFooter>
                 <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
-                <Button type="button" onClick={handleSaveOrUpdate} disabled={isPending || !currentNotification.message}>
+                <Button type="button" onClick={handleSaveOrUpdate} disabled={isPending || !messages.en}>
                     {isPending ? 'Saving...' : (editingId ? 'Update' : 'Save')}
                 </Button>
             </SheetFooter>

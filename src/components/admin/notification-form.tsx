@@ -168,7 +168,7 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
     );
   }
   
-  const messages = typeof currentNotification.message === 'object' ? currentNotification.message : { en: currentNotification.message || '', hi: '', te: '' };
+  const messages = typeof currentNotification.message === 'object' && currentNotification.message !== null ? currentNotification.message : { en: (currentNotification.message as string) || '', hi: '', te: '' };
 
   return (
     <Card>
