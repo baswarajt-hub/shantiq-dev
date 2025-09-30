@@ -145,7 +145,7 @@ export default function FamilyAdminPage() {
     setEditMemberOpen(true);
   }
   
-  const formatDate = (dateString?: string) => {
+  const formatDate = (dateString?: string | null) => {
     if (!dateString) return '';
     try {
       // The input is expected to be YYYY-MM-DD from the data
@@ -283,7 +283,7 @@ export default function FamilyAdminPage() {
                                 </Avatar>
                                 <div>
                                 <p className="font-semibold">{member.name}</p>
-                                <p className="text-xs text-muted-foreground">{member.gender}, Born {formatDate(member.dob)}</p>
+                                <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob ? formatDate(member.dob) : ''}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1">

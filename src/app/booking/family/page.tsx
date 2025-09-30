@@ -97,7 +97,7 @@ export default function FamilyPage() {
   const primaryMember = family.find(member => member.isPrimary);
   const familyPatients = family.filter(member => !member.isPrimary);
 
-  const formatDate = (dateString?: string) => {
+  const formatDate = (dateString?: string | null) => {
     if (!dateString) return 'N/A';
     try {
       // The input is expected to be YYYY-MM-DD from the date input
@@ -155,7 +155,7 @@ export default function FamilyPage() {
                     </Avatar>
                     <div>
                     <p className="font-semibold">{member.name}</p>
-                    <p className="text-xs text-muted-foreground">{member.gender}, Born {formatDate(member.dob)}</p>
+                    <p className="text-xs text-muted-foreground">{member.gender}, Born {member.dob ? formatDate(member.dob) : ''}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
