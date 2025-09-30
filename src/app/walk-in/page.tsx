@@ -89,11 +89,11 @@ function WalkInPageContent() {
   const handleJoinQueue = (member: FamilyMember) => {
     startTransition(async () => {
         const result = await joinQueueAction(member, purpose);
-        if ("success" in result && result.patient) {
+        if ("error" in result) {
+            toast({ title: "Error Joining Queue", description: result.error, variant: 'destructive'});
+        } else {
             toast({ title: "Added to Queue!", description: `You have been assigned Token #${result.patient.tokenNo}.`});
             router.push(`/queue-status?id=${result.patient.id}`);
-        } else {
-            toast({ title: "Error Joining Queue", description: result.error, variant: 'destructive'});
         }
     });
   }
@@ -106,10 +106,10 @@ function WalkInPageContent() {
       startTransition(async () => {
           const newMemberData: Omit<FamilyMember, 'id' | 'avatar'> = { phone, name, dob, gender, isPrimary: false };
           const result = await addNewPatientAction(newMemberData);
-          if ("success" in result && result.patient) {
-              handleJoinQueue(result.patient);
-          } else if ("error" in result) {
+          if ("error" in result) {
               toast({ title: "Registration Failed", description: result.error, variant: 'destructive' });
+          } else {
+              handleJoinQueue(result.patient);
           }
       });
   }
@@ -133,14 +133,14 @@ function WalkInPageContent() {
         city,
         email
       });
-      if ("success" in result) {
+      if ("error" in result) {
+        toast({ title: 'Registration Failed', description: result.error, variant: 'destructive' });
+      } else {
         toast({ title: 'Registration Successful', description: 'Your family account has been created. Now, please add the patient.' });
         const family = await getFamilyByPhoneAction(phone);
         setFoundFamily(family);
         setName(''); setDob(''); setGender(''); setEmail(''); setLocation(''); setCity('');
         setStep('create'); // Go to add patient step
-      } else {
-        toast({ title: 'Registration Failed', description: result.error, variant: 'destructive' });
       }
     });
   };

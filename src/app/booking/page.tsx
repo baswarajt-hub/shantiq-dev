@@ -252,11 +252,11 @@ export default function BookingPage() {
         const appointmentTime = timeObj.toISOString();
 
         const result = await addAppointmentAction(familyMember, appointmentTime, purpose, false);
-        if ("success" in result) {
+        if ("error" in result) {
+            toast({ title: "Error", description: result.error, variant: 'destructive'});
+        } else {
             toast({ title: "Success", description: "Appointment booked."});
             if (phone) await loadData();
-        } else {
-            toast({ title: "Error", description: result.error, variant: 'destructive'});
         }
     });
   };
@@ -265,12 +265,12 @@ export default function BookingPage() {
     if (!phone) return;
     startTransition(async () => {
         const result = await addNewPatientAction({ ...member, phone });
-        if("success" in result){
+        if("error" in result){
+            toast({ title: "Error", description: result.error || "Could not add member", variant: 'destructive'});
+        } else {
             toast({ title: "Success", description: "Family member added."});
             await loadData(); // Reload data to get new member
             setBookingOpen(true); // Re-open booking dialog
-        } else {
-            toast({ title: "Error", description: result.error || "Could not add member", variant: 'destructive'});
         }
     });
   }, [phone, toast, loadData]);

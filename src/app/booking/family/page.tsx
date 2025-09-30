@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
@@ -53,11 +54,11 @@ export default function FamilyPage() {
     if (!phone) return;
     startTransition(async () => {
         const result = await addNewPatientAction({ ...member, phone });
-        if("success" in result){
+        if("error" in result){
+            toast({ title: "Error", description: result.error || "Could not add member", variant: 'destructive'});
+        } else {
             toast({ title: "Success", description: "Family member added."});
             loadData(phone);
-        } else {
-            toast({ title: "Error", description: result.error || "Could not add member", variant: 'destructive'});
         }
     });
   }, [phone, toast, loadData]);
@@ -66,11 +67,11 @@ export default function FamilyPage() {
      if (!phone) return;
      startTransition(async () => {
         const result = await updateFamilyMemberAction(updatedMember);
-         if("success" in result){
+         if("error" in result){
+            toast({ title: "Error", description: result.error, variant: 'destructive'});
+        } else {
             toast({ title: "Success", description: "Family member details updated."});
             loadData(phone);
-        } else {
-            toast({ title: "Error", description: result.error, variant: 'destructive'});
         }
     });
   }, [phone, toast, loadData]);
@@ -79,11 +80,11 @@ export default function FamilyPage() {
       if (!phone) return;
       startTransition(async () => {
           const result = await deleteFamilyMemberAction(memberId);
-          if("success" in result) {
+          if("error" in result) {
+              toast({ title: "Error", description: result.error, variant: 'destructive'});
+          } else {
               toast({ title: "Success", description: "Family member removed."});
               loadData(phone);
-          } else {
-              toast({ title: "Error", description: result.error, variant: 'destructive'});
           }
       });
   }, [phone, toast, loadData]);

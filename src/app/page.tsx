@@ -354,26 +354,25 @@ export default function DashboardPage() {
         startTransition(async () => {
              const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn);
 
-            if ("success" in result) {
+            if ("error" in result) {
+                toast({ title: "Error", description: result.error, variant: 'destructive'});
+            } else {
                 toast({ title: "Success", description: "Appointment booked successfully."});
                 loadData();
-            } else {
-                toast({ title: "Error", description: result.error, variant: 'destructive'});
             }
         });
     }, [loadData, toast]);
 
     const handleAddNewPatient = useCallback(async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
         const result = await addNewPatientAction(newPatientData);
-        if ("success" in result && result.patient) {
+        if ("error" in result) {
+            toast({ title: "Error", description: result.error, variant: 'destructive'});
+            return null;
+        } else {
             toast({ title: "Success", description: result.success});
             loadData();
             return result.patient;
         }
-        if("error" in result) {
-            toast({ title: "Error", description: result.error, variant: 'destructive'});
-        }
-        return null;
     }, [loadData, toast]);
 
     const handleOpenReschedule = (patient: Patient) => {
@@ -389,11 +388,11 @@ export default function DashboardPage() {
                 const appointmentTime = timeObj.toISOString();
 
                 const result = await rescheduleAppointmentAction(selectedPatient.id, appointmentTime, newPurpose);
-                if ("success" in result) {
+                if ("error" in result) {
+                    toast({ title: "Error", description: result.error, variant: 'destructive' });
+                } else {
                     toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
                     loadData();
-                } else {
-                    toast({ title: "Error", description: result.error, variant: 'destructive' });
                 }
             });
         }
@@ -463,11 +462,11 @@ export default function DashboardPage() {
     const handleCancelAppointment = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await cancelAppointmentAction(patientId);
-            if ("success" in result) {
+            if ("error" in result) {
+                toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
+            } else {
                 toast({ title: 'Success', description: 'Appointment cancelled.' });
                 loadData();
-            } else {
-                toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
             }
         });
     }, [loadData, toast]);
@@ -1100,3 +1099,4 @@ export default function DashboardPage() {
     
 
     
+
