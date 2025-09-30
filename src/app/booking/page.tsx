@@ -265,7 +265,7 @@ export default function BookingPage() {
     if (!phone) return;
     startTransition(async () => {
         const result = await addNewPatientAction({ ...member, phone });
-        if(result.success){
+        if("success" in result){
             toast({ title: "Success", description: "Family member added."});
             await loadData(); // Reload data to get new member
             setBookingOpen(true); // Re-open booking dialog

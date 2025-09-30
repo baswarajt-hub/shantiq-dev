@@ -41,79 +41,79 @@ export default function AdminPage() {
   const handleClinicDetailsSave = async (updatedDetails: ClinicDetails) => {
     if (!schedule) return;
     const result = await updateClinicDetailsAction(updatedDetails);
-    if ("error" in result) {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
-    } else {
+    if ("success" in result) {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, clinicDetails: updatedDetails } : null);
+    } else {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleSmsSettingsSave = async (updatedSmsSettings: SmsSettings) => {
     if (!schedule) return;
     const result = await updateSmsSettingsAction(updatedSmsSettings);
-    if ("error" in result) {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
-    } else {
+    if ("success" in result) {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, smsSettings: updatedSmsSettings } : null);
+    } else {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handlePaymentGatewaySettingsSave = async (updatedPaymentGatewaySettings: PaymentGatewaySettings) => {
     if (!schedule) return;
     const result = await updatePaymentGatewaySettingsAction(updatedPaymentGatewaySettings);
-    if ("error" in result) {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
-    } else {
+    if ("success" in result) {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, paymentGatewaySettings: updatedPaymentGatewaySettings } : null);
+    } else {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
     if (!schedule) return;
     const result = await updateNotificationsAction(updatedNotifications);
-    if ("error" in result) {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
-    } else {
+    if ("success" in result) {
       toast({ title: 'Success', description: result.success });
        setSchedule(prev => prev ? { ...prev, notifications: updatedNotifications } : null);
+    } else {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleScheduleSave = async (updatedScheduleData: Partial<DoctorSchedule>) => {
     const result = await updateDoctorScheduleAction(updatedScheduleData);
 
-    if ("error" in result) {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
-    } else {
+    if ("success" in result) {
       toast({ title: 'Success', description: result.success });
       if (result.schedule) {
         setSchedule(result.schedule);
       }
+    } else {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleClosuresSave = async (updatedClosures: SpecialClosure[]) => {
     if (!schedule) return;
     const result = await updateSpecialClosuresAction(updatedClosures);
-     if ("error" in result) {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
-    } else {
+     if ("success" in result) {
         toast({ title: 'Success', description: 'Closure updated successfully.' });
         setSchedule(prev => prev ? { ...prev, specialClosures: updatedClosures } : null);
+    } else {
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleVisitPurposesSave = async (updatedPurposes: VisitPurpose[]) => {
     if (!schedule) return;
     const result = await updateVisitPurposesAction(updatedPurposes);
-    if ("error" in result) {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
-    } else {
+    if ("success" in result) {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, visitPurposes: updatedPurposes } : null);
+    } else {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
