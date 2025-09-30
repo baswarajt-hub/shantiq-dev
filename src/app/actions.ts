@@ -268,7 +268,7 @@ export async function runTimeEstimationAction(aiPatientData: AIPatientData): Pro
         ...aiPatientData,
         currentQueueLength: waitingPatients.indexOf(patient) + 1,
         appointmentType: patient.type === 'Appointment' ? 'Routine Checkup' : 'Walk-in Inquiry',
-        visitPurpose: patient.purpose
+        visitPurpose: patient.purpose ?? ''
       });
       
       await updatePatient(patient.id, { estimatedWaitTime: estimation.estimatedConsultationTime });
@@ -1521,6 +1521,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     
 
     
+
 
 
 
