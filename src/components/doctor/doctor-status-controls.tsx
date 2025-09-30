@@ -39,14 +39,14 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
         startDelay: isGoingOnline ? 0 : (status.startDelay || 0),
       };
       const result = await setDoctorStatusAction(newStatus);
-      if (result.success) {
-        toast({ title: 'Success', description: `Doctor is now ${isGoingOnline ? 'Online' : 'Offline'}.` });
+      if ('success' in result) {
+        toast({ title: 'Success', description: result.success });
         if (isGoingOnline && delayInputRef.current) {
             delayInputRef.current.value = '0';
         }
         onUpdate();
       } else {
-        toast({ title: 'Error', variant: 'destructive', description: "Could not update status." });
+        toast({ title: 'Error', variant: 'destructive', description: result.error });
       }
     });
   };
@@ -55,11 +55,11 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
     startTransition(async () => {
       const newStatus = { isPaused: !status.isPaused };
       const result = await setDoctorStatusAction(newStatus);
-      if (result.success) {
-        toast({ title: 'Success', description: `Queue is now ${newStatus.isPaused ? 'paused' : 'resumed'}.` });
+      if ('success' in result) {
+        toast({ title: 'Success', description: result.success });
         onUpdate();
       } else {
-        toast({ title: 'Error', variant: 'destructive', description: "Could not update status." });
+        toast({ title: 'Error', variant: 'destructive', description: result.error });
       }
     });
   };
@@ -69,7 +69,7 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
         const delay = parseInt(delayInputRef.current.value, 10) || 0;
         startTransition(async () => {
             const result = await updateDoctorStartDelayAction(delay);
-            if (result.success) {
+            if ('success' in result) {
                 toast({ title: 'Success', description: result.success });
                 onUpdate();
             } else {
