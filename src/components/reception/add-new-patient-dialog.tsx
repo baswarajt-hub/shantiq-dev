@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useCallback, useEffect } from 'react';
@@ -201,7 +202,7 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
                             {foundFamily.map(member => (
                                 <div key={member.id} className="flex items-center gap-2 p-2 border rounded-md bg-muted/50 text-sm">
                                      <Avatar className="h-6 w-6">
-                                        <AvatarImage src={member.avatar} alt={member.name} />
+                                        <AvatarImage src={member.avatar || ''} alt={member.name} />
                                         <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <span>{member.name}</span>

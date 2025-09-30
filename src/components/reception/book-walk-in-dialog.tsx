@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
@@ -130,7 +131,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
                                 <div key={member.id} className="p-2 border rounded-md flex items-center justify-between cursor-pointer hover:bg-muted" onClick={() => handleSelectMember(member)}>
                                     <div className="flex items-center gap-3">
                                         <Avatar>
-                                            <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
+                                            <AvatarImage src={member.avatar || ''} alt={member.name} data-ai-hint="person" />
                                             <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         <div>
@@ -160,7 +161,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
                 <p>You are booking a walk-in appointment for:</p>
                 <div className="p-3 border rounded-md bg-muted flex items-center gap-3">
                      <Avatar>
-                        <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} data-ai-hint="person" />
+                        <AvatarImage src={selectedMember.avatar || ''} alt={selectedMember.name} data-ai-hint="person" />
                         <AvatarFallback>{selectedMember.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>

@@ -252,7 +252,7 @@ export default function FamilyAdminPage() {
                         <div className="p-3 border rounded-md bg-background flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <Avatar className="h-12 w-12">
-                                    <AvatarImage src={primary.avatar} alt={primary.name} />
+                                    <AvatarImage src={primary.avatar || ''} alt={primary.name} />
                                     <AvatarFallback>{(primary.name || 'P').charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
@@ -278,7 +278,7 @@ export default function FamilyAdminPage() {
                         <div key={member.id} className="p-3 border rounded-md bg-background flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <Avatar>
-                                <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
+                                <AvatarImage src={member.avatar || ''} alt={member.name} data-ai-hint="person" />
                                 <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>

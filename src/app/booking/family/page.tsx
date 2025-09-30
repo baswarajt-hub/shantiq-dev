@@ -98,7 +98,7 @@ export default function FamilyPage() {
   const familyPatients = family.filter(member => !member.isPrimary);
 
   const formatDate = (dateString?: string | null) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return '';
     try {
       // The input is expected to be YYYY-MM-DD from the date input
       return format(parseISO(dateString + 'T00:00:00'), 'dd-MM-yyyy');
@@ -125,7 +125,7 @@ export default function FamilyPage() {
                 <CardContent>
                      <div className="flex items-center gap-4">
                         <Avatar className="h-16 w-16">
-                            <AvatarImage src={primaryMember.avatar} alt={primaryMember.name} data-ai-hint="person" />
+                            <AvatarImage src={primaryMember.avatar || ''} alt={primaryMember.name} data-ai-hint="person" />
                             <AvatarFallback>{(primaryMember.name || 'U').charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
@@ -150,7 +150,7 @@ export default function FamilyPage() {
                 <div key={member.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
                 <div className="flex items-center gap-3">
                     <Avatar>
-                    <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
+                    <AvatarImage src={member.avatar || ''} alt={member.name} data-ai-hint="person" />
                     <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>

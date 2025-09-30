@@ -681,7 +681,7 @@ export default function DashboardPage() {
                         'flex items-center gap-2',
                         getPatientNameColorClass(patient.status, patient.type)
                     )}>
-                        {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={patient.purpose} />}
+                        {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={patient.purpose || undefined} />}
                         <PatientNameWithBadges patient={patient} />
                         {patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : patientDetails.gender === 'Female' ? <FemaleIcon className="h-4 w-4 text-pink-500" /> : null}
                         <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
@@ -770,7 +770,7 @@ export default function DashboardPage() {
                                             Change Purpose
                                         </DropdownMenuSubTrigger>
                                         <DropdownMenuSubContent>
-                                            <DropdownMenuRadioGroup value={patient.purpose} onValueChange={(value) => handleUpdatePurpose(patient!.id, value)}>
+                                            <DropdownMenuRadioGroup value={patient.purpose || ''} onValueChange={(value) => handleUpdatePurpose(patient!.id, value)}>
                                                 {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
                                                     <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
                                                 ))}
@@ -1099,4 +1099,3 @@ export default function DashboardPage() {
     
 
     
-

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -33,7 +34,7 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
         setFormData({
             ...member,
             dob: member.dob || '',
-            gender: member.gender || '',
+            gender: member.gender || 'Other',
             fatherName: member.fatherName || '',
             motherName: member.motherName || '',
             primaryContact: member.primaryContact || 'Father',
@@ -50,7 +51,7 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
   }
   
   const handleGenderChange = (value: 'Male' | 'Female' | 'Other' | '') => {
-    setFormData(prev => ({...prev, gender: value }));
+    setFormData(prev => ({...prev, gender: value as 'Male' | 'Female' | 'Other' }));
   }
 
   const handleSave = () => {
@@ -101,7 +102,7 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
                 </div>
                 <div className="space-y-2">
                   <Label>Primary Contact</Label>
-                  <RadioGroup value={formData.primaryContact} onValueChange={(value: 'Father' | 'Mother') => handleInputChange('primaryContact', value)} className="flex gap-4">
+                  <RadioGroup value={formData.primaryContact || 'Father'} onValueChange={(value: 'Father' | 'Mother') => handleInputChange('primaryContact', value)} className="flex gap-4">
                       <div className="flex items-center space-x-2">
                           <RadioGroupItem value="Father" id="admin-father" />
                           <Label htmlFor="admin-father">Father</Label>

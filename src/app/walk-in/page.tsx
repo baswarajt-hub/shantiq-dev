@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useCallback, Suspense } from 'react';
@@ -158,7 +159,7 @@ function WalkInPageContent() {
   
   const selectedPurposeDetails = activeVisitPurposes.find(p => p.name === purpose);
 
-  const formatDate = (dateString?: string) => {
+  const formatDate = (dateString?: string | null) => {
     if (!dateString) return 'N/A';
     try {
       // The input is expected to be YYYY-MM-DD from the date input
@@ -306,7 +307,7 @@ function WalkInPageContent() {
                         <Label key={member.id} htmlFor={member.id} className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-muted has-[input:checked]:bg-primary/20 has-[input:checked]:border-primary">
                             <RadioGroupItem value={member.id} id={member.id} />
                             <Avatar>
-                                <AvatarImage src={member.avatar} alt={member.name} data-ai-hint="person" />
+                                <AvatarImage src={member.avatar || ''} alt={member.name} data-ai-hint="person" />
                                 <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
