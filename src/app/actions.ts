@@ -177,7 +177,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
 }
 
 
-export async function updatePatientStatusAction(patientId: string, newStatus: Patient['status']) {
+export async function updatePatientStatusAction(patientId: string, newStatus: Patient['status']): Promise<{ success: string } | { error: string }> {
   let patients = await getPatientsData();
   const patient = patients.find(p => p.id === patientId);
 
@@ -921,7 +921,7 @@ export async function updateFamilyMemberAction(member: FamilyMember) {
     }
 }
 
-export async function cancelAppointmentAction(appointmentId: string) {
+export async function cancelAppointmentAction(appointmentId: string): Promise<{ success: string } | { error: string }> {
     try {
         const patient = await cancelAppointment(appointmentId);
         if (patient) {
@@ -1176,7 +1176,7 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
 }
     
 
-export async function advanceQueueAction(patientIdToBecomeUpNext: string) {
+export async function advanceQueueAction(patientIdToBecomeUpNext: string): Promise<{ success: string } | { error: string }> {
   // Step 1: Complete the current 'In-Consultation' patient
   let allPatients = await getPatientsData();
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
@@ -1226,7 +1226,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: string) {
   return { success: 'Queue advanced successfully.' };
 }
     
-export async function startLastConsultationAction(patientId: string) {
+export async function startLastConsultationAction(patientId: string): Promise<{ success: string } | { error: string }> {
   // Step 1: Complete any currently serving patient
   let allPatients = await getPatientsData();
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
@@ -1521,5 +1521,6 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     
 
     
+
 
 
