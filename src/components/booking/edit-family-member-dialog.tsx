@@ -32,9 +32,9 @@ export function EditFamilyMemberDialog({ isOpen, onOpenChange, member, onSave }:
 
   useEffect(() => {
     if (member) {
-        setName(member.name);
-        setDob(member.dob);
-        setGender(member.gender);
+        setName(member.name || '');
+        setDob(member.dob || '');
+        setGender(member.gender || '');
         setClinicId(member.clinicId || '');
     }
   }, [member, isOpen]);
@@ -44,8 +44,8 @@ export function EditFamilyMemberDialog({ isOpen, onOpenChange, member, onSave }:
       onSave({ 
         ...member, 
         name, 
-        dob, 
-        gender, 
+        dob: dob || null, 
+        gender: gender || null, 
         clinicId: clinicId || undefined 
     });
       onOpenChange(false);

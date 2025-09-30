@@ -30,7 +30,18 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
 
   useEffect(() => {
     if (member) {
-        setFormData(member);
+        setFormData({
+            ...member,
+            dob: member.dob || '',
+            gender: member.gender || '',
+            fatherName: member.fatherName || '',
+            motherName: member.motherName || '',
+            primaryContact: member.primaryContact || 'Father',
+            email: member.email || '',
+            location: member.location || '',
+            city: member.city || '',
+            clinicId: member.clinicId || '',
+        });
     }
   }, [member, isOpen]);
 
@@ -39,11 +50,23 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
   }
 
   const handleSave = () => {
-    // If we're updating the primary contact, also update the top-level name field for compatibility
-    if (formData.isPrimary) {
-      formData.name = formData.primaryContact === 'Father' ? formData.fatherName || '' : formData.motherName || '';
-    }
-    onSave(formData);
+    // Create a new object for saving, converting empty strings to null for optional fields
+    const memberToSave: FamilyMember = {
+        ...formData,
+        name: formData.isPrimary 
+            ? (formData.primaryContact === 'Father' ? formData.fatherName || '' : formData.motherName || '') 
+            : formData.name,
+        dob: formData.dob || null,
+        gender: formData.gender || null,
+        fatherName: formData.fatherName || null,
+        motherName: formData.motherName || null,
+        primaryContact: formData.primaryContact || null,
+        email: formData.email || null,
+        location: formData.location || null,
+        city: formData.city || null,
+        clinicId: formData.clinicId || undefined,
+    };
+    onSave(memberToSave);
     onOpenChange(false);
   };
 

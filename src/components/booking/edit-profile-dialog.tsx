@@ -48,12 +48,12 @@ export function EditProfileDialog({ isOpen, onOpenChange, member, onSave }: Edit
       onSave({ 
         ...member, 
         name,
-        fatherName, 
-        motherName,
-        primaryContact,
-        email, 
-        location, 
-        city 
+        fatherName: fatherName || null, 
+        motherName: motherName || null,
+        primaryContact: primaryContact || null,
+        email: email || null, 
+        location: location || null, 
+        city: city || null
     });
       onOpenChange(false);
     }
