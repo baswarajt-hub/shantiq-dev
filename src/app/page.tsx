@@ -354,7 +354,7 @@ export default function DashboardPage() {
         startTransition(async () => {
              const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn);
 
-            if (result.success) {
+            if ("success" in result) {
                 toast({ title: "Success", description: "Appointment booked successfully."});
                 loadData();
             } else {
@@ -365,12 +365,14 @@ export default function DashboardPage() {
 
     const handleAddNewPatient = useCallback(async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
         const result = await addNewPatientAction(newPatientData);
-        if (result.patient) {
+        if ("success" in result && result.patient) {
             toast({ title: "Success", description: result.success});
             loadData();
             return result.patient;
         }
-        toast({ title: "Error", description: result.error, variant: 'destructive'});
+        if("error" in result) {
+            toast({ title: "Error", description: result.error, variant: 'destructive'});
+        }
         return null;
     }, [loadData, toast]);
 
@@ -387,7 +389,7 @@ export default function DashboardPage() {
                 const appointmentTime = timeObj.toISOString();
 
                 const result = await rescheduleAppointmentAction(selectedPatient.id, appointmentTime, newPurpose);
-                if (result.success) {
+                if ("success" in result) {
                     toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
                     loadData();
                 } else {
@@ -400,7 +402,7 @@ export default function DashboardPage() {
     const handleUpdateStatus = useCallback((patientId: string, status: Patient['status']) => {
         startTransition(async () => {
             const result = await updatePatientStatusAction(patientId, status);
-            if (result?.error) {
+            if ("error" in result) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
@@ -412,7 +414,7 @@ export default function DashboardPage() {
     const handleStartLastConsultation = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await startLastConsultationAction(patientId);
-            if (result?.error) {
+            if ("error" in result) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
@@ -424,7 +426,7 @@ export default function DashboardPage() {
     const handleAdvanceQueue = useCallback((patientId: string) => {
       startTransition(async () => {
           const result = await advanceQueueAction(patientId);
-          if (result?.error) {
+          if ("error" in result) {
               toast({ title: 'Error', description: result.error, variant: 'destructive' });
           } else {
               toast({ title: 'Success', description: result.success });
@@ -436,7 +438,7 @@ export default function DashboardPage() {
     const handleUpdatePurpose = useCallback((patientId: string, purpose: string) => {
         startTransition(async () => {
             const result = await updatePatientPurposeAction(patientId, purpose);
-            if (result?.error) {
+            if ("error" in result) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
@@ -448,7 +450,7 @@ export default function DashboardPage() {
     const handleSendReminder = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await sendReminderAction(patientId);
-            if (result?.error) {
+            if ("error" in result) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
@@ -461,7 +463,7 @@ export default function DashboardPage() {
     const handleCancelAppointment = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await cancelAppointmentAction(patientId);
-            if (result.success) {
+            if ("success" in result) {
                 toast({ title: 'Success', description: 'Appointment cancelled.' });
                 loadData();
             } else {
@@ -473,7 +475,7 @@ export default function DashboardPage() {
     const handleCheckIn = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await checkInPatientAction(patientId);
-            if (result?.error) {
+            if ("error" in result) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
@@ -484,7 +486,7 @@ export default function DashboardPage() {
 
     const handleAdjustTiming = useCallback(async (override: SpecialClosure) => {
         const result = await updateTodayScheduleOverrideAction(override);
-        if (result.error) {
+        if ("error" in result) {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
         } else {
             toast({ title: 'Success', description: result.success });
@@ -525,7 +527,7 @@ export default function DashboardPage() {
         
         startTransition(async () => {
             const result = await setDoctorStatusAction(updates);
-            if (result.error) {
+            if ("error" in result) {
                 toast({ title: 'Error', description: `Failed to update status.`, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
@@ -540,7 +542,7 @@ export default function DashboardPage() {
             const delayValue = parseInt(delayInput.value, 10) || 0;
             startTransition(async () => {
                 const result = await updateDoctorStartDelayAction(delayValue);
-                if (result?.error) {
+                if ("error" in result) {
                     toast({ title: 'Error', description: result.error, variant: 'destructive'});
                 } else {
                     toast({ title: 'Success', description: result.success});
@@ -553,7 +555,7 @@ export default function DashboardPage() {
     const handleMarkAsLateAndCheckIn = useCallback((patientId: string, penalty: number) => {
         startTransition(async () => {
             const result = await markPatientAsLateAndCheckInAction(patientId, penalty);
-            if (result?.error) {
+            if ("error" in result) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
@@ -565,7 +567,7 @@ export default function DashboardPage() {
     const handleRunRecalculation = useCallback(() => {
         startTransition(async () => {
             const result = await recalculateQueueWithETC();
-            if (result?.error) {
+            if ("error" in result) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
@@ -577,7 +579,7 @@ export default function DashboardPage() {
     const handleEmergencyCancel = useCallback(() => {
         startTransition(async () => {
             const result = await emergencyCancelAction();
-            if (result?.error) {
+            if ("error" in result) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Success', description: result.success });
@@ -1098,3 +1100,4 @@ export default function DashboardPage() {
     
 
     
+
