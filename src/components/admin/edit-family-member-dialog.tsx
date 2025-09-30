@@ -45,8 +45,12 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
     }
   }, [member, isOpen]);
 
-  const handleInputChange = (field: keyof FamilyMember, value: string | boolean) => {
+  const handleInputChange = (field: keyof Omit<FamilyMember, 'id' | 'avatar' | 'isPrimary'>, value: string | boolean) => {
     setFormData(prev => ({...prev, [field]: value}));
+  }
+  
+  const handleGenderChange = (value: 'Male' | 'Female' | 'Other' | '') => {
+    setFormData(prev => ({...prev, gender: value }));
   }
 
   const handleSave = () => {
@@ -60,7 +64,7 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
         gender: formData.gender || null,
         fatherName: formData.fatherName || null,
         motherName: formData.motherName || null,
-        primaryContact: formData.primaryContact || null,
+        primaryContact: formData.primaryContact || 'Father',
         email: formData.email || null,
         location: formData.location || null,
         city: formData.city || null,
@@ -97,7 +101,7 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
                 </div>
                 <div className="space-y-2">
                   <Label>Primary Contact</Label>
-                  <RadioGroup value={formData.primaryContact} onValueChange={(value) => handleInputChange('primaryContact', value)} className="flex gap-4">
+                  <RadioGroup value={formData.primaryContact} onValueChange={(value: 'Father' | 'Mother') => handleInputChange('primaryContact', value)} className="flex gap-4">
                       <div className="flex items-center space-x-2">
                           <RadioGroupItem value="Father" id="admin-father" />
                           <Label htmlFor="admin-father">Father</Label>
@@ -122,7 +126,7 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="gender">Gender</Label>
-                        <Select value={formData.gender || ''} onValueChange={(value: 'Male' | 'Female' | 'Other') => handleInputChange('gender', value)}>
+                        <Select value={formData.gender || ''} onValueChange={handleGenderChange}>
                             <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Male">Male</SelectItem>

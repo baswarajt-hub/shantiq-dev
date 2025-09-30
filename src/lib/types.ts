@@ -14,7 +14,7 @@ export type Patient = {
   consultationTime?: number; // actual time taken in minutes
   consultationStartTime?: string; // ISO string
   consultationEndTime?: string; // ISO string
-  purpose?: string;
+  purpose?: string | '';
   rescheduleCount?: number;
   // New fields for advanced queue management
   tokenNo: number;        // Static token based on booking order
@@ -137,8 +137,8 @@ export type DoctorSchedule = {
 export type FamilyMember = {
   id: string;
   name: string;
-  dob?: string;
-  gender?: 'Male' | 'Female' | 'Other';
+  dob?: string | null;
+  gender?: 'Male' | 'Female' | 'Other' | '';
   avatar?: string;
   clinicId?: string;
   phone: string;
