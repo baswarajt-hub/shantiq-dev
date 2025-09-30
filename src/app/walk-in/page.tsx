@@ -105,11 +105,11 @@ function WalkInPageContent() {
           return;
       }
       startTransition(async () => {
-          const newMemberData: Omit<FamilyMember, 'id' | 'avatar'> = { phone, name, dob, gender, isPrimary: false };
+          const newMemberData: Omit<FamilyMember, 'id' | 'avatar'> = { phone, name, dob, gender: gender as "Male" | "Female" | "Other", isPrimary: false };
           const result = await addNewPatientAction(newMemberData);
           if ("success" in result && result.patient) {
               handleJoinQueue(result.patient);
-          } else {
+          } else if ("error" in result) {
               toast({ title: "Registration Failed", description: result.error, variant: 'destructive' });
           }
       });
