@@ -41,79 +41,79 @@ export default function AdminPage() {
   const handleClinicDetailsSave = async (updatedDetails: ClinicDetails) => {
     if (!schedule) return;
     const result = await updateClinicDetailsAction(updatedDetails);
-    if ("success" in result) {
+    if ('error' in result) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, clinicDetails: updatedDetails } : null);
-    } else {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleSmsSettingsSave = async (updatedSmsSettings: SmsSettings) => {
     if (!schedule) return;
     const result = await updateSmsSettingsAction(updatedSmsSettings);
-    if ("success" in result) {
+    if ('error' in result) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, smsSettings: updatedSmsSettings } : null);
-    } else {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handlePaymentGatewaySettingsSave = async (updatedPaymentGatewaySettings: PaymentGatewaySettings) => {
     if (!schedule) return;
     const result = await updatePaymentGatewaySettingsAction(updatedPaymentGatewaySettings);
-    if ("success" in result) {
+    if ('error' in result) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, paymentGatewaySettings: updatedPaymentGatewaySettings } : null);
-    } else {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
     if (!schedule) return;
     const result = await updateNotificationsAction(updatedNotifications);
-    if ("success" in result) {
+    if ('error' in result) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
       toast({ title: 'Success', description: result.success });
        setSchedule(prev => prev ? { ...prev, notifications: updatedNotifications } : null);
-    } else {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleScheduleSave = async (updatedScheduleData: Partial<DoctorSchedule>) => {
     const result = await updateDoctorScheduleAction(updatedScheduleData);
 
-    if ("success" in result) {
+    if ('error' in result) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
       toast({ title: 'Success', description: result.success });
       if (result.schedule) {
         setSchedule(result.schedule);
       }
-    } else {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleClosuresSave = async (updatedClosures: SpecialClosure[]) => {
     if (!schedule) return;
     const result = await updateSpecialClosuresAction(updatedClosures);
-     if ("success" in result) {
+     if ('error' in result) {
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
         toast({ title: 'Success', description: 'Closure updated successfully.' });
         setSchedule(prev => prev ? { ...prev, specialClosures: updatedClosures } : null);
-    } else {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
   const handleVisitPurposesSave = async (updatedPurposes: VisitPurpose[]) => {
     if (!schedule) return;
     const result = await updateVisitPurposesAction(updatedPurposes);
-    if ("success" in result) {
+    if ('error' in result) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    } else {
       toast({ title: 'Success', description: result.success });
       setSchedule(prev => prev ? { ...prev, visitPurposes: updatedPurposes } : null);
-    } else {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     }
   };
 
