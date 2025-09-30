@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -20,11 +19,19 @@ type SpecialClosuresProps = {
   onSave: (closures: SpecialClosure[]) => Promise<void>;
 }
 
-function CustomDayContent(props: DayContentProps) {
-    const { onSessionToggle, closures, schedule } = (props.customProps || {}) as { onSessionToggle: Function, closures: SpecialClosure[], schedule: DoctorSchedule };
+type CustomDayContentProps = DayContentProps & {
+  customProps?: {
+    onSessionToggle: (date: Date, session: 'morning' | 'evening') => void;
+    closures: SpecialClosure[];
+    schedule: DoctorSchedule;
+  };
+};
+
+
+function CustomDayContent(props: CustomDayContentProps) {
+    const { onSessionToggle, closures, schedule } = props.customProps || {};
     
-    if (!schedule || !schedule.days) {
-        // Render nothing if schedule or schedule.days is not available
+    if (!schedule || !schedule.days || !onSessionToggle || !closures) {
         return <div className="relative w-full h-full flex flex-col items-center justify-center">{props.date.getDate()}</div>;
     }
 
@@ -78,7 +85,7 @@ function CustomDayContent(props: DayContentProps) {
     );
 }
 
-function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }: { onDayClick: (day: Date) => void, closures: SpecialClosure[], onSessionToggle: Function, schedule: DoctorSchedule }) {
+function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }: { onDayClick: (day: Date) => void, closures: SpecialClosure[], onSessionToggle: (date: Date, session: 'morning' | 'evening') => void, schedule: DoctorSchedule }) {
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -117,7 +124,7 @@ function ClientOnlyCalendar({ onDayClick, closures, onSessionToggle, schedule }:
                 mode="single"
                 onDayClick={onDayClick}
                 className="rounded-md border p-0"
-                components={{ DayContent: (props) => <CustomDayContent {...props} customProps={{ onSessionToggle, closures, schedule }} /> }}
+                components={{ DayContent: (props: DayContentProps) => <CustomDayContent {...props} customProps={{ onSessionToggle, closures, schedule }} /> }}
                 classNames={{
                     months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
                     month: 'space-y-4',
@@ -238,5 +245,3 @@ export function SpecialClosures({ schedule, onSave }: SpecialClosuresProps) {
     </Card>
   );
 }
-
-    
