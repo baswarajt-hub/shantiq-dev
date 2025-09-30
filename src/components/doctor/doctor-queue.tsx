@@ -40,14 +40,20 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const statusConfig = {
+const statusConfig: Record<Patient['status'], { color: string, label: string }> = {
   Waiting: { color: 'text-blue-600', label: 'Waiting' },
   'Up-Next': { color: 'text-yellow-600', label: 'Up Next' },
   'In-Consultation': { color: 'text-green-600', label: 'In Consultation' },
   Late: { color: 'text-orange-600', label: 'Late' },
   Priority: { color: 'text-red-700', label: 'Priority' },
   'Waiting for Reports': { color: 'text-purple-600', label: 'Reports' },
+  Completed: { color: 'text-green-600', label: 'Completed' },
+  Cancelled: { color: 'text-red-600', label: 'Cancelled' },
+  Confirmed: { color: 'text-indigo-800', label: 'Confirmed' },
+  Booked: { color: 'text-teal-800', label: 'Booked' },
+  Missed: { color: 'text-gray-800', label: 'Missed' },
 };
+
 
 const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
     <span className="flex items-center gap-2">
@@ -83,7 +89,7 @@ export function DoctorQueue({
   const handleUpdateStatus = (patientId: string, status: Patient['status']) => {
     startTransition(async () => {
       const result = await updatePatientStatusAction(patientId, status);
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: 'Success', description: result.success });
         onUpdate();
       } else {
@@ -99,7 +105,7 @@ export function DoctorQueue({
   const handleAdvanceQueue = (patientId: string) => {
     startTransition(async () => {
       const result = await advanceQueueAction(patientId);
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: 'Success', description: result.success });
         onUpdate();
       } else {
@@ -115,7 +121,7 @@ export function DoctorQueue({
   const handleStartLastConsultation = (patientId: string) => {
     startTransition(async () => {
         const result = await startLastConsultationAction(patientId);
-        if(result.success) {
+        if("success" in result) {
             toast({ title: 'Success', description: result.success});
             onUpdate();
         } else {
@@ -127,7 +133,7 @@ export function DoctorQueue({
   const handleCancel = (patientId: string) => {
     startTransition(async () => {
       const result = await cancelAppointmentAction(patientId);
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: 'Success', description: result.success });
         onUpdate();
       } else {
@@ -209,6 +215,7 @@ export function DoctorQueue({
                               ?.label
                           }
                           {p.subStatus && ` (${p.subStatus})`}
+                          {p.status === 'Priority' && <Shield className="ml-1.5 h-3.5 w-3.5" />}
                         </Badge>
                       </TableCell>
                       <TableCell>{p.purpose}</TableCell>
