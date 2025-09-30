@@ -235,11 +235,11 @@ export default function MyAppointmentsPage() {
     if (!phone) return;
     startTransition(async () => {
         const result = await cancelAppointmentAction(appointmentId);
-        if (result.success) {
+        if ("success" in result) {
             toast({ title: 'Appointment Cancelled', description: 'Your appointment has been successfully cancelled.' });
             loadData(phone);
         } else {
-            toast({ title: 'Error', description: result.error || "Could not cancel appointment", variant: 'destructive' });
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
         }
     });
   }, [phone, toast, loadData]);
@@ -259,11 +259,11 @@ export default function MyAppointmentsPage() {
         const appointmentTime = dateObj.toISOString();
 
         const result = await rescheduleAppointmentAction(selectedAppointment.id, appointmentTime, newPurpose);
-        if(result.success) {
+        if("success" in result) {
           toast({ title: 'Appointment Rescheduled', description: 'Your appointment has been successfully rescheduled.' });
           loadData(phone);
         } else {
-          toast({ title: 'Error', description: result.error || "Could not reschedule", variant: 'destructive' });
+          toast({ title: 'Error', description: result.error, variant: 'destructive' });
         }
       });
     }

@@ -4,7 +4,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhone as deleteFamilyByPhoneData, deleteAllFamilies as deleteAllFamiliesData } from '@/lib/data';
-import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage } from '@/lib/types';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format, parseISO, parse, differenceInMinutes, startOfDay, max, addMinutes, subMinutes } from 'date-fns';
@@ -177,7 +177,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
 }
 
 
-export async function updatePatientStatusAction(patientId: string, newStatus: Patient['status']): Promise<{ success: string } | { error: string }> {
+export async function updatePatientStatusAction(patientId: string, newStatus: Patient['status']): Promise<ActionResult> {
   let patients = await getPatientsData();
   const patient = patients.find(p => p.id === patientId);
 
@@ -258,7 +258,7 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
   return { success: `Patient status updated to ${newStatus}` };
 }
 
-export async function runTimeEstimationAction(aiPatientData: AIPatientData) {
+export async function runTimeEstimationAction(aiPatientData: AIPatientData): Promise<ActionResult> {
   try {
     const patients = await getPatientsData();
     const waitingPatients = patients.filter(p => p.status === 'Waiting');
@@ -289,7 +289,7 @@ export async function runTimeEstimationAction(aiPatientData: AIPatientData) {
   }
 }
 
-export async function sendReminderAction(patientId: string) {
+export async function sendReminderAction(patientId: string): Promise<ActionResult> {
   const patient = await findPatientById(patientId);
   if (!patient) {
     return { error: 'Patient not found' };
@@ -352,7 +352,7 @@ export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
 }
 
 
-export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
+export async function updateDoctorStartDelayAction(startDelayMinutes: number): Promise<ActionResult> {
     try {
         await updateDoctorStatus({ startDelay: startDelayMinutes });
         await recalculateQueueWithETC();
@@ -368,7 +368,7 @@ export async function updateDoctorStartDelayAction(startDelayMinutes: number) {
     }
 }
 
-export async function emergencyCancelAction() {
+export async function emergencyCancelAction(): Promise<ActionResult> {
     const patients = await getPatientsData();
     const activePatients = patients.filter(p => ['Waiting', 'Confirmed', 'Booked', 'In-Consultation', 'Priority', 'Up-Next'].includes(p.status));
 
@@ -502,7 +502,7 @@ export async function searchFamilyMembersAction(searchTerm: string): Promise<Fam
     return searchFamilyMembers(effectiveSearchTerm);
 }
 
-export async function checkInPatientAction(patientId: string) {
+export async function checkInPatientAction(patientId: string): Promise<ActionResult> {
   const patient = await findPatientById(patientId);
   if (!patient) {
     return { error: 'Patient not found' };
@@ -520,7 +520,7 @@ export async function checkInPatientAction(patientId: string) {
   return { success: `${patient.name} has been checked in.` };
 }
 
-export async function recalculateQueueWithETC() {
+export async function recalculateQueueWithETC(): Promise<ActionResult> {
     let allPatients = await getPatientsData();
     const schedule = await getDoctorScheduleData();
     let doctorStatus = await getDoctorStatusData();
@@ -761,7 +761,7 @@ export async function recalculateQueueWithETC() {
     return { success: `Queue recalculated for all sessions.` };
 }
 
-export async function updateTodayScheduleOverrideAction(override: SpecialClosure) {
+export async function updateTodayScheduleOverrideAction(override: SpecialClosure): Promise<ActionResult> {
     await updateTodayScheduleOverrideData(override);
     await recalculateQueueWithETC();
     revalidatePath('/');
@@ -776,7 +776,7 @@ export async function updateTodayScheduleOverrideAction(override: SpecialClosure
     return { success: "Today's schedule has been updated." };
 }
 
-export async function updatePatientPurposeAction(patientId: string, purpose: string) {
+export async function updatePatientPurposeAction(patientId: string, purpose: string): Promise<ActionResult> {
     try {
         await updatePatient(patientId, { purpose });
         await recalculateQueueWithETC();
@@ -813,7 +813,7 @@ export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedul
     }
 }
 
-export async function updateClinicDetailsAction(details: ClinicDetails): Promise<{success: string} | {error: string}> {
+export async function updateClinicDetailsAction(details: ClinicDetails): Promise<ActionResult> {
     try {
         await updateClinicDetailsData(details);
         revalidatePath('/');
@@ -831,7 +831,7 @@ export async function updateClinicDetailsAction(details: ClinicDetails): Promise
     }
 }
 
-export async function updateSmsSettingsAction(smsSettings: SmsSettings): Promise<{success: string} | {error: string}> {
+export async function updateSmsSettingsAction(smsSettings: SmsSettings): Promise<ActionResult> {
     try {
         await updateSmsSettingsData(smsSettings);
         revalidatePath('/');
@@ -842,7 +842,7 @@ export async function updateSmsSettingsAction(smsSettings: SmsSettings): Promise
     }
 }
 
-export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings: PaymentGatewaySettings): Promise<{success: string} | {error: string}> {
+export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings: PaymentGatewaySettings): Promise<ActionResult> {
     try {
         await updatePaymentGatewaySettingsData(paymentGatewaySettings);
         revalidatePath('/');
@@ -853,7 +853,7 @@ export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings:
     }
 }
 
-export async function updateSpecialClosuresAction(closures: SpecialClosure[]): Promise<{success: string} | {error: string}> {
+export async function updateSpecialClosuresAction(closures: SpecialClosure[]): Promise<ActionResult> {
     try {
         await updateSpecialClosures(closures);
         await recalculateQueueWithETC();
@@ -872,7 +872,7 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]): P
     }
 }
 
-export async function updateVisitPurposesAction(purposes: VisitPurpose[]): Promise<{success: string} | {error: string}> {
+export async function updateVisitPurposesAction(purposes: VisitPurpose[]): Promise<ActionResult> {
     try {
         await updateVisitPurposesData(purposes);
         revalidatePath('/');
@@ -890,7 +890,7 @@ export async function updateVisitPurposesAction(purposes: VisitPurpose[]): Promi
     }
 }
 
-export async function updateNotificationsAction(notifications: Notification[]): Promise<{success: string} | {error: string}> {
+export async function updateNotificationsAction(notifications: Notification[]): Promise<ActionResult> {
   try {
     await updateNotificationData(notifications);
     revalidatePath('/');
@@ -903,7 +903,7 @@ export async function updateNotificationsAction(notifications: Notification[]): 
   }
 }
 
-export async function updateFamilyMemberAction(member: FamilyMember) {
+export async function updateFamilyMemberAction(member: FamilyMember): Promise<ActionResult> {
     try {
         await updateFamilyMember(member);
         revalidatePath('/');
@@ -921,7 +921,7 @@ export async function updateFamilyMemberAction(member: FamilyMember) {
     }
 }
 
-export async function cancelAppointmentAction(appointmentId: string): Promise<{ success: string } | { error: string }> {
+export async function cancelAppointmentAction(appointmentId: string): Promise<ActionResult> {
     try {
         const patient = await cancelAppointment(appointmentId);
         if (patient) {
@@ -1017,7 +1017,7 @@ export async function getFamilyAction() {
     return getFamily();
 }
 
-export async function markPatientAsLateAndCheckInAction(patientId: string, penalty: number) {
+export async function markPatientAsLateAndCheckInAction(patientId: string, penalty: number): Promise<ActionResult> {
   const allPatients = await getPatientsData();
   const patient = allPatients.find((p: Patient) => p.id === patientId);
   if (!patient) return { error: 'Patient not found.' };
@@ -1176,7 +1176,7 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
 }
     
 
-export async function advanceQueueAction(patientIdToBecomeUpNext: string): Promise<{ success: string } | { error: string }> {
+export async function advanceQueueAction(patientIdToBecomeUpNext: string): Promise<ActionResult> {
   // Step 1: Complete the current 'In-Consultation' patient
   let allPatients = await getPatientsData();
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
@@ -1226,7 +1226,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: string): Promi
   return { success: 'Queue advanced successfully.' };
 }
     
-export async function startLastConsultationAction(patientId: string): Promise<{ success: string } | { error: string }> {
+export async function startLastConsultationAction(patientId: string): Promise<ActionResult> {
   // Step 1: Complete any currently serving patient
   let allPatients = await getPatientsData();
   const nowServing = allPatients.find(p => p.status === 'In-Consultation');
@@ -1269,7 +1269,7 @@ export async function startLastConsultationAction(patientId: string): Promise<{ 
 
 
 
-export async function deleteFamilyMemberAction(id: string) {
+export async function deleteFamilyMemberAction(id: string): Promise<ActionResult> {
     await deleteFamilyMemberData(id);
     revalidatePath('/');
     revalidatePath('/admin');
@@ -1283,7 +1283,7 @@ export async function deleteFamilyMemberAction(id: string) {
     return { success: 'Family member deleted.' };
 }
 
-export async function deleteFamilyByPhoneAction(phone: string) {
+export async function deleteFamilyByPhoneAction(phone: string): Promise<ActionResult> {
     await deleteFamilyByPhoneData(phone);
     revalidatePath('/');
     revalidatePath('/admin');
@@ -1297,7 +1297,7 @@ export async function deleteFamilyByPhoneAction(phone: string) {
     return { success: 'Family deleted.' };
 }
 
-export async function deleteAllFamiliesAction() {
+export async function deleteAllFamiliesAction(): Promise<ActionResult> {
     await deleteAllFamiliesData();
     revalidatePath('/');
     revalidatePath('/admin');
@@ -1459,7 +1459,7 @@ export async function joinQueueAction(member: FamilyMember, purpose: string) {
     return await addAppointmentAction(member, appointmentTime, purpose, true, true);
 }
 
-export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avatar'>[]) {
+export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avatar'>[]): Promise<ActionResult> {
     try {
         const result = await batchImportFamilyMembers(data);
         return { success: `Successfully imported ${result.successCount} patient records. Skipped ${result.skippedCount} duplicates.` };
@@ -1521,6 +1521,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     
 
     
+
 
 
 

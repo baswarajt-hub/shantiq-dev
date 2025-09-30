@@ -164,3 +164,5 @@ export type Appointment = {
   rescheduleCount?: number;
   tokenNo?: number;
 };
+
+export type ActionResult = { success: string } | { error: string };
