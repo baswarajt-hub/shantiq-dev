@@ -26,16 +26,6 @@ import {
   MoreVertical,
   Shield,
   Trash2,
-  AlertTriangle,
-  XCircle,
-  Check,
-  Calendar,
-  Star,
-  X,
-  Clock,
-  User,
-  Hourglass,
-  UserX
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
