@@ -99,7 +99,7 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="gender">Gender</Label>
-                        <Select value={formData.gender || ''} onValueChange={(value) => handleInputChange('gender', value)}>
+                        <Select value={formData.gender || ''} onValueChange={(value: 'Male' | 'Female' | 'Other') => handleInputChange('gender', value)}>
                             <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Male">Male</SelectItem>

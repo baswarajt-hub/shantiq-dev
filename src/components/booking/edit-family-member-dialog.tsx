@@ -27,7 +27,7 @@ type EditFamilyMemberDialogProps = {
 export function EditFamilyMemberDialog({ isOpen, onOpenChange, member, onSave }: EditFamilyMemberDialogProps) {
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
-  const [gender, setGender] = useState('');
+  const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
   const [clinicId, setClinicId] = useState('');
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function EditFamilyMemberDialog({ isOpen, onOpenChange, member, onSave }:
           </div>
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>
-            <Select value={gender} onValueChange={setGender}>
+            <Select value={gender} onValueChange={(value: 'Male' | 'Female' | 'Other') => setGender(value)}>
                 <SelectTrigger>
                     <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
