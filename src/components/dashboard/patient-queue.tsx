@@ -8,18 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Calendar,
+  Check,
   CheckCircle,
   Clock,
+  FileText,
   Hourglass,
   Phone,
+  Shield,
+  ChevronsRight,
   User,
   UserX,
   XCircle,
-  FileText,
-  Check,
-  Star,
-  ChevronsRight,
-  Shield,
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { PatientCardActions } from './patient-card-actions';
