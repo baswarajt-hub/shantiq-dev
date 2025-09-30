@@ -73,11 +73,11 @@ export default function FamilyAdminPage() {
   const handleEditFamilyMember = useCallback((updatedMember: FamilyMember) => {
      startTransition(async () => {
         const result = await updateFamilyMemberAction(updatedMember);
-         if(result.success){
+         if("success" in result){
             toast({ title: "Success", description: "Family member details updated."});
             handleSearch();
         } else {
-            toast({ title: "Error", description: "Could not update member", variant: 'destructive'});
+            toast({ title: "Error", description: result.error, variant: 'destructive'});
         }
     });
   }, [handleSearch, toast]);
@@ -85,11 +85,11 @@ export default function FamilyAdminPage() {
   const handleDeleteMember = (memberId: string) => {
     startTransition(async () => {
       const result = await deleteFamilyMemberAction(memberId);
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: "Success", description: "Family member has been deleted." });
         handleSearch(); // Refresh results
       } else {
-        toast({ title: "Error", description: "Could not delete member.", variant: 'destructive' });
+        toast({ title: "Error", description: result.error, variant: 'destructive' });
       }
     });
   };
@@ -97,7 +97,7 @@ export default function FamilyAdminPage() {
   const handleDeleteFamily = (phone: string) => {
     startTransition(async () => {
       const result = await deleteFamilyByPhoneAction(phone);
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: "Success", description: "The entire family has been deleted." });
         setFamilies(prev => {
           const newFamilies = { ...prev };
@@ -105,7 +105,7 @@ export default function FamilyAdminPage() {
           return newFamilies;
         });
       } else {
-        toast({ title: "Error", description: "Could not delete family.", variant: 'destructive' });
+        toast({ title: "Error", description: result.error, variant: 'destructive' });
       }
     });
   };
@@ -113,11 +113,11 @@ export default function FamilyAdminPage() {
   const handleDeleteAllFamilies = () => {
     startTransition(async () => {
       const result = await deleteAllFamiliesAction();
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: "Success", description: "All family records have been deleted." });
         handleReset();
       } else {
-        toast({ title: "Error", description: "Could not delete all families.", variant: 'destructive' });
+        toast({ title: "Error", description: result.error, variant: 'destructive' });
       }
     });
   };
@@ -131,7 +131,7 @@ export default function FamilyAdminPage() {
     if (!phoneForNewMember) return;
     startTransition(async () => {
       const result = await addNewPatientAction({ ...memberData, phone: phoneForNewMember });
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: "Success", description: "New family member has been added." });
         handleSearch();
       } else {

@@ -216,7 +216,7 @@ export default function MyAppointmentsPage() {
             const appointmentDate = parseISO(p.appointmentTime);
             return {
                 id: p.id,
-                familyMemberId: Number(famMember?.id) || 0,
+                familyMemberId: famMember?.id || '0',
                 familyMemberName: p.name,
                 date: p.appointmentTime,
                 time: format(appointmentDate, 'hh:mm a'),
@@ -409,5 +409,3 @@ export default function MyAppointmentsPage() {
     </main>
   );
 }
-
-    

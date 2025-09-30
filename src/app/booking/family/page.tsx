@@ -53,7 +53,7 @@ export default function FamilyPage() {
     if (!phone) return;
     startTransition(async () => {
         const result = await addNewPatientAction({ ...member, phone });
-        if(result.success){
+        if("success" in result){
             toast({ title: "Success", description: "Family member added."});
             loadData(phone);
         } else {
@@ -66,11 +66,11 @@ export default function FamilyPage() {
      if (!phone) return;
      startTransition(async () => {
         const result = await updateFamilyMemberAction(updatedMember);
-         if(result.success){
+         if("success" in result){
             toast({ title: "Success", description: "Family member details updated."});
             loadData(phone);
         } else {
-            toast({ title: "Error", description: "Could not update member", variant: 'destructive'});
+            toast({ title: "Error", description: result.error, variant: 'destructive'});
         }
     });
   }, [phone, toast, loadData]);
@@ -79,11 +79,11 @@ export default function FamilyPage() {
       if (!phone) return;
       startTransition(async () => {
           const result = await deleteFamilyMemberAction(memberId);
-          if(result.success) {
+          if("success" in result) {
               toast({ title: "Success", description: "Family member removed."});
               loadData(phone);
           } else {
-              toast({ title: "Error", description: "Could not remove member", variant: 'destructive'});
+              toast({ title: "Error", description: result.error, variant: 'destructive'});
           }
       });
   }, [phone, toast, loadData]);

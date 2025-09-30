@@ -90,7 +90,7 @@ function WalkInPageContent() {
   const handleJoinQueue = (member: FamilyMember) => {
     startTransition(async () => {
         const result = await joinQueueAction(member, purpose);
-        if (result.success && result.patient) {
+        if ("success" in result && result.patient) {
             toast({ title: "Added to Queue!", description: `You have been assigned Token #${result.patient.tokenNo}.`});
             router.push(`/queue-status?id=${result.patient.id}`);
         } else {
@@ -107,7 +107,7 @@ function WalkInPageContent() {
       startTransition(async () => {
           const newMemberData: Omit<FamilyMember, 'id' | 'avatar'> = { phone, name, dob, gender, isPrimary: false };
           const result = await addNewPatientAction(newMemberData);
-          if (result.success && result.patient) {
+          if ("success" in result && result.patient) {
               handleJoinQueue(result.patient);
           } else {
               toast({ title: "Registration Failed", description: result.error, variant: 'destructive' });
@@ -134,14 +134,14 @@ function WalkInPageContent() {
         city,
         email
       });
-      if (result.success) {
+      if ("success" in result) {
         toast({ title: 'Registration Successful', description: 'Your family account has been created. Now, please add the patient.' });
         const family = await getFamilyByPhoneAction(phone);
         setFoundFamily(family);
         setName(''); setDob(''); setGender(''); setEmail(''); setLocation(''); setCity('');
         setStep('create'); // Go to add patient step
       } else {
-        toast({ title: 'Registration Failed', description: 'Something went wrong.', variant: 'destructive' });
+        toast({ title: 'Registration Failed', description: result.error, variant: 'destructive' });
       }
     });
   };

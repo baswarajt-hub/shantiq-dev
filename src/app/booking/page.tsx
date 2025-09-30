@@ -173,7 +173,7 @@ export default function BookingPage() {
             const appointmentDate = parseISO(p.appointmentTime);
             return {
                 id: p.id,
-                familyMemberId: Number(famMember?.id) || 0,
+                familyMemberId: famMember?.id || '0',
                 familyMemberName: p.name,
                 date: p.appointmentTime,
                 time: format(appointmentDate, 'hh:mm a'),
@@ -252,7 +252,7 @@ export default function BookingPage() {
         const appointmentTime = timeObj.toISOString();
 
         const result = await addAppointmentAction(familyMember, appointmentTime, purpose, false);
-        if (result.success) {
+        if ("success" in result) {
             toast({ title: "Success", description: "Appointment booked."});
             if (phone) await loadData();
         } else {

@@ -57,7 +57,7 @@ export default function RegisterPage() {
         email,
       });
 
-      if (result.success) {
+      if ("success" in result) {
         toast({
           title: 'Registration Successful',
           description: 'Welcome! You can now manage your appointments.',

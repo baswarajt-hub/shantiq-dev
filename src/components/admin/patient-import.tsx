@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Upload } from 'lucide-react';
 import { patientImportAction } from '@/app/actions';
 
@@ -74,7 +74,7 @@ export function PatientImport() {
 
             startTransition(async () => {
                 const result = await patientImportAction(data);
-                if (result.error) {
+                if ("error" in result) {
                     toast({ title: 'Import Failed', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Import Successful', description: result.success });

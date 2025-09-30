@@ -33,7 +33,7 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
     startTransition(async () => {
       const result = await checkUserAuthAction(phone);
 
-      if (result.error) {
+      if ("error" in result) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
         return;
       }
