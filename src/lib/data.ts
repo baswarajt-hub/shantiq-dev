@@ -6,6 +6,7 @@
 
 
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -368,7 +369,7 @@ export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMem
         (member.fatherName && member.fatherName.toLowerCase().includes(lowercasedTerm)) ||
         (member.motherName && member.motherName.toLowerCase().includes(lowercasedTerm)) ||
         member.phone.includes(searchTerm) ||
-        (member.clinicId && member.clinicId.toLowerCase().includes(lowercasedTerm)) ||
+        (member.clinicId && String(member.clinicId).toLowerCase().includes(lowercasedTerm)) ||
         (isDateSearch && member.dob === searchTerm)
     );
 
@@ -458,7 +459,7 @@ export async function batchImportFamilyMembers(data: any[]): Promise<{ successCo
                 name: patientName,
                 dob: row.dob || null,
                 gender: row.gender || 'Other',
-                clinicId: row.clinicId || '',
+                clinicId: row.clinicId || undefined,
                 fatherName: row.fatherName || '', // Carry over for context if needed later
                 motherName: row.motherName || '',
             });
@@ -552,4 +553,3 @@ export async function deleteAllFamilies(): Promise<void> {
     
 
     
-
