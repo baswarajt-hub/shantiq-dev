@@ -188,7 +188,7 @@ export default function DashboardPage() {
         setFamily(familyData);
         setDoctorStatus(statusData);
       });
-    }, []);
+    }, [startTransition]);
 
     useEffect(() => {
         loadData();
@@ -230,7 +230,8 @@ export default function DashboardPage() {
         if (currentlyWaiting.length > 0) {
             const now = new Date();
             const totalWaitMinutes = currentlyWaiting.reduce((acc, p) => {
-                const wait = differenceInMinutes(now, parseISO(p.checkInTime!));
+                if (!p.checkInTime) return acc;
+                const wait = differenceInMinutes(now, parseISO(p.checkInTime));
                 return acc + (wait > 0 ? wait : 0);
             }, 0);
             setAverageWaitTime(Math.round(totalWaitMinutes / currentlyWaiting.length));
@@ -1100,3 +1101,4 @@ export default function DashboardPage() {
     
 
     
+
