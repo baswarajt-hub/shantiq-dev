@@ -18,7 +18,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction as addPatientActionType, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
+import type { ActionResult } from '@/lib/types';
 
 
 type TimeSlot = {
@@ -203,7 +204,7 @@ export default function DashboardPage() {
 
 
     const sessionPatients = patients.filter(p => {
-        if (!selectedDate || !isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
+        if (!p.appointmentTime || !selectedDate || !isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
         
         const apptDate = parseISO(p.appointmentTime);
         const apptSession = getSessionForTime(apptDate);
@@ -215,7 +216,7 @@ export default function DashboardPage() {
         // Calculate average consultation time based on session-specific patients
         const completedWithTime = sessionPatients.filter(p => p.status === 'Completed' && typeof p.consultationTime === 'number');
         if (completedWithTime.length > 0) {
-            const totalTime = completedWithTime.reduce((acc, p) => acc + p.consultationTime!, 0);
+            const totalTime = completedWithTime.reduce((acc, p) => acc + (p.consultationTime || 0), 0);
             setAverageConsultationTime(Math.round(totalTime / completedWithTime.length));
         } else {
             setAverageConsultationTime(schedule?.slotDuration || 0);
@@ -281,7 +282,7 @@ export default function DashboardPage() {
                 const timeZone = "Asia/Kolkata";
                 
                 const patientForSlot = patients.find(p => {
-                    if (p.status === 'Cancelled') return false;
+                    if (p.status === 'Cancelled' || !p.appointmentTime) return false;
                     const apptDateUtc = parseISO(p.appointmentTime);
                     const apptInIST = toZonedTime(apptDateUtc, timeZone);
                     
@@ -364,14 +365,14 @@ export default function DashboardPage() {
     }, [loadData, toast]);
 
     const handleAddNewPatient = useCallback(async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
-        const result = await addNewPatientAction(newPatientData);
+        const result: ActionResult | { patient: FamilyMember; success: string; } = await addNewPatientAction(newPatientData);
         if ("error" in result) {
             toast({ title: "Error", description: result.error, variant: 'destructive'});
             return null;
         } else {
             toast({ title: "Success", description: result.success});
             loadData();
-            return result.patient;
+            return 'patient' in result ? result.patient : null;
         }
     }, [loadData, toast]);
 
@@ -619,7 +620,7 @@ export default function DashboardPage() {
         const lowerSearch = searchTerm.toLowerCase();
         return slot.patientDetails.name?.toLowerCase().includes(lowerSearch) ||
                slot.patientDetails.phone?.includes(lowerSearch) ||
-               (slot.patientDetails.clinicId && slot.patientDetails.clinicId.toLowerCase().includes(lowerSearch));
+               (slot.patientDetails.clinicId && String(slot.patientDetails.clinicId).toLowerCase().includes(lowerSearch));
     });
 
     const canDoctorCheckIn = selectedDate ? isToday(selectedDate) : false;
@@ -657,7 +658,7 @@ export default function DashboardPage() {
         const statusKey = patient.status as keyof typeof statusConfig;
         const StatusIcon = statusConfig[statusKey]?.icon || HelpCircle;
         const statusColor = statusConfig[statusKey]?.color || '';
-        const PurposeIcon = purposeIcons[patient.purpose || ''] || HelpCircle;
+        const PurposeIcon = patient.purpose ? (purposeIcons[patient.purpose] || HelpCircle) : HelpCircle;
         const isUpNext = upNext?.id === patient.id;
         const isNextInLine = nextInLine?.id === patient.id;
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
