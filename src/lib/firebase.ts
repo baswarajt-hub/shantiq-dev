@@ -1,20 +1,33 @@
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics, isSupported } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  "projectId": "queuewise-6l2c7",
-  "appId": "1:624917397957:web:53c1a9f4b1189a04c94bac",
-  "apiKey": "AIzaSyCkWWkGzTmQadQZD5PYf0J73xMmivwfXJI",
-  "authDomain": "queuewise-6l2c7.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "624917397957"
+  apiKey: "AIzaSyA8m_n5cZmJbrbWWgbkeRX-tRe3PiUg7sg",
+  authDomain: "shanti-clinic.firebaseapp.com",
+  projectId: "shanti-clinic",
+  storageBucket: "shanti-clinic.firebasestorage.app",
+  messagingSenderId: "471443812255",
+  appId: "1:471443812255:web:7dad9f21c92e07dfd997aa",
+  measurementId: "G-QEQYJ547FS"
 };
 
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const auth = getAuth(app);
+const app = initializeApp(firebaseConfig);
 
-export { app, db, auth };
+// Initialize Firebase services
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Initialize Analytics if supported
+const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
+
+export { app, auth, db, analytics };
