@@ -1,9 +1,8 @@
 
-
 'use client';
 import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import Header from '@/components/header';
-import Stats from '@/app/dashboard/stats';
+import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -103,7 +102,7 @@ const timeZone = "Asia/Kolkata";
 function sessionLocalToUtc(dateStr: string, sessionTime: string) {
   // Try 24-hour format first
   let localDate: Date;
-  if (/^d{1,2}:d{2}$/.test(sessionTime)) {
+  if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
     // "HH:mm" (24-hour)
     localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
   } else {
@@ -498,7 +497,7 @@ export default function DashboardPage() {
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
-        if (/^d{5,}$/.test(searchTerm.replace(/D/g, ''))) {
+        if (/^\d{5,}$/.test(searchTerm.replace(/D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
@@ -1070,8 +1069,6 @@ export default function DashboardPage() {
         </div>
     );
 }
-    
-
     
 
     
