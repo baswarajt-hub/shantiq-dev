@@ -659,7 +659,7 @@ export default function DashboardPage() {
         const statusKey = patient.status as keyof typeof statusConfig;
         const StatusIcon = statusConfig[statusKey]?.icon || HelpCircle;
         const statusColor = statusConfig[statusKey]?.color || '';
-        const PurposeIcon = patient.purpose ? (purposeIcons[patient.purpose] || HelpCircle) : HelpCircle;
+        const PurposeIcon = patient.purpose ? (purposeIcons[patient.purpose as keyof typeof purposeIcons] || HelpCircle) : HelpCircle;
         const isUpNext = upNext?.id === patient.id;
         const isNextInLine = nextInLine?.id === patient.id;
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
@@ -1101,4 +1101,3 @@ export default function DashboardPage() {
     
 
     
-
