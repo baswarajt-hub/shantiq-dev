@@ -1,6 +1,8 @@
+
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
+import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -25,7 +27,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
-import Stats from '@/components/dashboard/stats';
 
 
 type TimeSlot = {
@@ -161,10 +162,13 @@ export default function DashboardPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
-    const [isQueueActive, setIsQueueActive] = useState(true);
+    const [isPending, startTransition] = useTransition();
+
     const [isLoading, setIsLoading] = useState(true);
+    const [initialLoad, setInitialLoad] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    
     const { toast } = useToast();
-    const [isPending, startTransition] = useState(false);
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
@@ -198,25 +202,34 @@ export default function DashboardPage() {
     };
 
     const loadData = useCallback(() => {
-      setIsLoading(true);
-      Promise.all([
-          getDoctorScheduleAction(),
-          getPatientsAction(),
-          getFamilyAction(),
-          getDoctorStatusAction()
-      ]).then(([scheduleData, patientData, familyData, statusData]) => {
-          setSchedule(scheduleData);
-          setPatients(patientData);
-          setFamily(familyData);
-          setDoctorStatus(statusData);
-      }).catch(err => {
-          console.error("Failed to load data", err);
-          toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
-      }).finally(() => {
-          setIsLoading(false);
-      });
-    }, [toast]);
+        if (initialLoad) {
+          setIsLoading(true);
+        } else {
+          setIsRefreshing(true);
+        }
 
+        Promise.all([
+            getDoctorScheduleAction(),
+            getPatientsAction(),
+            getFamilyAction(),
+            getDoctorStatusAction()
+        ]).then(([scheduleData, patientData, familyData, statusData]) => {
+            setSchedule(scheduleData);
+            setPatients(patientData);
+            setFamily(familyData);
+            setDoctorStatus(statusData);
+        }).catch(err => {
+            console.error("Failed to load data", err);
+            toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
+        }).finally(() => {
+           if (initialLoad) {
+                setIsLoading(false);
+                setInitialLoad(false);
+            } else {
+                setIsRefreshing(false);
+            }
+        });
+    }, [initialLoad, toast]);
 
     useEffect(() => {
         loadData();
@@ -875,7 +888,10 @@ export default function DashboardPage() {
                   <PanelsLeftBottom className="h-5 w-5" />
                   <span>Doctor Panel</span>
                   <span className="text-neutral-300">•</span>
-                  <span className="font-medium text-neutral-700">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</span>
+                  <span className="font-medium text-neutral-700 flex items-center gap-2">
+                    {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+                    {isRefreshing && <RefreshCw className="h-4 w-4 animate-spin text-primary" />}
+                  </span>
                 </div>
                 <div className="hidden items-center gap-2 md:flex">
                   <div className="flex items-center gap-1 rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-600">
@@ -900,7 +916,11 @@ export default function DashboardPage() {
                                 <ScheduleCalendar
                                     mode="single"
                                     selected={selectedDate}
-                                    onSelect={(day) => day && (!selectedDate || day.getTime() !== selectedDate.getTime()) && setSelectedDate(day)}
+                                    onSelect={(day) => {
+                                      if (day && (!selectedDate || day.getTime() !== selectedDate.getTime())) {
+                                        setSelectedDate(day);
+                                      }
+                                    }}
                                     initialFocus
                                     schedule={schedule}
                                 />
