@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -903,11 +903,9 @@ export default function DashboardPage() {
             <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 md:grid-cols-[minmax(200px,15%)_1fr]">
                 <aside className="sticky top-[74px] h-fit space-y-4">
                      <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
-                        <div className="rounded-lg bg-muted p-3 text-center mb-3">
-                             <div className="flex items-center justify-center gap-2 text-base font-bold text-neutral-800">
-                                <CalendarIcon className="h-5 w-5" />
-                                {format(selectedDate, 'MMMM d, yyyy')}
-                            </div>
+                        <div className="rounded-lg bg-muted/80 p-3 text-center mb-3 font-semibold flex items-center justify-center gap-2">
+                           <CalendarIcon className="h-5 w-5" />
+                           {format(selectedDate, 'MMMM d, yyyy')}
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -1018,6 +1016,17 @@ export default function DashboardPage() {
                         <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
                     </div>
                     
+                    <div className="mt-3 grid place-items-center">
+                       <div className="w-full max-w-2xl">
+                         <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center shadow-sm">
+                           <div className="text-xs font-medium text-neutral-600">Visit Purpose</div>
+                           <div className="mt-1 text-sm text-neutral-800">
+                             <p>This is a placeholder for visit purpose breakdown</p>
+                           </div>
+                         </div>
+                       </div>
+                    </div>
+
                     <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                         <div className="relative">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -1149,5 +1158,7 @@ export default function DashboardPage() {
     );
 }
 
+
+    
 
     
