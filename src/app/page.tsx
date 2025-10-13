@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, RefreshCw, Users, UserCheck, PanelsLeftBottom, CalendarDays } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, RefreshCw, Users, UserCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -166,7 +166,7 @@ export default function DashboardPage() {
     const [isQueueActive, setIsQueueActive] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
-    const [isPending, startTransition] = useState(false);
+    const [isPending, startTransition] = useTransition();
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
@@ -217,7 +217,7 @@ export default function DashboardPage() {
         }).finally(() => {
             setIsLoading(false);
         });
-    }, []);
+    }, [toast]);
 
 
     useEffect(() => {
@@ -383,31 +383,33 @@ export default function DashboardPage() {
     };
 
     const handleBookAppointment = useCallback(async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
-        startTransition(true);
-        const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn);
-
-        if ("error" in result) {
-            toast({ title: "Error", description: result.error, variant: 'destructive'});
-        } else {
-            toast({ title: "Success", description: "Appointment booked successfully."});
-            loadData();
-        }
-        startTransition(false);
+        startTransition(() => {
+            addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn).then(result => {
+                if ("error" in result) {
+                    toast({ title: "Error", description: result.error, variant: 'destructive'});
+                } else {
+                    toast({ title: "Success", description: "Appointment booked successfully."});
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const handleAddNewPatient = useCallback(async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
-        startTransition(true);
-        const result: ActionResult | { patient: FamilyMember; success: string; } = await addNewPatientAction(newPatientData);
-        if ("error" in result) {
-            toast({ title: "Error", description: result.error, variant: 'destructive'});
-            startTransition(false);
-            return null;
-        } else {
-            toast({ title: "Success", description: result.success});
-            loadData();
-            startTransition(false);
-            return 'patient' in result ? result.patient : null;
-        }
+        return new Promise((resolve) => {
+            startTransition(() => {
+                addNewPatientAction(newPatientData).then(result => {
+                    if ("error" in result || !('patient' in result)) {
+                        toast({ title: "Error", description: (result as any).error || "Failed to add patient", variant: 'destructive'});
+                        resolve(null);
+                    } else {
+                        toast({ title: "Success", description: result.success});
+                        loadData();
+                        resolve(result.patient);
+                    }
+                });
+            });
+        });
     }, [loadData, toast]);
 
     const handleOpenReschedule = (patient: Patient) => {
@@ -417,117 +419,126 @@ export default function DashboardPage() {
 
     const handleReschedule = useCallback((newDate: string, newTime: string, newPurpose: string) => {
         if (selectedPatient) {
-            startTransition(true);
-            const dateObj = parse(newDate, 'yyyy-MM-dd', new Date());
-            const timeObj = parse(newTime, 'hh:mm a', dateObj);
-            const appointmentTime = timeObj.toISOString();
+            startTransition(() => {
+                const dateObj = parse(newDate, 'yyyy-MM-dd', new Date());
+                const timeObj = parse(newTime, 'hh:mm a', dateObj);
+                const appointmentTime = timeObj.toISOString();
 
-            rescheduleAppointmentAction(selectedPatient.id, appointmentTime, newPurpose).then(result => {
-                if ("error" in result) {
-                    toast({ title: "Error", description: result.error, variant: 'destructive' });
-                } else {
-                    toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
-                    loadData();
-                }
-            }).finally(() => startTransition(false));
+                rescheduleAppointmentAction(selectedPatient.id, appointmentTime, newPurpose).then(result => {
+                    if ("error" in result) {
+                        toast({ title: "Error", description: result.error, variant: 'destructive' });
+                    } else {
+                        toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
+                        loadData();
+                    }
+                });
+            });
         }
     }, [selectedPatient, loadData, toast]);
 
     const handleUpdateStatus = useCallback((patientId: string, status: Patient['status']) => {
-        startTransition(true);
-        updatePatientStatusAction(patientId, status).then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.success });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            updatePatientStatusAction(patientId, status).then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const handleStartLastConsultation = useCallback((patientId: string) => {
-        startTransition(true);
-        startLastConsultationAction(patientId).then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.success });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            startLastConsultationAction(patientId).then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const handleAdvanceQueue = useCallback((patientId: string) => {
-        startTransition(true);
-        advanceQueueAction(patientId).then(result => {
-          if ("error" in result) {
-              toast({ title: 'Error', description: result.error, variant: 'destructive' });
-          } else {
-              toast({ title: 'Success', description: result.success });
-              loadData();
-          }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+          advanceQueueAction(patientId).then(result => {
+              if ("error" in result) {
+                  toast({ title: 'Error', description: result.error, variant: 'destructive' });
+              } else {
+                  toast({ title: 'Success', description: result.success });
+                  loadData();
+              }
+          });
+        });
     }, [loadData, toast]);
 
     const handleUpdatePurpose = useCallback((patientId: string, purpose: string) => {
-        startTransition(true);
-        updatePatientPurposeAction(patientId, purpose).then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.success });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            updatePatientPurposeAction(patientId, purpose).then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const handleSendReminder = useCallback((patientId: string) => {
-        startTransition(true);
-        sendReminderAction(patientId).then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.success });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            sendReminderAction(patientId).then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
 
     const handleCancelAppointment = useCallback((patientId: string) => {
-        startTransition(true);
-        cancelAppointmentAction(patientId).then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: 'Appointment cancelled.' });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            cancelAppointmentAction(patientId).then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: 'Appointment cancelled.' });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const handleCheckIn = useCallback((patientId: string) => {
-        startTransition(true);
-        checkInPatientAction(patientId).then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.success });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            checkInPatientAction(patientId).then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const handleAdjustTiming = useCallback(async (override: SpecialClosure) => {
-        startTransition(true);
-        const result = await updateTodayScheduleOverrideAction(override);
-        if ("error" in result) {
-            toast({ title: 'Error', description: result.error, variant: 'destructive' });
-        } else {
-            toast({ title: 'Success', description: result.success });
-            loadData();
-        }
-        startTransition(false);
+        startTransition(() => {
+            updateTodayScheduleOverrideAction(override).then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
@@ -561,67 +572,72 @@ export default function DashboardPage() {
             }
         }
 
-        startTransition(true);
-        setDoctorStatusAction(updates).then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: `Failed to update status.`, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.success });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            setDoctorStatusAction(updates).then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: `Failed to update status.`, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [doctorStatus, loadData, toast]);
 
     const handleUpdateDelay = useCallback(() => {
         const delayInput = document.getElementById('doctor-delay') as HTMLInputElement;
         if (delayInput) {
             const delayValue = parseInt(delayInput.value, 10) || 0;
-            startTransition(true);
-            updateDoctorStartDelayAction(delayValue).then(result => {
-                if ("error" in result) {
-                    toast({ title: 'Error', description: result.error, variant: 'destructive'});
-                } else {
-                    toast({ title: 'Success', description: result.success});
-                    loadData();
-                }
-            }).finally(() => startTransition(false));
+            startTransition(() => {
+                updateDoctorStartDelayAction(delayValue).then(result => {
+                    if ("error" in result) {
+                        toast({ title: 'Error', description: result.error, variant: 'destructive'});
+                    } else {
+                        toast({ title: 'Success', description: result.success});
+                        loadData();
+                    }
+                });
+            });
         }
     }, [loadData, toast]);
 
     const handleMarkAsLateAndCheckIn = useCallback((patientId: string, penalty: number) => {
-        startTransition(true);
-        markPatientAsLateAndCheckInAction(patientId, penalty).then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.success });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            markPatientAsLateAndCheckInAction(patientId, penalty).then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const handleRunRecalculation = useCallback(() => {
-        startTransition(true);
-        recalculateQueueWithETC().then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.success });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            recalculateQueueWithETC().then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const handleEmergencyCancel = useCallback(() => {
-        startTransition(true);
-        emergencyCancelAction().then(result => {
-            if ("error" in result) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.success });
-                loadData();
-            }
-        }).finally(() => startTransition(false));
+        startTransition(() => {
+            emergencyCancelAction().then(result => {
+                if ("error" in result) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Success', description: result.success });
+                    loadData();
+                }
+            });
+        });
     }, [loadData, toast]);
 
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
@@ -1119,3 +1135,5 @@ export default function DashboardPage() {
     );
 }
 
+
+    
