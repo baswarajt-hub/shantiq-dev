@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -113,6 +113,35 @@ function sessionLocalToUtc(dateStr: string, sessionTime: string) {
   return fromZonedTime(localDate, timeZone);
 }
 
+const StatCard: React.FC<{ title: string; value: string | number; icon?: React.ReactNode }> = ({ title, value, icon }) => (
+    <div className="group relative rounded-xl border border-neutral-200 bg-white p-3 shadow-sm hover:shadow transition-shadow">
+      <div className="flex items-center gap-2 text-xs font-medium text-neutral-600">
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-neutral-100">{icon}</span>
+        {title}
+      </div>
+      <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-neutral-900">{value}</div>
+    </div>
+  );
+
+const ToolbarButton: React.FC<{ label: string; icon: React.ReactNode; variant?: "default" | "danger", onClick?: () => void, disabled?: boolean }> = ({ label, icon, variant = "default", onClick, disabled }) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-lg border p-2.5 text-left text-sm font-medium transition-all disabled:opacity-50",
+        variant === "danger"
+          ? "border-red-200 bg-red-50 hover:bg-red-100 text-red-700"
+          : "border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700",
+      )}
+    >
+      <span className={cn(
+          "inline-flex h-7 w-7 items-center justify-center rounded-md",
+           variant === "danger" ? "bg-red-100" : "bg-neutral-100"
+      )}>{icon}</span>
+      <span className="truncate">{label}</span>
+    </button>
+  );
+
 export default function DashboardPage() {
     const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
     const [family, setFamily] = useState<FamilyMember[]>([]);
@@ -129,18 +158,13 @@ export default function DashboardPage() {
     const [isRescheduleOpen, setRescheduleOpen] = useState(false);
     const [isAdjustTimingOpen, setAdjustTimingOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [searchTerm, setSearchTerm] = useState('');
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
+    const [isQueueActive, setIsQueueActive] = useState(true);
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
-
-    useEffect(() => {
-        // Set initial date on client to avoid hydration mismatch
-        setSelectedDate(new Date());
-    }, []);
-
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
@@ -666,7 +690,7 @@ export default function DashboardPage() {
 
         return (
             <div className={cn(
-                "p-3 grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 rounded-lg border bg-card shadow-sm",
+                "p-3 grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
                 isUpNext && "bg-yellow-100/70 border-yellow-300"
             )}>
@@ -679,7 +703,7 @@ export default function DashboardPage() {
 
                 <div className="flex-1 flex flex-col gap-1">
                     <div className={cn(
-                        'flex items-center gap-2',
+                        'flex items-center gap-2 text-base',
                         getPatientNameColorClass(patient.status, patient.type)
                     )}>
                         {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={patient.purpose || undefined} />}
@@ -705,7 +729,7 @@ export default function DashboardPage() {
                     {isActionable && (
                         <div className="flex items-center gap-2">
                             {['Booked', 'Confirmed'].includes(patient.status) && (
-                                <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-check-in text-check-in-foreground hover:bg-check-in/90">Check-in</Button>
+                                <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600">Check-in</Button>
                             )}
                              {isNextInLine && !isUpNext && (
                                 <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
@@ -817,156 +841,152 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-background">
+        <div className="flex flex-col min-h-screen bg-neutral-50">
             <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
-            <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
-                <div className="space-y-6">
-                    <div className="sticky top-[57px] bg-background/95 backdrop-blur-sm z-10 py-4 -mx-4 px-4 border-b shadow-sm">
-                       <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} averageWaitTime={averageWaitTime} />
+            <main className="flex-1 mx-auto max-w-7xl w-full p-4 md:p-6 lg:p-8">
+                <div className="space-y-4">
+                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                        <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
+                        <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
+                        <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
+                        <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
+                        <StatCard title="Avg. Wait Time" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
+                        <StatCard title="Avg. Consult Time" value={`${averageConsultationTime} min`} icon={<Stethoscope className="h-4 w-4" />} />
                     </div>
-                    
-                    <Card>
-                        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
-                            <div>
-                               <div className="flex items-center gap-2">
-                                  <CardTitle className="text-2xl">Schedule</CardTitle>
-                                  <Popover>
-                                      <PopoverTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                                             <CalendarIcon className="h-4 w-4" />
-                                          </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-auto p-0">
-                                          <ScheduleCalendar
-                                              mode="single"
-                                              selected={selectedDate}
-                                              onSelect={(day) => day && setSelectedDate(day)}
-                                              initialFocus
-                                              schedule={schedule}
-                                          />
-                                      </PopoverContent>
-                                  </Popover>
-                               </div>
-                                <CardDescription>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardDescription>
+
+                    <div className="mt-3 grid place-items-center">
+                        <div className="w-full max-w-2xl">
+                          <div className="rounded-xl border border-neutral-200 bg-white p-2.5 text-center shadow-sm">
+                            <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
+                            <div className="mt-1 text-xs text-neutral-800">
+                                <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} averageWaitTime={averageWaitTime} />
                             </div>
-                             <div className="flex items-center gap-2 flex-wrap">
-                                 <div className="flex items-center space-x-2">
-                                    <Switch id="doctor-status" checked={doctorStatus.isOnline} onCheckedChange={() => handleToggleStatus('isOnline')} disabled={isPending}/>
-                                    <Label htmlFor="doctor-status" className="flex items-center text-sm">
-                                        {doctorStatus.isOnline ? <LogIn className="mr-2 h-4 w-4 text-green-500" /> : <LogOut className="mr-2 h-4 w-4 text-red-500" />}
-                                        {doctorStatus.isOnline ? `Online (since ${doctorOnlineTime})` : 'Offline'}
-                                    </Label>
+                          </div>
+                        </div>
+                    </div>
+
+                    <div className='grid grid-cols-1 md:grid-cols-[minmax(200px,15%)_1fr] gap-6'>
+                        <aside className="sticky top-[74px] h-fit space-y-4">
+                            <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-3 text-center shadow-sm">
+                                <div className="flex flex-col items-center justify-center space-y-1">
+                                    <CalendarIcon className="h-5 w-5 text-blue-600" />
+                                    <h2 className="text-base font-bold text-blue-800">Schedule & Calendar</h2>
                                 </div>
-                                <div className='flex items-center space-x-2'>
-                                    <Switch id="pause-queue" checked={!!doctorStatus.isPaused} onCheckedChange={() => handleToggleStatus('isPaused')} disabled={isPending}/>
-                                    <Label htmlFor="pause-queue" className='flex items-center text-sm'>
-                                        {doctorStatus.isPaused ? <Pause className="mr-2 h-4 w-4 text-orange-500" /> : <Play className="mr-2 h-4 w-4 text-green-500" />}
-                                        {doctorStatus.isPaused ? 'Queue Paused' : 'Queue Active'}
-                                    </Label>
-                                </div>
-                                <div className='flex items-center space-x-2'>
-                                    <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending} />
-                                    <Label htmlFor="qr-code-status" className={cn('flex items-center text-sm')}>
-                                        <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
-                                        QR Code
-                                    </Label>
-                                </div>
-                                <div className='flex items-center space-x-2'>
-                                    <Label htmlFor="doctor-delay" className="text-sm">Delay (min)</Label>
-                                    <Input id="doctor-delay" type="number" defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending} />
-                                    <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={isPending}>Update</Button>
-                                </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline">
-                                            {selectedSession === 'morning' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                                            {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)}
-                                            <ChevronDown className="ml-2 h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => setSelectedSession('morning')}>
-                                            <Sun className="mr-2 h-4 w-4" />
-                                            Morning
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setSelectedSession('evening')}>
-                                            <Moon className="mr-2 h-4 w-4" />
-                                            Evening
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <Button variant="outline" onClick={() => setAdjustTimingOpen(true)}>
-                                    <Clock className="mr-2 h-4 w-4" />
-                                    Adjust Timing
-                                </Button>
-                                <Button variant="outline" onClick={() => setNewPatientOpen(true)}>
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    New Patient
-                                </Button>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant='outline' className='mt-2 w-full bg-white/70'>{format(selectedDate, 'MMMM d, yyyy')}</Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <ScheduleCalendar
+                                            mode="single"
+                                            selected={selectedDate}
+                                            onSelect={(day) => day && setSelectedDate(day)}
+                                            initialFocus
+                                            schedule={schedule}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
                             </div>
-                        </CardHeader>
-                        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b">
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    type="search"
-                                    placeholder="Search patient..."
-                                    className="pl-8 sm:w-[200px] md:w-[300px]"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+
+                            <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
+                                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-neutral-700">
+                                    <Wrench className="h-5 w-5" /> Quick Actions
+                                </div>
+                                <div className="space-y-2">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                             <Button variant="outline" className='w-full justify-between'>
+                                                {selectedSession === 'morning' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                                                {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)}
+                                                <ChevronDown className="ml-2 h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className='w-[200px]'>
+                                            <DropdownMenuItem onClick={() => setSelectedSession('morning')}>
+                                                <Sun className="mr-2 h-4 w-4" />
+                                                Morning
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setSelectedSession('evening')}>
+                                                <Moon className="mr-2 h-4 w-4" />
+                                                Evening
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+
+                                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted">
+                                        <Label htmlFor="doctor-status-toggle" className="flex items-center text-sm font-medium">
+                                            {doctorStatus.isOnline ? <LogIn className="mr-2 h-4 w-4 text-green-500" /> : <LogOut className="mr-2 h-4 w-4 text-red-500" />}
+                                            {doctorStatus.isOnline ? `Online` : 'Offline'}
+                                        </Label>
+                                        <Switch id="doctor-status-toggle" checked={doctorStatus.isOnline} onCheckedChange={() => handleToggleStatus('isOnline')} disabled={isPending}/>
+                                    </div>
+                                     <div className='p-2 rounded-lg bg-muted space-y-2'>
+                                        <Label htmlFor="doctor-delay-input" className="text-sm">Delay (min)</Label>
+                                        <div className='flex items-center gap-2'>
+                                            <Input id="doctor-delay-input" type="number" defaultValue={doctorStatus.startDelay || 0} className="w-16 h-8" disabled={isPending} />
+                                            <Button size="sm" variant="outline" onClick={handleUpdateDelay} disabled={isPending}>Set</Button>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted">
+                                        <Label htmlFor="queue-active-toggle" className="flex items-center text-sm font-medium">
+                                            {isQueueActive ? <Play className="mr-2 h-4 w-4 text-green-500" /> : <Pause className="mr-2 h-4 w-4 text-orange-500" />}
+                                            {isQueueActive ? 'Queue Active' : 'Queue Paused'}
+                                        </Label>
+                                        <Switch id="queue-active-toggle" checked={isQueueActive} onCheckedChange={setIsQueueActive} disabled={isPending}/>
+                                    </div>
+                                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted">
+                                        <Label htmlFor="qr-code-toggle" className="flex items-center text-sm font-medium">
+                                            <QrCode className="mr-2 h-4 w-4" />
+                                            QR Code
+                                        </Label>
+                                        <Switch id="qr-code-toggle" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending}/>
+                                    </div>
+
+                                    <ToolbarButton label="New Patient" icon={<PlusCircle className="h-5 w-5" />} onClick={() => setNewPatientOpen(true)} />
+                                    <ToolbarButton label="Adjust Timing" icon={<Clock className="h-5 w-5" />} onClick={() => setAdjustTimingOpen(true)} />
+                                    <ToolbarButton label="Show Completed" icon={<ListChecks className="h-5 w-5" />} onClick={() => setShowCompleted(prev => !prev)} />
+                                    <ToolbarButton label="Recalculate Queue" icon={<RefreshCw className="h-5 w-5" />} onClick={handleRunRecalculation} disabled={isPending} />
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <ToolbarButton label="Emergency" icon={<AlertTriangle className="h-5 w-5" />} variant="danger" />
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                            This action will cancel all active appointments and notify patients of an emergency. This cannot be undone.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleEmergencyCancel} disabled={isPending}>
+                                            {isPending ? 'Cancelling...' : 'Confirm Emergency'}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <Button variant="outline" onClick={() => setShowCompleted(prev => !prev)}>
-                                    {showCompleted ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-                                    {showCompleted ? 'Hide' : 'Show'} Completed
-                                </Button>
-                                <Button variant="outline" onClick={handleRunRecalculation} disabled={isPending}>
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                    {isPending ? 'Recalculating...' : 'Recalculate Queue'}
-                                </Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive">
-                                            <AlertTriangle className="mr-2 h-4 w-4" />
-                                            Emergency
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                        This action will cancel all active appointments and notify patients of an emergency. This cannot be undone.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleEmergencyCancel} disabled={isPending}>
-                                        {isPending ? 'Cancelling...' : 'Confirm Emergency'}
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                            <div className="space-y-3">
+                        </aside>
+                        <section>
+                             <div className="space-y-3">
                                 {nowServing && (
-                                    <div className="p-3 rounded-lg border bg-green-200/60 border-green-400">
+                                    <div className="p-3 rounded-xl border bg-green-200/60 border-green-400 shadow-md">
                                          <div className="flex items-center gap-4">
                                             <div className="flex items-center gap-2">
                                                 <Hourglass className="h-5 w-5 text-green-700 animate-pulse" />
                                                 <h3 className="font-bold text-lg text-green-800">Now Serving</h3>
                                             </div>
                                              <div className="flex-1 flex flex-col gap-1">
-                                                <div className="flex items-center gap-2 font-semibold text-blue-600">
+                                                <div className="flex items-center gap-2 font-semibold text-blue-600 text-lg">
                                                     <PatientNameWithBadges patient={nowServing} />
                                                 </div>
                                              </div>
                                              <div className="flex items-center gap-2">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="outline" size="sm" className="h-8">Actions</Button>
+                                                        <Button variant="outline" size="sm" className="h-8 bg-white/70">Actions</Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Completed')} disabled={isPending}>
@@ -994,8 +1014,8 @@ export default function DashboardPage() {
                                 ) : (
                                     <div 
                                       className={cn(
-                                          "p-3 flex items-center rounded-lg border border-dashed hover:bg-muted/60 cursor-pointer",
-                                           "bg-muted/30"
+                                          "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-pointer transition-colors",
+                                           "bg-neutral-50"
                                       )} 
                                       onClick={() => handleSlotClick(slot.time)}
                                     >
@@ -1018,8 +1038,8 @@ export default function DashboardPage() {
                                 </div>
                             )}
                             </div>
-                        </CardContent>
-                    </Card>
+                        </section>
+                    </div>
                 </div>
                 {schedule && selectedSlot && selectedDate && (
                     <BookWalkInDialog
@@ -1069,32 +1089,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
