@@ -18,9 +18,14 @@ import { format, parseISO } from 'date-fns';
 import Header from '@/components/header';
 import { getDoctorScheduleAction } from '@/app/actions';
 import { DoctorSchedule } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+type SearchByType = 'phone' | 'clinicId' | 'dob' | 'fatherName' | 'motherName' | 'name';
+
 
 export default function FamilyAdminPage() {
   const [families, setFamilies] = useState<Record<string, FamilyMember[]>>({});
+  const [searchBy, setSearchBy] = useState<SearchByType>('phone');
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditMemberOpen, setEditMemberOpen] = useState(false);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
@@ -49,7 +54,7 @@ export default function FamilyAdminPage() {
       return;
     }
     startTransition(async () => {
-      const results = await searchFamilyMembersAction(searchTerm);
+      const results = await searchFamilyMembersAction(searchTerm, searchBy);
       if (results.length === 0) {
         toast({ title: "Not Found", description: "No families found for the given search term."});
       }
@@ -63,10 +68,17 @@ export default function FamilyAdminPage() {
       }, {} as Record<string, FamilyMember[]>);
       setFamilies(groupedByPhone);
     });
-  }, [searchTerm, toast]);
+  }, [searchTerm, searchBy, toast]);
+  
+  const handleSearchByChange = (value: SearchByType) => {
+    setSearchBy(value);
+    setSearchTerm('');
+    setFamilies({});
+  };
 
   const handleReset = () => {
     setSearchTerm('');
+    setSearchBy('phone');
     setFamilies({});
   };
 
@@ -156,6 +168,15 @@ export default function FamilyAdminPage() {
     }
   }
 
+  const searchPlaceholders: Record<SearchByType, string> = {
+    phone: 'Enter 10-digit phone number...',
+    clinicId: 'Enter Clinic ID...',
+    dob: '',
+    fatherName: "Enter father's name...",
+    motherName: "Enter mother's name...",
+    name: 'Enter patient name...',
+  };
+
   return (
     <>
     <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
@@ -188,21 +209,35 @@ export default function FamilyAdminPage() {
         </div>
         <Card>
           <CardHeader>
-            <div className="flex gap-2">
-              <Input 
-                placeholder="Search by name, phone, clinic ID, or DOB (DD-MM-YYYY)..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <Button onClick={handleSearch} disabled={isPending}>
-                <Search className="mr-2 h-4 w-4" />
-                {isPending ? 'Searching...' : 'Search'}
-              </Button>
-              <Button onClick={handleReset} variant="outline">
-                <X className="mr-2 h-4 w-4" />
-                Reset
-              </Button>
+             <div className="flex gap-2">
+                <Select value={searchBy} onValueChange={handleSearchByChange}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Search by..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="phone">Phone Number</SelectItem>
+                        <SelectItem value="clinicId">Clinic ID</SelectItem>
+                        <SelectItem value="dob">Date of Birth</SelectItem>
+                        <SelectItem value="fatherName">Father's Name</SelectItem>
+                        <SelectItem value="motherName">Mother's Name</SelectItem>
+                        <SelectItem value="name">Patient Name</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Input 
+                    type={searchBy === 'dob' ? 'date' : 'search'}
+                    placeholder={searchPlaceholders[searchBy]}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+                <Button onClick={handleSearch} disabled={isPending}>
+                    <Search className="mr-2 h-4 w-4" />
+                    {isPending ? 'Searching...' : 'Search'}
+                </Button>
+                <Button onClick={handleReset} variant="outline">
+                    <X className="mr-2 h-4 w-4" />
+                    Reset
+                </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-8">
@@ -223,6 +258,9 @@ export default function FamilyAdminPage() {
                        <span className="text-sm font-mono flex items-center gap-2"><Phone className="h-4 w-4" />{phone}</span>
                     </div>
                      <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => primary && handleOpenEditMember(primary)}>
+                        <Edit className="mr-2 h-4 w-4" /> Edit Family
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => handleAddMember(phone)}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Member
                       </Button>
@@ -266,11 +304,6 @@ export default function FamilyAdminPage() {
                                     <p className="text-sm text-muted-foreground flex items-center gap-2"><Mail className="h-3 w-3"/>{primary.email || 'No email'}</p>
                                 </div>
                             </div>
-                             <div className="flex items-center gap-1">
-                                <Button variant="outline" size="sm" onClick={() => handleOpenEditMember(primary)}>
-                                  <Edit className="mr-2 h-4 w-4" /> Edit
-                                </Button>
-                             </div>
                         </div>
                     )}
                     <div className="grid md:grid-cols-2 gap-4">

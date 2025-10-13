@@ -487,10 +487,12 @@ export async function getFamilyByPhoneAction(phone: string) {
     return getFamilyByPhone(phone);
 }
 
-export async function searchFamilyMembersAction(searchTerm: string): Promise<FamilyMember[]> {
+export async function searchFamilyMembersAction(searchTerm: string, searchBy: 'phone' | 'clinicId' | 'dob' | 'fatherName' | 'motherName' | 'name' = 'name'): Promise<FamilyMember[]> {
     if (!searchTerm.trim()) return [];
 
     let effectiveSearchTerm = searchTerm;
+    // The frontend sends DOB in 'yyyy-mm-dd' format, but the old logic expected 'dd-mm-yyyy'
+    // Let's handle both for robustness, but primarily expect yyyy-mm-dd now.
     const ddMMyyyyRegex = /^(\d{2})-(\d{2})-(\d{4})$/;
     const dateMatch = searchTerm.match(ddMMyyyyRegex);
 
@@ -499,7 +501,7 @@ export async function searchFamilyMembersAction(searchTerm: string): Promise<Fam
         effectiveSearchTerm = `${year}-${month}-${day}`;
     }
 
-    return searchFamilyMembers(effectiveSearchTerm);
+    return searchFamilyMembers(effectiveSearchTerm, searchBy);
 }
 
 export async function checkInPatientAction(patientId: string): Promise<ActionResult> {
@@ -1521,6 +1523,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     
 
     
+
 
 
 

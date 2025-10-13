@@ -678,7 +678,7 @@ export default function DashboardPage() {
         const lowerSearch = searchTerm.toLowerCase();
         return slot.patientDetails.name?.toLowerCase().includes(lowerSearch) ||
                slot.patientDetails.phone?.includes(lowerSearch) ||
-               (slot.patientDetails.clinicId && String(slot.patientDetails.clinicId).toLowerCase().includes(lowercasedTerm));
+               (slot.patientDetails.clinicId && String(slot.patientDetails.clinicId).toLowerCase().includes(lowerSearch));
     });
 
     const canDoctorCheckIn = selectedDate ? isToday(selectedDate) : false;

@@ -1,12 +1,5 @@
 
 
-
-
-
-
-
-
-
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -354,31 +347,39 @@ export async function findPrimaryUserByPhone(phone: string): Promise<FamilyMembe
     return null;
 }
 
-export async function searchFamilyMembers(searchTerm: string): Promise<FamilyMember[]> {
+export async function searchFamilyMembers(searchTerm: string, searchBy: 'phone' | 'clinicId' | 'dob' | 'fatherName' | 'motherName' | 'name'): Promise<FamilyMember[]> {
     if (!searchTerm.trim()) return [];
-    
+
     const familySnapshot = await getDocs(familyCollection);
     const allMembers = familySnapshot.docs.map(doc => ({ ...(processFirestoreDoc(doc.data()) as Omit<FamilyMember, 'id'>), id: doc.id }));
-    
+
     const lowercasedTerm = searchTerm.toLowerCase();
 
-    const isDateSearch = /^\d{4}-\d{2}-\d{2}$/.test(searchTerm);
-
-    const matchingMembers = allMembers.filter(member =>
-        member.name.toLowerCase().includes(lowercasedTerm) ||
-        (member.fatherName && member.fatherName.toLowerCase().includes(lowercasedTerm)) ||
-        (member.motherName && member.motherName.toLowerCase().includes(lowercasedTerm)) ||
-        member.phone.includes(searchTerm) ||
-        (member.clinicId && String(member.clinicId).toLowerCase().includes(lowercasedTerm)) ||
-        (isDateSearch && member.dob === searchTerm)
-    );
-
+    const matchingMembers = allMembers.filter(member => {
+        switch (searchBy) {
+            case 'phone':
+                return member.phone.includes(searchTerm);
+            case 'clinicId':
+                return member.clinicId?.toLowerCase().includes(lowercasedTerm);
+            case 'dob':
+                return member.dob === searchTerm; // Expects 'YYYY-MM-DD'
+            case 'fatherName':
+                return member.fatherName?.toLowerCase().includes(lowercasedTerm);
+            case 'motherName':
+                return member.motherName?.toLowerCase().includes(lowercasedTerm);
+            case 'name':
+                return member.name.toLowerCase().includes(lowercasedTerm);
+            default:
+                return false;
+        }
+    });
+    
     if (matchingMembers.length === 0) {
         return [];
     }
 
+    // Return all members of the families that matched the search
     const phoneNumbers = [...new Set(matchingMembers.map(m => m.phone))];
-
     return allMembers.filter(member => phoneNumbers.includes(member.phone));
 }
 
@@ -553,3 +554,4 @@ export async function deleteAllFamilies(): Promise<void> {
     
 
     
+
