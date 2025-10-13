@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
@@ -29,8 +28,11 @@ type BookWalkInDialogProps = {
   visitPurposes: VisitPurpose[];
 };
 
+type SearchByType = 'clinicId' | 'phone' | 'dob';
+
 export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate, onSave, onAddNewPatient, visitPurposes }: BookWalkInDialogProps) {
   const [step, setStep] = useState(1);
+  const [searchBy, setSearchBy] = useState<SearchByType>('clinicId');
   const [searchTerm, setSearchTerm] = useState('');
   const [foundMembers, setFoundMembers] = useState<FamilyMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -38,22 +40,43 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
   const [isPending, startTransition] = useTransition();
   
   useEffect(() => {
+    if (!isOpen) {
+      // Reset state when dialog is closed
+      resetState();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     const handler = setTimeout(() => {
       if (searchTerm.trim() === '') {
         setFoundMembers([]);
         return;
       }
       startTransition(async () => {
-        const results = await searchFamilyMembersAction(searchTerm);
+        let effectiveSearchTerm = searchTerm;
+        if (searchBy === 'dob') {
+            // Convert YYYY-MM-DD to DD-MM-YYYY for the backend
+            const dateParts = searchTerm.split('-');
+            if (dateParts.length === 3) {
+                effectiveSearchTerm = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+            }
+        }
+
+        const results = await searchFamilyMembersAction(effectiveSearchTerm);
         // Filter out primary members from the search results
         const nonPrimaryMembers = results.filter(member => !member.isPrimary);
         setFoundMembers(nonPrimaryMembers);
       });
-    }, 300); // Debounce search
+    }, 500); // Debounce search
 
     return () => clearTimeout(handler);
-  }, [searchTerm]);
+  }, [searchTerm, searchBy]);
 
+  const handleSearchByChange = (value: SearchByType) => {
+    setSearchBy(value);
+    setSearchTerm('');
+    setFoundMembers([]);
+  };
 
   const handleSelectMember = (member: FamilyMember) => {
     setSelectedMember(member);
@@ -82,6 +105,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
   const resetState = () => {
     setStep(1);
     setSearchTerm('');
+    setSearchBy('clinicId');
     setFoundMembers([]);
     setSelectedMember(null);
     setSelectedPurpose('Consultation');
@@ -106,13 +130,19 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
 
   const selectedPurposeDetails = visitPurposes.find(p => p.name === selectedPurpose);
 
+  const searchPlaceholders = {
+      clinicId: 'Enter Clinic ID...',
+      phone: 'Enter 10-digit phone number...',
+      dob: ''
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Book Walk-in for {timeSlot}</DialogTitle>
           <DialogDescription>
-            {step === 1 && "Find patient by Clinic ID, name, or phone number."}
+            {step === 1 && "Find a patient to book a walk-in appointment."}
             {step === 2 && "Confirm the appointment details."}
           </DialogDescription>
         </DialogHeader>
@@ -121,7 +151,25 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="search">Search Patient</Label>
-                    <Input id="search" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="e.g. C101, John Doe, or 5551112222"/>
+                    <div className="flex gap-2">
+                        <Select value={searchBy} onValueChange={handleSearchByChange}>
+                            <SelectTrigger className="w-[150px]">
+                                <SelectValue placeholder="Search by..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="clinicId">Clinic ID</SelectItem>
+                                <SelectItem value="phone">Phone</SelectItem>
+                                <SelectItem value="dob">DOB</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Input 
+                            id="search" 
+                            type={searchBy === 'dob' ? 'date' : 'text'}
+                            value={searchTerm} 
+                            onChange={e => setSearchTerm(e.target.value)} 
+                            placeholder={searchPlaceholders[searchBy]}
+                        />
+                    </div>
                 </div>
                 
                 {searchTerm && (
