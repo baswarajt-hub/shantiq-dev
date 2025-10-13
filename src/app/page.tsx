@@ -2,7 +2,6 @@
 'use client';
 import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import Header from '@/components/header';
-import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -11,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, RefreshCw } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, RefreshCw, Users, UserCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -27,6 +26,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
+import Stats from '@/components/dashboard/stats';
 
 
 type TimeSlot = {
@@ -65,7 +65,7 @@ const statusConfig: Record<Patient['status'], { icon: React.ElementType; color: 
     Waiting: { icon: Clock, color: 'text-blue-600' },
     'Up-Next': { icon: ChevronsRight, color: 'text-yellow-600' },
     'Booked': { icon: CalendarIcon, color: 'text-gray-500' },
-    'Confirmed': { icon: CalendarIcon, color: 'text-gray-500' }, 
+    'Confirmed': { icon: CalendarIcon, color: 'text-gray-500' },
     'In-Consultation': { icon: Hourglass, color: 'text-green-600 animate-pulse' },
     Completed: { icon: CheckCircle, color: 'text-green-600' },
     Late: { icon: UserX, color: 'text-orange-600' },
@@ -150,7 +150,7 @@ export default function DashboardPage() {
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [averageConsultationTime, setAverageConsultationTime] = useState(0);
     const [averageWaitTime, setAverageWaitTime] = useState(0);
-    
+
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
@@ -163,12 +163,13 @@ export default function DashboardPage() {
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
     const [isQueueActive, setIsQueueActive] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
-        
+
         const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
         const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
         const dateStr = format(zonedAppt, 'yyyy-MM-dd');
@@ -198,20 +199,25 @@ export default function DashboardPage() {
     };
 
     const loadData = useCallback(() => {
-      startTransition(async () => {
-        const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+        setIsLoading(true);
+        Promise.all([
             getDoctorScheduleAction(),
             getPatientsAction(),
             getFamilyAction(),
             getDoctorStatusAction()
-        ]);
+        ]).then(([scheduleData, patientData, familyData, statusData]) => {
+            setSchedule(scheduleData);
+            setPatients(patientData);
+            setFamily(familyData);
+            setDoctorStatus(statusData);
+        }).catch(err => {
+            console.error("Failed to load data", err);
+            toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
+        }).finally(() => {
+            setIsLoading(false);
+        });
+    }, [toast]);
 
-        setSchedule(scheduleData);
-        setPatients(patientData);
-        setFamily(familyData);
-        setDoctorStatus(statusData);
-      });
-    }, [startTransition]);
 
     useEffect(() => {
         loadData();
@@ -219,7 +225,7 @@ export default function DashboardPage() {
         if (currentHour >= 14) {
             setSelectedSession('evening');
         }
-        
+
         const intervalId = setInterval(loadData, 30000); // 30 seconds
         return () => clearInterval(intervalId);
 
@@ -228,7 +234,7 @@ export default function DashboardPage() {
 
     const sessionPatients = patients.filter(p => {
         if (!p.appointmentTime || !selectedDate || !isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
-        
+
         const apptDate = parseISO(p.appointmentTime);
         const apptSession = getSessionForTime(apptDate);
 
@@ -246,7 +252,7 @@ export default function DashboardPage() {
         }
 
         // Calculate average wait time
-        const currentlyWaiting = sessionPatients.filter(p => 
+        const currentlyWaiting = sessionPatients.filter(p =>
             ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status) && p.checkInTime
         );
 
@@ -269,7 +275,7 @@ export default function DashboardPage() {
         if (!schedule || !schedule.days || !selectedDate) return;
 
         const familyMap = new Map(family.map(f => [`${f.phone}-${f.name}`, f]));
-        
+
         const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
         const generatedSlots: TimeSlot[] = [];
@@ -288,36 +294,36 @@ export default function DashboardPage() {
                 evening: closure.eveningOverride ?? daySchedule.evening
             }
         }
-        
+
         const sessionToGenerate = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
         const isSessionClosed = selectedSession === 'morning' ? closure?.isMorningClosed : closure?.isEveningClosed;
 
         if (sessionToGenerate.isOpen && !isSessionClosed) {
             const [startHour, startMinute] = sessionToGenerate.start.split(':').map(Number);
             const [endHour, endMinute] = sessionToGenerate.end.split(':').map(Number);
-            
+
             let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
             const endTime = set(selectedDate, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
-            
+
             let slotIndex = 0;
             while (currentTime < endTime) {
                 const timeString = format(currentTime, 'hh:mm a');
-                
+
                 const timeZone = "Asia/Kolkata";
-                
+
                 const patientForSlot = patients.find(p => {
                     if (p.status === 'Cancelled' || !p.appointmentTime) return false;
                     const apptDateUtc = parseISO(p.appointmentTime);
                     const apptInIST = toZonedTime(apptDateUtc, timeZone);
-                    
+
                     const apptTimeStr = format(apptInIST, 'hh:mm a');
                     const apptDateStr = format(apptInIST, 'yyyy-MM-dd');
-                    
+
                     return apptTimeStr === timeString && apptDateStr === format(selectedDate, 'yyyy-MM-dd');
                 });
-                
+
                 let isBooked = !!patientForSlot;
-                
+
                 let isReservedForWalkIn = false;
                 if (!isBooked) {
                     if (schedule.reserveFirstFive && slotIndex < 5) {
@@ -363,7 +369,7 @@ export default function DashboardPage() {
                 slotIndex++;
             }
         }
-        
+
         setTimeSlots(generatedSlots);
     }, [schedule, patients, family, selectedSession, selectedDate]);
 
@@ -374,7 +380,7 @@ export default function DashboardPage() {
           setBookWalkInOpen(true);
         }
     };
-    
+
     const handleBookAppointment = useCallback(async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
         startTransition(async () => {
              const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn);
@@ -434,7 +440,7 @@ export default function DashboardPage() {
             }
         });
     }, [loadData, toast]);
-    
+
     const handleStartLastConsultation = useCallback((patientId: string) => {
         startTransition(async () => {
             const result = await startLastConsultationAction(patientId);
@@ -517,7 +523,7 @@ export default function DashboardPage() {
             loadData();
         }
     }, [loadData, toast]);
-    
+
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
@@ -538,17 +544,17 @@ export default function DashboardPage() {
         } else if (field === 'isQrCodeActive' && !newStatusValue) {
           updates.walkInSessionToken = null;
         }
-    
+
         if (field === 'isOnline') {
             if (newStatusValue) { // Going online
-                updates.startDelay = 0; 
+                updates.startDelay = 0;
                 updates.onlineTime = new Date().toISOString();
             } else { // Going offline
                 updates.onlineTime = undefined;
                 if(doctorStatus.isPaused) updates.isPaused = false;
             }
         }
-        
+
         startTransition(async () => {
             const result = await setDoctorStatusAction(updates);
             if ("error" in result) {
@@ -559,7 +565,7 @@ export default function DashboardPage() {
             }
         });
     }, [doctorStatus, loadData, toast]);
-    
+
     const handleUpdateDelay = useCallback(() => {
         const delayInput = document.getElementById('doctor-delay') as HTMLInputElement;
         if (delayInput) {
@@ -575,7 +581,7 @@ export default function DashboardPage() {
             });
         }
     }, [loadData, toast]);
-    
+
     const handleMarkAsLateAndCheckIn = useCallback((patientId: string, penalty: number) => {
         startTransition(async () => {
             const result = await markPatientAsLateAndCheckInAction(patientId, penalty);
@@ -611,10 +617,10 @@ export default function DashboardPage() {
             }
         });
     }, [loadData, toast]);
-    
+
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
     const upNext = sessionPatients.find(p => p.status === 'Up-Next');
-    
+
     const waitingList = sessionPatients
       .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.id !== upNext?.id)
       .sort((a, b) => {
@@ -628,7 +634,7 @@ export default function DashboardPage() {
       });
 
     const nextInLine = waitingList[0];
-    
+
     const displayedTimeSlots = timeSlots.filter(slot => {
         if (slot.patient && (slot.patient.status === 'In-Consultation' || slot.patient.status === 'Up-Next')) {
             return false;
@@ -639,7 +645,7 @@ export default function DashboardPage() {
         }
 
         if (!searchTerm) return true;
-        
+
         if (!slot.isBooked || !slot.patientDetails) return false;
         const lowerSearch = searchTerm.toLowerCase();
         return slot.patientDetails.name?.toLowerCase().includes(lowerSearch) ||
@@ -650,7 +656,7 @@ export default function DashboardPage() {
     const canDoctorCheckIn = selectedDate ? isToday(selectedDate) : false;
 
 
-    if (!schedule || !doctorStatus || !selectedDate) {
+    if (isLoading || !schedule || !doctorStatus || !selectedDate) {
         return (
             <div className="flex flex-col min-h-screen bg-background">
                  <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
@@ -673,7 +679,7 @@ export default function DashboardPage() {
             </div>
         );
     }
-    
+
     const doctorOnlineTime = doctorStatus.onlineTime ? new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
 
@@ -725,7 +731,7 @@ export default function DashboardPage() {
                         {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
                         <span className={cn("font-medium", statusColor)}>{patient.status} {patient.lateBy ? `(${patient.lateBy} min)` : ''}</span>
                     </div>
-                    
+
                     {isActionable && (
                         <div className="flex items-center gap-2">
                             {['Booked', 'Confirmed'].includes(patient.status) && (
@@ -1004,19 +1010,19 @@ export default function DashboardPage() {
                                 {upNext && <PatientCard patient={upNext} />}
 
                             {displayedTimeSlots.length > 0 ? displayedTimeSlots.map((slot, index) => {
-                                
+
                                 if (searchTerm && !slot.isBooked) return null;
-                                
+
                                 return (
                                 <div key={slot.time}>
                                 {slot.isBooked && slot.patient ? (
                                     <PatientCard patient={slot.patient} />
                                 ) : (
-                                    <div 
+                                    <div
                                       className={cn(
                                           "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-pointer transition-colors",
                                            "bg-neutral-50"
-                                      )} 
+                                      )}
                                       onClick={() => handleSlotClick(slot.time)}
                                     >
                                          <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
