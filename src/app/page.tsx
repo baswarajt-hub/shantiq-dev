@@ -8,7 +8,7 @@ import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -882,58 +882,35 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen w-full bg-neutral-50">
             <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
-            <div className="sticky top-[57px] z-10 border-b bg-white/80 p-4 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-                <div className="mx-auto max-w-7xl">
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                        <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
-                        <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
-                        <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
-                        <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
-                        <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
-                        <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
-                    </div>
-                    <div className="mt-3 grid place-items-center">
-                       <div className="w-full max-w-2xl">
-                         <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center shadow-sm">
-                           <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
-                           <div className="mt-1 text-sm text-neutral-800">
-                             <p>This is a placeholder for visit purpose breakdown</p>
-                           </div>
-                         </div>
-                       </div>
-                    </div>
-                </div>
-            </div>
-            
-            <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 md:grid-cols-[minmax(200px,15%)_1fr]">
-                <aside className="sticky top-[250px] h-fit space-y-4">
-                     <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
-                        <div className="rounded-lg bg-muted/80 p-3 text-center mb-3 font-semibold flex items-center justify-center gap-2">
-                           <CalendarIcon className="h-5 w-5" />
-                            {format(selectedDate, 'MMMM d, yyyy')}
-                             {isRefreshing && <RefreshCw className="h-4 w-4 animate-spin text-primary" />}
+            <div className="grid md:grid-cols-[280px_1fr] h-[calc(100vh-57px)]">
+                <aside className="fixed top-[57px] left-0 h-full w-[280px] bg-white border-r flex flex-col p-4 space-y-4 overflow-y-auto">
+                     <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-3 text-center shadow-sm">
+                        <div className="flex items-center justify-center gap-2">
+                           <h2 className="text-lg font-bold text-blue-700">Schedule & Calendar</h2>
+                            {isRefreshing && <RefreshCw className="h-4 w-4 animate-spin text-primary" />}
                         </div>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant='outline' className='w-full'>Change Date</Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <ScheduleCalendar
-                                    mode="single"
-                                    selected={selectedDate}
-                                    onSelect={(day) => {
-                                      if (day && (!selectedDate || day.getTime() !== selectedDate.getTime())) {
-                                        setSelectedDate(day);
-                                      }
-                                    }}
-                                    initialFocus
-                                    schedule={schedule}
-                                />
-                            </PopoverContent>
-                        </Popover>
+                        <div className="font-semibold text-neutral-600 bg-blue-100/50 rounded-md p-1 mt-1">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</div>
                     </div>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant='outline' className='w-full'><CalendarIcon className="mr-2 h-4 w-4" /> Change Date</Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <ScheduleCalendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={(day) => {
+                                  if (day && (!selectedDate || day.getTime() !== selectedDate.getTime())) {
+                                    setSelectedDate(day);
+                                  }
+                                }}
+                                initialFocus
+                                schedule={schedule}
+                            />
+                        </PopoverContent>
+                    </Popover>
 
-                    <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
+                    <div className="rounded-xl border bg-white p-3 shadow-sm flex-1">
                         <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-neutral-700">
                             <Wrench className="h-5 w-5" /> Quick Actions
                         </div>
@@ -946,7 +923,7 @@ export default function DashboardPage() {
                                         <ChevronDown className="ml-2 h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className='w-[200px]'>
+                                <DropdownMenuContent align="start" className='w-[240px]'>
                                     <DropdownMenuItem onClick={() => setSelectedSession('morning')}>
                                         <Sun className="mr-2 h-4 w-4" />
                                         Morning
@@ -1012,90 +989,119 @@ export default function DashboardPage() {
                     </div>
                 </aside>
 
-                <section>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="search"
-                                placeholder="Search patient..."
-                                className="pl-8 sm:w-[200px] md:w-[300px]"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                 <main className="md:col-start-2 overflow-y-auto">
+                     <div className="sticky top-0 z-10 bg-neutral-50/80 backdrop-blur-sm p-4 -mx-4">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                            <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
+                            <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
+                            <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
+                            <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
+                            <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
+                            <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
                         </div>
-                        <div className="text-sm text-neutral-500 font-semibold">{selectedSession === 'morning' ? "Morning" : "Evening"} Session</div>
+                        <div className="mt-3 grid place-items-center">
+                           <div className="w-full max-w-2xl">
+                             <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center shadow-sm">
+                               <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
+                                <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-neutral-800">
+                                   {Object.keys(sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>)).length > 0 ? 
+                                       Object.entries(sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([purpose, count]) => (
+                                           <span key={purpose}>{purpose}: <span className="font-bold">{count}</span></span>
+                                       )) : (
+                                       <span className="text-neutral-500">No purposes specified yet.</span>
+                                   )}
+                               </div>
+                             </div>
+                           </div>
+                        </div>
                     </div>
 
-                    <div className="mt-3 space-y-2">
-                        {nowServing && (
-                            <div className="p-3 rounded-xl border bg-green-200/60 border-green-400 shadow-md">
-                                 <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <Hourglass className="h-5 w-5 text-green-700 animate-pulse" />
-                                        <h3 className="font-bold text-lg text-green-800">Now Serving</h3>
-                                    </div>
-                                     <div className="flex-1 flex flex-col gap-1">
-                                        <div className="flex items-center gap-2 font-semibold text-blue-600 text-lg">
-                                            <PatientNameWithBadges patient={nowServing} />
-                                        </div>
-                                     </div>
-                                     <div className="flex items-center gap-2">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="outline" size="sm" className="h-8 bg-white/70">Actions</Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Completed')} disabled={isPending}>
-                                                    Mark Completed
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Waiting for Reports')} disabled={isPending}>
-                                                    Waiting for Reports
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                     </div>
-                                 </div>
-                            </div>
-                        )}
-                        {upNext && <PatientCard patient={upNext} />}
-                        {displayedTimeSlots.length > 0 ? displayedTimeSlots.map((slot, index) => {
+                    <div className="p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="relative">
+                              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                  type="search"
+                                  placeholder="Search patient..."
+                                  className="pl-8 sm:w-[200px] md:w-[300px]"
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                              />
+                          </div>
+                          <div className="text-sm text-neutral-500 font-semibold">{selectedSession === 'morning' ? "Morning" : "Evening"} Session</div>
+                      </div>
 
-                            if (searchTerm && !slot.isBooked) return null;
+                      <div className="mt-3 space-y-2">
+                          {nowServing && (
+                              <div className="p-3 rounded-xl border bg-green-200/60 border-green-400 shadow-md">
+                                   <div className="flex items-center gap-4">
+                                      <div className="flex items-center gap-2">
+                                          <Hourglass className="h-5 w-5 text-green-700 animate-pulse" />
+                                          <h3 className="font-bold text-lg text-green-800">Now Serving</h3>
+                                      </div>
+                                       <div className="flex-1 flex flex-col gap-1">
+                                          <div className="flex items-center gap-2 font-semibold text-blue-600 text-lg">
+                                              <PatientNameWithBadges patient={nowServing} />
+                                          </div>
+                                       </div>
+                                       <div className="flex items-center gap-2">
+                                          <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                  <Button variant="outline" size="sm" className="h-8 bg-white/70">Actions</Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent>
+                                                  <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Completed')} disabled={isPending}>
+                                                      Mark Completed
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Waiting for Reports')} disabled={isPending}>
+                                                      Waiting for Reports
+                                                  </DropdownMenuItem>
+                                              </DropdownMenuContent>
+                                          </DropdownMenu>
+                                       </div>
+                                   </div>
+                              </div>
+                          )}
+                          {upNext && <PatientCard patient={upNext} />}
+                          {displayedTimeSlots.length > 0 ? displayedTimeSlots.map((slot, index) => {
 
-                            return (
-                            <div key={slot.time}>
-                            {slot.isBooked && slot.patient ? (
-                                <PatientCard patient={slot.patient} />
-                            ) : (
-                                <div
-                                  className={cn(
-                                      "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-pointer transition-colors",
-                                       "bg-neutral-50"
-                                  )}
-                                  onClick={() => handleSlotClick(slot.time)}
-                                >
-                                     <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
-                                     <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
-                                     <div className={cn("flex-1 font-semibold flex items-center justify-center gap-2", (slot.isReservedForWalkIn) ? "text-amber-600" : "text-green-600")}>
-                                       {(slot.isReservedForWalkIn) ? (
-                                         <Footprints className="h-4 w-4"/>
-                                       ) : (
-                                         <PlusCircle className="h-4 w-4"/>
-                                       )}
-                                     </div>
-                                </div>
-                            )}
-                            </div>
-                            )
-                        }) : (
-                             <div className="text-center py-16 text-muted-foreground">
-                                <p>{searchTerm ? "No matching appointments found." : "This session is closed or has no available slots."}</p>
-                            </div>
-                        )}
+                              if (searchTerm && !slot.isBooked) return null;
+
+                              return (
+                              <div key={slot.time}>
+                              {slot.isBooked && slot.patient ? (
+                                  <PatientCard patient={slot.patient} />
+                              ) : (
+                                  <div
+                                    className={cn(
+                                        "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-pointer transition-colors",
+                                         "bg-neutral-50"
+                                    )}
+                                    onClick={() => handleSlotClick(slot.time)}
+                                  >
+                                       <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
+                                       <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
+                                       <div className={cn("flex-1 font-semibold flex items-center justify-center gap-2", (slot.isReservedForWalkIn) ? "text-amber-600" : "text-green-600")}>
+                                         {(slot.isReservedForWalkIn) ? (
+                                           <Footprints className="h-4 w-4"/>
+                                         ) : (
+                                           <PlusCircle className="h-4 w-4"/>
+                                         )}
+                                       </div>
+                                  </div>
+                              )}
+                              </div>
+                              )
+                          }) : (
+                               <div className="text-center py-16 text-muted-foreground">
+                                  <p>{searchTerm ? "No matching appointments found." : "This session is closed or has no available slots."}</p>
+                              </div>
+                          )}
+                      </div>
                     </div>
-                </section>
-            </main>
+                </main>
+            </div>
+
                 {schedule && selectedSlot && selectedDate && (
                     <BookWalkInDialog
                         isOpen={isBookWalkInOpen}
@@ -1143,3 +1149,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
