@@ -1,17 +1,16 @@
 
 'use client';
-import { useState, useEffect, useCallback, useTransition } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/header';
-import Stats from '@/components/dashboard/stats';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, Users, UserCheck, Activity } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -162,7 +161,7 @@ export default function DashboardPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
-    const [isPending, startTransition] = useTransition();
+    const [isPending, startTransition] = useState(false);
 
     const [isLoading, setIsLoading] = useState(true);
     const [initialLoad, setInitialLoad] = useState(true);
@@ -903,14 +902,16 @@ export default function DashboardPage() {
             
             <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 md:grid-cols-[minmax(200px,15%)_1fr]">
                 <aside className="sticky top-[74px] h-fit space-y-4">
-                    <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-4 text-center shadow-sm">
-                        <div className="flex flex-col items-center justify-center space-y-1">
-                            <CalendarIcon className="h-6 w-6 text-blue-600" />
-                            <h2 className="text-lg font-bold text-blue-700">Schedule & Calendar</h2>
+                     <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
+                        <div className="rounded-lg bg-muted p-3 text-center mb-3">
+                             <div className="flex items-center justify-center gap-2 text-base font-bold text-neutral-800">
+                                <CalendarIcon className="h-5 w-5" />
+                                {format(selectedDate, 'MMMM d, yyyy')}
+                            </div>
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant='outline' className='mt-2 w-full bg-white/70'>{format(selectedDate, 'MMMM d, yyyy')}</Button>
+                                <Button variant='outline' className='w-full'>Change Date</Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
                                 <ScheduleCalendar
@@ -1013,14 +1014,8 @@ export default function DashboardPage() {
                         <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
                         <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
                         <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
-                        <StatCard title="Avg. Wait Time" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
-                        <StatCard title="Avg. Consult Time" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
-                    </div>
-
-                    <div className="mt-3 grid place-items-center">
-                        <div className="w-full max-w-2xl">
-                          <Stats patients={sessionPatients} averageConsultationTime={averageConsultationTime} averageWaitTime={averageWaitTime} />
-                        </div>
+                        <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
+                        <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
                     </div>
                     
                     <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
@@ -1153,3 +1148,6 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+
+    
