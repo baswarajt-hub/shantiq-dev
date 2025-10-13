@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
@@ -165,7 +166,7 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [initialLoad, setInitialLoad] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [isPending, startTransition] = useState(false);
+    const [isPending, startTransition] = useTransition();
     
     const { toast } = useToast();
 
@@ -237,10 +238,10 @@ export default function DashboardPage() {
     }, [loadData]);
     
     useEffect(() => {
-        const currentHour = new Date().getHours();
-        if (currentHour >= 14) {
-            setSelectedSession('evening');
-        }
+      const currentHour = new Date().getHours();
+      if (currentHour >= 14) {
+        setSelectedSession('evening');
+      }
     }, []);
 
 
@@ -884,12 +885,12 @@ export default function DashboardPage() {
             <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
             <div className="grid md:grid-cols-[280px_1fr] h-[calc(100vh-57px)]">
                 <aside className="fixed top-[57px] left-0 h-full w-[280px] bg-white border-r flex flex-col p-4 space-y-4 overflow-y-auto">
-                     <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-3 text-center shadow-sm">
-                        <div className="flex items-center justify-center gap-2">
-                           <h2 className="text-lg font-bold text-blue-700">Schedule & Calendar</h2>
-                            {isRefreshing && <RefreshCw className="h-4 w-4 animate-spin text-primary" />}
+                    <div className="rounded-xl bg-neutral-800 p-3 text-center text-white">
+                        <div className="flex items-center justify-center gap-2 font-bold">
+                           <CalendarIcon className="h-5 w-5" />
+                           {format(selectedDate, 'EEEE, MMM d, yyyy')}
+                           {isRefreshing && <RefreshCw className="h-4 w-4 animate-spin" />}
                         </div>
-                        <div className="font-semibold text-neutral-600 bg-blue-100/50 rounded-md p-1 mt-1">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</div>
                     </div>
                     <Popover>
                         <PopoverTrigger asChild>
@@ -990,7 +991,7 @@ export default function DashboardPage() {
                 </aside>
 
                  <main className="md:col-start-2 overflow-y-auto">
-                     <div className="sticky top-0 z-10 bg-neutral-50/80 backdrop-blur-sm p-4 -mx-4">
+                    <div className="sticky top-0 z-10 bg-neutral-50/80 backdrop-blur-sm p-4">
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                             <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
                             <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
@@ -1149,5 +1150,7 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
 
     
