@@ -202,33 +202,27 @@ export default function DashboardPage() {
     };
 
     const loadData = useCallback(() => {
-        if (initialLoad) {
-          setIsLoading(true);
-        } else {
-          setIsRefreshing(true);
-        }
-
-        Promise.all([
-            getDoctorScheduleAction(),
-            getPatientsAction(),
-            getFamilyAction(),
-            getDoctorStatusAction()
-        ]).then(([scheduleData, patientData, familyData, statusData]) => {
-            setSchedule(scheduleData);
-            setPatients(patientData);
-            setFamily(familyData);
-            setDoctorStatus(statusData);
-        }).catch(err => {
-            console.error("Failed to load data", err);
-            toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
-        }).finally(() => {
-           if (initialLoad) {
-                setIsLoading(false);
-                setInitialLoad(false);
-            } else {
-                setIsRefreshing(false);
-            }
-        });
+      if (initialLoad) setIsLoading(true);
+      else setIsRefreshing(true);
+      
+      Promise.all([
+          getDoctorScheduleAction(),
+          getPatientsAction(),
+          getFamilyAction(),
+          getDoctorStatusAction()
+      ]).then(([scheduleData, patientData, familyData, statusData]) => {
+          setSchedule(scheduleData);
+          setPatients(patientData);
+          setFamily(familyData);
+          setDoctorStatus(statusData);
+      }).catch(err => {
+          console.error("Failed to load data", err);
+          toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
+      }).finally(() => {
+         if (initialLoad) setIsLoading(false);
+         setInitialLoad(false);
+         setIsRefreshing(false);
+      });
     }, [initialLoad, toast]);
 
     useEffect(() => {
@@ -684,7 +678,7 @@ export default function DashboardPage() {
         const lowerSearch = searchTerm.toLowerCase();
         return slot.patientDetails.name?.toLowerCase().includes(lowerSearch) ||
                slot.patientDetails.phone?.includes(lowerSearch) ||
-               (slot.patientDetails.clinicId && String(slot.patientDetails.clinicId).toLowerCase().includes(lowerSearch));
+               (slot.patientDetails.clinicId && String(slot.patientDetails.clinicId).toLowerCase().includes(lowercasedTerm));
     });
 
     const canDoctorCheckIn = selectedDate ? isToday(selectedDate) : false;
@@ -885,57 +879,37 @@ export default function DashboardPage() {
             <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
             <div className="grid md:grid-cols-[280px_1fr] h-[calc(100vh-57px)]">
                 <aside className="fixed top-[57px] left-0 h-full w-[280px] bg-white border-r flex flex-col p-4 space-y-4 overflow-y-auto">
-                    <div className="rounded-xl bg-neutral-800 p-3 text-center text-white">
+                    <div style={{backgroundColor: '#1775a9'}} className="rounded-xl p-3 text-center text-white">
                         <div className="flex items-center justify-center gap-2 font-bold">
-                           <CalendarIcon className="h-5 w-5" />
+                           <Popover>
+                                <PopoverTrigger asChild>
+                                  <button><CalendarIcon className="h-5 w-5" /></button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <ScheduleCalendar
+                                        mode="single"
+                                        selected={selectedDate}
+                                        onSelect={(day) => {
+                                          if (day && (!selectedDate || day.getTime() !== selectedDate.getTime())) {
+                                            setSelectedDate(day);
+                                          }
+                                        }}
+                                        initialFocus
+                                        schedule={schedule}
+                                    />
+                                </PopoverContent>
+                            </Popover>
                            {format(selectedDate, 'EEEE, MMM d, yyyy')}
                            {isRefreshing && <RefreshCw className="h-4 w-4 animate-spin" />}
                         </div>
                     </div>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant='outline' className='w-full'><CalendarIcon className="mr-2 h-4 w-4" /> Change Date</Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <ScheduleCalendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(day) => {
-                                  if (day && (!selectedDate || day.getTime() !== selectedDate.getTime())) {
-                                    setSelectedDate(day);
-                                  }
-                                }}
-                                initialFocus
-                                schedule={schedule}
-                            />
-                        </PopoverContent>
-                    </Popover>
 
                     <div className="rounded-xl border bg-white p-3 shadow-sm flex-1">
                         <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-neutral-700">
                             <Wrench className="h-5 w-5" /> Quick Actions
                         </div>
                         <div className="space-y-2">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                     <Button variant="outline" className='w-full justify-between'>
-                                        {selectedSession === 'morning' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                                        {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)}
-                                        <ChevronDown className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className='w-[240px]'>
-                                    <DropdownMenuItem onClick={() => setSelectedSession('morning')}>
-                                        <Sun className="mr-2 h-4 w-4" />
-                                        Morning
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setSelectedSession('evening')}>
-                                        <Moon className="mr-2 h-4 w-4" />
-                                        Evening
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            <div className="flex items-center justify-between p-2 rounded-lg bg-muted">
+                             <div className="flex items-center justify-between p-2 rounded-lg bg-muted">
                                 <Label htmlFor="doctor-status-toggle" className="flex items-center text-sm font-medium">
                                     {doctorStatus.isOnline ? <LogIn className="mr-2 h-4 w-4 text-green-500" /> : <LogOut className="mr-2 h-4 w-4 text-red-500" />}
                                     {doctorStatus.isOnline ? `Online` : 'Offline'}
@@ -1000,8 +974,18 @@ export default function DashboardPage() {
                             <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
                             <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
                         </div>
-                        <div className="mt-3 grid place-items-center">
-                           <div className="w-full max-w-2xl">
+                        <div className="mt-3 flex items-center justify-between gap-4 px-1">
+                           <div className="relative w-full max-w-xs">
+                              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                  type="search"
+                                  placeholder="Search patient..."
+                                  className="pl-8"
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                              />
+                           </div>
+                           <div className="w-full max-w-sm">
                              <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center shadow-sm">
                                <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
                                 <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-neutral-800">
@@ -1014,24 +998,31 @@ export default function DashboardPage() {
                                </div>
                              </div>
                            </div>
+                           <div className="w-full max-w-xs flex justify-end">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                         <Button variant="outline" className='w-48 justify-between'>
+                                            {selectedSession === 'morning' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                                            {selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1)} Session
+                                            <ChevronDown className="ml-2 h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className='w-48'>
+                                        <DropdownMenuItem onClick={() => setSelectedSession('morning')}>
+                                            <Sun className="mr-2 h-4 w-4" />
+                                            Morning
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setSelectedSession('evening')}>
+                                            <Moon className="mr-2 h-4 w-4" />
+                                            Evening
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                           </div>
                         </div>
                     </div>
 
                     <div className="p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="relative">
-                              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                  type="search"
-                                  placeholder="Search patient..."
-                                  className="pl-8 sm:w-[200px] md:w-[300px]"
-                                  value={searchTerm}
-                                  onChange={(e) => setSearchTerm(e.target.value)}
-                              />
-                          </div>
-                          <div className="text-sm text-neutral-500 font-semibold">{selectedSession === 'morning' ? "Morning" : "Evening"} Session</div>
-                      </div>
-
                       <div className="mt-3 space-y-2">
                           {nowServing && (
                               <div className="p-3 rounded-xl border bg-green-200/60 border-green-400 shadow-md">
@@ -1150,7 +1141,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
-
-    
