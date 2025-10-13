@@ -276,6 +276,11 @@ export default function BookingPage() {
     });
   }, [phone, toast, loadData]);
   
+  const handleMemberCardClick = (member: FamilyMember) => {
+    setSelectedMember(member);
+    setBookingOpen(true);
+  }
+  
   const activeAppointments = appointments.filter(appt => !['Completed', 'Cancelled', 'Missed'].includes(appt.status as string));
   const todaysAppointments = activeAppointments.filter(appt => isToday(parseISO(appt.date)));
 
@@ -365,16 +370,36 @@ export default function BookingPage() {
         </Card>
         
         <NotificationCard notifications={schedule?.notifications} />
-
+        
         <Card style={{ backgroundColor: '#ffffff' }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl"><PlusCircle /> Book Your Next Visit</CardTitle>
-              <CardDescription>Select a family member and find a time that works for you.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <CardTitle className="flex items-center gap-2 text-2xl"><Users /> My Family</CardTitle>
+                <Button variant="ghost" size="icon" asChild>
+                    <Link href="/booking/family">
+                        <PlusCircle className="h-5 w-5" />
+                    </Link>
+                </Button>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <Button size="lg" onClick={() => setBookingOpen(true)} style={{ backgroundColor: '#9d4edd' }}>
-                Book an Appointment
-              </Button>
+            <CardContent className="space-y-2">
+                {familyPatients.length > 0 ? (
+                    familyPatients.map(member => (
+                        <div key={member.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer" onClick={() => handleMemberCardClick(member)}>
+                            <div className="flex items-center gap-3">
+                                <Avatar>
+                                    <AvatarImage src={member.avatar || ''} alt={member.name} data-ai-hint="person" />
+                                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-semibold">{member.name}</p>
+                                    <p className="text-xs text-muted-foreground">{member.gender}</p>
+                                </div>
+                            </div>
+                            <Button variant="secondary" size="sm" className="h-8">Book</Button>
+                        </div>
+                    ))
+                ) : (
+                    <p className="text-center text-muted-foreground text-sm py-4">No family members added. <Link href="/booking/family" className="text-primary underline">Manage family</Link>.</p>
+                )}
             </CardContent>
         </Card>
       </div>
@@ -434,13 +459,16 @@ export default function BookingPage() {
           </CardContent>
         </Card>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#ffffff' }}>
-                <Link href="/booking/family">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Users /> My Family</CardTitle>
-                        <CardDescription>Manage family members and their profiles.</CardDescription>
-                    </CardHeader>
-                </Link>
+            <Card style={{ backgroundColor: '#ffffff' }}>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-2xl"><PlusCircle /> Book Your Next Visit</CardTitle>
+                    <CardDescription>Select a family member and find a time that works for you.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <Button size="lg" onClick={() => setBookingOpen(true)} style={{ backgroundColor: '#9d4edd' }}>
+                    Book an Appointment
+                  </Button>
+                </CardContent>
             </Card>
             <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#ffffff' }}>
                 <Link href="/booking/my-appointments">
