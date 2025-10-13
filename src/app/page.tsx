@@ -8,7 +8,7 @@ import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -161,11 +161,11 @@ export default function DashboardPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
-    const [isPending, startTransition] = useState(false);
-
+    
     const [isLoading, setIsLoading] = useState(true);
     const [initialLoad, setInitialLoad] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isPending, startTransition] = useState(false);
     
     const { toast } = useToast();
 
@@ -881,31 +881,37 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen w-full bg-neutral-50">
-            <header className="sticky top-0 z-20 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-              <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-2 text-sm text-neutral-500">
-                  <PanelsLeftBottom className="h-5 w-5" />
-                  <span>Doctor Panel</span>
-                  <span className="text-neutral-300">•</span>
-                  <span className="font-medium text-neutral-700 flex items-center gap-2">
-                    {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-                    {isRefreshing && <RefreshCw className="h-4 w-4 animate-spin text-primary" />}
-                  </span>
+            <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
+            <div className="sticky top-[57px] z-10 border-b bg-white/80 p-4 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+                <div className="mx-auto max-w-7xl">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                        <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
+                        <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
+                        <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
+                        <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
+                        <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
+                        <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
+                    </div>
+                    <div className="mt-3 grid place-items-center">
+                       <div className="w-full max-w-2xl">
+                         <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center shadow-sm">
+                           <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
+                           <div className="mt-1 text-sm text-neutral-800">
+                             <p>This is a placeholder for visit purpose breakdown</p>
+                           </div>
+                         </div>
+                       </div>
+                    </div>
                 </div>
-                <div className="hidden items-center gap-2 md:flex">
-                  <div className="flex items-center gap-1 rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-600">
-                    <Stethoscope className="h-4 w-4" /> Queue Active
-                  </div>
-                </div>
-              </div>
-            </header>
+            </div>
             
             <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 md:grid-cols-[minmax(200px,15%)_1fr]">
-                <aside className="sticky top-[74px] h-fit space-y-4">
+                <aside className="sticky top-[250px] h-fit space-y-4">
                      <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
                         <div className="rounded-lg bg-muted/80 p-3 text-center mb-3 font-semibold flex items-center justify-center gap-2">
                            <CalendarIcon className="h-5 w-5" />
-                           {format(selectedDate, 'MMMM d, yyyy')}
+                            {format(selectedDate, 'MMMM d, yyyy')}
+                             {isRefreshing && <RefreshCw className="h-4 w-4 animate-spin text-primary" />}
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -1007,27 +1013,7 @@ export default function DashboardPage() {
                 </aside>
 
                 <section>
-                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                        <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
-                        <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
-                        <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
-                        <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
-                        <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
-                        <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
-                    </div>
-                    
-                    <div className="mt-3 grid place-items-center">
-                       <div className="w-full max-w-2xl">
-                         <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center shadow-sm">
-                           <div className="text-xs font-medium text-neutral-600">Visit Purpose</div>
-                           <div className="mt-1 text-sm text-neutral-800">
-                             <p>This is a placeholder for visit purpose breakdown</p>
-                           </div>
-                         </div>
-                       </div>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="relative">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
@@ -1157,8 +1143,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-
-    
-
-    
