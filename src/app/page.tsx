@@ -1,6 +1,5 @@
-
 'use client';
-import { useState, useEffect, useCallback, useTransition } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
@@ -10,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, Users, UserCheck } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, Users, UserCheck, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -27,7 +26,6 @@ import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 import Stats from '@/components/dashboard/stats';
-import { Activity } from 'lucide-react';
 
 
 type TimeSlot = {
@@ -166,7 +164,7 @@ export default function DashboardPage() {
     const [isQueueActive, setIsQueueActive] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
-    const [isPending, startTransition] = useTransition();
+    const [isPending, startTransition] = useState(false);
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
@@ -200,37 +198,38 @@ export default function DashboardPage() {
     };
 
     const loadData = useCallback(() => {
-        setIsLoading(true);
-        Promise.all([
-            getDoctorScheduleAction(),
-            getPatientsAction(),
-            getFamilyAction(),
-            getDoctorStatusAction()
-        ]).then(([scheduleData, patientData, familyData, statusData]) => {
-            setSchedule(scheduleData);
-            setPatients(patientData);
-            setFamily(familyData);
-            setDoctorStatus(statusData);
-        }).catch(err => {
-            console.error("Failed to load data", err);
-            toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
-        }).finally(() => {
-            setIsLoading(false);
-        });
+      setIsLoading(true);
+      Promise.all([
+          getDoctorScheduleAction(),
+          getPatientsAction(),
+          getFamilyAction(),
+          getDoctorStatusAction()
+      ]).then(([scheduleData, patientData, familyData, statusData]) => {
+          setSchedule(scheduleData);
+          setPatients(patientData);
+          setFamily(familyData);
+          setDoctorStatus(statusData);
+      }).catch(err => {
+          console.error("Failed to load data", err);
+          toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
+      }).finally(() => {
+          setIsLoading(false);
+      });
     }, [toast]);
 
 
     useEffect(() => {
         loadData();
+        const intervalId = setInterval(loadData, 30000);
+        return () => clearInterval(intervalId);
+    }, [loadData]);
+    
+    useEffect(() => {
         const currentHour = new Date().getHours();
         if (currentHour >= 14) {
             setSelectedSession('evening');
         }
-
-        const intervalId = setInterval(loadData, 30000); // 30 seconds
-        return () => clearInterval(intervalId);
-
-    }, [loadData]);
+    }, []);
 
 
     const sessionPatients = patients.filter(p => {
@@ -869,7 +868,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-neutral-50">
+        <div className="min-h-screen w-full bg-neutral-50">
             <header className="sticky top-0 z-20 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
               <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2 text-sm text-neutral-500">
@@ -901,7 +900,7 @@ export default function DashboardPage() {
                                 <ScheduleCalendar
                                     mode="single"
                                     selected={selectedDate}
-                                    onSelect={(day) => day && setSelectedDate(day)}
+                                    onSelect={(day) => day && (!selectedDate || day.getTime() !== selectedDate.getTime()) && setSelectedDate(day)}
                                     initialFocus
                                     schedule={schedule}
                                 />
@@ -989,7 +988,7 @@ export default function DashboardPage() {
                 </aside>
 
                 <section>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                         <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
                         <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
                         <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
