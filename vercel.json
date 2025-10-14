@@ -1,0 +1,44 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "shantiq.in"
+        }
+      ],
+      "destination": "/login/$1"
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.shantiq.in"
+        }
+      ],
+      "destination": "/dashboard/$1"
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "tv.shantiq.in"
+        }
+      ],
+      "destination": "/tv-display/$1"
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "tv2.shantiq.in"
+        }
+      ],
+      "destination": "/tv-display?layout=2"
+    }
+  ]
+}
