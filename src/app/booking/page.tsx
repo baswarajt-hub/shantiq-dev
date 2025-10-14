@@ -374,9 +374,9 @@ export default function BookingPage() {
         <Card style={{ backgroundColor: '#ffffff' }}>
             <CardHeader className="flex flex-row items-center justify-between pb-4">
                 <CardTitle className="flex items-center gap-2 text-2xl"><Users /> My Family</CardTitle>
-                <Button variant="ghost" size="icon" asChild>
+                <Button variant="outline" size="sm" asChild>
                     <Link href="/booking/family">
-                        <PlusCircle className="h-5 w-5" />
+                       Manage Family
                     </Link>
                 </Button>
             </CardHeader>
