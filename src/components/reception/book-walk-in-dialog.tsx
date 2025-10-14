@@ -53,16 +53,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
         return;
       }
       startTransition(async () => {
-        let effectiveSearchTerm = searchTerm;
-        if (searchBy === 'dob') {
-            // Convert YYYY-MM-DD to DD-MM-YYYY for the backend
-            const dateParts = searchTerm.split('-');
-            if (dateParts.length === 3) {
-                effectiveSearchTerm = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-            }
-        }
-
-        const results = await searchFamilyMembersAction(effectiveSearchTerm);
+        const results = await searchFamilyMembersAction(searchTerm, searchBy);
         // Filter out primary members from the search results
         const nonPrimaryMembers = results.filter(member => !member.isPrimary);
         setFoundMembers(nonPrimaryMembers);
