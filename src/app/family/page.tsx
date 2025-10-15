@@ -13,7 +13,7 @@ import { updateFamilyMemberAction, searchFamilyMembersAction, deleteFamilyMember
 import { Input } from '@/components/ui/input';
 import { AdminEditFamilyMemberDialog } from '@/components/admin/edit-family-member-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
+import { AdminAddFamilyMemberDialog } from '@/components/admin/add-family-member-dialog';
 import { format, parseISO } from 'date-fns';
 import Header from '@/components/header';
 import { getDoctorScheduleAction } from '@/app/actions';
@@ -386,7 +386,7 @@ export default function FamilyAdminPage() {
               onSave={handleEditFamilyMember}
           />
       )}
-      <AddFamilyMemberDialog
+      <AdminAddFamilyMemberDialog
         isOpen={isAddMemberOpen}
         onOpenChange={setAddMemberOpen}
         onSave={handleSaveNewMember}
