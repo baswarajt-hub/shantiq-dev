@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition, useEffect, useCallback, Suspense } from 'react';
@@ -105,7 +106,7 @@ function WalkInPageContent() {
           return;
       }
       startTransition(async () => {
-          const newMemberData: Omit<FamilyMember, 'id' | 'avatar'> = { phone, name, dob, gender, isPrimary: false };
+          const newMemberData: Omit<FamilyMember, 'id' | 'avatar' | 'clinicId'> = { phone, name, dob, gender, isPrimary: false };
           const result = await addNewPatientAction(newMemberData);
           if ("error" in result) {
               toast({ title: "Registration Failed", description: result.error, variant: 'destructive' });
