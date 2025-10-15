@@ -2,43 +2,28 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "shantiq.in"
-        }
-      ],
-      "destination": "/login/$1"
+      "has": [{ "type": "host", "value": "shantiq.in" }],
+      "destination": "/login"
     },
     {
       "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.shantiq.in"
-        }
-      ],
-      "destination": "/dashboard/$1"
+      "has": [{ "type": "host", "value": "app.shantiq.in" }],
+      "destination": "/"
     },
     {
       "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "tv.shantiq.in"
-        }
-      ],
-      "destination": "/tv-display/$1"
+      "has": [{ "type": "host", "value": "tv1.shantiq.in" }],
+      "destination": "/tv-display"
     },
     {
       "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "tv2.shantiq.in"
-        }
-      ],
+      "has": [{ "type": "host", "value": "tv2.shantiq.in" }],
       "destination": "/tv-display?layout=2"
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "doc.shantiq.in" }],
+      "destination": "/doctor"
     }
   ]
 }
