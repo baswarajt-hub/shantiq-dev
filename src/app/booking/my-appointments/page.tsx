@@ -283,13 +283,13 @@ export default function MyAppointmentsPage() {
     <main className="flex-1 p-4 md:p-6 lg:p-8">
       <div className="mx-auto w-full max-w-4xl space-y-8">
         
-          <Card>
+          <Card style={{ backgroundColor: '#ffffff' }}>
             <CardHeader>
               <CardTitle>Today's Appointments</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {todaysAppointments.length > 0 ? todaysAppointments.map(appt => (
-                <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div key={appt.id} className="p-4 rounded-lg border bg-card flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex items-center gap-4">
                      <Avatar>
                         <AvatarImage src={(family.find(f=> Number(f.id) === appt.familyMemberId)?.avatar || '')} alt={appt.familyMemberName} data-ai-hint="person" />
@@ -321,13 +321,13 @@ export default function MyAppointmentsPage() {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card style={{ backgroundColor: '#ffffff' }}>
             <CardHeader>
               <CardTitle>Upcoming Appointments</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {upcomingAppointments.length > 0 ? upcomingAppointments.map(appt => (
-                <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div key={appt.id} className="p-4 rounded-lg border bg-card flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex items-center gap-4">
                      <Avatar>
                         <AvatarImage src={(family.find(f=> Number(f.id) === appt.familyMemberId)?.avatar || '')} alt={appt.familyMemberName} data-ai-hint="person" />
@@ -359,7 +359,7 @@ export default function MyAppointmentsPage() {
             </CardContent>
           </Card>
 
-           <Card>
+           <Card style={{ backgroundColor: '#ffffff' }}>
             <CardHeader>
               <CardTitle>Past Appointments</CardTitle>
             </CardHeader>
@@ -371,7 +371,7 @@ export default function MyAppointmentsPage() {
                   }
 
                   return (
-                      <div key={appt.id} className="p-4 rounded-lg border bg-background/50 flex flex-col sm:flex-row items-start justify-between gap-4 opacity-70">
+                      <div key={appt.id} className="p-4 rounded-lg border bg-card/50 flex flex-col sm:flex-row items-start justify-between gap-4 opacity-70">
                           <div className="flex items-center gap-4">
                               <Avatar>
                                   <AvatarImage src={(family.find(f=> Number(f.id) === appt.familyMemberId)?.avatar || '')} alt={appt.familyMemberName} data-ai-hint="person" />
