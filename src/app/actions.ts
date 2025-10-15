@@ -918,6 +918,15 @@ export async function updateNotificationsAction(notifications: Notification[]): 
 
 export async function updateFamilyMemberAction(member: FamilyMember): Promise<ActionResult> {
     try {
+        // If the ID starts with 'new_', it's a new primary member, so we need to add it.
+        if (member.id.startsWith('new_')) {
+            const { id, ...newMemberData } = member; // remove the temporary ID
+            await addFamilyMember(newMemberData);
+            revalidatePath('/api/family');
+            return { success: 'Family details created successfully.' };
+        }
+        
+        // Otherwise, proceed with the update logic
         if (member.clinicId) {
             const q = query(
                 collection(db, 'family'),
@@ -1545,6 +1554,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     
 
     
+
 
 
 
