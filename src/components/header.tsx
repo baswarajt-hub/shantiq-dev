@@ -23,7 +23,7 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
           ) : (
              <StethoscopeIcon className="h-12 w-12 text-primary-foreground fill-primary" />
           )}
-          <span className="font-bold sm:inline-block text-base">{clinicName || 'QueueWise'}</span>
+          <span className="font-bold sm:inline-block text-[8px]">{clinicName || 'QueueWise'}</span>
         </Link>
         <nav className="flex flex-1 items-center space-x-2">
            <Button variant="secondary" asChild>
