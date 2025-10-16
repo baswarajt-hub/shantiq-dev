@@ -454,14 +454,20 @@ export default function BookingPage() {
           </CardContent>
         </Card>
         
-        <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors bg-card" style={{ backgroundColor: '#ffffff' }}>
-            <Link href="/booking/my-appointments">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Calendar /> My Appointments</CardTitle>
-                    <CardDescription>View and manage all your past and upcoming appointments.</CardDescription>
-                </CardHeader>
-            </Link>
-        </Card>
+        <Link href="/booking/my-appointments" className="block">
+  <Card className="cursor-pointer hover:border-primary/50 hover:bg-blue-50 transition-all bg-white shadow-sm">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2 text-lg">
+        <Calendar className="h-5 w-5 text-blue-600" /> My Appointments
+      </CardTitle>
+      <CardDescription className="text-gray-600">
+        View and manage all your past and upcoming appointments.
+      </CardDescription>
+    </CardHeader>
+  </Card>
+</Link>
+
+
       </div>
     
     <BookAppointmentDialog

@@ -17,13 +17,13 @@ export default function Header({ logoSrc, clinicName }: HeaderProps) {
       <div className="container flex h-14 items-center">
         <Link href="/" className="mr-6 flex items-center space-x-2">
           {logoSrc ? (
-            <div className="relative h-8 w-8">
+            <div className="relative h-10 w-10">
               <Image src={logoSrc} alt="Clinic Logo" fill className="object-contain" />
             </div>
           ) : (
              <StethoscopeIcon className="h-6 w-6 text-primary-foreground fill-primary" />
           )}
-          <span className="font-bold sm:inline-block text-lg">{clinicName || 'QueueWise'}</span>
+          <span className="font-bold sm:inline-block text-base">{clinicName || 'QueueWise'}</span>
         </Link>
         <nav className="flex flex-1 items-center space-x-2">
            <Button variant="secondary" asChild>
