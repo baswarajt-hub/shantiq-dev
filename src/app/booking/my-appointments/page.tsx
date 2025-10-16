@@ -88,10 +88,6 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
   
   }, [appointment, schedule]);
   
-  if (appointment.status !== 'Booked') {
-    return null;
-  }
-  
   const hasBeenRescheduled = (appointment.rescheduleCount || 0) > 0;
 
   return (
@@ -113,40 +109,44 @@ const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: {
           </TooltipContent>
         </Tooltip>
 
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Button variant="outline" size="sm" className="h-8" onClick={() => onReschedule(appointment)} disabled={hasBeenRescheduled}>
-                  <Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule
-                </Button>
-              </span>
-          </TooltipTrigger>
-           {hasBeenRescheduled && (
-              <TooltipContent>
-                <p>This appointment has already been rescheduled once.</p>
-              </TooltipContent>
-            )}
-        </Tooltip>
+        {appointment.status === 'Booked' && (
+           <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+                <span tabIndex={0}>
+                  <Button variant="outline" size="sm" className="h-8" onClick={() => onReschedule(appointment)} disabled={hasBeenRescheduled}>
+                    <Edit className="h-3.5 w-3.5 mr-1.5"/>Reschedule
+                  </Button>
+                </span>
+            </TooltipTrigger>
+            {hasBeenRescheduled && (
+                <TooltipContent>
+                  <p>This appointment has already been rescheduled once.</p>
+                </TooltipContent>
+              )}
+          </Tooltip>
+        )}
 
       </TooltipProvider>
 
-      <AlertDialog>
-          <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="h-8"><Trash2 className="h-3.5 w-3.5 mr-1.5" />Cancel</Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action is permanent and you will not receive a refund. Are you sure you want to cancel this appointment?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Go Back</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onCancel(appointment.id)}>Confirm Cancellation</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
+      {appointment.status === 'Booked' && (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="h-8"><Trash2 className="h-3.5 w-3.5 mr-1.5" />Cancel</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action is permanent and you will not receive a refund. Are you sure you want to cancel this appointment?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Go Back</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onCancel(appointment.id)}>Confirm Cancellation</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   )
 }
