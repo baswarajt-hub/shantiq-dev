@@ -119,7 +119,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon?: React.R
         <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-neutral-100">{icon}</span>
         {title}
       </div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-neutral-900">{value}</div>
+      <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-neutral-900 text-center">{value}</div>
     </div>
   );
 
@@ -989,12 +989,22 @@ export default function DashboardPage() {
                              <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center shadow-sm">
                                <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
                                 <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-neutral-800">
-                                   {Object.keys(sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>)).length > 0 ? 
-                                       Object.entries(sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([purpose, count]) => (
-                                           <span key={purpose}>{purpose}: <span className="font-bold">{count}</span></span>
-                                       )) : (
-                                       <span className="text-neutral-500">No purposes specified yet.</span>
-                                   )}
+                                   {(() => {
+                                        const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
+                                        const purposes = Object.entries(purposeCounts);
+                                        if (purposes.length > 0) {
+                                            return purposes.map(([purpose, count]) => {
+                                                const Icon = purposeIcons[purpose] || HelpCircle;
+                                                return (
+                                                    <span key={purpose} className="flex items-center gap-1.5" title={purpose}>
+                                                        <Icon className="h-4 w-4 text-neutral-500" />
+                                                        <span className="font-bold">{count}</span>
+                                                    </span>
+                                                )
+                                            });
+                                        }
+                                        return <span className="text-neutral-500">No purposes specified yet.</span>
+                                   })()}
                                </div>
                              </div>
                            </div>

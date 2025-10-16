@@ -13,7 +13,7 @@ import { updateFamilyMemberAction, searchFamilyMembersAction, deleteFamilyMember
 import { Input } from '@/components/ui/input';
 import { AdminEditFamilyMemberDialog } from '@/components/admin/edit-family-member-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
+import { AdminAddFamilyMemberDialog } from '@/components/admin/add-family-member-dialog';
 import { format, parseISO } from 'date-fns';
 import Header from '@/components/header';
 import { getDoctorScheduleAction } from '@/app/actions';
@@ -156,6 +156,30 @@ export default function FamilyAdminPage() {
     setSelectedMember(member);
     setEditMemberOpen(true);
   }
+
+  const handleOpenEditFamily = (phone: string, members: FamilyMember[]) => {
+    const primary = members.find(m => m.isPrimary);
+    if (primary) {
+        handleOpenEditMember(primary);
+    } else {
+        // If no primary member, create a dummy one to open the dialog with the family's phone
+        const dummyPrimary: FamilyMember = {
+            id: `new_${phone}`, // Temporary ID
+            phone: phone,
+            isPrimary: true,
+            name: '',
+            fatherName: members[0]?.fatherName || '',
+            motherName: members[0]?.motherName || '',
+            email: members[0]?.email || '',
+            location: members[0]?.location || '',
+            city: members[0]?.city || '',
+            primaryContact: members[0]?.primaryContact || 'Father',
+            dob: null,
+            gender: null,
+        };
+        handleOpenEditMember(dummyPrimary);
+    }
+};
   
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return '';
@@ -258,7 +282,7 @@ export default function FamilyAdminPage() {
                        <span className="text-sm font-mono flex items-center gap-2"><Phone className="h-4 w-4" />{phone}</span>
                     </div>
                      <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => primary && handleOpenEditMember(primary)}>
+                      <Button variant="outline" size="sm" onClick={() => handleOpenEditFamily(phone, members)}>
                         <Edit className="mr-2 h-4 w-4" /> Edit Family
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => handleAddMember(phone)}>
@@ -362,7 +386,7 @@ export default function FamilyAdminPage() {
               onSave={handleEditFamilyMember}
           />
       )}
-      <AddFamilyMemberDialog
+      <AdminAddFamilyMemberDialog
         isOpen={isAddMemberOpen}
         onOpenChange={setAddMemberOpen}
         onSave={handleSaveNewMember}

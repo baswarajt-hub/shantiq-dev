@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -16,13 +17,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { FamilyMember } from '@/lib/types';
 import { format } from 'date-fns';
 
-type AddFamilyMemberDialogProps = {
+type AdminAddFamilyMemberDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSave: (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => void;
 };
 
-export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamilyMemberDialogProps) {
+export function AdminAddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AdminAddFamilyMemberDialogProps) {
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
@@ -45,7 +46,7 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add New Family Member</DialogTitle>
-          <DialogDescription>Enter the details for the new family member. This will be associated with your primary phone number.</DialogDescription>
+          <DialogDescription>Enter the details for the new family member. This will be associated with the selected family's phone number.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -72,13 +73,12 @@ export function AddFamilyMemberDialog({ isOpen, onOpenChange, onSave }: AddFamil
             </div>
           </div>
            <div className="space-y-2">
-            <Label htmlFor="clinicId">Clinic ID</Label>
+            <Label htmlFor="clinicId">Clinic ID (Optional)</Label>
             <Input
               id="clinicId"
-              value={clinicId || ''}
-              disabled
-              placeholder="Assigned by clinic"
-              className="bg-muted cursor-not-allowed"
+              value={clinicId}
+              onChange={(e) => setClinicId(e.target.value)}
+              placeholder="Enter unique Clinic ID"
             />
           </div>
         </div>

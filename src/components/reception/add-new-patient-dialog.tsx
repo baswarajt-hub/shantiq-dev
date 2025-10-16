@@ -15,12 +15,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FamilyMember, VisitPurpose } from '@/lib/types';
-import { getFamilyByPhoneAction } from '@/app/actions';
+import { getFamilyByPhoneAction, registerUserAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Info } from 'lucide-react';
+import { Info, UserPlus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 type PatientFormProps = {
     phone: string;
@@ -108,6 +109,13 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
   const [foundFamily, setFoundFamily] = useState<FamilyMember[] | null>(null);
   const { toast } = useToast();
 
+  const [fatherName, setFatherName] = useState('');
+  const [motherName, setMotherName] = useState('');
+  const [primaryContact, setPrimaryContact] = useState<'Father' | 'Mother'>('Father');
+  const [email, setEmail] = useState('');
+  const [location, setLocation] = useState('');
+  const [city, setCity] = useState('');
+
   const handlePhoneCheck = useCallback(async (phoneNumber: string) => {
     if (!phoneNumber) {
         toast({ title: "Error", description: "Phone number is required.", variant: 'destructive'});
@@ -116,14 +124,17 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     startTransition(async () => {
         const family = await getFamilyByPhoneAction(phoneNumber);
         setFoundFamily(family);
-        setStep(2);
+        if (family.length > 0) {
+            setStep(3); // Existing family found, go to add member
+        } else {
+            setStep(2); // New family, go to register parent
+        }
     });
   }, [toast]);
 
   useEffect(() => {
     if (isOpen && phoneToPreFill) {
       setPhone(phoneToPreFill);
-      // Automatically trigger check if dialog is opened with a pre-filled phone.
       if (step === 1 && !foundFamily) {
         handlePhoneCheck(phoneToPreFill);
       }
@@ -139,6 +150,12 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     setClinicId('');
     setPurpose('Consultation');
     setFoundFamily(null);
+    setFatherName('');
+    setMotherName('');
+    setPrimaryContact('Father');
+    setEmail('');
+    setLocation('');
+    setCity('');
     if(onClose) onClose();
   };
 
@@ -149,9 +166,27 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     onOpenChange(open);
   }
 
-  const handleSave = (checkIn: boolean) => {
+  const handleRegisterParent = () => {
+    if (!fatherName || !motherName || !location || !city) {
+      toast({ title: 'Missing Information', description: 'Please fill out all parent details.', variant: 'destructive' });
+      return;
+    }
+    startTransition(async () => {
+      const result = await registerUserAction({ phone, fatherName, motherName, primaryContact, location, city, email });
+      if ('error' in result) {
+        toast({ title: 'Registration Failed', description: result.error, variant: 'destructive' });
+      } else {
+        const family = await getFamilyByPhoneAction(phone);
+        setFoundFamily(family);
+        setStep(3);
+        toast({ title: 'Family Registered', description: 'Now, please add the patient\'s details.' });
+      }
+    });
+  };
+
+  const handleSavePatient = (checkIn: boolean) => {
     if (!phone || !name || !dob || !gender || !purpose) {
-        toast({ title: "Error", description: "Please fill all required fields.", variant: 'destructive'});
+        toast({ title: "Error", description: "Please fill all required patient fields.", variant: 'destructive'});
         return;
     }
     startTransition(async () => {
@@ -173,7 +208,8 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
           <DialogTitle>Add New Patient</DialogTitle>
            <DialogDescription>
             {step === 1 && "Enter patient's phone number to begin."}
-            {step === 2 && (foundFamily && foundFamily.length > 0 ? "This family is already registered. Add a new member." : "This is a new family. Please enter patient details.")}
+            {step === 2 && "This is a new family. Please register the parent details first."}
+            {step === 3 && (foundFamily && foundFamily.length > 0 ? "This family is already registered. Add a new member." : "Enter patient details.")}
           </DialogDescription>
         </DialogHeader>
         
@@ -189,28 +225,68 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
             </div>
         )}
 
-        {step === 2 && foundFamily !== null && (
+        {step === 2 && (
+             <div className="py-4 space-y-4">
+                <h3 className="font-semibold">Step 1: Register Parents</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="fatherName">Father's Name</Label>
+                      <Input id="fatherName" value={fatherName} onChange={(e) => setFatherName(e.target.value)} placeholder="Father's Name"/>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="motherName">Mother's Name</Label>
+                      <Input id="motherName" value={motherName} onChange={(e) => setMotherName(e.target.value)} placeholder="Mother's Name"/>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Primary Contact</Label>
+                  <RadioGroup value={primaryContact} onValueChange={(value: 'Father' | 'Mother') => setPrimaryContact(value)} className="flex gap-4">
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Father" id="reg-father" />
+                          <Label htmlFor="reg-father">Father</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Mother" id="reg-mother" />
+                          <Label htmlFor="reg-mother">Mother</Label>
+                      </div>
+                  </RadioGroup>
+                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="location">Location Area</Label>
+                        <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g., Ameerpet"/>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="city">City</Label>
+                        <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g., Hyderabad"/>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email (Optional)</Label>
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. parent@example.com" />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => { setStep(1); setFoundFamily(null); }}>Back</Button>
+                    <Button onClick={handleRegisterParent} disabled={isPending}>
+                        {isPending ? "Registering..." : "Register Family & Add Patient"}
+                    </Button>
+                </DialogFooter>
+             </div>
+        )}
+
+        {step === 3 && foundFamily !== null && (
              <div className="py-4 space-y-4">
                 {foundFamily.length > 0 && (
                     <Alert>
                         <Info className="h-4 w-4" />
                         <AlertTitle>Existing Family Found</AlertTitle>
                         <AlertDescription>
-                            The following members are registered with this phone number. Fill the form below to add a new family member.
+                            <p>Phone: {phone}</p>
+                            <p>Parents: {foundFamily[0].fatherName} & {foundFamily[0].motherName}</p>
                         </AlertDescription>
-                         <div className="flex flex-wrap gap-2 mt-2">
-                            {foundFamily.map(member => (
-                                <div key={member.id} className="flex items-center gap-2 p-2 border rounded-md bg-muted/50 text-sm">
-                                     <Avatar className="h-6 w-6">
-                                        <AvatarImage src={member.avatar || ''} alt={member.name} />
-                                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <span>{member.name}</span>
-                                </div>
-                            ))}
-                        </div>
                     </Alert>
                 )}
+                 <h3 className="font-semibold">Step {foundFamily.length > 0 ? 2 : 1}: Add Patient Details</h3>
                 <PatientForm 
                     phone={phone}
                     name={name}
@@ -228,8 +304,8 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
                 <DialogFooter>
                     <Button variant="outline" onClick={() => { setStep(1); setFoundFamily(null); }}>Back</Button>
                     <div className="flex gap-2">
-                        <Button onClick={() => handleSave(false)} disabled={isPending}>Save & Book Only</Button>
-                        <Button onClick={() => handleSave(true)} disabled={isPending}>Save & Check-in</Button>
+                        <Button onClick={() => handleSavePatient(false)} disabled={isPending}>Save & Book Only</Button>
+                        <Button onClick={() => handleSavePatient(true)} disabled={isPending}>Save & Check-in</Button>
                     </div>
                 </DialogFooter>
              </div>

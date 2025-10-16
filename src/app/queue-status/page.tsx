@@ -295,11 +295,12 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
 
 function QueueStatusPageContent() {
   const [allSessionPatients, setAllSessionPatients] = useState<Patient[]>([]);
-  const [patientsToDisplay, setPatientsToDisplay] = useState<Patient[]>([]);
+  const [targetPatient, setTargetPatient] = useState<Patient | null>(null);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [lastUpdated, setLastUpdated] = useState('');
-  const [phone, setPhone] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
   const router = useRouter();
@@ -336,17 +337,6 @@ function QueueStatusPageContent() {
   }, []);
 
   useEffect(() => {
-    const userPhone = localStorage.getItem('userPhone');
-    const patientIdParam = searchParams.get('id');
-    
-    if (!userPhone && !patientIdParam) {
-      router.push('/login');
-    } else {
-      if (userPhone) setPhone(userPhone);
-    }
-  }, [router, searchParams]);
-
-  useEffect(() => {
     if (completedAppointmentForDisplay) {
       const timer = setTimeout(() => {
         router.push('/booking');
@@ -357,10 +347,20 @@ function QueueStatusPageContent() {
   }, [completedAppointmentForDisplay, router]);
   
   const fetchData = useCallback(async () => {
+    setIsLoading(true);
     const userPhone = localStorage.getItem('userPhone');
     const patientIdParam = searchParams.get('id');
     
-    if (!userPhone && !patientIdParam) return;
+    if (!patientIdParam) {
+      setAuthError("No appointment specified.");
+      setIsLoading(false);
+      return;
+    }
+    
+    if (!userPhone) {
+      router.push('/login');
+      return;
+    }
   
     const [allPatientData, statusRes, scheduleData] = await Promise.all([
       getPatientsAction(),
@@ -374,59 +374,55 @@ function QueueStatusPageContent() {
   
     const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
   
-    let targetAppointment: Patient | null = null;
-    let appointmentsToShow: Patient[] = [];
-  
-    if (patientIdParam) {
-      targetAppointment = todaysPatients.find((p: Patient) => p.id === patientIdParam) || null;
-      if (targetAppointment) {
-          appointmentsToShow = [targetAppointment];
-      }
-    } else if (userPhone) {
-      appointmentsToShow = todaysPatients.filter(p => p.phone === userPhone && p.status !== 'Completed' && p.status !== 'Cancelled');
-      if (appointmentsToShow.length > 0) {
-        targetAppointment = appointmentsToShow[0];
-      }
+    const foundPatient = todaysPatients.find((p: Patient) => p.id === patientIdParam) || null;
+    
+    if (!foundPatient) {
+        setAuthError("This appointment could not be found.");
+        setIsLoading(false);
+        return;
     }
-  
-    setPatientsToDisplay(appointmentsToShow);
-  
-    let sessionToShow: 'morning' | 'evening' | null = null;
-    if (targetAppointment) {
-      sessionToShow = getSessionForTime(parseISO(targetAppointment.appointmentTime), scheduleData);
-    } else {
-      sessionToShow = new Date().getHours() < 14 ? 'morning' : 'evening';
+
+    if (foundPatient.phone !== userPhone) {
+        setAuthError("You are not authorized to view this appointment's status.");
+        setIsLoading(false);
+        return;
     }
+
+    setAuthError(null);
+    setTargetPatient(foundPatient);
+  
+    const sessionToShow = getSessionForTime(parseISO(foundPatient.appointmentTime), scheduleData);
     setCurrentSession(sessionToShow);
   
     const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
     setAllSessionPatients(filteredPatientsForSession);
-  
-    const appointmentForSummary = targetAppointment && patientIdParam && targetAppointment.id === patientIdParam ? targetAppointment : null;
     
-    if (appointmentForSummary && appointmentForSummary.status === 'Completed') {
+    if (foundPatient && foundPatient.status === 'Completed') {
         const lastCompletedId = sessionStorage.getItem('completedAppointmentId');
-        if (lastCompletedId !== String(appointmentForSummary.id)) {
-            setCompletedAppointmentForDisplay(appointmentForSummary);
-            sessionStorage.setItem('completedAppointmentId', String(appointmentForSummary.id));
+        if (lastCompletedId !== String(foundPatient.id)) {
+            setCompletedAppointmentForDisplay(foundPatient);
+            sessionStorage.setItem('completedAppointmentId', String(foundPatient.id));
         } else {
-            setCompletedAppointmentForDisplay(null);
+            router.push('/booking');
         }
     } else {
         setCompletedAppointmentForDisplay(null);
     }
   
     setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-  }, [searchParams, getSessionForTime]);
+    setIsLoading(false);
+  }, [searchParams, getSessionForTime, router]);
 
 
   useEffect(() => {
-    if (completedAppointmentForDisplay) return; // Don't poll if the summary is showing
+    fetchData(); // Initial fetch
+    
+    // Prevent polling if showing summary or error
+    if (completedAppointmentForDisplay || authError) return;
 
-    fetchData();
     const intervalId = setInterval(() => fetchData(), 15000);
     return () => clearInterval(intervalId);
-  }, [fetchData, phone, completedAppointmentForDisplay]);
+  }, [fetchData, completedAppointmentForDisplay, authError]);
   
   const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
   const upNext = allSessionPatients.find(p => p.status === 'Up-Next');
@@ -442,18 +438,27 @@ function QueueStatusPageContent() {
         return timeA - timeB;
     });
 
-  if (!schedule || !doctorStatus) {
+  if (isLoading) {
       return (
           <div className="flex flex-col min-h-screen bg-muted/40">
               <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
               <div className="flex-1 flex items-center justify-center">
-                  <p>Loading...</p>
+                  <p>Loading and verifying...</p>
               </div>
           </div>
       );
   }
   
-  const hasAnyAppointmentsToday = patientsToDisplay.length > 0;
+  if (authError) {
+      return (
+         <div className="flex flex-col min-h-screen bg-muted/40">
+              <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
+              <main className="flex-1 flex flex-col items-center justify-center p-4">
+                 <div className="text-center text-destructive font-semibold">{authError}</div>
+              </main>
+          </div>
+      );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -462,10 +467,10 @@ function QueueStatusPageContent() {
         <div className="w-full max-w-sm space-y-4">
             {completedAppointmentForDisplay ? (
                 <CompletionSummary patient={completedAppointmentForDisplay} />
-            ) : !hasAnyAppointmentsToday ? (
+            ) : !targetPatient ? (
                 <div className="text-center">
                     <h1 className="text-2xl font-bold">No Active Appointment</h1>
-                    <p className="text-muted-foreground mt-1">You do not have an active appointment scheduled for today.</p>
+                    <p className="text-muted-foreground mt-1">This appointment is not for today's session.</p>
                 </div>
             ) : (
             <>
@@ -482,37 +487,34 @@ function QueueStatusPageContent() {
                     className="space-y-4"
                 >
                     <AnimatePresence>
-                    {patientsToDisplay.map(patient => {
-                        const isNowServing = nowServing?.id === patient.id;
-                        const isUpNext = upNext?.id === patient.id;
-                        let queuePosition = -1;
-                        if (['Waiting', 'Late', 'Priority'].includes(patient.status)) {
-                            const position = waitingQueue.findIndex(p => p.id === patient.id);
-                            if (position !== -1) {
-                                queuePosition = position + (upNext ? 2 : 1);
-                            }
-                        }
-                        return (
-                            <motion.div
-                                key={patient.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                            >
-                                <YourStatusCard 
-                                    patient={patient}
-                                    queuePosition={queuePosition}
-                                    isUpNext={isUpNext}
-                                    isNowServing={isNowServing}
-                                />
-                            </motion.div>
-                        );
-                    })}
+                        {(() => {
+                          const isNowServing = nowServing?.id === targetPatient.id;
+                          const isUpNext = upNext?.id === targetPatient.id;
+                          let queuePosition = -1;
+                          if (['Waiting', 'Late', 'Priority'].includes(targetPatient.status)) {
+                              const position = waitingQueue.findIndex(p => p.id === targetPatient.id);
+                              if (position !== -1) {
+                                  queuePosition = position + (upNext ? 2 : 1);
+                              }
+                          }
+                          return (
+                              <motion.div
+                                  key={targetPatient.id}
+                                  layout
+                                  initial={{ opacity: 0, scale: 0.9 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.9 }}
+                              >
+                                  <YourStatusCard 
+                                      patient={targetPatient}
+                                      queuePosition={queuePosition}
+                                      isUpNext={isUpNext}
+                                      isNowServing={isNowServing}
+                                  />
+                              </motion.div>
+                          );
+                        })()}
                     </AnimatePresence>
-                    {patientsToDisplay.length === 0 && (
-                        <p className="text-center text-muted-foreground text-sm py-4">Your active appointments are not in this session.</p>
-                    )}
                 </motion.div>
 
                 <>
@@ -536,3 +538,5 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
+
+    

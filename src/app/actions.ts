@@ -10,6 +10,8 @@ import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders'
 import { format, parseISO, parse, differenceInMinutes, startOfDay, max, addMinutes, subMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { createHash, randomBytes } from 'crypto';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const timeZone = "Asia/Kolkata";
 
@@ -464,11 +466,20 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
 }
 
 
-export async function addNewPatientAction(familyMemberData: Omit<FamilyMember, 'id' | 'avatar'>) {
-    if (!familyMemberData.phone) {
+export async function addNewPatientAction(memberData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<{ patient: FamilyMember; success: string; } | { error: string; }> {
+    if (!memberData.phone) {
         return { error: 'Phone number is required to add a family member.' };
     }
-    const newMember = await addFamilyMember(familyMemberData);
+
+    if (memberData.clinicId) {
+        const q = query(collection(db, 'family'), where('clinicId', '==', memberData.clinicId));
+        const existing = await getDocs(q);
+        if (!existing.empty) {
+            return { error: 'Clinic ID already exists. Please use a unique ID.' };
+        }
+    }
+
+    const newMember = await addFamilyMember(memberData);
     if (!newMember) {
         return { error: 'Failed to create a new family member.' };
     }
@@ -907,6 +918,26 @@ export async function updateNotificationsAction(notifications: Notification[]): 
 
 export async function updateFamilyMemberAction(member: FamilyMember): Promise<ActionResult> {
     try {
+        // If the ID starts with 'new_', it's a new primary member, so we need to add it.
+        if (member.id.startsWith('new_')) {
+            const { id, ...newMemberData } = member; // remove the temporary ID
+            await addFamilyMember(newMemberData);
+            revalidatePath('/api/family');
+            return { success: 'Family details created successfully.' };
+        }
+        
+        // Otherwise, proceed with the update logic
+        if (member.clinicId) {
+            const q = query(
+                collection(db, 'family'),
+                where('clinicId', '==', member.clinicId)
+            );
+            const existing = await getDocs(q);
+            const duplicate = existing.docs.find(doc => doc.id !== member.id);
+            if (duplicate) {
+                return { error: 'Clinic ID already assigned to another patient.' };
+            }
+        }
         await updateFamilyMember(member);
         revalidatePath('/');
         revalidatePath('/admin');
@@ -1523,6 +1554,8 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     
 
     
+
+
 
 
 

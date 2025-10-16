@@ -83,8 +83,14 @@ export function EditFamilyMemberDialog({ isOpen, onOpenChange, member, onSave }:
             </Select>
           </div>
            <div className="space-y-2">
-            <Label htmlFor="clinicId">Clinic ID (Optional)</Label>
-            <Input id="clinicId" value={clinicId} onChange={(e) => setClinicId(e.target.value)} placeholder="e.g. C12345" />
+            <Label htmlFor="clinicId">Clinic ID</Label>
+            <Input
+              id="clinicId"
+              value={clinicId || ''}
+              disabled
+              placeholder="Assigned by clinic"
+              className="bg-muted cursor-not-allowed"
+            />
           </div>
         </div>
         <DialogFooter>

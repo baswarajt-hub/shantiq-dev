@@ -79,7 +79,7 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Edit Member: {member.name}</DialogTitle>
+          <DialogTitle>{member.isPrimary ? 'Edit Family' : `Edit Member: ${member.name}`}</DialogTitle>
           <DialogDescription>Update the registration details. Use with caution.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
@@ -154,10 +154,12 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
                     <Input id="city" value={formData.city || ''} onChange={(e) => handleInputChange('city', e.target.value)} />
                 </div>
             </div>
-             <div className="space-y-2">
-                <Label htmlFor="clinicId">Clinic ID</Label>
-                <Input id="clinicId" value={formData.clinicId || ''} onChange={(e) => handleInputChange('clinicId', e.target.value)} />
-            </div>
+             {!formData.isPrimary && (
+                <div className="space-y-2">
+                    <Label htmlFor="clinicId">Clinic ID</Label>
+                    <Input id="clinicId" value={formData.clinicId || ''} onChange={(e) => handleInputChange('clinicId', e.target.value)} />
+                </div>
+             )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

@@ -1,5 +1,13 @@
+<<<<<<< HEAD
+
+// Import the functions you need from the SDKs you need
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAnalytics, isSupported } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
+=======
 // workspace/src/lib/firebase.ts
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
+>>>>>>> origin/main
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
@@ -13,8 +21,14 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
+<<<<<<< HEAD
+// Initialize Firebase
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+=======
 // ✅ Always strongly type the app
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+>>>>>>> origin/main
 
 // ✅ Export Firebase services
 export const db = getFirestore(app);
