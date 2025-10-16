@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User as MaleIcon, UserSquare as FemaleIcon, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity, Users } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
@@ -729,20 +729,17 @@ export default function DashboardPage() {
                 isUpNext && "bg-yellow-100/70 border-yellow-300"
             )}>
                 <div className="flex items-center gap-4">
-                    <div className="w-12 text-center font-bold text-lg text-primary flex flex-col items-center">
-                        <Ticket className="h-5 w-5 mb-1" />
+                    <div className="font-bold text-lg text-primary flex items-center gap-2">
+                        <Ticket className="h-5 w-5" />
                         #{patient.tokenNo}
                     </div>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-1">
-                    <div className={cn(
-                        'flex items-center gap-2 text-base',
-                        getPatientNameColorClass(patient.status, patient.type)
-                    )}>
+                <div className="flex-1 flex items-center gap-4 text-sm">
+                    <div className={cn('flex items-center gap-2 text-base', getPatientNameColorClass(patient.status, patient.type))}>
                         {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={patient.purpose || undefined} />}
                         <PatientNameWithBadges patient={patient} />
-                        {patientDetails.gender === 'Male' ? <MaleIcon className="h-4 w-4 text-blue-500" /> : patientDetails.gender === 'Female' ? <FemaleIcon className="h-4 w-4 text-pink-500" /> : null}
+                        {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" /> : patientDetails.gender === 'Female' ? <User className="h-4 w-4 text-pink-500" /> : null}
                         <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
                     </div>
                     <div className='flex items-center gap-2 text-xs text-muted-foreground'>
