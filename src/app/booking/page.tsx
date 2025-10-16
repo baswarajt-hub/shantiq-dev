@@ -454,7 +454,7 @@ export default function BookingPage() {
           </CardContent>
         </Card>
         
-        <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors" style={{ backgroundColor: '#ffffff' }}>
+        <Card asChild className="cursor-pointer hover:border-primary/50 transition-colors bg-card" style={{ backgroundColor: '#ffffff' }}>
             <Link href="/booking/my-appointments">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Calendar /> My Appointments</CardTitle>
@@ -486,5 +486,7 @@ export default function BookingPage() {
   </main>
   );
 }
+
+    
 
     

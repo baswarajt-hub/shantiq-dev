@@ -1,3 +1,4 @@
+
 'use client';
 import Link from "next/link";
 import { StethoscopeIcon } from "@/components/icons";
@@ -50,7 +51,7 @@ export function PatientPortalHeader({ logoSrc, clinicName, googleMapsLink }: Pat
           ) : (
              <StethoscopeIcon className="h-6 w-6 text-primary-foreground fill-primary" />
           )}
-          <span className="font-bold sm:inline-block text-xs">{clinicName || 'QueueWise Portal'}</span>
+          <span className="font-bold sm:inline-block text-xs text-center">{clinicName || 'QueueWise Portal'}</span>
         </LogoLinkWrapper>
         
         <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
@@ -61,3 +62,5 @@ export function PatientPortalHeader({ logoSrc, clinicName, googleMapsLink }: Pat
     </header>
   );
 }
+
+    
