@@ -46,10 +46,10 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => {
             {patient.subType === 'Booked Walk-in' && (
               <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
             )}
-            {patient.status === 'Late' && (
-              <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">LATE</sup>
+            {patient.lateBy && patient.lateBy > 0 && patient.status !== 'Completed' && patient.status !== 'Cancelled' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">L</sup>
             )}
-            {patient.status === 'Waiting for Reports' && (
+            {patient.subStatus === 'Reports' && (
               <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
             )}
             {patient.status === 'Priority' && (
