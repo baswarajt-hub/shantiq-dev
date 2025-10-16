@@ -1,7 +1,6 @@
 
-
 'use client';
-import { recalculateQueueWithETC, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
+import { getPatientsAction, getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause, AlertTriangle, QrCode } from 'lucide-react';
@@ -220,21 +219,12 @@ function TVDisplayPageContent() {
 
   const fetchData = useCallback(async () => {
     try {
-        const [patientsRes, statusRes, scheduleRes] = await Promise.all([
-            fetch('/api/patients'),
-            fetch('/api/status'),
-            fetch('/api/schedule')
+        const [patientData, statusData, scheduleData] = await Promise.all([
+            recalculateQueueWithETC().then(() => getPatientsAction()),
+            getDoctorStatusAction(),
+            getDoctorScheduleAction()
         ]);
         
-        if (!patientsRes.ok || !statusRes.ok || !scheduleRes.ok) {
-            console.error("Failed to fetch data");
-            return;
-        }
-
-        const patientData = await patientsRes.json();
-        const statusData = await statusRes.json();
-        const scheduleData = await scheduleRes.json();
-
         setSchedule(scheduleData);
         setDoctorStatus(statusData);
 
@@ -724,8 +714,3 @@ export default function TVDisplayPage() {
 }
 
     
-
-    
-
-
-

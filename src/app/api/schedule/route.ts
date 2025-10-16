@@ -7,3 +7,5 @@ export async function GET() {
   const schedule = await getDoctorScheduleAction();
   return NextResponse.json(schedule, { status: 200 });
 }
+
+    
