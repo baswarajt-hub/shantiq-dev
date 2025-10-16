@@ -14,14 +14,14 @@ type HeaderProps = {
 export default function Header({ logoSrc, clinicName }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <Link href="/" className="mr-6 flex items-center space-x-2">
+      <div className="container flex h-[120px] items-center">
+        <Link href="/" className="mr-6 flex items-center space-x-4">
           {logoSrc ? (
-            <div className="relative h-10 w-10">
+            <div className="relative h-[100px] w-[100px]">
               <Image src={logoSrc} alt="Clinic Logo" fill className="object-contain" />
             </div>
           ) : (
-             <StethoscopeIcon className="h-6 w-6 text-primary-foreground fill-primary" />
+             <StethoscopeIcon className="h-12 w-12 text-primary-foreground fill-primary" />
           )}
           <span className="font-bold sm:inline-block text-base">{clinicName || 'QueueWise'}</span>
         </Link>
