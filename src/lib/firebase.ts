@@ -1,34 +1,37 @@
+<<<<<<< HEAD
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
+=======
+// workspace/src/lib/firebase.ts
+import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
+>>>>>>> origin/main
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyA8m_n5cZmJbrbWWgbkeRX-tRe3PiUg7sg",
-  authDomain: "shanti-clinic.firebaseapp.com",
-  projectId: "shanti-clinic",
-  storageBucket: "shanti-clinic.firebasestorage.app",
-  messagingSenderId: "471443812255",
-  appId: "1:471443812255:web:7dad9f21c92e07dfd997aa",
-  measurementId: "G-QEQYJ547FS"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
+<<<<<<< HEAD
 // Initialize Firebase
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
+=======
+// ✅ Always strongly type the app
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+>>>>>>> origin/main
 
-// Initialize Firebase services
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Initialize Analytics if supported
-const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
-
-export { app, auth, db, analytics };
+// ✅ Export Firebase services
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
+export default app;
