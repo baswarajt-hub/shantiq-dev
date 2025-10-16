@@ -1,4 +1,15 @@
 // src/lib/firebase.ts
+import path from "path";
+import { config as loadEnv } from "dotenv";
+
+// ✅ Explicitly load environment variables from workspace
+loadEnv({ path: path.resolve(process.cwd(), "workspace/.env.local") });
+
+// Optional fallback to .env if .env.local is missing
+loadEnv({ path: path.resolve(process.cwd(), "workspace/.env") });
+
+
+// src/lib/firebase.ts
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";

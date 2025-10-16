@@ -2,15 +2,18 @@
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
+  "type": "module",
+   "scripts": {
+    "predev": "npm run sync-env",
     "dev": "next dev --turbopack -p 9002",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
+    "prebuild": "npm run sync-env",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sync-env": "node sync-env.js"
   },
+  
   "dependencies": {
     "@genkit-ai/googleai": "^1.17.0",
     "@genkit-ai/next": "^1.17.0",
