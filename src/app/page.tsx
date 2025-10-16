@@ -119,7 +119,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon?: React.R
         <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-neutral-100">{icon}</span>
         {title}
       </div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-neutral-900">{value}</div>
+      <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-neutral-900 text-center">{value}</div>
     </div>
   );
 
