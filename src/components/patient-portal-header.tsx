@@ -1,4 +1,3 @@
-
 'use client';
 import Link from "next/link";
 import { StethoscopeIcon } from "@/components/icons";
@@ -23,12 +22,12 @@ export function PatientPortalHeader({ logoSrc, clinicName, googleMapsLink }: Pat
 
   const LogoLinkWrapper = googleMapsLink
     ? ({ children }: { children: React.ReactNode }) => (
-      <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center">
+      <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center text-center">
         {children}
       </a>
     )
     : ({ children }: { children: React.ReactNode }) => (
-      <Link href="/booking" className="flex flex-col items-center justify-center">
+      <Link href="/booking" className="flex flex-col items-center justify-center text-center">
         {children}
       </Link>
     );
@@ -45,7 +44,7 @@ export function PatientPortalHeader({ logoSrc, clinicName, googleMapsLink }: Pat
         
         <LogoLinkWrapper>
            {logoSrc ? (
-            <div className="relative h-8 w-8">
+            <div className="relative h-10 w-10">
               <Image src={logoSrc} alt="Clinic Logo" fill className="object-contain" />
             </div>
           ) : (
