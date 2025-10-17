@@ -642,7 +642,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             patientUpdates.set(p.id.toString(), { ...patientUpdates.get(p.id.toString()), worstCaseETC: worstCaseETC, slotTime: worstCaseETC });
             
             const currentUpdates = patientUpdates.get(p.id.toString()) || {};
-            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && p.type === 'Appointment' && !p.lateLocked && toDate(p.checkInTime)! > toDate(worstCaseETC)!) {
+            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && !p.lateLocked && toDate(p.checkInTime)! > toDate(worstCaseETC)!) {
                  const lateBy = differenceInMinutes(toDate(p.checkInTime)!, toDate(worstCaseETC)!);
                  patientUpdates.set(p.id.toString(), { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
             }
@@ -1562,3 +1562,6 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
 
+
+
+    
