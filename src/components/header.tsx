@@ -14,10 +14,10 @@ type HeaderProps = {
 export default function Header({ logoSrc, clinicName }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-[120px] items-center">
+      <div className="container flex h-20 items-center">
         <Link href="/" className="mr-6 flex items-center space-x-4">
           {logoSrc ? (
-            <div className="relative h-[100px] w-[100px]">
+            <div className="relative h-[50px] w-[50px]">
               <Image src={logoSrc} alt="Clinic Logo" fill className="object-contain" />
             </div>
           ) : (
