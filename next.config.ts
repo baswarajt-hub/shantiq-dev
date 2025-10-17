@@ -1,3 +1,4 @@
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -16,7 +17,8 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
       {
-        protocol: "https",
+        protocol: "https"
+        ,
         hostname: "api.qrserver.com",
         port: "",
         pathname: "/**",
@@ -24,7 +26,9 @@ const nextConfig: NextConfig = {
     ],
   },
   env: {
-    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
+    NEXT_PUBLIC_BASE_URL: process.env.NODE_ENV === 'production' 
+      ? 'https://shantiq.in' 
+      : 'http://localhost:9002',
   },
 
   // 👇 Add this async rewrites section
