@@ -94,7 +94,9 @@ function WalkInPageContent() {
         if ("error" in result) {
             toast({ title: "Error Joining Queue", description: result.error, variant: 'destructive'});
         } else {
-            toast({ title: "Added to Queue!", description: `You have been assigned Token #${result.patient.tokenNo}.`});
+            toast({ title: "Added to Queue!", description: `You have been assigned Token #${result.patient.tokenNo}. Redirecting...`});
+            // Set phone in local storage for queue status page auth
+            localStorage.setItem('userPhone', member.phone);
             router.push(`/queue-status?id=${result.patient.id}`);
         }
     });
