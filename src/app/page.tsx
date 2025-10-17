@@ -724,7 +724,7 @@ export default function DashboardPage() {
 
         return (
             <div className={cn(
-                "p-3 grid grid-cols-[80px_1fr_40px_100px_1fr_150px_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
+                "p-3 grid grid-cols-[80px_1fr_60px_120px_1fr_150px_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
                 isUpNext && "bg-yellow-100/70 border-yellow-300"
             )}>
@@ -738,7 +738,7 @@ export default function DashboardPage() {
                 </div>
                 
                 <div className="flex justify-start">
-                   {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" title="Male" /> : patientDetails.gender === 'Female' ? <User className="h-4 w-4 text-pink-500" title="Female"/> : null}
+                   {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" title="Male" /> : patientDetails.gender === 'Female' ? <User className="h-4 w-4 text-pink-500" title="Female"/> : <div className="w-4"/>}
                 </div>
 
                 <div className="flex items-center gap-2 justify-start">
