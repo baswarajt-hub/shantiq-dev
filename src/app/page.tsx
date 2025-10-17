@@ -724,11 +724,11 @@ export default function DashboardPage() {
 
         return (
             <div className={cn(
-                "p-3 grid grid-cols-[80px_auto_40px_100px_1fr_150px_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
+                "p-3 grid grid-cols-[80px_1fr_40px_100px_1fr_150px_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
                 isUpNext && "bg-yellow-100/70 border-yellow-300"
             )}>
-                <div className="font-bold text-lg text-primary flex items-center gap-2">
+                <div className="font-bold text-lg text-primary flex items-center gap-2 justify-start">
                     <Ticket className="h-5 w-5" />
                     #{patient.tokenNo}
                 </div>
@@ -737,16 +737,16 @@ export default function DashboardPage() {
                     <PatientNameWithBadges patient={patient} />
                 </div>
                 
-                <div className="flex justify-center">
+                <div className="flex justify-start">
                    {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" title="Male" /> : patientDetails.gender === 'Female' ? <User className="h-4 w-4 text-pink-500" title="Female"/> : null}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-start">
                   <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'} className="whitespace-nowrap">{patient.type}</Badge>
                   {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={patient.purpose || undefined} />}
                 </div>
 
-                <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                <div className='flex items-center gap-2 text-xs text-muted-foreground justify-start'>
                     <Timer className="h-4 w-4" />
                     ETC:
                     <span className="font-semibold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</span>
@@ -754,7 +754,7 @@ export default function DashboardPage() {
                     <span className="font-semibold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-start">
                     {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
                     <span className={cn("font-medium", statusColor)}>{patient.status} {patient.lateBy ? `(${patient.lateBy} min)` : ''}</span>
                 </div>
