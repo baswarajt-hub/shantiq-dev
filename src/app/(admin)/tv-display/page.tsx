@@ -235,10 +235,11 @@ function TVDisplayPageContent() {
         if (scheduleData) {
             sessionToShow = getSessionForTime(now, scheduleData);
 
+            // Robust fallback logic
             if (!sessionToShow) {
                 const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-
                 let daySchedule = scheduleData.days[dayName];
+                
                 if (daySchedule) {
                     const todayOverride = scheduleData.specialClosures.find((c: SpecialClosure) => c.date === todayStr);
                     if (todayOverride) {
@@ -247,18 +248,23 @@ function TVDisplayPageContent() {
                             evening: todayOverride.eveningOverride ?? daySchedule.evening,
                         };
                     }
-                    
+
                     const morningSession = daySchedule.morning;
-                    if (morningSession.isOpen) {
-                        const morningEndLocal = parseDateFn(`${todayStr} ${morningSession.end}`, 'yyyy-MM-dd HH:mm', new Date());
-                        const morningEndUtc = fromZonedTime(morningEndLocal, timeZone);
-                        if (now > morningEndUtc) {
-                            sessionToShow = 'evening';
-                        } else {
-                            sessionToShow = 'morning';
-                        }
-                    } else {
+                    const eveningSession = daySchedule.evening;
+                    const morningStartUtc = morningSession.isOpen ? sessionLocalToUtc(todayStr, morningSession.start) : null;
+                    const morningEndUtc = morningSession.isOpen ? sessionLocalToUtc(todayStr, morningSession.end) : null;
+                    
+                    // If it's before the morning session even starts, default to morning
+                    if (morningStartUtc && now < morningStartUtc) {
+                        sessionToShow = 'morning';
+                    } 
+                    // If it's after morning ends but before evening starts, default to evening
+                    else if (morningEndUtc && now >= morningEndUtc && eveningSession.isOpen) {
                         sessionToShow = 'evening';
+                    }
+                    // As a final fallback, if morning is open, show morning. Otherwise, show evening.
+                    else {
+                       sessionToShow = morningSession.isOpen ? 'morning' : 'evening';
                     }
                 }
             }
