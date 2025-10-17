@@ -406,7 +406,7 @@ export default function DashboardPage() {
             startTransition(() => {
                 addNewPatientAction(newPatientData).then(result => {
                     if ("error" in result || !('patient' in result)) {
-                        toast({ title: "Error", description: (result as any).error || "Failed to add patient", variant: 'destructive'});
+                        toast({ title: "Error", description: (result as any).error || "Failed to add patient", variant: "destructive"});
                         resolve(null);
                     } else {
                         toast({ title: "Success", description: result.success});
@@ -724,41 +724,44 @@ export default function DashboardPage() {
 
         return (
             <div className={cn(
-                "p-3 grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
+                "p-3 grid grid-cols-[80px_auto_40px_100px_1fr_150px_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
                 isUpNext && "bg-yellow-100/70 border-yellow-300"
             )}>
-                <div className="flex items-center gap-4">
-                    <div className="font-bold text-lg text-primary flex items-center gap-2">
-                        <Ticket className="h-5 w-5" />
-                        #{patient.tokenNo}
-                    </div>
+                <div className="font-bold text-lg text-primary flex items-center gap-2">
+                    <Ticket className="h-5 w-5" />
+                    #{patient.tokenNo}
                 </div>
 
-                <div className="flex-1 flex items-center gap-4 text-sm">
-                    <div className={cn('flex items-center gap-2 text-base', getPatientNameColorClass(patient.status, patient.type))}>
-                        {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={patient.purpose || undefined} />}
-                        <PatientNameWithBadges patient={patient} />
-                        {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" /> : patientDetails.gender === 'Female' ? <User className="h-4 w-4 text-pink-500" /> : null}
-                        <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
-                    </div>
-                    <div className='flex items-center gap-2 text-xs text-muted-foreground'>
-                        <Timer className="h-4 w-4" />
-                        ETC:
-                        <span className="font-semibold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</span>
-                        -
-                        <span className="font-semibold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
-                    </div>
+                <div className={cn('flex items-center gap-2 text-base', getPatientNameColorClass(patient.status, patient.type))}>
+                    <PatientNameWithBadges patient={patient} />
+                </div>
+                
+                <div className="flex justify-center">
+                   {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" title="Male" /> : patientDetails.gender === 'Female' ? <User className="h-4 w-4 text-pink-500" title="Female"/> : null}
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <div className="w-40 flex items-center gap-2">
-                        {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
-                        <span className={cn("font-medium", statusColor)}>{patient.status} {patient.lateBy ? `(${patient.lateBy} min)` : ''}</span>
-                    </div>
+                  <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'} className="whitespace-nowrap">{patient.type}</Badge>
+                  {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={patient.purpose || undefined} />}
+                </div>
 
+                <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                    <Timer className="h-4 w-4" />
+                    ETC:
+                    <span className="font-semibold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</span>
+                    -
+                    <span className="font-semibold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                    {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
+                    <span className={cn("font-medium", statusColor)}>{patient.status} {patient.lateBy ? `(${patient.lateBy} min)` : ''}</span>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
                     {isActionable && (
-                        <div className="flex items-center gap-2">
+                        <>
                             {['Booked', 'Confirmed'].includes(patient.status) && (
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600">Check-in</Button>
                             )}
@@ -864,7 +867,7 @@ export default function DashboardPage() {
                                     </AlertDialog>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
