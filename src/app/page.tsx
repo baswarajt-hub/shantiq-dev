@@ -27,7 +27,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 
@@ -740,22 +739,16 @@ export default function DashboardPage() {
                 </div>
                 
                 <div className="flex justify-start">
-        <TooltipProvider>
-            <Tooltip>
-            <TooltipTrigger asChild>
-            {patientDetails.gender === 'Male' ? (
-             <User className="h-4 w-4 text-blue-500" />
-             ) : patientDetails.gender === 'Female' ? (
-          <User className="h-4 w-4 text-pink-500" />
-         ) : (
-          <div className="w-4" />
-         )}
-        </TooltipTrigger>
-         <TooltipContent>
-        {patientDetails.gender || 'Unknown'}
-         </TooltipContent>
-     </Tooltip>
-    </TooltipProvider>
+                   {patientDetails.gender === 'Male' ? (
+                <div title="Male">
+                <User className="h-4 w-4 text-blue-500" />
+                </div>
+                    ) : patientDetails.gender === 'Female' ? (
+                <div title="Female">
+                <User className="h-4 w-4 text-pink-500" />
+                </div>
+                ) : (
+                <div className="w-4" />
             )}
 
                     ETC:
