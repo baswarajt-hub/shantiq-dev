@@ -335,22 +335,47 @@ export async function getDoctorStatusAction(): Promise<DoctorStatus> {
     return JSON.parse(JSON.stringify(await getDoctorStatusData()));
 }
 
-export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
-    try {
-        const updates = { ...status };
-        if (status.isQrCodeActive) {
-            updates.walkInSessionToken = randomBytes(16).toString('hex');
-        } else if (status.isQrCodeActive === false) {
-            updates.walkInSessionToken = null;
-        }
 
-        const newStatus = await updateDoctorStatus(updates);
-        await recalculateQueueWithETC();
-        revalidatePath('/', 'layout');
-        return { success: `Doctor status updated.`, status: newStatus };
-    } catch (e: any) {
-        return { error: e.message || "Failed to update doctor status." };
+
+import { doc, updateDoc } from 'firebase/firestore';
+
+
+// Approximate clinic coordinates for 300m radius validation
+const CLINIC_COORDINATES = {
+  lat: 17.4036,
+  lng: 78.4871,
+};
+
+export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
+  try {
+    const updates: Partial<DoctorStatus & {
+      qrSessionLocation?: { lat: number; lng: number } | null;
+      qrSessionStartTime?: string | null;
+    }> = { ...status };
+
+    // ✅ When doctor turns ON the QR toggle
+    if (status.isQrCodeActive === true) {
+      updates.walkInSessionToken = randomBytes(16).toString('hex'); // unique token
+      updates.qrSessionStartTime = new Date().toISOString();       // session start time
+      updates.qrSessionLocation = CLINIC_COORDINATES;              // clinic location
     }
+
+    // 🚫 When doctor turns OFF the QR toggle
+    else if (status.isQrCodeActive === false) {
+      updates.walkInSessionToken = null;
+      updates.qrSessionStartTime = null;
+      updates.qrSessionLocation = null;
+    }
+
+    const newStatus = await updateDoctorStatus(updates);
+    await recalculateQueueWithETC();
+    revalidatePath('/', 'layout');
+
+    return { success: 'Doctor status updated successfully.', status: newStatus };
+  } catch (e: any) {
+    console.error('Error updating doctor status:', e);
+    return { error: e?.message || 'Failed to update doctor status.' };
+  }
 }
 
 

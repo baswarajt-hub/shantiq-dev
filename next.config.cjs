@@ -8,8 +8,12 @@ const nextConfig = {
     ],
   },
   env: {
-    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
-  },
+  NEXT_PUBLIC_BASE_URL:
+    process.env.NODE_ENV === 'production'
+      ? 'https://shantiq.in'
+      : 'https://shantiq.in', // Always point to live site, even in local dev
+},
+
   async rewrites() {
     return [
       {

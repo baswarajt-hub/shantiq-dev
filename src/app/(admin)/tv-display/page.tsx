@@ -169,7 +169,8 @@ function TVDisplayPageContent() {
 
   const listRef = useRef<HTMLDivElement>(null);
   const timeZone = "Asia/Kolkata";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
+  const baseUrl = 'https://shantiq.in';
+
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule || !localSchedule.days) return null;
@@ -407,8 +408,15 @@ function TVDisplayPageContent() {
     };
   }
 
-  const qrCodeUrl = baseUrl && doctorStatus.walkInSessionToken ? `${baseUrl}/walk-in?token=${doctorStatus.walkInSessionToken}` : '';
-  const showQrCode = doctorStatus.isQrCodeActive && qrCodeUrl;
+  // --- Updated QR Code Logic ---
+
+const qrCodeUrl =
+  doctorStatus.isQrCodeActive && doctorStatus.walkInSessionToken
+    ? `${baseUrl}/walk-in?token=${doctorStatus.walkInSessionToken}`
+    : '';
+
+const showQrCode = Boolean(doctorStatus.isQrCodeActive && qrCodeUrl);
+
 
   if (layout === '2') {
     return (
@@ -492,11 +500,12 @@ function TVDisplayPageContent() {
                         <h3 className="text-lg font-bold text-slate-800">Scan for Walk-in</h3>
                         <p className="text-xs text-muted-foreground mb-2">Join the queue directly</p>
                         <Image
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrCodeUrl)}`}
-                            alt="Walk-in QR Code"
-                            width={150}
-                            height={150}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrCodeUrl)}`}
+                          alt="Walk-in QR Code"
+                          width={150}
+                          height={150}
                         />
+
                     </div>
                 )}
             </div>

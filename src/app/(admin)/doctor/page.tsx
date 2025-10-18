@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -24,6 +23,13 @@ import { Label } from '@/components/ui/label';
 import { setDoctorStatusAction } from '@/app/actions';
 
 const timeZone = 'Asia/Kolkata';
+
+// 🔐 Helper to generate random token
+function generateSecureToken(prefix = 'walkin') {
+  const randomPart = Math.random().toString(36).substring(2, 10);
+  const timePart = Date.now().toString(36);
+  return `${prefix}_${randomPart}${timePart}`;
+}
 
 export default function DoctorPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -86,21 +92,36 @@ export default function DoctorPage() {
 
   useEffect(() => {
     loadData();
-    const intervalId = setInterval(loadData, 5000); // Poll every 5 seconds for faster updates
+    const intervalId = setInterval(loadData, 5000);
     return () => clearInterval(intervalId);
   }, [loadData]);
 
-   const handleToggleQrCode = () => {
+  // 🧠 Updated QR code toggle logic
+  const handleToggleQrCode = async () => {
     if (!doctorStatus) return;
-    const isGoingActive = !doctorStatus.isQrCodeActive;
-    setDoctorStatusAction({ isQrCodeActive: isGoingActive }).then(result => {
-        if ("error" in result) {
-            toast({ title: 'Error', description: `Failed to update QR code status.`, variant: 'destructive' });
-        } else {
-            toast({ title: 'Success', description: `QR Code is now ${isGoingActive ? 'active' : 'inactive'}.` });
-            loadData();
-        }
-    });
+
+    const isActivating = !doctorStatus.isQrCodeActive;
+    const newToken = isActivating ? generateSecureToken() : null;
+
+    const payload = {
+      isQrCodeActive: isActivating,
+      walkInSessionToken: newToken,
+      qrActivatedAt: isActivating ? new Date().toISOString() : null,
+    };
+
+    const result = await setDoctorStatusAction(payload);
+
+    if ("error" in result) {
+      toast({ title: 'Error', description: 'Failed to update QR code status.', variant: 'destructive' });
+    } else {
+      toast({
+        title: 'Success',
+        description: isActivating
+          ? 'QR Code activated successfully. A new token has been generated.'
+          : 'QR Code deactivated successfully.',
+      });
+      loadData();
+    }
   };
 
   const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
@@ -114,13 +135,13 @@ export default function DoctorPage() {
   };
 
   const handleClosuresSave = async (updatedClosures: SpecialClosure[]) => {
-     if (!schedule) return;
+    if (!schedule) return;
     const result = await updateSpecialClosuresAction(updatedClosures);
-     if ('error' in result) {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
+    if ('error' in result) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
-        toast({ title: 'Success', description: 'Closure updated successfully.' });
-        setSchedule(prev => prev ? { ...prev, specialClosures: updatedClosures } : null);
+      toast({ title: 'Success', description: 'Closure updated successfully.' });
+      setSchedule(prev => prev ? { ...prev, specialClosures: updatedClosures } : null);
     }
   };
 
@@ -144,23 +165,17 @@ export default function DoctorPage() {
     }
 
     let session: 'morning' | 'evening' = 'morning';
-
     if (daySchedule.morning.isOpen) {
-        const morningEndTime = parse(daySchedule.morning.end, 'HH:mm', now);
-        // If current time is past morning session end time, switch to evening
-        if (now > morningEndTime) {
-            session = 'evening';
-        }
+      const morningEndTime = parse(daySchedule.morning.end, 'HH:mm', now);
+      if (now > morningEndTime) session = 'evening';
     } else {
-        // If morning is not open, default to evening
-        session = 'evening';
+      session = 'evening';
     }
-
 
     const filteredPatients = patients.filter(p => {
       const apptDate = new Date(p.appointmentTime);
       return format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') === format(toZonedTime(now, timeZone), 'yyyy-MM-dd') &&
-             getSessionForTime(apptDate, schedule) === session;
+        getSessionForTime(apptDate, schedule) === session;
     });
 
     const completedWithTime = filteredPatients.filter(p => p.status === 'Completed' && typeof p.consultationTime === 'number');
@@ -171,27 +186,26 @@ export default function DoctorPage() {
     }
 
     return { currentSession: session, sessionPatients: filteredPatients, averageConsultationTime: avgTime };
-
   }, [schedule, patients, getSessionForTime]);
 
   if (isLoading || !schedule || !doctorStatus) {
     return (
-        <div className="flex flex-col min-h-screen">
-            <DoctorHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
-            <main className="flex-1 p-4 space-y-6">
-                <div className="mx-auto w-full max-w-4xl space-y-6">
-                <Skeleton className="h-12 w-1/3" />
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Skeleton className="h-28" />
-                    <Skeleton className="h-28" />
-                    <Skeleton className="h-28" />
-                    <Skeleton className="h-28" />
-                </div>
-                <Skeleton className="h-64 w-full" />
-                <Skeleton className="h-64 w-full" />
-                </div>
-            </main>
-        </div>
+      <div className="flex flex-col min-h-screen">
+        <DoctorHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
+        <main className="flex-1 p-4 space-y-6">
+          <div className="mx-auto w-full max-w-4xl space-y-6">
+            <Skeleton className="h-12 w-1/3" />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+            </div>
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </main>
+      </div>
     );
   }
 
@@ -216,42 +230,44 @@ export default function DoctorPage() {
           <DoctorStats patients={sessionPatients} averageConsultationTime={averageConsultationTime} />
 
           <div className="grid gap-6 md:grid-cols-2">
-              <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />
-              <InfoCards schedule={schedule} />
+            <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />
+            <InfoCards schedule={schedule} />
           </div>
 
           <Card>
-              <CardContent className="p-0">
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="item-1">
-                      <AccordionTrigger className="px-6 text-lg font-semibold">
-                          <div className="flex items-center gap-2">
-                              <SlidersHorizontal className="h-5 w-5" />
-                              Advanced Settings
-                          </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="p-4 md:p-6 pt-2 bg-muted/50">
-                          <div className="space-y-6">
-                              <div className='flex items-center space-x-2 p-3 rounded-lg bg-background'>
-                                 <Label htmlFor="qr-code-status" className={cn('flex items-center text-base font-medium')}>
-                                    <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
-                                     Walk-in QR Code
-                                  </Label>
-                                  <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} />
-                              </div>
-                             <DoctorNotificationForm
-                                initialNotifications={schedule.notifications}
-                                onSave={handleNotificationsSave}
-                              />
-                              <SpecialClosures
-                                  schedule={schedule}
-                                  onSave={handleClosuresSave}
-                              />
-                          </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-              </CardContent>
+            <CardContent className="p-0">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="item-1">
+                  <AccordionTrigger className="px-6 text-lg font-semibold">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="h-5 w-5" />
+                      Advanced Settings
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4 md:p-6 pt-2 bg-muted/50">
+                    <div className="space-y-6">
+                      {/* ✅ QR Code Toggle */}
+                      <div className='flex items-center space-x-2 p-3 rounded-lg bg-background'>
+                        <Label htmlFor="qr-code-status" className="flex items-center text-base font-medium">
+                          <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
+                          Walk-in QR Code
+                        </Label>
+                        <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} />
+                      </div>
+
+                      <DoctorNotificationForm
+                        initialNotifications={schedule.notifications}
+                        onSave={handleNotificationsSave}
+                      />
+                      <SpecialClosures
+                        schedule={schedule}
+                        onSave={handleClosuresSave}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
           </Card>
 
           <DoctorQueue patients={sessionPatients} onUpdate={loadData} />
