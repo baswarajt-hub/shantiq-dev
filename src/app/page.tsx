@@ -27,6 +27,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 
 type TimeSlot = {
@@ -738,16 +740,24 @@ export default function DashboardPage() {
                 </div>
                 
                 <div className="flex justify-start">
-                   {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" title="Male" /> : patientDetails.gender === 'Female' ? <User className="h-4 w-4 text-pink-500" title="Female"/> : <div className="w-4"/>}
-                </div>
+        <TooltipProvider>
+            <Tooltip>
+            <TooltipTrigger asChild>
+            {patientDetails.gender === 'Male' ? (
+             <User className="h-4 w-4 text-blue-500" />
+             ) : patientDetails.gender === 'Female' ? (
+          <User className="h-4 w-4 text-pink-500" />
+         ) : (
+          <div className="w-4" />
+         )}
+        </TooltipTrigger>
+         <TooltipContent>
+        {patientDetails.gender || 'Unknown'}
+         </TooltipContent>
+     </Tooltip>
+    </TooltipProvider>
+            )}
 
-                <div className="flex items-center gap-2 justify-start">
-                  <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'} className="whitespace-nowrap">{patient.type}</Badge>
-                  {PurposeIcon && <PurposeIcon className="h-4 w-4 text-muted-foreground" title={patient.purpose || undefined} />}
-                </div>
-
-                <div className='flex items-center gap-2 text-xs text-muted-foreground justify-start'>
-                    <Timer className="h-4 w-4" />
                     ETC:
                     <span className="font-semibold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</span>
                     -
