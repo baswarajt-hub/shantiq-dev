@@ -1,7 +1,5 @@
 
-
 'use client';
-
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
@@ -28,8 +26,6 @@ import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 
-
-
 type TimeSlot = {
   time: string;
   isBooked: boolean;
@@ -44,20 +40,20 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => {
     <span className="flex items-center gap-2 font-semibold relative">
       {nameToDisplay}
       {patient.clinicId && <span className="text-xs font-mono text-muted-foreground ml-2">({patient.clinicId})</span>}
-        <span className="flex gap-1">
-            {patient.subType === 'Booked Walk-in' && (
-              <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
-            )}
-            {patient.lateBy && patient.lateBy > 0 && patient.status !== 'Completed' && patient.status !== 'Cancelled' && (
-              <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">L</sup>
-            )}
-            {patient.subStatus === 'Reports' && (
-              <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
-            )}
-            {patient.status === 'Priority' && (
-                <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
-            )}
-        </span>
+      <span className="flex gap-1">
+        {patient.subType === 'Booked Walk-in' && (
+          <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
+        )}
+        {patient.lateBy && patient.lateBy > 0 && patient.status !== 'Completed' && patient.status !== 'Cancelled' && (
+          <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">L</sup>
+        )}
+        {patient.subStatus === 'Reports' && (
+          <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
+        )}
+        {patient.status === 'Priority' && (
+            <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
+        )}
+      </span>
     </span>
   );
 };
@@ -1158,3 +1154,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
