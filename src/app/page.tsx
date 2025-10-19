@@ -735,14 +735,14 @@ export default function DashboardPage() {
                     #{patient.tokenNo}
                 </div>
 
-                {/* Name Column */}
-                <div className={cn('flex flex-col items-start justify-center text-base', getPatientNameColorClass(patient.status, patient.type))}>
+                {/* Name & ID Column */}
+                <div className={cn('flex items-center gap-3 text-base', getPatientNameColorClass(patient.status, patient.type))}>
+                    <PatientNameWithBadges patient={patient} />
                     {patientDetails?.clinicId && (
-                        <span className="text-xs font-mono text-muted-foreground mb-0.5">
-                            {patientDetails.clinicId}
+                        <span className="text-xs font-mono text-muted-foreground">
+                            ({patientDetails.clinicId})
                         </span>
                     )}
-                    <PatientNameWithBadges patient={patient} />
                 </div>
                 
                 {/* Details Column */}
