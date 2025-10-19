@@ -36,22 +36,61 @@ type TimeSlot = {
 
 const PatientNameWithBadges = ({ patient }: { patient: Patient & { clinicId?: string } }) => {
   const nameToDisplay = patient.name;
+
   return (
     <span className="flex items-center gap-2 font-semibold relative">
       {nameToDisplay}
-      {patient.clinicId && <span className="text-xs font-mono text-muted-foreground ml-2">({patient.clinicId})</span>}
+      {patient.clinicId && (
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(patient.clinicId || '');
+            const event = new CustomEvent('show-toast', {
+              detail: {
+                title: 'Copied!',
+                description: `Clinic ID ${patient.clinicId} copied to clipboard.`,
+              },
+            });
+            window.dispatchEvent(event);
+          }}
+          className="text-xs font-mono text-muted-foreground ml-2 hover:text-primary transition-colors"
+          title="Click to copy Clinic ID"
+        >
+          ({patient.clinicId})
+        </button>
+      )}
+
       <span className="flex gap-1">
         {patient.subType === 'Booked Walk-in' && (
-          <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
+          <sup
+            className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold"
+            title="Booked Walk-in"
+          >
+            B
+          </sup>
         )}
         {patient.lateBy && patient.lateBy > 0 && patient.status !== 'Completed' && patient.status !== 'Cancelled' && (
-          <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">L</sup>
+          <sup
+            className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold"
+            title="Late"
+          >
+            L
+          </sup>
         )}
         {patient.subStatus === 'Reports' && (
-          <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
+          <sup
+            className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold"
+            title="Waiting for Reports"
+          >
+            R
+          </sup>
         )}
         {patient.status === 'Priority' && (
-            <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
+          <sup
+            className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold"
+            title="Priority"
+          >
+            P
+          </sup>
         )}
       </span>
     </span>
@@ -167,6 +206,15 @@ export default function DashboardPage() {
     const [isPending, startTransition] = useTransition();
     
     const { toast } = useToast();
+        useEffect(() => {
+        const handleToast = (e: any) => {
+            const { title, description } = e.detail;
+            toast({ title, description });
+        };
+        window.addEventListener('show-toast', handleToast);
+        return () => window.removeEventListener('show-toast', handleToast);
+        }, [toast]);
+
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
@@ -362,16 +410,25 @@ export default function DashboardPage() {
                     }
                 }
 
-                const patientWithClinicId = patientForSlot ? { ...patientForSlot, clinicId: patientDetails?.clinicId } : undefined;
+              
 
 
-                generatedSlots.push({
+                // Before pushing to generatedSlots
+                    let patientWithClinicId: (Patient & { clinicId?: string }) | undefined;
+
+                    if (patientForSlot) {
+                    const clinicIdValue = patientDetails?.clinicId ?? undefined; // 👈 Fix 1 applied
+                    patientWithClinicId = { ...patientForSlot, clinicId: clinicIdValue };
+                    }
+
+                    generatedSlots.push({
                     time: timeString,
                     isBooked: isBooked,
                     isReservedForWalkIn: isReservedForWalkIn,
-                    patient: patientWithClinicId,
+                    patient: patientWithClinicId ?? patientForSlot, // safely assign
                     patientDetails: patientDetails,
-                });
+                    });
+
 
                 currentTime = addMinutes(currentTime, schedule.slotDuration);
                 slotIndex++;
