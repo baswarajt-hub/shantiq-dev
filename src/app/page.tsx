@@ -29,12 +29,10 @@ import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 
 function hasClinicId(
-  details: FamilyMember | { name: string; gender: 'Other' }
+  details: FamilyMember | { name: string; gender: 'Other' } | null | undefined
 ): details is FamilyMember {
-  return (
-    typeof (details as FamilyMember)?.clinicId === 'string' &&
-    (details as FamilyMember).clinicId.trim().length > 0
-  );
+  const clinicId = (details as FamilyMember)?.clinicId;
+  return typeof clinicId === 'string' && clinicId.trim().length > 0;
 }
 
 
