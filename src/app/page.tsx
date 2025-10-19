@@ -42,6 +42,7 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => {
   const nameToDisplay = patient.name;
   return (
     <span className="flex items-center gap-2 font-semibold relative">
+      {patient.clinicId && <span className="text-xs font-mono text-muted-foreground mr-1">({patient.clinicId})</span>}
       {nameToDisplay}
         <span className="flex gap-1">
             {patient.subType === 'Booked Walk-in' && (
@@ -206,24 +207,26 @@ export default function DashboardPage() {
       if (initialLoad) setIsLoading(true);
       else setIsRefreshing(true);
       
-      Promise.all([
-          getDoctorScheduleAction(),
-          getPatientsAction(),
-          getFamilyAction(),
-          getDoctorStatusAction(),
-          recalculateQueueWithETC() // Ensure queue is calculated on load
-      ]).then(([scheduleData, patientData, familyData, statusData]) => {
-          setSchedule(scheduleData);
-          setPatients(patientData);
-          setFamily(familyData);
-          setDoctorStatus(statusData);
-      }).catch(err => {
-          console.error("Failed to load data", err);
-          toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
-      }).finally(() => {
-         if (initialLoad) setIsLoading(false);
-         setInitialLoad(false);
-         setIsRefreshing(false);
+      // Fix: run recalculation first and wait for it.
+      recalculateQueueWithETC().then(() => {
+          Promise.all([
+            getDoctorScheduleAction(),
+            getPatientsAction(),
+            getFamilyAction(),
+            getDoctorStatusAction(),
+          ]).then(([scheduleData, patientData, familyData, statusData]) => {
+              setSchedule(scheduleData);
+              setPatients(patientData);
+              setFamily(familyData);
+              setDoctorStatus(statusData);
+          }).catch(err => {
+              console.error("Failed to load data", err);
+              toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
+          }).finally(() => {
+             if (initialLoad) setIsLoading(false);
+             setInitialLoad(false);
+             setIsRefreshing(false);
+          });
       });
     }, [initialLoad, toast]);
 
@@ -725,7 +728,7 @@ export default function DashboardPage() {
         const isLastInQueue = isUpNext && waitingList.length === 0;
 
         return (
-            <div className={cn(
+             <div className={cn(
                 "p-3 grid grid-cols-[60px_1fr_320px_120px_100px] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
                 isUpNext && "bg-yellow-100/70 border-yellow-300"
@@ -739,20 +742,15 @@ export default function DashboardPage() {
                 {/* Name */}
                 <div className={cn('flex items-center gap-2 text-base font-semibold', getPatientNameColorClass(patient.status, patient.type))}>
                     <PatientNameWithBadges patient={patient} />
-                    {patientDetails?.clinicId && (
-                        <span className="text-xs font-mono text-muted-foreground ml-1">
-                            ({patientDetails.clinicId})
-                        </span>
-                    )}
                 </div>
 
                 {/* Details */}
-                <div className="flex items-center justify-start gap-4 text-sm text-muted-foreground">
-                    <div title={patientDetails.gender || 'Gender not specified'}>
+                <div className="grid grid-cols-[24px_80px_24px_1fr] items-center gap-x-3 text-sm text-muted-foreground">
+                    <div title={patientDetails.gender || 'Gender not specified'} className="flex justify-center">
                         {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" /> : <User className="h-4 w-4 text-pink-500" />}
                     </div>
                     <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
-                    <div title={patient.purpose || 'No purpose specified'}>
+                    <div title={patient.purpose || 'No purpose specified'} className="flex justify-center">
                        <PurposeIcon className="h-4 w-4" />
                     </div>
                      <div className='flex items-center gap-1.5' title="Estimated Time of Consultation">
