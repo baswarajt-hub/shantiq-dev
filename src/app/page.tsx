@@ -729,12 +729,19 @@ export default function DashboardPage() {
                 !isActionable && "opacity-60",
                 isUpNext && "bg-yellow-100/70 border-yellow-300"
             )}>
-                <div className="font-bold text-lg text-primary flex items-center justify-start gap-2">
+                {/* Token Column */}
+                <div className="flex justify-start items-center font-bold text-lg text-primary gap-2">
                     <Ticket className="h-5 w-5" />
                     #{patient.tokenNo}
                 </div>
 
-                <div className={cn('flex items-center gap-2 text-base', getPatientNameColorClass(patient.status, patient.type))}>
+                {/* Name Column */}
+                <div className={cn('flex flex-col items-start justify-center text-base', getPatientNameColorClass(patient.status, patient.type))}>
+                    {patientDetails?.clinicId && (
+                        <span className="text-xs font-mono text-muted-foreground mb-0.5">
+                            {patientDetails.clinicId}
+                        </span>
+                    )}
                     <PatientNameWithBadges patient={patient} />
                 </div>
                 
