@@ -30,11 +30,11 @@ type TimeSlot = {
   time: string;
   isBooked: boolean;
   isReservedForWalkIn?: boolean;
-  patient?: Patient;
+  patient?: Patient & { clinicId?: string }; // Add clinicId here
   patientDetails?: Partial<FamilyMember>;
 }
 
-const PatientNameWithBadges = ({ patient }: { patient: Patient }) => {
+const PatientNameWithBadges = ({ patient }: { patient: Patient & { clinicId?: string } }) => {
   const nameToDisplay = patient.name;
   return (
     <span className="flex items-center gap-2 font-semibold relative">
@@ -362,12 +362,14 @@ export default function DashboardPage() {
                     }
                 }
 
+                const patientWithClinicId = patientForSlot ? { ...patientForSlot, clinicId: patientDetails?.clinicId } : undefined;
+
 
                 generatedSlots.push({
                     time: timeString,
                     isBooked: isBooked,
                     isReservedForWalkIn: isReservedForWalkIn,
-                    patient: patientForSlot,
+                    patient: patientWithClinicId,
                     patientDetails: patientDetails,
                 });
 
@@ -710,7 +712,7 @@ export default function DashboardPage() {
     const doctorOnlineTime = doctorStatus.onlineTime ? new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
 
-    const PatientCard = ({ patient }: { patient: Patient }) => {
+    const PatientCard = ({ patient }: { patient: Patient & { clinicId?: string } }) => {
         const patientDetails = family.find(f => f.phone === patient.phone && f.name === patient.name) || { name: patient.name, gender: 'Other' };
         const statusKey = patient.status as keyof typeof statusConfig;
         const StatusIcon = statusConfig[statusKey]?.icon || HelpCircle;
@@ -1155,4 +1157,3 @@ export default function DashboardPage() {
     );
 }
 
-    
