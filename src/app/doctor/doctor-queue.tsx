@@ -156,7 +156,7 @@ export function DoctorQueue({
     ...(nowServing ? [nowServing] : []),
     ...(upNext ? [upNext] : []),
     ...waitingList,
-  ];
+  ].filter(p => p.status !== 'Completed' && p.status !== 'Cancelled');
 
   const isLastInQueue = upNext && waitingList.length === 0;
 

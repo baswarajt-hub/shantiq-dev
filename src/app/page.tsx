@@ -210,7 +210,8 @@ export default function DashboardPage() {
           getDoctorScheduleAction(),
           getPatientsAction(),
           getFamilyAction(),
-          getDoctorStatusAction()
+          getDoctorStatusAction(),
+          recalculateQueueWithETC() // Ensure queue is calculated on load
       ]).then(([scheduleData, patientData, familyData, statusData]) => {
           setSchedule(scheduleData);
           setPatients(patientData);
@@ -725,36 +726,30 @@ export default function DashboardPage() {
 
         return (
             <div className={cn(
-                "p-3 grid grid-cols-[80px_1fr_auto_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
+                "p-3 grid grid-cols-[60px_1fr_320px_120px_100px] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
                 isUpNext && "bg-yellow-100/70 border-yellow-300"
             )}>
-                {/* Token Column */}
+                {/* Token */}
                 <div className="flex justify-start items-center font-bold text-lg text-primary gap-2">
                     <Ticket className="h-5 w-5" />
                     #{patient.tokenNo}
                 </div>
 
-                {/* Name & ID Column */}
-                <div className={cn('flex items-center gap-2 text-base', getPatientNameColorClass(patient.status, patient.type))}>
+                {/* Name */}
+                <div className={cn('flex items-center gap-2 text-base font-semibold', getPatientNameColorClass(patient.status, patient.type))}>
                     <PatientNameWithBadges patient={patient} />
                     {patientDetails?.clinicId && (
-                        <span className="text-xs font-mono text-muted-foreground">
+                        <span className="text-xs font-mono text-muted-foreground ml-1">
                             ({patientDetails.clinicId})
                         </span>
                     )}
                 </div>
-                
-                {/* Details Column */}
+
+                {/* Details */}
                 <div className="flex items-center justify-start gap-4 text-sm text-muted-foreground">
                     <div title={patientDetails.gender || 'Gender not specified'}>
-                        {patientDetails.gender === 'Male' ? (
-                            <User className="h-4 w-4 text-blue-500" />
-                        ) : patientDetails.gender === 'Female' ? (
-                            <User className="h-4 w-4 text-pink-500" />
-                        ) : (
-                            <User className="h-4 w-4 text-gray-400" />
-                        )}
+                        {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" /> : <User className="h-4 w-4 text-pink-500" />}
                     </div>
                     <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
                     <div title={patient.purpose || 'No purpose specified'}>
@@ -767,26 +762,27 @@ export default function DashboardPage() {
                         <span className="font-semibold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
                     </div>
                 </div>
+                
+                {/* Status */}
+                <div className="flex items-center justify-start gap-2">
+                    <StatusIcon className={cn("h-4 w-4", statusColor)} />
+                    <span className={cn("font-medium text-sm", statusColor)}>{patient.status} {patient.lateBy ? `(${patient.lateBy}m)` : ''}</span>
+                </div>
 
-                {/* Status & Actions Column */}
-                <div className="flex items-center justify-end gap-4">
-                    <div className="flex items-center gap-2 w-40 justify-start">
-                        {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
-                        <span className={cn("font-medium", statusColor)}>{patient.status} {patient.lateBy ? `(${patient.lateBy} min)` : ''}</span>
-                    </div>
-                    
+                {/* Actions */}
+                <div className="flex items-center justify-end">
                     {isActionable && (
-                        <div className="flex items-center">
-                            {['Booked', 'Confirmed'].includes(patient.status) && (
-                                <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600">Check-in</Button>
+                        <>
+                             {['Booked', 'Confirmed'].includes(patient.status) && (
+                                <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                             )}
                              {isNextInLine && !isUpNext && (
-                                <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
+                                <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
                                     <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
                                 </Button>
                             )}
                             {isLastInQueue && (
-                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline}>
+                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
                                      <LogIn className="mr-2 h-4 w-4" /> Start
                                 </Button>
                             )}
@@ -882,7 +878,7 @@ export default function DashboardPage() {
                                     </AlertDialog>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
@@ -1096,7 +1092,7 @@ export default function DashboardPage() {
                                     )}
                                     onClick={() => handleSlotClick(slot.time)}
                                   >
-                                       <div className="w-12 text-center font-bold text-lg text-muted-foreground">-</div>
+                                       <div className="w-[60px] text-center font-bold text-lg text-muted-foreground">-</div>
                                        <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
                                        <div className={cn("flex-1 font-semibold flex items-center justify-center gap-2", (slot.isReservedForWalkIn) ? "text-amber-600" : "text-green-600")}>
                                          {(slot.isReservedForWalkIn) ? (

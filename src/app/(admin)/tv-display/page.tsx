@@ -169,7 +169,7 @@ function TVDisplayPageContent() {
 
   const listRef = useRef<HTMLDivElement>(null);
   const timeZone = "Asia/Kolkata";
-  const baseUrl = 'https://shantiq.in';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
@@ -252,20 +252,28 @@ function TVDisplayPageContent() {
 
                     const morningSession = daySchedule.morning;
                     const eveningSession = daySchedule.evening;
+                    
                     const morningStartUtc = morningSession.isOpen ? sessionLocalToUtc(todayStr, morningSession.start) : null;
                     const morningEndUtc = morningSession.isOpen ? sessionLocalToUtc(todayStr, morningSession.end) : null;
-                    
+                    const eveningStartUtc = eveningSession.isOpen ? sessionLocalToUtc(todayStr, eveningSession.start) : null;
+
                     // If it's before the morning session even starts, default to morning
                     if (morningStartUtc && now < morningStartUtc) {
                         sessionToShow = 'morning';
                     } 
                     // If it's after morning ends but before evening starts, default to evening
-                    else if (morningEndUtc && now >= morningEndUtc && eveningSession.isOpen) {
+                    else if (morningEndUtc && now >= morningEndUtc && eveningStartUtc && now < eveningStartUtc) {
                         sessionToShow = 'evening';
                     }
-                    // As a final fallback, if morning is open, show morning. Otherwise, show evening.
+                    // As a final fallback, if we are in a valid day, determine which is closer or active
                     else {
-                       sessionToShow = morningSession.isOpen ? 'morning' : 'evening';
+                       if (now >= eveningStartUtc!) {
+                           sessionToShow = 'evening';
+                       } else if (now >= morningStartUtc!) {
+                           sessionToShow = 'morning';
+                       } else { // Before any session on an open day
+                           sessionToShow = morningSession.isOpen ? 'morning' : 'evening';
+                       }
                     }
                 }
             }
@@ -411,7 +419,7 @@ function TVDisplayPageContent() {
   // --- Updated QR Code Logic ---
 
 const qrCodeUrl =
-  doctorStatus.isQrCodeActive && doctorStatus.walkInSessionToken
+  doctorStatus.isQrCodeActive && doctorStatus.walkInSessionToken && baseUrl
     ? `${baseUrl}/walk-in?token=${doctorStatus.walkInSessionToken}`
     : '';
 
