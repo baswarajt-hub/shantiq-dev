@@ -42,8 +42,8 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => {
   const nameToDisplay = patient.name;
   return (
     <span className="flex items-center gap-2 font-semibold relative">
-      {patient.clinicId && <span className="text-xs font-mono text-muted-foreground mr-1">({patient.clinicId})</span>}
       {nameToDisplay}
+      {patient.clinicId && <span className="text-xs font-mono text-muted-foreground ml-2">({patient.clinicId})</span>}
         <span className="flex gap-1">
             {patient.subType === 'Booked Walk-in' && (
               <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
@@ -204,31 +204,29 @@ export default function DashboardPage() {
     };
 
     const loadData = useCallback(() => {
-      if (initialLoad) setIsLoading(true);
-      else setIsRefreshing(true);
+        if (initialLoad) setIsLoading(true);
+        else setIsRefreshing(true);
       
-      // Fix: run recalculation first and wait for it.
-      recalculateQueueWithETC().then(() => {
-          Promise.all([
-            getDoctorScheduleAction(),
-            getPatientsAction(),
-            getFamilyAction(),
-            getDoctorStatusAction(),
-          ]).then(([scheduleData, patientData, familyData, statusData]) => {
-              setSchedule(scheduleData);
-              setPatients(patientData);
-              setFamily(familyData);
-              setDoctorStatus(statusData);
-          }).catch(err => {
-              console.error("Failed to load data", err);
-              toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
-          }).finally(() => {
-             if (initialLoad) setIsLoading(false);
-             setInitialLoad(false);
-             setIsRefreshing(false);
-          });
-      });
-    }, [initialLoad, toast]);
+        // Crucially, wait for recalculation to finish before fetching data
+        startTransition(async () => {
+            await recalculateQueueWithETC();
+            const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+                getDoctorScheduleAction(),
+                getPatientsAction(),
+                getFamilyAction(),
+                getDoctorStatusAction(),
+            ]);
+
+            setSchedule(scheduleData);
+            setPatients(patientData);
+            setFamily(familyData);
+            setDoctorStatus(statusData);
+
+            if (initialLoad) setIsLoading(false);
+            setInitialLoad(false);
+            setIsRefreshing(false);
+        });
+    }, [initialLoad, startTransition]);
 
     useEffect(() => {
         loadData();
