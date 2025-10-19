@@ -28,6 +28,15 @@ import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 
+function hasClinicId(
+  details: FamilyMember | { name: string; gender: 'Other' }
+): details is FamilyMember {
+  return (
+    typeof (details as FamilyMember)?.clinicId === 'string' &&
+    (details as FamilyMember).clinicId.trim().length > 0
+  );
+}
+
 
 
 type TimeSlot = {
@@ -743,7 +752,8 @@ export default function DashboardPage() {
                 )}
                 >
                 <PatientNameWithBadges patient={patient} />
-                {'clinicId' in (patientDetails ?? {}) && patientDetails?.clinicId && (
+
+                {hasClinicId(patientDetails) && (
                     <span className="text-xs font-mono text-muted-foreground">
                     ({patientDetails.clinicId})
                     </span>
