@@ -725,11 +725,11 @@ export default function DashboardPage() {
 
         return (
             <div className={cn(
-                "p-3 grid grid-cols-[80px_1fr_40px_120px_220px_140px_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
+                "p-3 grid grid-cols-[80px_1fr_auto_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
                 isUpNext && "bg-yellow-100/70 border-yellow-300"
             )}>
-                <div className="font-bold text-lg text-primary flex items-center gap-2 justify-start">
+                <div className="font-bold text-lg text-primary flex items-center justify-start gap-2">
                     <Ticket className="h-5 w-5" />
                     #{patient.tokenNo}
                 </div>
@@ -738,44 +738,49 @@ export default function DashboardPage() {
                     <PatientNameWithBadges patient={patient} />
                 </div>
                 
-                <div className="flex justify-start">
-                   {patientDetails.gender === 'Male' ? (
-                <div title="Male">
-                <User className="h-4 w-4 text-blue-500" />
+                {/* Details Column */}
+                <div className="flex items-center justify-start gap-4 text-sm text-muted-foreground">
+                    <div title={patientDetails.gender || 'Gender not specified'}>
+                        {patientDetails.gender === 'Male' ? (
+                            <User className="h-4 w-4 text-blue-500" />
+                        ) : patientDetails.gender === 'Female' ? (
+                            <User className="h-4 w-4 text-pink-500" />
+                        ) : (
+                            <User className="h-4 w-4 text-gray-400" />
+                        )}
+                    </div>
+                    <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
+                    <div title={patient.purpose || 'No purpose specified'}>
+                       <PurposeIcon className="h-4 w-4" />
+                    </div>
+                     <div className='flex items-center gap-1.5' title="Estimated Time of Consultation">
+                        <Timer className="h-4 w-4" />
+                        <span className="font-semibold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>
+                        <span>-</span>
+                        <span className="font-semibold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
+                    </div>
                 </div>
-                    ) : patientDetails.gender === 'Female' ? (
-                <div title="Female">
-                <User className="h-4 w-4 text-pink-500" />
-                </div>
-                ) : (
-                <div className="w-4" />
-            )}
 
-                    ETC:
-                    <span className="font-semibold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</span>
-                    -
-                    <span className="font-semibold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 justify-start">
-                    {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
-                    <span className={cn("font-medium", statusColor)}>{patient.status} {patient.lateBy ? `(${patient.lateBy} min)` : ''}</span>
-                </div>
-
-                <div className="flex items-center justify-end gap-2">
+                {/* Status & Actions Column */}
+                <div className="flex items-center justify-end gap-4">
+                    <div className="flex items-center gap-2 w-40 justify-start">
+                        {StatusIcon && <StatusIcon className={cn("h-4 w-4", statusColor)} />}
+                        <span className={cn("font-medium", statusColor)}>{patient.status} {patient.lateBy ? `(${patient.lateBy} min)` : ''}</span>
+                    </div>
+                    
                     {isActionable && (
-                        <>
+                        <div className="flex items-center">
                             {['Booked', 'Confirmed'].includes(patient.status) && (
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600">Check-in</Button>
                             )}
                              {isNextInLine && !isUpNext && (
                                 <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
-                                    <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
+                                    <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
                                 </Button>
                             )}
                             {isLastInQueue && (
                                 <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline}>
-                                     <LogIn className="mr-2 h-4 w-4" /> Start Consultation
+                                     <LogIn className="mr-2 h-4 w-4" /> Start
                                 </Button>
                             )}
                             <DropdownMenu>
@@ -870,7 +875,7 @@ export default function DashboardPage() {
                                     </AlertDialog>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>
