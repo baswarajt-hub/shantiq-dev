@@ -28,13 +28,6 @@ import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 
-function hasClinicId(
-  details: FamilyMember | { name: string; gender: 'Other' } | null | undefined
-): details is FamilyMember {
-  const clinicId = (details as FamilyMember)?.clinicId;
-  return typeof clinicId === 'string' && clinicId.trim().length > 0;
-}
-
 
 
 type TimeSlot = {
@@ -729,7 +722,7 @@ export default function DashboardPage() {
         const isNextInLine = nextInLine?.id === patient.id;
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
         const isLastInQueue = isUpNext && waitingList.length === 0;
-        
+
         return (
             <div className={cn(
                 "p-3 grid grid-cols-[80px_1fr_auto_auto] items-center gap-4 rounded-xl border bg-white shadow-sm",
@@ -743,22 +736,14 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Name & ID Column */}
-                <div
-                className={cn(
-                    'flex items-center gap-3 text-base',
-                    getPatientNameColorClass(patient.status, patient.type)
-                )}
-                >
-                <PatientNameWithBadges patient={patient} />
-
-                {hasClinicId(patientDetails) && (
-                    <span className="text-xs font-mono text-muted-foreground">
-                    ({patientDetails.clinicId})
-                    </span>
-                )}
+                <div className={cn('flex items-center gap-2 text-base', getPatientNameColorClass(patient.status, patient.type))}>
+                    <PatientNameWithBadges patient={patient} />
+                    {patientDetails?.clinicId && (
+                        <span className="text-xs font-mono text-muted-foreground">
+                            ({patientDetails.clinicId})
+                        </span>
+                    )}
                 </div>
-
-
                 
                 {/* Details Column */}
                 <div className="flex items-center justify-start gap-4 text-sm text-muted-foreground">
