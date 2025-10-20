@@ -1,5 +1,6 @@
 
 'use client';
+
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
@@ -26,73 +27,36 @@ import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 
+
+
 type TimeSlot = {
   time: string;
   isBooked: boolean;
   isReservedForWalkIn?: boolean;
-  patient?: Patient & { clinicId?: string }; // Add clinicId here
+  patient?: Patient & { clinicId?: string };
   patientDetails?: Partial<FamilyMember>;
 }
 
-const PatientNameWithBadges = ({ patient }: { patient: Patient & { clinicId?: string } }) => {
+const PatientNameWithBadges = ({ patient }: { patient: Patient }) => {
   const nameToDisplay = patient.name;
-
   return (
     <span className="flex items-center gap-2 font-semibold relative">
       {nameToDisplay}
-      {patient.clinicId && (
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(patient.clinicId || '');
-            const event = new CustomEvent('show-toast', {
-              detail: {
-                title: 'Copied!',
-                description: `Clinic ID ${patient.clinicId} copied to clipboard.`,
-              },
-            });
-            window.dispatchEvent(event);
-          }}
-          className="text-xs font-mono text-muted-foreground ml-2 hover:text-primary transition-colors"
-          title="Click to copy Clinic ID"
-        >
-          ({patient.clinicId})
-        </button>
-      )}
-
-      <span className="flex gap-1">
-        {patient.subType === 'Booked Walk-in' && (
-          <sup
-            className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold"
-            title="Booked Walk-in"
-          >
-            B
-          </sup>
-        )}
-        {patient.lateBy && patient.lateBy > 0 && patient.status !== 'Completed' && patient.status !== 'Cancelled' && (
-          <sup
-            className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold"
-            title="Late"
-          >
-            L
-          </sup>
-        )}
-        {patient.subStatus === 'Reports' && (
-          <sup
-            className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold"
-            title="Waiting for Reports"
-          >
-            R
-          </sup>
-        )}
-        {patient.status === 'Priority' && (
-          <sup
-            className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold"
-            title="Priority"
-          >
-            P
-          </sup>
-        )}
-      </span>
+      {patient.clinicId && <span className="text-xs font-mono text-muted-foreground ml-2">({patient.clinicId})</span>}
+        <span className="flex gap-1">
+            {patient.subType === 'Booked Walk-in' && (
+              <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
+            )}
+            {patient.lateBy && patient.lateBy > 0 && patient.status !== 'Completed' && patient.status !== 'Cancelled' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">L</sup>
+            )}
+            {patient.subStatus === 'Reports' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
+            )}
+            {patient.status === 'Priority' && (
+                <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
+            )}
+        </span>
     </span>
   );
 };
@@ -201,20 +165,10 @@ export default function DashboardPage() {
     const [showCompleted, setShowCompleted] = useState(false);
     
     const [isLoading, setIsLoading] = useState(true);
-    const [initialLoad, setInitialLoad] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isPending, startTransition] = useTransition();
     
     const { toast } = useToast();
-        useEffect(() => {
-        const handleToast = (e: any) => {
-            const { title, description } = e.detail;
-            toast({ title, description });
-        };
-        window.addEventListener('show-toast', handleToast);
-        return () => window.removeEventListener('show-toast', handleToast);
-        }, [toast]);
-
 
     const getSessionForTime = (appointmentUtcDate: Date) => {
         if (!schedule || !schedule.days) return null;
@@ -247,34 +201,35 @@ export default function DashboardPage() {
         return null;
     };
 
-    const loadData = useCallback(() => {
-        if (initialLoad) setIsLoading(true);
-        else setIsRefreshing(true);
+    const loadData = useCallback((isInitial: boolean) => {
+      if (isInitial) setIsLoading(true);
+      else setIsRefreshing(true);
       
-        // Crucially, wait for recalculation to finish before fetching data
-        startTransition(async () => {
-            await recalculateQueueWithETC();
-            const [scheduleData, patientData, familyData, statusData] = await Promise.all([
-                getDoctorScheduleAction(),
-                getPatientsAction(),
-                getFamilyAction(),
-                getDoctorStatusAction(),
-            ]);
-
-            setSchedule(scheduleData);
-            setPatients(patientData);
-            setFamily(familyData);
-            setDoctorStatus(statusData);
-
-            if (initialLoad) setIsLoading(false);
-            setInitialLoad(false);
-            setIsRefreshing(false);
-        });
-    }, [initialLoad, startTransition]);
+      startTransition(async () => {
+        try {
+          const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+            getDoctorScheduleAction(),
+            getPatientsAction(),
+            getFamilyAction(),
+            getDoctorStatusAction(),
+          ]);
+          setSchedule(scheduleData);
+          setPatients(patientData);
+          setFamily(familyData);
+          setDoctorStatus(statusData);
+        } catch (error) {
+           console.error("Failed to load data", error);
+           toast({ title: "Error", description: "Could not load clinic data.", variant: "destructive"});
+        } finally {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
+      });
+    }, [toast]);
 
     useEffect(() => {
-        loadData();
-        const intervalId = setInterval(loadData, 30000);
+        loadData(true);
+        const intervalId = setInterval(() => loadData(false), 30000);
         return () => clearInterval(intervalId);
     }, [loadData]);
     
@@ -324,118 +279,124 @@ export default function DashboardPage() {
 
     }, [sessionPatients, schedule?.slotDuration]);
 
-
     useEffect(() => {
-        if (!schedule || !schedule.days || !selectedDate) return;
-
+      if (!schedule || !schedule.days || !selectedDate) {
+        setTimeSlots([]);
+        return;
+      }
+    
+      try {
         const familyMap = new Map(family.map(f => [`${f.phone}-${f.name}`, f]));
-
+    
         const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
-        const generatedSlots: TimeSlot[] = [];
-
         if (!daySchedule) {
-            setTimeSlots([]);
-            return;
+          setTimeSlots([]);
+          return;
         }
-
+    
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
         const closure = schedule.specialClosures.find(c => c.date === dateStr);
-
+    
         if (closure) {
-            daySchedule = {
-                morning: closure.morningOverride ?? daySchedule.morning,
-                evening: closure.eveningOverride ?? daySchedule.evening
-            }
+          daySchedule = {
+            morning: closure.morningOverride ?? daySchedule.morning,
+            evening: closure.eveningOverride ?? daySchedule.evening,
+          };
         }
-
-        const sessionToGenerate = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
-        const isSessionClosed = selectedSession === 'morning' ? closure?.isMorningClosed : closure?.isEveningClosed;
-
-        if (sessionToGenerate.isOpen && !isSessionClosed) {
-            const [startHour, startMinute] = sessionToGenerate.start.split(':').map(Number);
-            const [endHour, endMinute] = sessionToGenerate.end.split(':').map(Number);
-
-            let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
-            const endTime = set(selectedDate, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
-
-            let slotIndex = 0;
-            while (currentTime < endTime) {
-                const timeString = format(currentTime, 'hh:mm a');
-
-                const timeZone = "Asia/Kolkata";
-
-                const patientForSlot = patients.find(p => {
-                    if (p.status === 'Cancelled' || !p.appointmentTime) return false;
-                    const apptDateUtc = parseISO(p.appointmentTime);
-                    const apptInIST = toZonedTime(apptDateUtc, timeZone);
-
-                    const apptTimeStr = format(apptInIST, 'hh:mm a');
-                    const apptDateStr = format(apptInIST, 'yyyy-MM-dd');
-
-                    return apptTimeStr === timeString && apptDateStr === format(selectedDate, 'yyyy-MM-dd');
-                });
-
-                let isBooked = !!patientForSlot;
-
-                let isReservedForWalkIn = false;
-                if (!isBooked) {
-                    if (schedule.reserveFirstFive && slotIndex < 5) {
-                        isReservedForWalkIn = true;
-                    }
-
-                    const reservationStrategy = schedule.walkInReservation;
-                    const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
-
-                    if (slotIndex >= startIndexForAlternate) {
-                        const relativeIndex = slotIndex - startIndexForAlternate;
-                        if (reservationStrategy === 'alternateOne') {
-                            if (relativeIndex % 2 !== 0) isReservedForWalkIn = true;
-                        } else if (reservationStrategy === 'alternateTwo') {
-                            if (relativeIndex % 4 === 2 || relativeIndex % 4 === 3) isReservedForWalkIn = true;
-                        }
-                    }
-                }
-
-                let patientDetails: Partial<FamilyMember> | undefined;
-                if (patientForSlot) {
-                    patientDetails = familyMap.get(`${patientForSlot.phone}-${patientForSlot.name}`);
-                    if (!patientDetails) {
-                        // Create a fallback object if family member is not found, to prevent crash
-                        patientDetails = {
-                            name: patientForSlot.name,
-                            phone: patientForSlot.phone,
-                            gender: 'Other' // or some default
-                        };
-                    }
-                }
-
-              
-
-
-                // Before pushing to generatedSlots
-                    let patientWithClinicId: (Patient & { clinicId?: string }) | undefined;
-
-                    if (patientForSlot) {
-                    const clinicIdValue = patientDetails?.clinicId ?? undefined; // 👈 Fix 1 applied
-                    patientWithClinicId = { ...patientForSlot, clinicId: clinicIdValue };
-                    }
-
-                    generatedSlots.push({
-                    time: timeString,
-                    isBooked: isBooked,
-                    isReservedForWalkIn: isReservedForWalkIn,
-                    patient: patientWithClinicId ?? patientForSlot, // safely assign
-                    patientDetails: patientDetails,
-                    });
-
-
-                currentTime = addMinutes(currentTime, schedule.slotDuration);
-                slotIndex++;
-            }
+    
+        const sessionToGenerate =
+          selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
+    
+        const isSessionClosed =
+          selectedSession === 'morning' ? closure?.isMorningClosed : closure?.isEveningClosed;
+    
+        if (!sessionToGenerate.isOpen || isSessionClosed) {
+          setTimeSlots([]);
+          return;
         }
+    
+        const [startHour, startMinute] = sessionToGenerate.start.split(':').map(Number);
+        const [endHour, endMinute] = sessionToGenerate.end.split(':').map(Number);
+    
+        let currentTime = set(selectedDate, {
+          hours: startHour,
+          minutes: startMinute,
+          seconds: 0,
+          milliseconds: 0,
+        });
+        const endTime = set(selectedDate, {
+          hours: endHour,
+          minutes: endMinute,
+          seconds: 0,
+          milliseconds: 0,
+        });
+    
+        const slots: TimeSlot[] = [];
+        let slotIndex = 0;
+    
+        while (currentTime < endTime) {
+          const timeString = format(currentTime, 'hh:mm a');
+    
+          const patientForSlot = patients.find(p => {
+            if (p.status === 'Cancelled' || !p.appointmentTime) return false;
+            const apptDateUtc = parseISO(p.appointmentTime);
+            const apptInIST = toZonedTime(apptDateUtc, "Asia/Kolkata");
+            return (
+              format(apptInIST, 'hh:mm a') === timeString &&
+              format(apptInIST, 'yyyy-MM-dd') === dateStr
+            );
+          });
+    
+          let isBooked = !!patientForSlot;
+          let isReservedForWalkIn = false;
+    
+          if (!isBooked) {
+            if (schedule.reserveFirstFive && slotIndex < 5) {
+              isReservedForWalkIn = true;
+            }
+    
+            const reservationStrategy = schedule.walkInReservation;
+            const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+    
+            if (slotIndex >= startIndexForAlternate) {
+              const relativeIndex = slotIndex - startIndexForAlternate;
+              if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) {
+                isReservedForWalkIn = true;
+              } else if (
+                reservationStrategy === 'alternateTwo' &&
+                (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)
+              ) {
+                isReservedForWalkIn = true;
+              }
+            }
+          }
+    
+          let patientDetails = patientForSlot
+            ? familyMap.get(`${patientForSlot.phone}-${patientForSlot.name}`)
+            : undefined;
 
-        setTimeSlots(generatedSlots);
+          const patientWithClinicId = patientForSlot && patientDetails
+            ? { ...patientForSlot, clinicId: (patientDetails as any)?.clinicId ?? undefined }
+            : patientForSlot;
+    
+          slots.push({
+            time: timeString,
+            isBooked,
+            isReservedForWalkIn,
+            patient: patientWithClinicId,
+            patientDetails,
+          });
+    
+          currentTime = addMinutes(currentTime, schedule.slotDuration);
+          slotIndex++;
+        }
+    
+        setTimeSlots(slots);
+      } catch (err) {
+        console.error('❌ Error generating time slots:', err);
+        setTimeSlots([]);
+      }
     }, [schedule, patients, family, selectedSession, selectedDate]);
 
     const handleSlotClick = (time: string) => {
@@ -453,7 +414,7 @@ export default function DashboardPage() {
                     toast({ title: "Error", description: result.error, variant: 'destructive'});
                 } else {
                     toast({ title: "Success", description: "Appointment booked successfully."});
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -468,7 +429,7 @@ export default function DashboardPage() {
                         resolve(null);
                     } else {
                         toast({ title: "Success", description: result.success});
-                        loadData();
+                        loadData(false);
                         resolve(result.patient);
                     }
                 });
@@ -493,7 +454,7 @@ export default function DashboardPage() {
                         toast({ title: "Error", description: result.error, variant: 'destructive' });
                     } else {
                         toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
-                        loadData();
+                        loadData(false);
                     }
                 });
             });
@@ -507,7 +468,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -520,7 +481,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -533,7 +494,7 @@ export default function DashboardPage() {
                   toast({ title: 'Error', description: result.error, variant: 'destructive' });
               } else {
                   toast({ title: 'Success', description: result.success });
-                  loadData();
+                  loadData(false);
               }
           });
         });
@@ -546,7 +507,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -559,7 +520,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -573,7 +534,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: 'Appointment cancelled.' });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -586,7 +547,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -599,7 +560,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -642,7 +603,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: `Failed to update status.`, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -658,7 +619,7 @@ export default function DashboardPage() {
                         toast({ title: 'Error', description: result.error, variant: 'destructive'});
                     } else {
                         toast({ title: 'Success', description: result.success});
-                        loadData();
+                        loadData(false);
                     }
                 });
             });
@@ -672,7 +633,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -685,7 +646,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -698,7 +659,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -1213,4 +1174,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-

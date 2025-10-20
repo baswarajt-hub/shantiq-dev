@@ -379,12 +379,22 @@ function TVDisplayPageContent() {
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   
   const waitingList = patients
-    .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
-    .sort((a, b) => {
-        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : parseISO(a.slotTime!).getTime();
-        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC!).getTime() : parseISO(a.slotTime!).getTime();
-        return timeA - timeB;
-    });
+  .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
+  .sort((a, b) => {
+      const safeParse = (dateString?: string) => {
+          try {
+              return dateString ? parseISO(dateString).getTime() : Infinity;
+          } catch {
+              return Infinity;
+          }
+      };
+
+      const timeA = a.bestCaseETC ? safeParse(a.bestCaseETC) : safeParse(a.slotTime);
+      const timeB = b.bestCaseETC ? safeParse(b.bestCaseETC) : safeParse(b.slotTime);
+
+      return timeA - timeB;
+  });
+
 
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
   const yetToArrive = patients.filter(p => p.status === 'Booked' || p.status === 'Confirmed');
