@@ -1025,7 +1025,7 @@ export default function DashboardPage() {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleClearTodaysAppointments}>Confirm Deletion</AlertDialogAction>
+                                    
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
