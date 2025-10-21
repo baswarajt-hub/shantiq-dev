@@ -4,7 +4,12 @@
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
-import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
+import format from 'date-fns/format';
+import set from 'date-fns/set';
+import addMinutes from 'date-fns/addMinutes';
+import parseISO from 'date-fns/parseISO';
+import isToday from 'date-fns/isToday';
+import differenceInMinutes from 'date-fns/differenceInMinutes';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -16,7 +21,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction as addPatientActionType, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction, deleteTodaysPatientsAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction, deleteTodaysPatientsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { parse } from 'date-fns';
+import parse from 'date-fns/parse';
 import type { ActionResult } from '@/lib/types';
 
 
@@ -100,16 +105,12 @@ const timeZone = "Asia/Kolkata";
  * into a UTC Date (the instant when that local time occurs).
  */
 function sessionLocalToUtc(dateStr: string, sessionTime: string) {
-  // Try 24-hour format first
   let localDate: Date;
-  if (/^\\d{1,2}:\\d{2}$/.test(sessionTime)) {
-    // "HH:mm" (24-hour)
-    localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
-  } else {
-    // attempt 12-hour with AM/PM: "h:mm a" or "hh:mm a"
+  if (/[ap]m$/i.test(sessionTime)) {
     localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
+  } else {
+    localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
   }
-  // fromZonedTime will give us the UTC Date object corresponding to that wall-clock time in the specified zone.
   return fromZonedTime(localDate, timeZone);
 }
 
@@ -200,48 +201,62 @@ export default function DashboardPage() {
         return null;
     };
 
+    const sessionPatients = patients.filter(p => {
+        if (!p.appointmentTime || !selectedDate || !isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
+        const apptDate = parseISO(p.appointmentTime);
+        const apptSession = getSessionForTime(apptDate);
+        return apptSession === selectedSession;
+    });
+
+    const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
+
 
     const [error, setError] = useState<string | null>(null);
 
     const loadData = useCallback(async () => {
+      if (isLoading) {
+        // This is the initial load, no need to set refreshing
+      } else {
         setIsRefreshing(true);
-        try {
-            const [scheduleData, patientData, familyData, statusData] = await Promise.all([
-                getDoctorScheduleAction(),
-                getPatientsAction(),
-                getFamilyAction(),
-                getDoctorStatusAction(),
-            ]);
-            
-            if (!scheduleData || !statusData) {
-                throw new Error("Invalid data received from server");
-            }
-            
-            setSchedule(scheduleData);
-            setPatients(patientData);
-            setFamily(familyData);
-            setDoctorStatus(statusData);
-            setError(null);
-        } catch (error) {
-            console.error("Failed to load data", error);
-            const errorMessage = error instanceof Error ? error.message : "Could not load clinic data.";
-            setError(errorMessage);
-            toast({
-                title: "Error",
-                description: errorMessage,
-                variant: "destructive",
-            });
-        } finally {
-            setIsLoading(false);
-            setIsRefreshing(false);
+      }
+    
+      try {
+        const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+          getDoctorScheduleAction(),
+          getPatientsAction(),
+          getFamilyAction(),
+          getDoctorStatusAction(),
+        ]);
+        
+        if (!scheduleData || !statusData) {
+          throw new Error("Invalid data received from server");
         }
-    }, [toast]);
+        
+        setSchedule(scheduleData);
+        setPatients(patientData);
+        setFamily(familyData);
+        setDoctorStatus(statusData);
+        setError(null);
+      } catch (error) {
+        console.error("Failed to load data", error);
+        const errorMessage = error instanceof Error ? error.message : "Could not load clinic data.";
+        setError(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    }, [toast, isLoading]); // Dependency on isLoading to differentiate initial load from polling
     
     useEffect(() => {
         loadData();
-        const intervalId = setInterval(loadData, 30000);
+        const intervalId = setInterval(loadData, 30000); // Poll every 30 seconds
         return () => clearInterval(intervalId);
-    }, [loadData]);
+    }, [loadData]); // useEffect depends on the stable loadData function
       
 
     useEffect(() => {
@@ -250,17 +265,6 @@ export default function DashboardPage() {
         setSelectedSession('evening');
       }
     }, []);
-
-    const sessionPatients = patients.filter(p => {
-        if (!p.appointmentTime || !selectedDate || !isToday(parseISO(p.appointmentTime)) || p.status === 'Cancelled') return false;
-
-        const apptDate = parseISO(p.appointmentTime);
-        const apptSession = getSessionForTime(apptDate);
-
-        return apptSession === selectedSession;
-    });
-    
-    const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
 
     useEffect(() => {
         // Calculate average consultation time based on session-specific patients
@@ -577,7 +581,7 @@ export default function DashboardPage() {
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
-        if (/^\\d{5,}$/.test(searchTerm.replace(/\\D/g, ''))) {
+        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
@@ -705,7 +709,6 @@ export default function DashboardPage() {
           const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
           const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
           if (timeA === Infinity && timeB === Infinity) {
-              // Fallback to token number if ETC is not available (e.g., before session start)
               return (a.tokenNo || 0) - (b.tokenNo || 0);
           }
           return timeA - timeB;
@@ -1154,12 +1157,13 @@ export default function DashboardPage() {
                           {displayedTimeSlots.length > 0 ? displayedTimeSlots.map((slot, index) => {
 
                               if (searchTerm && !slot.isBooked) return null;
+                              
+                              if (slot.isBooked && slot.patient) {
+                                return <PatientCard key={slot.patient.id} patient={slot.patient} />
+                              }
 
                               return (
                               <div key={slot.time}>
-                              {slot.isBooked && slot.patient ? (
-                                  <PatientCard patient={slot.patient} />
-                              ) : (
                                   <div
                                     className={cn(
                                         "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-pointer transition-colors",
@@ -1177,7 +1181,6 @@ export default function DashboardPage() {
                                          )}
                                        </div>
                                   </div>
-                              )}
                               </div>
                               )
                           }) : (
@@ -1237,9 +1240,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
-
-    
-
-    
