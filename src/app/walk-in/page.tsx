@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useTransition, useEffect, useCallback, Suspense } from 'react';
+import { useState, useTransition, useEffect, useCallback, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ function WalkInPageContent() {
   const [fatherName, setFatherName] = useState('');
   const [motherName, setMotherName] = useState('');
   const [primaryContact, setPrimaryContact] = useState<'Father' | 'Mother'>('Father');
+  const validationAttempted = useRef(false);
 
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
 
@@ -53,6 +55,9 @@ function WalkInPageContent() {
   const allowedRadiusMeters = 300;
 
   useEffect(() => {
+    if (validationAttempted.current) return;
+    validationAttempted.current = true;
+
     async function validateTokenAndLocation() {
       const token = searchParams.get('token');
       const [scheduleData, statusData] = await Promise.all([
@@ -63,14 +68,12 @@ function WalkInPageContent() {
       setSchedule(scheduleData);
       setLogo(scheduleData?.clinicDetails?.clinicLogo);
 
-      // Validate QR token
       if (!statusData.isQrCodeActive || !token || statusData.walkInSessionToken !== token) {
         setIsValidToken(false);
         setStep('validate');
         return;
       }
-
-      // Check geolocation (if available)
+      
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -89,16 +92,15 @@ function WalkInPageContent() {
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             const dist = R * c;
 
-            console.log(`📍 User location: (${userLat.toFixed(6)}, ${userLng.toFixed(6)}) | 🏥 Clinic: (${clinicCoords.lat}, ${clinicCoords.lng}) | Distance: ${dist.toFixed(2)} m`);
-
             if (dist <= allowedRadiusMeters) {
               setIsValidToken(true);
               setStep('phone');
             } else {
               toast({
                 title: 'Outside Clinic Range',
-                description: `You are ${Math.round(dist)} m away. Please be within ${allowedRadiusMeters} m of the clinic.`,
+                description: `You are ${Math.round(dist)}m away. Please be within ${allowedRadiusMeters}m of the clinic.`,
                 variant: 'destructive',
+                duration: 10000
               });
               setIsValidToken(false);
               setStep('validate');
@@ -108,12 +110,14 @@ function WalkInPageContent() {
             console.error('Geolocation error:', error);
             toast({
               title: 'Location Access Required',
-              description: 'Please allow location access to verify proximity to the clinic.',
+              description: 'Please allow location access to verify you are at the clinic.',
               variant: 'destructive',
+              duration: 10000
             });
             setIsValidToken(false);
             setStep('validate');
-          }
+          },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
       } else {
         setIsValidToken(true); // fallback for browsers without geolocation
@@ -122,7 +126,7 @@ function WalkInPageContent() {
     }
 
     validateTokenAndLocation();
-  }, [searchParams]);
+  }, [searchParams, toast]);
 
   const handlePhoneSubmit = () => {
     if (phone.length < 10) {
@@ -255,13 +259,13 @@ function WalkInPageContent() {
               <CardTitle className="text-2xl">QR Code Session</CardTitle>
             </CardHeader>
             <CardContent>
-              {isValidToken === null && <p className="text-center">Validating session...</p>}
+              {isValidToken === null && <p className="text-center animate-pulse">Validating session & location...</p>}
               {isValidToken === false && (
                 <Alert variant="destructive">
                   <QrCode className="h-4 w-4" />
-                  <AlertTitle>Invalid or Expired QR Code</AlertTitle>
+                  <AlertTitle>Validation Failed</AlertTitle>
                   <AlertDescription>
-                    This QR code is no longer valid. Please scan the latest QR code from the clinic's TV display to join the queue.
+                    Either the QR code is invalid or you are not within the clinic's range. Please scan the latest QR code from the display.
                   </AlertDescription>
                 </Alert>
               )}

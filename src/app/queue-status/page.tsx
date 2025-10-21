@@ -7,7 +7,7 @@ import { getPatientsAction, getDoctorScheduleAction, getDoctorStatusAction } fro
 import type { DoctorSchedule, DoctorStatus, Patient } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, AlertTriangle } from 'lucide-react';
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { format, parseISO, isToday, differenceInMinutes, parse as parseDate } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -305,6 +305,7 @@ function QueueStatusPageContent() {
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const initialLoadRef = useRef(true);
   
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
     if (!localSchedule) return null;
@@ -346,21 +347,8 @@ function QueueStatusPageContent() {
     }
   }, [completedAppointmentForDisplay, router]);
   
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    const userPhone = localStorage.getItem('userPhone');
-    const patientIdParam = searchParams.get('id');
-    
-    if (!patientIdParam) {
-      setAuthError("No appointment specified.");
-      setIsLoading(false);
-      return;
-    }
-    
-    if (!userPhone) {
-      router.push('/login');
-      return;
-    }
+  const fetchData = useCallback(async (isInitial: boolean) => {
+    if (isInitial) setIsLoading(true);
   
     const [allPatientData, statusData, scheduleData] = await Promise.all([
       getPatientsAction(),
@@ -370,56 +358,81 @@ function QueueStatusPageContent() {
   
     setSchedule(scheduleData);
     setDoctorStatus(statusData);
-  
-    const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
-  
-    const foundPatient = todaysPatients.find((p: Patient) => p.id === patientIdParam) || null;
     
-    if (!foundPatient) {
-        setAuthError("This appointment could not be found.");
-        setIsLoading(false);
-        return;
-    }
-
-    if (foundPatient.phone !== userPhone) {
-        setAuthError("You are not authorized to view this appointment's status.");
-        setIsLoading(false);
-        return;
-    }
-
-    setAuthError(null);
-    setTargetPatient(foundPatient);
-  
-    const sessionToShow = getSessionForTime(parseISO(foundPatient.appointmentTime), scheduleData);
-    setCurrentSession(sessionToShow);
-  
-    const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
-    setAllSessionPatients(filteredPatientsForSession);
-    
-    if (foundPatient && foundPatient.status === 'Completed') {
-        const lastCompletedId = sessionStorage.getItem('completedAppointmentId');
-        if (lastCompletedId !== String(foundPatient.id)) {
-            setCompletedAppointmentForDisplay(foundPatient);
-            sessionStorage.setItem('completedAppointmentId', String(foundPatient.id));
-        } else {
-            router.push('/booking');
+    if (initialLoadRef.current) {
+        const userPhone = localStorage.getItem('userPhone');
+        const patientIdParam = searchParams.get('id');
+        
+        if (!patientIdParam) {
+          setAuthError("No appointment specified.");
+          setIsLoading(false);
+          return;
         }
-    } else {
-        setCompletedAppointmentForDisplay(null);
+        
+        if (!userPhone) {
+          router.push('/login');
+          return;
+        }
+
+        const foundPatient = allPatientData.find((p: Patient) => p.id === patientIdParam) || null;
+    
+        if (!foundPatient) {
+            setAuthError("This appointment could not be found.");
+            setIsLoading(false);
+            return;
+        }
+
+        if (foundPatient.phone !== userPhone) {
+            setAuthError("You are not authorized to view this appointment's status.");
+            setIsLoading(false);
+            return;
+        }
+
+        setAuthError(null);
+        setTargetPatient(foundPatient);
+        initialLoadRef.current = false;
     }
+
+    // Now, update patient lists with the latest data, using the already-validated targetPatient
+    setTargetPatient(current => {
+        const updatedPatient = allPatientData.find((p: Patient) => p.id === current?.id);
+        
+        if (updatedPatient && updatedPatient.status === 'Completed') {
+            const lastCompletedId = sessionStorage.getItem('completedAppointmentId');
+            if (lastCompletedId !== String(updatedPatient.id)) {
+                setCompletedAppointmentForDisplay(updatedPatient);
+                sessionStorage.setItem('completedAppointmentId', String(updatedPatient.id));
+            } else {
+                router.push('/booking');
+            }
+        } else {
+             setCompletedAppointmentForDisplay(null);
+        }
+
+        if (updatedPatient) {
+             const sessionToShow = getSessionForTime(parseISO(updatedPatient.appointmentTime), scheduleData);
+             setCurrentSession(sessionToShow);
+             const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
+             const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+             setAllSessionPatients(filteredPatientsForSession);
+        }
+
+        return updatedPatient || null;
+    })
   
     setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    setIsLoading(false);
+    if(isInitial) setIsLoading(false);
   }, [searchParams, getSessionForTime, router]);
 
 
   useEffect(() => {
-    fetchData(); // Initial fetch
+    fetchData(true); // Initial fetch
     
-    // Prevent polling if showing summary or error
-    if (completedAppointmentForDisplay || authError) return;
-
-    const intervalId = setInterval(() => fetchData(), 15000);
+    const intervalId = setInterval(() => {
+      // Prevent polling if showing summary or error
+      if (completedAppointmentForDisplay || authError || initialLoadRef.current) return;
+      fetchData(false)
+    }, 15000);
     return () => clearInterval(intervalId);
   }, [fetchData, completedAppointmentForDisplay, authError]);
   
@@ -537,5 +550,3 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
-
-    
