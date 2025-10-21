@@ -203,7 +203,7 @@ export default function DashboardPage() {
 
     const [error, setError] = useState<string | null>(null);
 
-    const loadData = async (isInitial: boolean) => {
+    const loadData = useCallback(async (isInitial: boolean) => {
       if (!isInitial) {
         setIsRefreshing(true);
       }
@@ -238,17 +238,17 @@ export default function DashboardPage() {
         if (isInitial) setIsLoading(false);
         setIsRefreshing(false);
       }
-    };
+    }, [toast]);
     
     useEffect(() => {
-      loadData(true); // Initial load
-    
-      const intervalId = setInterval(() => {
-        loadData(false); // Polling
-      }, 30000);
-    
-      return () => clearInterval(intervalId);
-    }, [toast]); // useEffect depends on toast, which is stable.
+        loadData(true); // Initial load
+        
+        const intervalId = setInterval(() => {
+            loadData(false); // Polling
+        }, 30000);
+        
+        return () => clearInterval(intervalId);
+    }, [loadData]);
       
 
     useEffect(() => {
@@ -392,7 +392,7 @@ export default function DashboardPage() {
           let patientDetails = patientForSlot
             ? familyMap.get(`${patientForSlot.phone}-${patientForSlot.name}`)
             : undefined;
-    
+
           slots.push({
             time: timeString,
             isBooked,
@@ -951,7 +951,6 @@ export default function DashboardPage() {
             </div>
         )
     }
-
     const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
 
     return (
@@ -1063,13 +1062,31 @@ export default function DashboardPage() {
 
                  <main className="md:col-start-2 overflow-y-auto">
                     <div className="sticky top-0 z-10 bg-neutral-50/80 backdrop-blur-sm p-4">
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
                             <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
                             <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
                             <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
                             <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
                             <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
                             <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
+                             <div className="group relative rounded-xl border border-neutral-200 bg-white p-3 shadow-sm hover:shadow transition-shadow col-span-2 sm:col-span-1 lg:col-span-1">
+                                <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
+                                <div className="mt-1 flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm text-neutral-800">
+                                   {Object.keys(purposeCounts).length > 0 ? (
+                                        Object.entries(purposeCounts).map(([purpose, count]) => {
+                                            const Icon = purposeIcons[purpose] || HelpCircle;
+                                            return (
+                                                <span key={purpose} className="flex items-center gap-1" title={purpose}>
+                                                    <Icon className="h-3.5 w-3.5 text-neutral-500" />
+                                                    <span className="font-bold">{count}</span>
+                                                </span>
+                                            );
+                                        })
+                                    ) : (
+                                        <span className="text-xs text-neutral-500">No purposes specified.</span>
+                                    )}
+                               </div>
+                             </div>
                         </div>
                         <div className="mt-3 flex items-center justify-between gap-4 px-1">
                            <div className="relative w-full max-w-xs">
@@ -1082,26 +1099,7 @@ export default function DashboardPage() {
                                   onChange={(e) => setSearchTerm(e.target.value)}
                               />
                            </div>
-                           <div className="w-full max-w-sm">
-                             <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center shadow-sm">
-                               <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
-                                <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-neutral-800">
-                                   {Object.keys(purposeCounts).length > 0 ? (
-                                        Object.entries(purposeCounts).map(([purpose, count]) => {
-                                            const Icon = purposeIcons[purpose] || HelpCircle;
-                                            return (
-                                                <span key={purpose} className="flex items-center gap-1.5" title={purpose}>
-                                                    <Icon className="h-4 w-4 text-neutral-500" />
-                                                    <span className="font-bold">{count}</span>
-                                                </span>
-                                            );
-                                        })
-                                    ) : (
-                                        <span className="text-neutral-500">No purposes specified yet.</span>
-                                    )}
-                               </div>
-                             </div>
-                           </div>
+                           
                            <div className="w-full max-w-xs flex justify-end">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1245,5 +1243,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
