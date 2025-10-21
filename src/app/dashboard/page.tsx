@@ -952,6 +952,8 @@ export default function DashboardPage() {
         )
     }
 
+    const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
+
     return (
         <div className="min-h-screen w-full bg-neutral-50">
             <Header logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
@@ -1084,22 +1086,19 @@ export default function DashboardPage() {
                              <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center shadow-sm">
                                <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
                                 <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-neutral-800">
-                                   {(() => {
-                                        const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
-                                        const purposes = Object.entries(purposeCounts);
-                                        if (purposes.length > 0) {
-                                            return purposes.map(([purpose, count]) => {
-                                                const Icon = purposeIcons[purpose] || HelpCircle;
-                                                return (
-                                                    <span key={purpose} className="flex items-center gap-1.5" title={purpose}>
-                                                        <Icon className="h-4 w-4 text-neutral-500" />
-                                                        <span className="font-bold">{count}</span>
-                                                    </span>
-                                                )
-                                            });
-                                        }
-                                        return <span className="text-neutral-500">No purposes specified yet.</span>
-                                   })()}
+                                   {Object.keys(purposeCounts).length > 0 ? (
+                                        Object.entries(purposeCounts).map(([purpose, count]) => {
+                                            const Icon = purposeIcons[purpose] || HelpCircle;
+                                            return (
+                                                <span key={purpose} className="flex items-center gap-1.5" title={purpose}>
+                                                    <Icon className="h-4 w-4 text-neutral-500" />
+                                                    <span className="font-bold">{count}</span>
+                                                </span>
+                                            );
+                                        })
+                                    ) : (
+                                        <span className="text-neutral-500">No purposes specified yet.</span>
+                                    )}
                                </div>
                              </div>
                            </div>
