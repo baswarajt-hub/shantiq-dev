@@ -4,12 +4,7 @@
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
-import format from 'date-fns/format';
-import set from 'date-fns/set';
-import addMinutes from 'date-fns/addMinutes';
-import parseISO from 'date-fns/parseISO';
-import isToday from 'date-fns/isToday';
-import differenceInMinutes from 'date-fns/differenceInMinutes';
+import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -29,7 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import parse from 'date-fns/parse';
+import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 
 
@@ -208,49 +203,43 @@ export default function DashboardPage() {
 
     const [error, setError] = useState<string | null>(null);
 
-    const loadData = useCallback(async (isInitial: boolean) => {
-      if (isInitial) setIsLoading(true);
-      else setIsRefreshing(true);
-    
-      try {
-        const [scheduleData, patientData, familyData, statusData] = await Promise.all([
-          getDoctorScheduleAction(),
-          getPatientsAction(),
-          getFamilyAction(),
-          getDoctorStatusAction(),
-        ]);
-        
-        if (!scheduleData || !statusData) {
-          throw new Error("Invalid data received from server");
+    const loadData = useCallback(async () => {
+        setIsRefreshing(true);
+        try {
+            const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+                getDoctorScheduleAction(),
+                getPatientsAction(),
+                getFamilyAction(),
+                getDoctorStatusAction(),
+            ]);
+            
+            if (!scheduleData || !statusData) {
+                throw new Error("Invalid data received from server");
+            }
+            
+            setSchedule(scheduleData);
+            setPatients(patientData);
+            setFamily(familyData);
+            setDoctorStatus(statusData);
+            setError(null);
+        } catch (error) {
+            console.error("Failed to load data", error);
+            const errorMessage = error instanceof Error ? error.message : "Could not load clinic data.";
+            setError(errorMessage);
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+            setIsRefreshing(false);
         }
-        
-        setSchedule(scheduleData);
-        setPatients(patientData);
-        setFamily(familyData);
-        setDoctorStatus(statusData);
-        setError(null);
-      } catch (error) {
-        console.error("Failed to load data", error);
-        const errorMessage = error instanceof Error ? error.message : "Could not load clinic data.";
-        setError(errorMessage);
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      } finally {
-        if (isInitial) setIsLoading(false);
-        setIsRefreshing(false);
-      }
     }, [toast]);
     
     useEffect(() => {
-        loadData(true); // Initial load
-        
-        const intervalId = setInterval(() => {
-            loadData(false); // Polling
-        }, 30000);
-        
+        loadData();
+        const intervalId = setInterval(loadData, 30000);
         return () => clearInterval(intervalId);
     }, [loadData]);
       
@@ -270,6 +259,8 @@ export default function DashboardPage() {
 
         return apptSession === selectedSession;
     });
+    
+    const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
 
     useEffect(() => {
         // Calculate average consultation time based on session-specific patients
@@ -431,7 +422,7 @@ export default function DashboardPage() {
                     toast({ title: "Error", description: result.error, variant: 'destructive'});
                 } else {
                     toast({ title: "Success", description: "Appointment booked successfully."});
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -446,7 +437,7 @@ export default function DashboardPage() {
                         resolve(null);
                     } else {
                         toast({ title: "Success", description: result.success});
-                        loadData(false);
+                        loadData();
                         resolve(result.patient);
                     }
                 });
@@ -471,7 +462,7 @@ export default function DashboardPage() {
                         toast({ title: "Error", description: result.error, variant: 'destructive' });
                     } else {
                         toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
-                        loadData(false);
+                        loadData();
                     }
                 });
             });
@@ -485,7 +476,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -498,7 +489,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -511,7 +502,7 @@ export default function DashboardPage() {
                   toast({ title: 'Error', description: result.error, variant: 'destructive' });
               } else {
                   toast({ title: 'Success', description: result.success });
-                  loadData(false);
+                  loadData();
               }
           });
         });
@@ -524,7 +515,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -537,7 +528,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -551,7 +542,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: 'Appointment cancelled.' });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -564,7 +555,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -577,7 +568,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -630,7 +621,7 @@ export default function DashboardPage() {
             } else {
               toast({ title: 'Success', description: result.success });
               // Refresh to ensure sync with server
-              loadData(false);
+              loadData();
             }
           });
         });
@@ -646,7 +637,7 @@ export default function DashboardPage() {
                         toast({ title: 'Error', description: result.error, variant: 'destructive'});
                     } else {
                         toast({ title: 'Success', description: result.success});
-                        loadData(false);
+                        loadData();
                     }
                 });
             });
@@ -660,7 +651,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -673,7 +664,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -686,7 +677,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             });
         });
@@ -699,7 +690,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData(false);
+                    loadData();
                 }
             })
         })
@@ -741,7 +732,6 @@ export default function DashboardPage() {
     });
 
     const canDoctorCheckIn = selectedDate ? isToday(selectedDate) : false;
-    const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
 
 
     if (isLoading || !schedule || !doctorStatus || !selectedDate) {
@@ -777,7 +767,7 @@ export default function DashboardPage() {
                 <AlertTriangle className="h-12 w-12 text-red-500" />
                 <h2 className="text-xl font-semibold">Failed to Load Data</h2>
                 <p className="text-muted-foreground">{error}</p>
-                <Button onClick={() => loadData(true)}>
+                <Button onClick={() => loadData()}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Retry
                 </Button>
