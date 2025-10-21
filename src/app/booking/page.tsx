@@ -206,7 +206,7 @@ export default function BookingPage() {
       };
     }
     
-    const formatTime = (time: string) => parse(time, 'HH:mm', new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
+    const formatTime = (time: string) => parseDate(time, 'HH:mm', new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
 
     const processSession = (sessionName: 'morning' | 'evening') => {
       const session = todaySch[sessionName];
@@ -228,7 +228,7 @@ export default function BookingPage() {
           status = 'Completed';
           statusColor = 'text-green-600';
       } else if (today >= startTime && doctorStatus?.isOnline) {
-           status = `Online (since ${parseISO(doctorStatus.onlineTime!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}`;
+           status = `Online (since ${parseISO(doctorStatus.onlineTime!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
            statusColor = 'text-green-600';
       } else if (today >= startTime && !doctorStatus?.isOnline) {
             status = 'Offline';
@@ -493,9 +493,3 @@ export default function BookingPage() {
   </main>
   );
 }
-
-    
-
-    
-
-    
