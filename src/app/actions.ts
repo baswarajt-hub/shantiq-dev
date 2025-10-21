@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhone as deleteFamilyByPhoneData, deleteAllFamilies as deleteAllFamiliesData, deleteTodaysPatientsData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhone as deleteFamilyByPhoneData, deleteAllFamilies as deleteAllFamiliesData, deleteTodaysPatientsData as deleteTodaysPatientsAction } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -26,15 +26,22 @@ function toDate(value?: string | Date): Date | undefined {
  * into a UTC Date (the instant when that local time occurs).
  */
 function sessionLocalToUtc(dateStr: string, sessionTime: string) {
-  // Try 24-hour format first
   let localDate: Date;
-  if (/^\\d{1,2}:\\d{2}$/.test(sessionTime)) {
-    // "HH:mm" (24-hour)
-    localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
-  } else {
-    // attempt 12-hour with AM/PM: "h:mm a" or "hh:mm a"
+  // Try 12-hour format with AM/PM first
+  if (/[ap]m$/i.test(sessionTime)) {
+    // It's a 12-hour format like "h:mm a" or "hh:mm a"
     localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
+  } else {
+    // Assume 24-hour format "HH:mm"
+    localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
   }
+
+  if (isNaN(localDate.getTime())) {
+    // Fallback for safety, though the above logic should cover it.
+    console.warn(`Could not parse time: ${sessionTime}. Defaulting to 24-hour parse.`);
+    localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+  }
+  
   // fromZonedTime will give us the UTC Date object corresponding to that wall-clock time in the specified zone.
   return fromZonedTime(localDate, timeZone);
 }
@@ -479,7 +486,7 @@ export async function searchFamilyMembersAction(searchTerm: string, searchBy: 'p
     let effectiveSearchTerm = searchTerm;
     // The frontend sends DOB in 'yyyy-mm-dd' format, but the old logic expected 'dd-mm-yyyy'
     // Let's handle both for robustness, but primarily expect yyyy-mm-dd now.
-    const ddMMyyyyRegex = /^(\\d{2})-(\\d{2})-(\\d{4})$/;
+    const ddMMyyyyRegex = /^(\d{2})-(\d{2})-(\d{4})$/;
     const dateMatch = searchTerm.match(ddMMyyyyRegex);
 
     if (dateMatch) {
@@ -1344,16 +1351,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     }
 }
     
-export async function deleteTodaysPatientsAction(): Promise<ActionResult> {
-  try {
-    await deleteTodaysPatientsData();
-    await recalculateQueueWithETC();
-    revalidatePath('/', 'layout');
-    return { success: "Today's appointments have been cleared." };
-  } catch (e: any) {
-    return { error: e.message || 'Failed to clear appointments.' };
-  }
-}
+export { deleteTodaysPatientsAction };
     
 
     
