@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import format from 'date-fns/format';
+import { format } from 'date-fns';
 import { Switch } from '../ui/switch';
 
 type EditTimeDialogProps = {

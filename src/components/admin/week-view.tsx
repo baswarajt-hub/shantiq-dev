@@ -1,13 +1,13 @@
 
 'use client';
 import { useState } from 'react';
-import addDays from 'date-fns/addDays';
-import eachDayOfInterval from 'date-fns/eachDayOfInterval';
-import endOfWeek from 'date-fns/endOfWeek';
-import format from 'date-fns/format';
-import isPast from 'date-fns/isPast';
-import set from 'date-fns/set';
-import startOfWeek from 'date-fns/startOfWeek';
+import { addDays } from 'date-fns';
+import { eachDayOfInterval } from 'date-fns';
+import { endOfWeek } from 'date-fns';
+import { format } from 'date-fns';
+import { isPast } from 'date-fns';
+import { set } from 'date-fns';
+import { startOfWeek } from 'date-fns';
 import { Button } from '../ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';

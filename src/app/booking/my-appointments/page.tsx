@@ -14,11 +14,10 @@ import { RescheduleAppointmentDialog } from '@/components/booking/reschedule-app
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cancelAppointmentAction, rescheduleAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction } from '@/app/actions';
-import format from 'date-fns/format';
-import parseISO from 'date-fns/parseISO';
-import isToday from 'date-fns/isToday';
-import isFuture from 'date-fns/isFuture';
+import { format, parseISO, parse, differenceInMinutes } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { isToday } from 'date-fns';
+
 
 const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: string) => void }) => {
   const [isQueueButtonActive, setQueueButtonActive] = useState(false);

@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FamilyMember } from '@/lib/types';
-import format from 'date-fns/format';
+import { format } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 type AdminEditFamilyMemberDialogProps = {

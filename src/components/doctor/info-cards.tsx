@@ -4,10 +4,10 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import type { DoctorSchedule, SpecialClosure, Notification, TranslatedMessage } from "@/lib/types";
-import format from 'date-fns/format';
-import isWithinInterval from 'date-fns/isWithinInterval';
-import parseISO from 'date-fns/parseISO';
-import parse from 'date-fns/parse';
+import { format } from 'date-fns';
+import { isWithinInterval } from 'date-fns';
+import { parseISO } from 'date-fns';
+import { parse } from 'date-fns';
 import { Bell, Megaphone, Clock } from "lucide-react";
 
 interface InfoCardsProps {

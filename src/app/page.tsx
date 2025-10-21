@@ -4,12 +4,12 @@
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
-import format from 'date-fns/format';
-import set from 'date-fns/set';
-import addMinutes from 'date-fns/addMinutes';
-import parseISO from 'date-fns/parseISO';
-import isToday from 'date-fns/isToday';
-import differenceInMinutes from 'date-fns/differenceInMinutes';
+import { format } from 'date-fns';
+import { set } from 'date-fns';
+import { addMinutes } from 'date-fns';
+import { parseISO } from 'date-fns';
+import { isToday } from 'date-fns';
+import { differenceInMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import parse from 'date-fns/parse';
+import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 
 

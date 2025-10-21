@@ -26,6 +26,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
+import { toast } from '@/hooks/use-toast'; // or your actual useToast hook
+
+
 
 
 
@@ -688,18 +691,7 @@ export default function DashboardPage() {
         });
     }, [loadData, toast]);
     
-    const handleClearTodaysAppointments = useCallback(() => {
-        startTransition(() => {
-            deleteTodaysPatientsAction().then(result => {
-                if ("error" in result) {
-                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
-                } else {
-                    toast({ title: 'Success', description: result.success });
-                    loadData(false);
-                }
-            })
-        })
-    }, [loadData, toast]);
+    
 
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
     const upNext = sessionPatients.find(p => p.status === 'Up-Next');
