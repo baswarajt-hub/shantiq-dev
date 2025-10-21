@@ -392,7 +392,7 @@ export default function DashboardPage() {
           let patientDetails = patientForSlot
             ? familyMap.get(`${patientForSlot.phone}-${patientForSlot.name}`)
             : undefined;
-
+    
           slots.push({
             time: timeString,
             isBooked,

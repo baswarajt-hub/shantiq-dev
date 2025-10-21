@@ -1,9 +1,8 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhone as deleteFamilyByPhoneData, deleteAllFamilies as deleteAllFamiliesData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMember as deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhone as deleteFamilyByPhoneData, deleteAllFamilies as deleteAllFamiliesData, deleteTodaysPatientsData } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -29,7 +28,7 @@ function toDate(value?: string | Date): Date | undefined {
 function sessionLocalToUtc(dateStr: string, sessionTime: string) {
   // Try 24-hour format first
   let localDate: Date;
-  if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+  if (/^\\d{1,2}:\\d{2}$/.test(sessionTime)) {
     // "HH:mm" (24-hour)
     localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
   } else {
@@ -164,16 +163,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
 
   await recalculateQueueWithETC();
   
-  revalidatePath('/');
-  revalidatePath('/dashboard');
-  revalidatePath('/booking');
-  revalidatePath('/patient-portal');
-  revalidatePath('/queue-status');
-  revalidatePath('/tv-display');
-  revalidatePath('/admin');
-  revalidatePath('/api/patients');
-  revalidatePath('/api/family');
-  revalidatePath('/walk-in');
+  revalidatePath('/', 'layout');
   
   return { success: 'Appointment booked successfully.', patient: newPatient };
 }
@@ -248,14 +238,7 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
   await updatePatient(patientId, updates);
   await recalculateQueueWithETC();
   
-  revalidatePath('/');
-  revalidatePath('/dashboard');
-  revalidatePath('/booking');
-  revalidatePath('/patient-portal');
-  revalidatePath('/tv-display');
-  revalidatePath('/queue-status');
-  revalidatePath('/admin');
-  revalidatePath('/api/patients');
+  revalidatePath('/', 'layout');
   
   return { success: `Patient status updated to ${newStatus}` };
 }
@@ -276,14 +259,7 @@ export async function runTimeEstimationAction(aiPatientData: AIPatientData): Pro
       await updatePatient(patient.id, { estimatedWaitTime: estimation.estimatedConsultationTime });
     }
 
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/admin');
-    revalidatePath('/api/patients');
+    revalidatePath('/', 'layout');
     return { success: 'Wait times have been re-estimated.' };
   } catch (error) {
     console.error(error);
@@ -383,12 +359,7 @@ export async function updateDoctorStartDelayAction(startDelayMinutes: number): P
     try {
         await updateDoctorStatus({ startDelay: startDelayMinutes });
         await recalculateQueueWithETC();
-        revalidatePath('/');
-        revalidatePath('/dashboard');
-        revalidatePath('/tv-display');
-        revalidatePath('/queue-status');
-        revalidatePath('/patient-portal');
-        revalidatePath('/booking');
+        revalidatePath('/', 'layout');
         return { success: `Doctor delay updated to ${startDelayMinutes} minutes.` };
     } catch (e: any) {
         return { error: e.message || "Failed to update doctor's delay." };
@@ -408,13 +379,7 @@ export async function emergencyCancelAction(): Promise<ActionResult> {
     await updateDoctorStatus({ isOnline: false, startDelay: 0 });
     await recalculateQueueWithETC();
 
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/api/patients');
+    revalidatePath('/', 'layout');
     
     return { success: `Emergency declared. All ${activePatients.length} active appointments have been cancelled.` };
 }
@@ -478,15 +443,7 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
     const newPatient = await addPatientData({...patientData, tokenNo });
 
     await recalculateQueueWithETC();
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/queue-status');
-    revalidatePath('/tv-display');
-    revalidatePath('/admin');
-    revalidatePath('/api/patients');
-    revalidatePath('/api/family');
+    revalidatePath('/', 'layout');
     return { patient: newPatient, success: "Patient added successfully" };
 }
 
@@ -508,14 +465,7 @@ export async function addNewPatientAction(memberData: Omit<FamilyMember, 'id' | 
     if (!newMember) {
         return { error: 'Failed to create a new family member.' };
     }
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/queue-status');
-    revalidatePath('/tv-display');
-    revalidatePath('/admin');
-    revalidatePath('/api/family');
+    revalidatePath('/', 'layout');
     return { patient: newMember, success: "Family member added successfully." };
 }
 
@@ -529,7 +479,7 @@ export async function searchFamilyMembersAction(searchTerm: string, searchBy: 'p
     let effectiveSearchTerm = searchTerm;
     // The frontend sends DOB in 'yyyy-mm-dd' format, but the old logic expected 'dd-mm-yyyy'
     // Let's handle both for robustness, but primarily expect yyyy-mm-dd now.
-    const ddMMyyyyRegex = /^(\d{2})-(\d{2})-(\d{4})$/;
+    const ddMMyyyyRegex = /^(\\d{2})-(\\d{2})-(\\d{4})$/;
     const dateMatch = searchTerm.match(ddMMyyyyRegex);
 
     if (dateMatch) {
@@ -547,14 +497,7 @@ export async function checkInPatientAction(patientId: string): Promise<ActionRes
   }
   await updatePatient(patient.id, { status: 'Waiting', checkInTime: new Date().toISOString() });
   await recalculateQueueWithETC();
-  revalidatePath('/');
-  revalidatePath('/dashboard');
-  revalidatePath('/booking');
-  revalidatePath('/patient-portal');
-  revalidatePath('/queue-status');
-  revalidatePath('/tv-display');
-  revalidatePath('/api/patients');
-  revalidatePath('/walk-in');
+  revalidatePath('/', 'layout');
   return { success: `${patient.name} has been checked in.` };
 }
 
@@ -788,29 +731,14 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
 
     await updateAllPatients(updatedPatients);
 
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/queue-status');
-    revalidatePath('/tv-display');
-    revalidatePath('/api/patients');
-    revalidatePath('/walk-in');
+    revalidatePath('/', 'layout');
     return { success: `Queue recalculated for all sessions.` };
 }
 
 export async function updateTodayScheduleOverrideAction(override: SpecialClosure): Promise<ActionResult> {
     await updateTodayScheduleOverrideData(override);
     await recalculateQueueWithETC();
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/api/schedule');
-    revalidatePath('/walk-in');
+    revalidatePath('/', 'layout');
     return { success: "Today's schedule has been updated." };
 }
 
@@ -818,14 +746,7 @@ export async function updatePatientPurposeAction(patientId: string, purpose: str
     try {
         await updatePatient(patientId, { purpose });
         await recalculateQueueWithETC();
-        revalidatePath('/');
-        revalidatePath('/dashboard');
-        revalidatePath('/booking');
-        revalidatePath('/patient-portal');
-        revalidatePath('/queue-status');
-        revalidatePath('/tv-display');
-        revalidatePath('/api/patients');
-        revalidatePath('/walk-in');
+        revalidatePath('/', 'layout');
         return { success: 'Visit purpose updated.' };
     } catch (e: any) {
         return { error: e.message || 'Failed to update visit purpose.' };
@@ -836,15 +757,7 @@ export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedul
     try {
         const updated = await updateDoctorSchedule(schedule);
         await recalculateQueueWithETC();
-        revalidatePath('/');
-        revalidatePath('/admin');
-        revalidatePath('/dashboard');
-        revalidatePath('/booking');
-        revalidatePath('/patient-portal');
-        revalidatePath('/tv-display');
-        revalidatePath('/queue-status');
-        revalidatePath('/api/schedule');
-        revalidatePath('/walk-in');
+        revalidatePath('/', 'layout');
         return { success: 'Doctor schedule updated successfully.', schedule: updated };
     } catch (e: any) {
         return { error: e.message || 'Failed to update doctor schedule.' };
@@ -854,15 +767,7 @@ export async function updateDoctorScheduleAction(schedule: Partial<DoctorSchedul
 export async function updateClinicDetailsAction(details: ClinicDetails): Promise<ActionResult> {
     try {
         await updateClinicDetailsData(details);
-        revalidatePath('/');
-        revalidatePath('/admin');
-        revalidatePath('/booking');
-        revalidatePath('/patient-portal');
-        revalidatePath('/dashboard');
-        revalidatePath('/tv-display');
-        revalidatePath('/queue-status');
-        revalidatePath('/api/schedule');
-        revalidatePath('/walk-in');
+        revalidatePath('/', 'layout');
         return { success: 'Clinic details updated successfully.' };
     } catch (e: any) {
         return { error: e.message || 'Failed to update clinic details.' };
@@ -872,8 +777,7 @@ export async function updateClinicDetailsAction(details: ClinicDetails): Promise
 export async function updateSmsSettingsAction(smsSettings: SmsSettings): Promise<ActionResult> {
     try {
         await updateSmsSettingsData(smsSettings);
-        revalidatePath('/');
-        revalidatePath('/admin');
+        revalidatePath('/', 'layout');
         return { success: 'SMS settings updated successfully.' };
     } catch (e: any) {
         return { error: e.message || 'Failed to update SMS settings.' };
@@ -883,8 +787,7 @@ export async function updateSmsSettingsAction(smsSettings: SmsSettings): Promise
 export async function updatePaymentGatewaySettingsAction(paymentGatewaySettings: PaymentGatewaySettings): Promise<ActionResult> {
     try {
         await updatePaymentGatewaySettingsData(paymentGatewaySettings);
-        revalidatePath('/');
-        revalidatePath('/admin');
+        revalidatePath('/', 'layout');
         return { success: 'Payment Gateway settings updated successfully.' };
     } catch (e: any) {
         return { error: e.message || 'Failed to update payment gateway settings.' };
@@ -895,15 +798,7 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]): P
     try {
         await updateSpecialClosures(closures);
         await recalculateQueueWithETC();
-        revalidatePath('/');
-        revalidatePath('/admin');
-        revalidatePath('/booking');
-        revalidatePath('/patient-portal');
-        revalidatePath('/dashboard');
-        revalidatePath('/tv-display');
-        revalidatePath('/queue-status');
-        revalidatePath('/api/schedule');
-        revalidatePath('/walk-in');
+        revalidatePath('/', 'layout');
         return { success: 'Special closures updated successfully.' };
     } catch (e: any) {
         return { error: e.message || 'Failed to update special closures.' };
@@ -913,15 +808,7 @@ export async function updateSpecialClosuresAction(closures: SpecialClosure[]): P
 export async function updateVisitPurposesAction(purposes: VisitPurpose[]): Promise<ActionResult> {
     try {
         await updateVisitPurposesData(purposes);
-        revalidatePath('/');
-        revalidatePath('/admin');
-        revalidatePath('/booking');
-        revalidatePath('/patient-portal');
-        revalidatePath('/dashboard');
-        revalidatePath('/tv-display');
-        revalidatePath('/queue-status');
-        revalidatePath('/api/schedule');
-        revalidatePath('/walk-in');
+        revalidatePath('/', 'layout');
         return { success: 'Visit purposes updated successfully.' };
     } catch (e: any) {
         return { error: e.message || 'Failed to update visit purposes.' };
@@ -931,10 +818,7 @@ export async function updateVisitPurposesAction(purposes: VisitPurpose[]): Promi
 export async function updateNotificationsAction(notifications: Notification[]): Promise<ActionResult> {
   try {
     await updateNotificationData(notifications);
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
+    revalidatePath('/', 'layout');
     return { success: 'Notifications updated successfully.' };
   } catch (e: any) {
     return { error: e.message || 'Failed to update notifications.' };
@@ -964,15 +848,7 @@ export async function updateFamilyMemberAction(member: FamilyMember): Promise<Ac
             }
         }
         await updateFamilyMember(member);
-        revalidatePath('/');
-        revalidatePath('/admin');
-        revalidatePath('/booking');
-        revalidatePath('/patient-portal');
-        revalidatePath('/dashboard');
-        revalidatePath('/tv-display');
-        revalidatePath('/queue-status');
-        revalidatePath('/api/family');
-        revalidatePath('/walk-in');
+        revalidatePath('/', 'layout');
         return { success: 'Family member updated.' };
     } catch (e: any) {
         return { error: e.message || 'Failed to update family member.' };
@@ -984,14 +860,7 @@ export async function cancelAppointmentAction(appointmentId: string): Promise<Ac
         const patient = await cancelAppointment(appointmentId);
         if (patient) {
             await recalculateQueueWithETC();
-            revalidatePath('/');
-            revalidatePath('/dashboard');
-            revalidatePath('/booking');
-            revalidatePath('/patient-portal');
-            revalidatePath('/queue-status');
-            revalidatePath('/tv-display');
-            revalidatePath('/api/patients');
-            revalidatePath('/walk-in');
+            revalidatePath('/', 'layout');
             return { success: 'Appointment cancelled.' };
         }
         return { error: 'Could not find appointment to cancel.' };
@@ -1059,14 +928,7 @@ export async function rescheduleAppointmentAction(appointmentId: string, newAppo
     
     await recalculateQueueWithETC();
 
-    revalidatePath('/');
-    revalidatePath('/dashboard');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/queue-status');
-    revalidatePath('/tv-display');
-    revalidatePath('/api/patients');
-    revalidatePath('/walk-in');
+    revalidatePath('/', 'layout');
 
     return { success: 'Appointment rescheduled successfully.' };
 }
@@ -1114,13 +976,7 @@ export async function markPatientAsLateAndCheckInAction(patientId: string, penal
 
   await recalculateQueueWithETC();
 
-  revalidatePath('/');
-  revalidatePath('/dashboard');
-  revalidatePath('/tv-display');
-  revalidatePath('/queue-status');
-  revalidatePath('/patient-portal');
-  revalidatePath('/booking');
-  revalidatePath('/walk-in');
+  revalidatePath('/', 'layout');
 
   return { success: `Marked late and pushed down by ${penalty}.` };
 }
@@ -1272,14 +1128,7 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: string): Promi
   await recalculateQueueWithETC();
 
   // Revalidate all paths
-  revalidatePath('/');
-  revalidatePath('/dashboard');
-  revalidatePath('/booking');
-  revalidatePath('/patient-portal');
-  revalidatePath('/queue-status');
-  revalidatePath('/tv-display');
-  revalidatePath('/api/patients');
-  revalidatePath('/walk-in');
+  revalidatePath('/', 'layout');
 
   return { success: 'Queue advanced successfully.' };
 }
@@ -1312,14 +1161,7 @@ export async function startLastConsultationAction(patientId: string): Promise<Ac
   await recalculateQueueWithETC();
 
   // Revalidate all paths
-  revalidatePath('/');
-  revalidatePath('/dashboard');
-  revalidatePath('/booking');
-  revalidatePath('/patient-portal');
-  revalidatePath('/queue-status');
-  revalidatePath('/tv-display');
-  revalidatePath('/api/patients');
-  revalidatePath('/walk-in');
+  revalidatePath('/', 'layout');
 
   return { success: 'Started final consultation.' };
 }
@@ -1329,44 +1171,19 @@ export async function startLastConsultationAction(patientId: string): Promise<Ac
 
 export async function deleteFamilyMemberAction(id: string): Promise<ActionResult> {
     await deleteFamilyMemberData(id);
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/api/family');
-    revalidatePath('/walk-in');
+    revalidatePath('/', 'layout');
     return { success: 'Family member deleted.' };
 }
 
 export async function deleteFamilyByPhoneAction(phone: string): Promise<ActionResult> {
     await deleteFamilyByPhoneData(phone);
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/api/family');
-    revalidatePath('/walk-in');
+    revalidatePath('/', 'layout');
     return { success: 'Family deleted.' };
 }
 
 export async function deleteAllFamiliesAction(): Promise<ActionResult> {
     await deleteAllFamiliesData();
-    revalidatePath('/');
-    revalidatePath('/admin');
-    revalidatePath('/booking');
-    revalidatePath('/patient-portal');
-    revalidatePath('/dashboard');
-    revalidatePath('/tv-display');
-    revalidatePath('/queue-status');
-    revalidatePath('/api/family');
-    revalidatePath('/walk-in');
-    revalidatePath('/family');
+    revalidatePath('/', 'layout');
     return { success: 'All family records have been deleted.' };
 }
 
@@ -1527,7 +1344,16 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
     }
 }
     
-
+export async function deleteTodaysPatientsAction(): Promise<ActionResult> {
+  try {
+    await deleteTodaysPatientsData();
+    await recalculateQueueWithETC();
+    revalidatePath('/', 'layout');
+    return { success: "Today's appointments have been cleared." };
+  } catch (e: any) {
+    return { error: e.message || 'Failed to clear appointments.' };
+  }
+}
     
 
     
@@ -1588,5 +1414,7 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
 
 
 
+
+    
 
     
