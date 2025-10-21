@@ -12,11 +12,11 @@ import { BookAppointmentDialog } from '@/components/booking/book-appointment-dia
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, addNewPatientAction, getDoctorStatusAction } from '@/app/actions';
-import format from 'date-fns/format';
-import parseISO from 'date-fns/parseISO';
-import isToday from 'date-fns/isToday';
-import parseDate from 'date-fns/parse';
-import isWithinInterval from 'date-fns/isWithinInterval';
+import { format } from 'date-fns';
+import { parseISO } from 'date-fns';
+import { isToday } from 'date-fns';
+import { parse } from 'date-fns';
+import { isWithinInterval } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -206,8 +206,11 @@ export default function BookingPage() {
       };
     }
     
-    const formatTime = (time: string) => parseDate(time, 'HH:mm', new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
-
+    const formatTime = (time: string) =>
+  parse(time, 'HH:mm', new Date()).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
     const processSession = (sessionName: 'morning' | 'evening') => {
       const session = todaySch[sessionName];
       const isClosedByOverride = sessionName === 'morning' ? todayOverride?.isMorningClosed : todayOverride?.isEveningClosed;
@@ -217,8 +220,11 @@ export default function BookingPage() {
       }
 
       const timeStr = `${formatTime(session.start)} - ${formatTime(session.end)}`;
-      const startTime = parseDate(session.start, 'HH:mm', today);
-      const endTime = parseDate(session.end, 'HH:mm', today);
+     
+
+        const startTime = parse(session.start, 'HH:mm', today);
+        const endTime = parse(session.end, 'HH:mm', today);
+
       const isOver = today > endTime;
       
       let status = 'Upcoming';
@@ -246,8 +252,8 @@ export default function BookingPage() {
 
   const handleBookAppointment = (familyMember: FamilyMember, date: string, time: string, purpose: string) => {
      startTransition(async () => {
-        const dateObj = parseDate(date, 'yyyy-MM-dd', new Date());
-        const timeObj = parseDate(time, 'hh:mm a', dateObj);
+        const dateObj = parse(date, 'yyyy-MM-dd', new Date());
+const timeObj = parse(time, 'hh:mm a', dateObj);
         const appointmentTime = timeObj.toISOString();
 
         const result = await addAppointmentAction(familyMember, appointmentTime, purpose, false);
@@ -288,8 +294,9 @@ export default function BookingPage() {
   const relevantSession = (() => {
     if (!currentDaySchedule) return null;
     const now = new Date();
-    const morningEndTime = currentDaySchedule.morning.time.includes('-') ? parseDate(currentDaySchedule.morning.time.split(' - ')[1], 'hh:mm a', now) : null;
-    
+    const morningEndTime = currentDaySchedule.morning.time.includes('-') 
+  ? parse(currentDaySchedule.morning.time.split(' - ')[1], 'hh:mm a', now)
+  : null;
     // If it's past morning session or morning session is closed, default to evening
     if ( (morningEndTime && now > morningEndTime) || currentDaySchedule.morning.status === 'Closed' ) {
         return 'evening';
