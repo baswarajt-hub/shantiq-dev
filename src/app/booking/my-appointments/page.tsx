@@ -18,6 +18,7 @@ import { format, parseISO, parse, differenceInMinutes } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { isToday } from 'date-fns';
 
+import { getAppointmentStatus } from '@/lib/dateHelpers';
 
 const AppointmentActions = ({ appointment, schedule, onReschedule, onCancel }: { appointment: Appointment, schedule: DoctorSchedule | null, onReschedule: (appt: Appointment) => void, onCancel: (id: string) => void }) => {
   const [isQueueButtonActive, setQueueButtonActive] = useState(false);
@@ -271,11 +272,21 @@ export default function MyAppointmentsPage() {
     }
   }, [selectedAppointment, phone, toast, loadData]);
   
-  const activeAppointments = appointments.filter(appt => !['Completed', 'Cancelled', 'Missed'].includes(appt.status as string));
-  const todaysAppointments = activeAppointments.filter(appt => isToday(parseISO(appt.date)));
-  const upcomingAppointments = activeAppointments.filter(appt => isFuture(parseISO(appt.date)) && !isToday(parseISO(appt.date)));
-  const pastAppointments = appointments.filter(appt => !activeAppointments.some(up => up.id === appt.id));
+  const activeAppointments = appointments.filter(
+  appt => !['Completed', 'Cancelled', 'Missed'].includes(appt.status as string)
+);
 
+const todaysAppointments = activeAppointments.filter(
+  appt => getAppointmentStatus(appt.date) === 'today'
+);
+
+const upcomingAppointments = activeAppointments.filter(
+  appt => getAppointmentStatus(appt.date) === 'future'
+);
+
+const pastAppointments = appointments.filter(
+  appt => getAppointmentStatus(appt.date) === 'past'
+);
 
   if (!phone || isPending) {
       return <div className="flex items-center justify-center h-screen">Loading...</div>;
