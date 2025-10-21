@@ -7,7 +7,7 @@ import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight,
 import type { DoctorSchedule, DoctorStatus, Patient, Session, SpecialClosure } from '@/lib/types';
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { parseISO, format, isToday, differenceInMinutes } from 'date-fns';
-import parseDateFn from 'date-fns/parse';
+import { parse } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
