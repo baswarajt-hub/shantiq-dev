@@ -30,7 +30,7 @@ const formatSessionTime = (session: Session) => {
     const formatTime = (time: string) => {
         if (!time) return '';
         try {
-            const date = parseDateFn(time, 'HH:mm', new Date());
+            const date = parse(time, 'HH:mm', new Date());
             return format(toZonedTime(date, timeZone), 'hh:mm a');
         } catch {
             return time; // Fallback for already formatted times
@@ -49,9 +49,9 @@ const purposeIcons: { [key: string]: React.ElementType } = {
 const sessionLocalToUtc = (dateStr: string, sessionTime: string) => {
     let localDate: Date;
     if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
-        localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+        localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
     } else {
-        localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
+        localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
     }
     return fromZonedTime(localDate, "Asia/Kolkata");
 }
@@ -194,7 +194,7 @@ function TVDisplayPageContent() {
 
     const sessionLocalToUtc = (sessionTime: string) => {
         let localDate: Date;
-        localDate = parseDateFn(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
+        localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
         return fromZonedTime(localDate, timeZone);
     }
     
