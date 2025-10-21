@@ -18,8 +18,8 @@ import {
   setDoctorStatusAction,
 } from '@/app/actions';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
-import format from 'date-fns/format';
-import parse from 'date-fns/parse';
+import { format } from 'date-fns';
+import { parse } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DoctorHeader } from '@/components/doctor/doctor-header';
 import { DoctorStatusControls } from '@/components/doctor/doctor-status-controls';
