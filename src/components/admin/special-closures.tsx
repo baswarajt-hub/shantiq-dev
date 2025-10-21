@@ -5,7 +5,8 @@ import { useState, useTransition, useEffect } from 'react';
 import type { SpecialClosure, DoctorSchedule } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { type DayContentProps } from 'react-day-picker';
-import { format, isPast } from 'date-fns';
+import format from 'date-fns/format';
+import isPast from 'date-fns/isPast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -245,3 +246,5 @@ export function SpecialClosures({ schedule, onSave }: SpecialClosuresProps) {
     </Card>
   );
 }
+
+    

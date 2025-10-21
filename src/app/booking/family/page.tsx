@@ -15,7 +15,8 @@ import { EditFamilyMemberDialog } from '@/components/booking/edit-family-member-
 import { EditProfileDialog } from '@/components/booking/edit-profile-dialog';
 import { addNewPatientAction, updateFamilyMemberAction, getFamilyByPhoneAction, deleteFamilyMemberAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
-import { format, parseISO } from 'date-fns';
+import format from 'date-fns/format';
+import parseISO from 'date-fns/parseISO';
 
 export default function FamilyPage() {
   const [family, setFamily] = useState<FamilyMember[]>([]);
@@ -211,3 +212,5 @@ export default function FamilyPage() {
     </main>
   );
 }
+
+    

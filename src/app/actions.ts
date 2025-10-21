@@ -6,7 +6,14 @@ import { addPatient as addPatientData, findPatientById, getPatients as getPatien
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
-import { format, parseISO, parse, differenceInMinutes, startOfDay, max, addMinutes, subMinutes } from 'date-fns';
+import format from 'date-fns/format';
+import parseISO from 'date-fns/parseISO';
+import parse from 'date-fns/parse';
+import differenceInMinutes from 'date-fns/differenceInMinutes';
+import startOfDay from 'date-fns/startOfDay';
+import max from 'date-fns/max';
+import addMinutes from 'date-fns/addMinutes';
+import subMinutes from 'date-fns/subMinutes';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { createHash, randomBytes } from 'crypto';
 import { db } from '@/lib/firebase';
@@ -1412,6 +1419,8 @@ export { deleteTodaysPatientsAction };
 
 
 
+
+    
 
     
 

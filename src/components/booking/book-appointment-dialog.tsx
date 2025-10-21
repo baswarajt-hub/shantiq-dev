@@ -16,7 +16,12 @@ import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import type { FamilyMember, DoctorSchedule, Patient } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
-import { format, set, addMinutes, parse, parseISO, toDate } from 'date-fns';
+import format from 'date-fns/format';
+import set from 'date-fns/set';
+import addMinutes from 'date-fns/addMinutes';
+import parse from 'date-fns/parse';
+import parseISO from 'date-fns/parseISO';
+import toDate from 'date-fns/toDate';
 import { toZonedTime } from 'date-fns-tz';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -384,3 +389,5 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     </Dialog>
   );
 }
+
+    

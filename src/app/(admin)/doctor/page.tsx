@@ -1,10 +1,12 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session, Notification, SpecialClosure } from '@/lib/types';
 import { updateNotificationsAction, updateSpecialClosuresAction, getDoctorScheduleAction, getPatientsAction, getDoctorStatusAction } from '@/app/actions';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
-import { format, parse } from 'date-fns';
+import format from 'date-fns/format';
+import parse from 'date-fns/parse';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DoctorHeader } from '@/components/doctor/doctor-header';
 import { DoctorStatusControls } from '@/components/doctor/doctor-status-controls';
@@ -248,11 +250,11 @@ export default function DoctorPage() {
                     <div className="space-y-6">
                       {/* ✅ QR Code Toggle */}
                       <div className='flex items-center space-x-2 p-3 rounded-lg bg-background'>
-                        <Label htmlFor="qr-code-status" className="flex items-center text-base font-medium">
+                        <Label htmlFor="qr-code-status" className="flex items-center text-sm font-medium">
                           <QrCode className={cn("mr-2 h-5 w-5", doctorStatus.isQrCodeActive ? "text-green-500" : "text-red-500")} />
                           Walk-in QR Code
                         </Label>
-                        <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={handleToggleQrCode} />
+                        <Switch id="qr-code-status" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} />
                       </div>
 
                       <DoctorNotificationForm
@@ -276,3 +278,5 @@ export default function DoctorPage() {
     </>
   );
 }
+
+    

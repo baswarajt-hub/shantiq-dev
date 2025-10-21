@@ -10,7 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { format, parseISO, setHours, setMinutes, parse, isFuture } from 'date-fns';
+import format from 'date-fns/format';
+import parseISO from 'date-fns/parseISO';
+import setHours from 'date-fns/setHours';
+import setMinutes from 'date-fns/setMinutes';
+import parse from 'date-fns/parse';
+import isFuture from 'date-fns/isFuture';
 import { CalendarIcon, PlusCircle, Trash2, Edit, X } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -146,7 +151,7 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
       </CardHeader>
       <CardContent className="space-y-2">
         {notifications.length > 0 ? notifications.map(notif => {
-            const isActive = notif.startTime && notif.endTime && isFuture(parseISO(notif.endTime));
+            const isActive = notif.startTime && notif.endTime && isFuture(parseISO(notif.endTime)));
             const displayMessage = typeof notif.message === 'string' ? notif.message : notif.message.en;
             return (
             <div key={notif.id} className={cn("p-3 border rounded-lg flex justify-between items-start gap-4", !isActive && "opacity-60 bg-muted/50")}>
@@ -238,3 +243,5 @@ export function DoctorNotificationForm({ initialNotifications, onSave }: Notific
     </Card>
   );
 }
+
+    

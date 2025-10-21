@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
@@ -11,7 +12,11 @@ import { BookAppointmentDialog } from '@/components/booking/book-appointment-dia
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, addNewPatientAction, getDoctorStatusAction } from '@/app/actions';
-import { format, parseISO, isToday, parse as parseDate, isWithinInterval } from 'date-fns';
+import format from 'date-fns/format';
+import parseISO from 'date-fns/parseISO';
+import isToday from 'date-fns/isToday';
+import parseDate from 'date-fns/parse';
+import isWithinInterval from 'date-fns/isWithinInterval';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -201,11 +206,7 @@ export default function BookingPage() {
       };
     }
     
-    const formatTime = (time: string) => {
-        try {
-            return format(parseDate(time, 'HH:mm', new Date()), 'hh:mm a');
-        } catch { return 'Invalid'; }
-    };
+    const formatTime = (time: string) => parse(time, 'HH:mm', new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
 
     const processSession = (sessionName: 'morning' | 'evening') => {
       const session = todaySch[sessionName];
@@ -227,7 +228,7 @@ export default function BookingPage() {
           status = 'Completed';
           statusColor = 'text-green-600';
       } else if (today >= startTime && doctorStatus?.isOnline) {
-           status = `Online (since ${format(parseISO(doctorStatus.onlineTime!), 'hh:mm a')})`;
+           status = `Online (since ${parseISO(doctorStatus.onlineTime!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}`;
            statusColor = 'text-green-600';
       } else if (today >= startTime && !doctorStatus?.isOnline) {
             status = 'Offline';
@@ -492,6 +493,8 @@ export default function BookingPage() {
   </main>
   );
 }
+
+    
 
     
 

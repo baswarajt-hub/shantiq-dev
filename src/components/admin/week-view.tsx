@@ -1,15 +1,13 @@
 
 'use client';
 import { useState } from 'react';
-import {
-  addDays,
-  eachDayOfInterval,
-  endOfWeek,
-  format,
-  isPast,
-  set,
-  startOfWeek
-} from 'date-fns';
+import addDays from 'date-fns/addDays';
+import eachDayOfInterval from 'date-fns/eachDayOfInterval';
+import endOfWeek from 'date-fns/endOfWeek';
+import format from 'date-fns/format';
+import isPast from 'date-fns/isPast';
+import set from 'date-fns/set';
+import startOfWeek from 'date-fns/startOfWeek';
 import { Button } from '../ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -142,3 +140,5 @@ export function WeekView({ schedule, closures, onOverrideSave }: WeekViewProps) 
     </div>
   );
 }
+
+    

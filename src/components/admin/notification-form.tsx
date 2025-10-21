@@ -10,7 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { format, parseISO, setHours, setMinutes, parse } from 'date-fns';
+import format from 'date-fns/format';
+import parseISO from 'date-fns/parseISO';
+import setHours from 'date-fns/setHours';
+import setMinutes from 'date-fns/setMinutes';
+import parse from 'date-fns/parse';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -240,7 +244,7 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
                                     {notif.startTime && format(parseISO(notif.startTime), 'MMM d, h:mm a')} - {notif.endTime && format(parseISO(notif.endTime), 'MMM d, h:mm a')}
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-0 flex-shrink-0">
                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(notif.id)}><Edit className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(notif.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </div>
@@ -254,3 +258,5 @@ export function NotificationForm({ initialNotifications, onSave }: NotificationF
     </Card>
   );
 }
+
+    

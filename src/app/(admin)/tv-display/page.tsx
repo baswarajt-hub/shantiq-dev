@@ -6,7 +6,11 @@ import { cn } from '@/lib/utils';
 import { FileClock, Hourglass, LogIn, LogOut, User, Timer, Ticket, ChevronRight, Activity, Users, Calendar, Footprints, ClockIcon, Repeat, Syringe, HelpCircle, Stethoscope, Clock, Shield, Pause, AlertTriangle, QrCode } from 'lucide-react';
 import type { DoctorSchedule, DoctorStatus, Patient, Session, SpecialClosure } from '@/lib/types';
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
-import { parseISO, format, isToday, differenceInMinutes, parse as parseDateFn } from 'date-fns';
+import parseISO from 'date-fns/parseISO';
+import format from 'date-fns/format';
+import isToday from 'date-fns/isToday';
+import differenceInMinutes from 'date-fns/differenceInMinutes';
+import parseDateFn from 'date-fns/parse';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
@@ -745,3 +749,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    

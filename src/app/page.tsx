@@ -4,7 +4,12 @@
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
-import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
+import format from 'date-fns/format';
+import set from 'date-fns/set';
+import addMinutes from 'date-fns/addMinutes';
+import parseISO from 'date-fns/parseISO';
+import isToday from 'date-fns/isToday';
+import differenceInMinutes from 'date-fns/differenceInMinutes';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -24,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { parse } from 'date-fns';
+import parse from 'date-fns/parse';
 import type { ActionResult } from '@/lib/types';
 
 
@@ -102,7 +107,7 @@ const timeZone = "Asia/Kolkata";
 function sessionLocalToUtc(dateStr: string, sessionTime: string) {
   // Try 24-hour format first
   let localDate: Date;
-  if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+  if (/^\\d{1,2}:\\d{2}$/.test(sessionTime)) {
     // "HH:mm" (24-hour)
     localDate = parse(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
   } else {
@@ -581,7 +586,7 @@ export default function DashboardPage() {
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
-        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
+        if (/^\\d{5,}$/.test(searchTerm.replace(/\\D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
@@ -1061,27 +1066,15 @@ export default function DashboardPage() {
 
                  <main className="md:col-start-2 overflow-y-auto">
                     <div className="sticky top-0 z-10 bg-neutral-50/80 backdrop-blur-sm p-4">
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
                             <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
                             <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
                             <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
                             <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
                             <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
                             <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
-                        </div>
-                        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-1">
-                           <div className="relative w-full">
-                              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                  type="search"
-                                  placeholder="Search patient..."
-                                  className="pl-8"
-                                  value={searchTerm}
-                                  onChange={(e) => setSearchTerm(e.target.value)}
-                              />
-                           </div>
-                           <div className="group relative rounded-xl border border-neutral-200 bg-white p-3 shadow-sm hover:shadow transition-shadow">
-                                <div className="text-xs font-medium text-neutral-600 text-center">Visit Purpose Breakdown</div>
+                             <div className="group relative rounded-xl border border-neutral-200 bg-white p-3 shadow-sm hover:shadow transition-shadow col-span-2 sm:col-span-1 lg:col-span-1">
+                                <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
                                 <div className="mt-1 flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm text-neutral-800">
                                    {Object.keys(purposeCounts).length > 0 ? (
                                         Object.entries(purposeCounts).map(([purpose, count]) => {
@@ -1097,8 +1090,21 @@ export default function DashboardPage() {
                                         <span className="text-xs text-neutral-500">No purposes specified.</span>
                                     )}
                                </div>
+                             </div>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between gap-4 px-1">
+                           <div className="relative w-full max-w-xs">
+                              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                  type="search"
+                                  placeholder="Search patient..."
+                                  className="pl-8"
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                              />
                            </div>
-                           <div className="w-full flex justify-end">
+                           
+                           <div className="w-full max-w-xs flex justify-end">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                          <Button variant="outline" className='w-48 justify-between'>
@@ -1241,6 +1247,8 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
 
     
 
