@@ -736,6 +736,7 @@ export default function DashboardPage() {
     });
 
     const canDoctorCheckIn = selectedDate ? isToday(selectedDate) : false;
+    const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
 
 
     if (isLoading || !schedule || !doctorStatus || !selectedDate) {
@@ -782,7 +783,7 @@ export default function DashboardPage() {
       }
 
     const doctorOnlineTime = doctorStatus.onlineTime ? new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    const purposeCounts = sessionPatients.reduce((acc, p) => { if(p.purpose) acc[p.purpose] = (acc[p.purpose] || 0) + 1; return acc; }, {} as Record<string, number>);
+
 
     const PatientCard = ({ patient }: { patient: Patient }) => {
         const patientDetails = family.find(f => f.phone === patient.phone && f.name === patient.name) || { name: patient.name, gender: 'Other' };
@@ -1060,15 +1061,27 @@ export default function DashboardPage() {
 
                  <main className="md:col-start-2 overflow-y-auto">
                     <div className="sticky top-0 z-10 bg-neutral-50/80 backdrop-blur-sm p-4">
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                             <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
                             <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
                             <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
                             <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
                             <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
                             <StatCard title="Avg. Consult" value={`${averageConsultationTime} min`} icon={<Activity className="h-4 w-4" />} />
-                             <div className="group relative rounded-xl border border-neutral-200 bg-white p-3 shadow-sm hover:shadow transition-shadow col-span-2 sm:col-span-1 lg:col-span-1">
-                                <div className="text-xs font-medium text-neutral-600">Visit Purpose Breakdown</div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-1">
+                           <div className="relative w-full">
+                              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                  type="search"
+                                  placeholder="Search patient..."
+                                  className="pl-8"
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                              />
+                           </div>
+                           <div className="group relative rounded-xl border border-neutral-200 bg-white p-3 shadow-sm hover:shadow transition-shadow">
+                                <div className="text-xs font-medium text-neutral-600 text-center">Visit Purpose Breakdown</div>
                                 <div className="mt-1 flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm text-neutral-800">
                                    {Object.keys(purposeCounts).length > 0 ? (
                                         Object.entries(purposeCounts).map(([purpose, count]) => {
@@ -1084,21 +1097,8 @@ export default function DashboardPage() {
                                         <span className="text-xs text-neutral-500">No purposes specified.</span>
                                     )}
                                </div>
-                             </div>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between gap-4 px-1">
-                           <div className="relative w-full max-w-xs">
-                              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                  type="search"
-                                  placeholder="Search patient..."
-                                  className="pl-8"
-                                  value={searchTerm}
-                                  onChange={(e) => setSearchTerm(e.target.value)}
-                              />
                            </div>
-                           
-                           <div className="w-full max-w-xs flex justify-end">
+                           <div className="w-full flex justify-end">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                          <Button variant="outline" className='w-48 justify-between'>
