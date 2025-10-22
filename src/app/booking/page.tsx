@@ -4,12 +4,18 @@ import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Users, Wifi, WifiOff, Bell, AlertTriangle, Megaphone, PlusCircle, List, MapPin, Phone } from 'lucide-react';
+import {
+  Calendar, Clock, Users, Wifi, WifiOff, Bell, AlertTriangle,
+  Megaphone, PlusCircle, List, MapPin, Phone, Mail, Globe
+} from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, addNewPatientAction, getDoctorStatusAction } from '@/app/actions';
+import {
+  addAppointmentAction, getFamilyByPhoneAction, getPatientsAction,
+  getDoctorScheduleAction, addNewPatientAction, getDoctorStatusAction
+} from '@/app/actions';
 import { format, parseISO, parse, isToday, isWithinInterval } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -17,8 +23,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AppointmentActions } from '@/components/booking/appointment-actions';
-import { Mail, Globe, Compass } from 'lucide-react';
-
 
 // ---------- Utility: status badge color ----------
 const getStatusBadgeClass = (status: string) => {
@@ -32,7 +36,6 @@ const getStatusBadgeClass = (status: string) => {
     default: return 'bg-gray-100 text-gray-800';
   }
 };
-
 
 // ---------- Notification Card ----------
 function NotificationCard({ notifications }: { notifications?: Notification[] }) {
@@ -86,7 +89,6 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
   );
 }
 
-
 // ---------- Main Booking Page ----------
 export default function BookingPage() {
   const [family, setFamily] = useState<FamilyMember[]>([]);
@@ -135,6 +137,27 @@ export default function BookingPage() {
     }
   }, [phone, loadData]);
 
+  // Add family member — must come before any return
+  const handleAddFamilyMember = useCallback(
+    (member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
+      if (!phone) return;
+      startTransition(async () => {
+        const result = await addNewPatientAction({ ...member, phone });
+        if ('error' in result) {
+          toast({ title: 'Error', description: result.error || 'Could not add member', variant: 'destructive' });
+        } else {
+          toast({ title: 'Success', description: 'Family member added.' });
+          await loadData();
+          setBookingOpen(true);
+        }
+      });
+    },
+    [phone, toast, loadData]
+  );
+
+  const isLoading = !phone || isPending;
+
+
   // Map appointments
   useEffect(() => {
     if (!family.length || !patients.length) return;
@@ -157,25 +180,22 @@ export default function BookingPage() {
     setAppointments(appts);
   }, [patients, family]);
 
-  // Format and status for today’s schedule
   const getTodayScheduleDetails = () => {
     if (!schedule || !doctorStatus) return null;
     const today = currentTime;
     const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
     const todaySch = schedule.days[dayOfWeek];
     const formatTime = (t: string) => parse(t, 'HH:mm', new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
     const make = (s: any) => {
       if (!s?.isOpen) return { time: 'Closed', status: 'Closed', color: 'text-red-600' };
       const start = parse(s.start, 'HH:mm', today);
       const end = parse(s.end, 'HH:mm', today);
-      let status = 'Upcoming'; let color = 'text-gray-500';
+      let status = 'Upcoming', color = 'text-gray-500';
       if (today > end) { status = 'Completed'; color = 'text-green-600'; }
       else if (today >= start && doctorStatus?.isOnline) { status = 'Online'; color = 'text-green-600'; }
       else if (today >= start && !doctorStatus?.isOnline) { status = 'Offline'; color = 'text-red-600'; }
       return { time: `${formatTime(s.start)} - ${formatTime(s.end)}`, status, color };
     };
-
     return { morning: make(todaySch.morning), evening: make(todaySch.evening) };
   };
 
@@ -189,111 +209,84 @@ export default function BookingPage() {
       const timeObj = parse(time, 'hh:mm a', dateObj);
       const apptTime = timeObj.toISOString();
       const result = await addAppointmentAction(member, apptTime, purpose, false);
-      if ("error" in result) toast({ title: "Error", description: result.error, variant: 'destructive' });
-      else { toast({ title: "Success", description: "Appointment booked." }); if (phone) await loadData(); }
+      if ('error' in result) toast({ title: 'Error', description: result.error, variant: 'destructive' });
+      else { toast({ title: 'Success', description: 'Appointment booked.' }); if (phone) await loadData(); }
     });
   };
-
-  if (!phone || isPending) return <div className="flex items-center justify-center h-screen">Loading...</div>;
 
   return (
     <main className="flex-1 p-4 md:p-6 lg:p-8">
       <div className="mx-auto w-full max-w-2xl space-y-8">
+        {/* 🏥 Clinic Info Card */}
+        {schedule?.clinicDetails && (
+          <Card className="bg-white">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-black-800 text-xl font-bold leading-snug">
+                {schedule.clinicDetails.doctorName || 'Dr Baswaraj Tandur'}
+              </CardTitle>
+              <CardDescription className="text-blue-800 font-semibold text-base">
+                {schedule.clinicDetails.clinicName || "Shanti Children's Clinic"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-gray-700 space-y-3">
+              {schedule.clinicDetails.address && (
+                <p className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-1 text-blue-600" />
+                  <span>{schedule.clinicDetails.address}</span>
+                </p>
+              )}
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-sm">
+                {schedule.clinicDetails.contactNumber && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-blue-600" />
+                    <a href={`tel:${schedule.clinicDetails.contactNumber}`} className="text-blue-800 font-medium hover:underline">
+                      {schedule.clinicDetails.contactNumber}
+                    </a>
+                  </div>
+                )}
+                <div className="flex flex-col sm:items-end text-sm space-y-0.5">
+                  {schedule.clinicDetails.website && (
+                    <p className="flex items-center gap-1.5">
+                      <Globe className="h-4 w-4 text-blue-600" />
+                      <a href={schedule.clinicDetails.website} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">
+                        {schedule.clinicDetails.website}
+                      </a>
+                    </p>
+                  )}
+                  {schedule.clinicDetails.email && (
+                    <p className="flex items-center gap-1.5">
+                      <Mail className="h-4 w-4 text-blue-600" />
+                      <a href={`mailto:${schedule.clinicDetails.email}`} className="text-blue-700 hover:underline">
+                        {schedule.clinicDetails.email}
+                      </a>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full mt-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold flex items-center justify-center gap-2"
+                asChild
+              >
+                <a
+                  href={
+                    schedule.clinicDetails.googleMapsLink ||
+                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      schedule.clinicDetails.address || "Shanti Children's Clinic, Hyderabad"
+                    )}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  🚗 Get directions
+                </a>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-{/* 🏥 Clinic Info Card */}
-{schedule?.clinicDetails && (
-  <Card className="bg-white">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-black-800 text-xl font-bold leading-snug">
-        {schedule.clinicDetails.doctorName || 'Dr Baswaraj Tandur'}
-      </CardTitle>
-      <CardDescription className="text-blue-800 font-semibold text-base">
-        {schedule.clinicDetails.clinicName || "Shanti Children's Clinic"}
-      </CardDescription>
-    </CardHeader>
-
-    <CardContent className="text-gray-700 space-y-3">
-      {/* 📍 Address */}
-      {schedule.clinicDetails.address && (
-        <p className="flex items-start gap-2">
-          <MapPin className="h-4 w-4 mt-1 text-blue-600" />
-          <span>{schedule.clinicDetails.address}</span>
-        </p>
-      )}
-
-      
-{/* 📞 Contact + 🌐 Website/Email in same row */}
-<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-sm">
-  {/* Left: Phone */}
-  {schedule.clinicDetails.contactNumber && (
-    <div className="flex items-center gap-2">
-      <Phone className="h-4 w-4 text-blue-600" />
-      <a
-        href={`tel:${schedule.clinicDetails.contactNumber.replace(/\s+/g, '')}`}
-        className="text-blue-800 font-medium hover:underline"
-      >
-        {schedule.clinicDetails.contactNumber}
-      </a>
-    </div>
-  )}
-
-  {/* Right: Website + Email */}
-  <div className="flex flex-col sm:items-end text-sm space-y-0.5">
-    {schedule.clinicDetails.website && (
-      <p className="flex items-center gap-1.5">
-        <Globe className="h-4 w-4 text-blue-600" />
-        <a
-          href={schedule.clinicDetails.website}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-700 hover:underline"
-        >
-          {schedule.clinicDetails.website}
-        </a>
-      </p>
-    )}
-    {schedule.clinicDetails.email && (
-      <p className="flex items-center gap-1.5">
-        <Mail className="h-4 w-4 text-blue-600" />
-        <a
-          href={`mailto:${schedule.clinicDetails.email}`}
-          className="text-blue-700 hover:underline"
-        >
-          {schedule.clinicDetails.email}
-        </a>
-      </p>
-    )}
-  </div>
-</div>
-
-      {/* 🧭 Google Maps link */}
-      <Button
-        variant="secondary"
-        size="sm"
-        className="w-full mt-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold flex items-center justify-center gap-2"
-        asChild
-      >
-        <a
-          href={
-            schedule.clinicDetails.googleMapsLink ||
-            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-              schedule.clinicDetails.address || "Shanti Children's Clinic, Hyderabad"
-            )}`
-          }
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          🚗 Get directions
-        </a>
-      </Button>
-    </CardContent>
-  </Card>
-)}
-
-
-
-
-        {/* 🕒 Today's Clinic Schedule */}
+        {/* 🕒 Today's Schedule */}
         {currentDaySchedule && (
           <Card className="bg-white">
             <CardHeader>
@@ -302,14 +295,14 @@ export default function BookingPage() {
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-center">
-                <span className="font-bold text-base">Morning:</span>
+                <span className="font-bold">Morning:</span>
                 <div className="text-right">
                   <p className="font-semibold">{currentDaySchedule.morning.time}</p>
                   <p className={`font-bold text-xs ${currentDaySchedule.morning.color}`}>{currentDaySchedule.morning.status}</p>
                 </div>
               </div>
               <div className="flex justify-between items-center mt-2">
-                <span className="font-bold text-base">Evening:</span>
+                <span className="font-bold">Evening:</span>
                 <div className="text-right">
                   <p className="font-semibold">{currentDaySchedule.evening.time}</p>
                   <p className={`font-bold text-xs ${currentDaySchedule.evening.color}`}>{currentDaySchedule.evening.status}</p>
@@ -319,7 +312,6 @@ export default function BookingPage() {
           </Card>
         )}
 
-        {/* 📢 Notifications */}
         <NotificationCard notifications={schedule?.notifications} />
 
         {/* 👨‍👩‍👧 Book Next Visit */}
@@ -331,10 +323,16 @@ export default function BookingPage() {
           <CardContent>
             {familyPatients.length > 0 ? familyPatients.map(m => (
               <div key={m.id} onClick={() => { setSelectedMember(m); setBookingOpen(true); }}
-                   className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer">
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer">
                 <div className="flex items-center gap-3">
-                  <Avatar><AvatarImage src={m.avatar || ''} alt={m.name} /><AvatarFallback>{m.name.charAt(0)}</AvatarFallback></Avatar>
-                  <div><p className="font-semibold">{m.name}</p><p className="text-xs text-muted-foreground">{m.gender}</p></div>
+                  <Avatar>
+                    <AvatarImage src={m.avatar || ''} alt={m.name} />
+                    <AvatarFallback>{m.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{m.name}</p>
+                    <p className="text-xs text-muted-foreground">{m.gender}</p>
+                  </div>
                 </div>
                 <Button variant="secondary" size="sm">Book</Button>
               </div>
@@ -354,7 +352,10 @@ export default function BookingPage() {
             {todaysAppointments.length > 0 ? todaysAppointments.map(a => (
               <div key={a.id} className="p-4 rounded-lg border flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <Avatar><AvatarImage src={(family.find(f => Number(f.id) === a.familyMemberId)?.avatar || '')} alt={a.familyMemberName} /><AvatarFallback>{a.familyMemberName.charAt(0)}</AvatarFallback></Avatar>
+                  <Avatar>
+                    <AvatarImage src={(family.find(f => Number(f.id) === a.familyMemberId)?.avatar || '')} alt={a.familyMemberName} />
+                    <AvatarFallback>{a.familyMemberName.charAt(0)}</AvatarFallback>
+                  </Avatar>
                   <div>
                     <p className="font-bold text-lg">{a.familyMemberName}</p>
                     <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
@@ -378,8 +379,7 @@ export default function BookingPage() {
           </CardContent>
         </Card>
 
-        {/* 📘 My Appointments */}
-                {/* 🔗 My Appointments link */}
+        {/* 🔗 My Appointments link */}
         <Link href="/booking/my-appointments" className="block">
           <Card className="cursor-pointer hover:border-primary/50 hover:bg-blue-50 transition-all bg-white shadow-sm">
             <CardHeader>
