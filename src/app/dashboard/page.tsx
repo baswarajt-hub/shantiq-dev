@@ -16,7 +16,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction as addPatientActionType, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction, deleteTodaysPatientsAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, addPatientAction as addPatientActionType, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -1012,23 +1012,7 @@ export default function DashboardPage() {
                             <ToolbarButton label="Adjust Timing" icon={<Clock className="h-5 w-5" />} onClick={() => setAdjustTimingOpen(true)} />
                             <ToolbarButton label="Show Completed" icon={<ListChecks className="h-5 w-5" />} onClick={() => setShowCompleted(prev => !prev)} />
                             <ToolbarButton label="Recalculate Queue" icon={<RefreshCw className="h-5 w-5" />} onClick={handleRunRecalculation} disabled={isPending} />
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <ToolbarButton label="Clear Today's Appointments" icon={<Trash2 className="h-5 w-5" />} variant="danger" />
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This will permanently delete all of today's appointment records. This action cannot be undone.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                             
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <ToolbarButton label="Emergency" icon={<AlertTriangle className="h-5 w-5" />} variant="danger" />

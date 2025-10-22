@@ -1,113 +1,93 @@
-
-
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Clock, Eye, Ticket, User, Users, CheckCircle, Wifi, WifiOff, Bell, AlertTriangle, Megaphone, PlusCircle, List } from 'lucide-react';
-import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification, TranslatedMessage } from '@/lib/types';
+import { Calendar, Clock, Users, Wifi, WifiOff, Bell, AlertTriangle, Megaphone, PlusCircle, List, MapPin, Phone } from 'lucide-react';
+import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { addAppointmentAction, getFamilyByPhoneAction, getPatientsAction, getDoctorScheduleAction, addNewPatientAction, getDoctorStatusAction } from '@/app/actions';
-import { format } from 'date-fns';
-import { parseISO } from 'date-fns';
-import { isToday } from 'date-fns';
-import { parse } from 'date-fns';
-import { isWithinInterval } from 'date-fns';
+import { format, parseISO, parse, isToday, isWithinInterval } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { AppointmentActions } from '@/components/booking/appointment-actions';
+import { Mail, Globe, Compass } from 'lucide-react';
 
 
+// ---------- Utility: status badge color ----------
 const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-        case 'Booked': return 'bg-blue-100 text-blue-800';
-        case 'Completed': return 'bg-green-100 text-green-800';
-        case 'Cancelled': return 'bg-red-100 text-red-800';
-        case 'Missed': return 'bg-yellow-100 text-yellow-800';
-        case 'Waiting': return 'bg-indigo-100 text-indigo-800';
-        case 'Late': return 'bg-orange-100 text-orange-800';
-        default: return 'bg-gray-100 text-gray-800';
-    }
-}
+  switch (status) {
+    case 'Booked': return 'bg-blue-100 text-blue-800';
+    case 'Completed': return 'bg-green-100 text-green-800';
+    case 'Cancelled': return 'bg-red-100 text-red-800';
+    case 'Missed': return 'bg-yellow-100 text-yellow-800';
+    case 'Waiting': return 'bg-indigo-100 text-indigo-800';
+    case 'Late': return 'bg-orange-100 text-orange-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
 
+
+// ---------- Notification Card ----------
 function NotificationCard({ notifications }: { notifications?: Notification[] }) {
   const [visibleNotifications, setVisibleNotifications] = useState<Notification[]>([]);
   const [lang, setLang] = useState<'en' | 'hi' | 'te'>('en');
 
   useEffect(() => {
-    if (notifications) {
-      const checkVisibility = () => {
-        const now = new Date();
-        const active = notifications.filter(notification => {
-          if (!notification.enabled || !notification.startTime || !notification.endTime) {
-            return false;
-          }
-          const start = parseISO(notification.startTime);
-          const end = parseISO(notification.endTime);
-          return isWithinInterval(now, { start, end });
-        });
-        setVisibleNotifications(active);
-      };
-
-      checkVisibility();
-      const interval = setInterval(checkVisibility, 60000); // Check every minute
-      return () => clearInterval(interval);
-    } else {
-      setVisibleNotifications([]);
-    }
+    if (!notifications) return;
+    const checkVisibility = () => {
+      const now = new Date();
+      const active = notifications.filter(n => {
+        if (!n.enabled || !n.startTime || !n.endTime) return false;
+        const start = parseISO(n.startTime);
+        const end = parseISO(n.endTime);
+        return isWithinInterval(now, { start, end });
+      });
+      setVisibleNotifications(active);
+    };
+    checkVisibility();
+    const timer = setInterval(checkVisibility, 60000);
+    return () => clearInterval(timer);
   }, [notifications]);
 
-  if (visibleNotifications.length === 0) {
-    return null;
-  }
+  if (visibleNotifications.length === 0) return null;
 
   return (
     <div className="space-y-4">
-      {visibleNotifications.map(notification => {
-          const message = typeof notification.message === 'string' 
-            ? { en: notification.message } 
-            : notification.message;
-
-          return (
-            <Card key={notification.id} style={{ backgroundColor: '#ffffff' }}>
-              <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4 pb-2">
-                <Megaphone className="h-6 w-6 text-blue-800 mt-1" />
-                <div className="flex-1">
-                  <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                 <Tabs value={lang} onValueChange={(value) => setLang(value as any)} className="w-full">
-                    <TabsContent value="en" className="mt-2">
-                        <p className="text-base text-blue-800/90">{message.en}</p>
-                    </TabsContent>
-                    <TabsContent value="hi" className="mt-2">
-                        <p className="text-base text-blue-800/90">{message.hi || 'Translation not available.'}</p>
-                    </TabsContent>
-                    <TabsContent value="te" className="mt-2">
-                        <p className="text-base text-blue-800/90">{message.te || 'Translation not available.'}</p>
-                    </TabsContent>
-                    <TabsList className="grid w-full grid-cols-3 h-8 mt-2">
-                        <TabsTrigger value="en" className="text-xs">English</TabsTrigger>
-                        <TabsTrigger value="hi" className="text-xs">हिन्दी</TabsTrigger>
-                        <TabsTrigger value="te" className="text-xs">తెలుగు</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-              </CardContent>
-            </Card>
-          )
-      })}
+      {visibleNotifications.map(n => (
+        <Card key={n.id} className="bg-white">
+          <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4 pb-2">
+            <Megaphone className="h-6 w-6 text-blue-800 mt-1" />
+            <div className="flex-1">
+              <CardTitle className="text-lg text-blue-800">Important Announcement</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <Tabs value={lang} onValueChange={(v) => setLang(v as any)} className="w-full">
+              <TabsContent value="en"><p>{(n.message as any)?.en || n.message}</p></TabsContent>
+              <TabsContent value="hi"><p>{(n.message as any)?.hi || 'Translation not available.'}</p></TabsContent>
+              <TabsContent value="te"><p>{(n.message as any)?.te || 'Translation not available.'}</p></TabsContent>
+              <TabsList className="grid w-full grid-cols-3 h-8 mt-2">
+                <TabsTrigger value="en" className="text-xs">English</TabsTrigger>
+                <TabsTrigger value="hi" className="text-xs">हिन्दी</TabsTrigger>
+                <TabsTrigger value="te" className="text-xs">తెలుగు</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
 
 
+// ---------- Main Booking Page ----------
 export default function BookingPage() {
   const [family, setFamily] = useState<FamilyMember[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -118,32 +98,28 @@ export default function BookingPage() {
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [phone, setPhone] = useState<string|null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-
+  // Load login phone
   useEffect(() => {
     const userPhone = localStorage.getItem('userPhone');
-    if (!userPhone) {
-      router.push('/login');
-    } else {
-        setPhone(userPhone);
-    }
+    if (!userPhone) router.push('/login');
+    else setPhone(userPhone);
   }, [router]);
-  
+
+  // Load data
   const loadData = useCallback(async () => {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) return;
-
     const [familyData, patientData, scheduleData, statusData] = await Promise.all([
       getFamilyByPhoneAction(userPhone),
       getPatientsAction(),
       getDoctorScheduleAction(),
       getDoctorStatusAction(),
     ]);
-
     setFamily(familyData);
     setPatients(patientData);
     setSchedule(scheduleData);
@@ -152,351 +128,294 @@ export default function BookingPage() {
 
   useEffect(() => {
     if (phone) {
-        startTransition(() => {
-            loadData();
-        });
-        
-        const dataPoll = setInterval(() => loadData(), 30000); // Poll every 30 seconds
-        const timer = setInterval(() => setCurrentTime(new Date()), 60000); // Update time every minute
-        
-        return () => {
-            clearInterval(dataPoll);
-            clearInterval(timer);
-        };
+      startTransition(() => loadData());
+      const refresh = setInterval(loadData, 30000);
+      const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+      return () => { clearInterval(refresh); clearInterval(timer); };
     }
   }, [phone, loadData]);
 
+  // Map appointments
   useEffect(() => {
-     if (!family.length || !patients.length) return;
-
-    const appointmentsFromPatients = patients
-        .filter(p => family.some(f => f.phone === p.phone))
-        .map(p => {
-            const famMember = family.find(f => f.phone === p.phone && f.name === p.name);
-            const appointmentDate = parseISO(p.appointmentTime);
-            return {
-                id: p.id,
-                familyMemberId: Number(famMember?.id || '0'),
-                familyMemberName: p.name,
-                date: p.appointmentTime,
-                time: format(appointmentDate, 'hh:mm a'),
-                status: p.status, 
-                type: p.type,
-                purpose: p.purpose,
-                rescheduleCount: p.rescheduleCount,
-                tokenNo: p.tokenNo,
-            }
-        });
-    setAppointments(appointmentsFromPatients as Appointment[]);
+    if (!family.length || !patients.length) return;
+    const appts = patients
+      .filter(p => family.some(f => f.phone === p.phone))
+      .map(p => {
+        const fam = family.find(f => f.phone === p.phone && f.name === p.name);
+        const apptDate = parseISO(p.appointmentTime);
+        return {
+          id: p.id,
+          familyMemberId: Number(fam?.id || '0'),
+          familyMemberName: p.name,
+          date: p.appointmentTime,
+          time: format(apptDate, 'hh:mm a'),
+          status: p.status,
+          purpose: p.purpose,
+          tokenNo: p.tokenNo,
+        };
+      });
+    setAppointments(appts);
   }, [patients, family]);
-  
+
+  // Format and status for today’s schedule
   const getTodayScheduleDetails = () => {
     if (!schedule || !doctorStatus) return null;
-
     const today = currentTime;
     const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
-    const dateStr = format(today, 'yyyy-MM-dd');
-    let todaySch = schedule.days[dayOfWeek];
-    const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
-    
-    if (todayOverride) {
-      todaySch = {
-        morning: todayOverride.morningOverride ?? todaySch.morning,
-        evening: todayOverride.eveningOverride ?? todaySch.evening,
-      };
-    }
-    
-    const formatTime = (time: string) =>
-  parse(time, 'HH:mm', new Date()).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-    const processSession = (sessionName: 'morning' | 'evening') => {
-      const session = todaySch[sessionName];
-      const isClosedByOverride = sessionName === 'morning' ? todayOverride?.isMorningClosed : todayOverride?.isEveningClosed;
+    const todaySch = schedule.days[dayOfWeek];
+    const formatTime = (t: string) => parse(t, 'HH:mm', new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      if (!session.isOpen || isClosedByOverride) {
-        return { time: 'Doctor Not Available', status: 'Closed', statusColor: 'text-red-600', isOver: true };
-      }
-
-      const timeStr = `${formatTime(session.start)} - ${formatTime(session.end)}`;
-     
-
-        const startTime = parse(session.start, 'HH:mm', today);
-        const endTime = parse(session.end, 'HH:mm', today);
-
-      const isOver = today > endTime;
-      
-      let status = 'Upcoming';
-      let statusColor = 'text-gray-500';
-
-      if (isOver) {
-          status = 'Completed';
-          statusColor = 'text-green-600';
-      } else if (today >= startTime && doctorStatus?.isOnline) {
-           status = `Online (since ${parseISO(doctorStatus.onlineTime!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
-           statusColor = 'text-green-600';
-      } else if (today >= startTime && !doctorStatus?.isOnline) {
-            status = 'Offline';
-            statusColor = 'text-red-600';
-      }
-
-      return { time: timeStr, status, statusColor, isOver };
+    const make = (s: any) => {
+      if (!s?.isOpen) return { time: 'Closed', status: 'Closed', color: 'text-red-600' };
+      const start = parse(s.start, 'HH:mm', today);
+      const end = parse(s.end, 'HH:mm', today);
+      let status = 'Upcoming'; let color = 'text-gray-500';
+      if (today > end) { status = 'Completed'; color = 'text-green-600'; }
+      else if (today >= start && doctorStatus?.isOnline) { status = 'Online'; color = 'text-green-600'; }
+      else if (today >= start && !doctorStatus?.isOnline) { status = 'Offline'; color = 'text-red-600'; }
+      return { time: `${formatTime(s.start)} - ${formatTime(s.end)}`, status, color };
     };
 
-    return {
-      morning: processSession('morning'),
-      evening: processSession('evening'),
-    };
+    return { morning: make(todaySch.morning), evening: make(todaySch.evening) };
   };
-
-  const handleBookAppointment = (familyMember: FamilyMember, date: string, time: string, purpose: string) => {
-     startTransition(async () => {
-        const dateObj = parse(date, 'yyyy-MM-dd', new Date());
-const timeObj = parse(time, 'hh:mm a', dateObj);
-        const appointmentTime = timeObj.toISOString();
-
-        const result = await addAppointmentAction(familyMember, appointmentTime, purpose, false);
-        if ("error" in result) {
-            toast({ title: "Error", description: result.error, variant: 'destructive'});
-        } else {
-            toast({ title: "Success", description: "Appointment booked."});
-            if (phone) await loadData();
-        }
-    });
-  };
-
-  const handleAddFamilyMember = useCallback((member: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
-    if (!phone) return;
-    startTransition(async () => {
-        const result = await addNewPatientAction({ ...member, phone });
-        if("error" in result){
-            toast({ title: "Error", description: result.error || "Could not add member", variant: 'destructive'});
-        } else {
-            toast({ title: "Success", description: "Family member added."});
-            await loadData(); // Reload data to get new member
-            setBookingOpen(true); // Re-open booking dialog
-        }
-    });
-  }, [phone, toast, loadData]);
-  
-  const handleMemberCardClick = (member: FamilyMember) => {
-    setSelectedMember(member);
-    setBookingOpen(true);
-  }
-  
-  const activeAppointments = appointments.filter(appt => !['Completed', 'Cancelled', 'Missed'].includes(appt.status as string));
-  const todaysAppointments = activeAppointments.filter(appt => isToday(parseISO(appt.date)));
 
   const currentDaySchedule = getTodayScheduleDetails();
-  const familyPatients = family.filter(member => !member.isPrimary);
-  
-  const relevantSession = (() => {
-    if (!currentDaySchedule) return null;
-    const now = new Date();
-    const morningEndTime = currentDaySchedule.morning.time.includes('-') 
-  ? parse(currentDaySchedule.morning.time.split(' - ')[1], 'hh:mm a', now)
-  : null;
-    // If it's past morning session or morning session is closed, default to evening
-    if ( (morningEndTime && now > morningEndTime) || currentDaySchedule.morning.status === 'Closed' ) {
-        return 'evening';
-    }
-    return 'morning';
-  })();
-  
-  const relevantSessionDetails = relevantSession === 'evening' ? currentDaySchedule?.evening : currentDaySchedule?.morning;
+  const todaysAppointments = appointments.filter(a => isToday(parseISO(a.date)) && !['Cancelled', 'Completed'].includes(a.status));
+  const familyPatients = family.filter(f => !f.isPrimary);
 
-  // Calculate live queue for today's appointments
-  const upNextPatient = patients.find(p => p.status === 'Up-Next' && isToday(parseISO(p.appointmentTime)));
-  const waitingQueue = patients
-    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && isToday(parseISO(p.appointmentTime)) && p.id !== upNextPatient?.id)
-    .sort((a, b) => {
-      const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
-      const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
-      if (timeA === Infinity && timeB === Infinity) {
-          return (a.tokenNo || 0) - (b.tokenNo || 0);
-      }
-      return timeA - timeB;
-  });
-  
-  const liveQueue = [...waitingQueue];
-  if(upNextPatient) liveQueue.unshift(upNextPatient);
+  const handleBookAppointment = (member: FamilyMember, date: string, time: string, purpose: string) => {
+    startTransition(async () => {
+      const dateObj = parse(date, 'yyyy-MM-dd', new Date());
+      const timeObj = parse(time, 'hh:mm a', dateObj);
+      const apptTime = timeObj.toISOString();
+      const result = await addAppointmentAction(member, apptTime, purpose, false);
+      if ("error" in result) toast({ title: "Error", description: result.error, variant: 'destructive' });
+      else { toast({ title: "Success", description: "Appointment booked." }); if (phone) await loadData(); }
+    });
+  };
 
-
-  if (!phone || isPending) {
-      return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
+  if (!phone || isPending) return <div className="flex items-center justify-center h-screen">Loading...</div>;
 
   return (
     <main className="flex-1 p-4 md:p-6 lg:p-8">
       <div className="mx-auto w-full max-w-2xl space-y-8">
-        <Card style={{ backgroundColor: '#ffffff' }}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Calendar /> Today's Schedule</CardTitle>
-            <CardDescription className="font-bold text-lg text-blue-800">{format(currentTime, 'EEEE, MMMM d')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {currentDaySchedule ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-bold text-base">Morning:</span>
-                  <div className="text-right">
-                    <span className="font-semibold text-base">{currentDaySchedule.morning.time}</span>
-                    <p className={cn("font-bold text-xs", currentDaySchedule.morning.statusColor)}>
-                        {currentDaySchedule.morning.status.startsWith('Online') ? <span className="flex items-center justify-end gap-1"><Wifi /> Online</span> : currentDaySchedule.morning.status === 'Offline' ? <span className="flex items-center justify-end gap-1"><WifiOff /> Offline</span> : currentDaySchedule.morning.status}
-                    </p>
-                  </div>
+
+{/* 🏥 Clinic Info Card */}
+{schedule?.clinicDetails && (
+  <Card className="bg-white">
+    <CardHeader className="pb-2">
+      <CardTitle className="text-black-800 text-xl font-bold leading-snug">
+        {schedule.clinicDetails.doctorName || 'Dr Baswaraj Tandur'}
+      </CardTitle>
+      <CardDescription className="text-blue-800 font-semibold text-base">
+        {schedule.clinicDetails.clinicName || "Shanti Children's Clinic"}
+      </CardDescription>
+    </CardHeader>
+
+    <CardContent className="text-gray-700 space-y-3">
+      {/* 📍 Address */}
+      {schedule.clinicDetails.address && (
+        <p className="flex items-start gap-2">
+          <MapPin className="h-4 w-4 mt-1 text-blue-600" />
+          <span>{schedule.clinicDetails.address}</span>
+        </p>
+      )}
+
+      
+{/* 📞 Contact + 🌐 Website/Email in same row */}
+<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-sm">
+  {/* Left: Phone */}
+  {schedule.clinicDetails.contactNumber && (
+    <div className="flex items-center gap-2">
+      <Phone className="h-4 w-4 text-blue-600" />
+      <a
+        href={`tel:${schedule.clinicDetails.contactNumber.replace(/\s+/g, '')}`}
+        className="text-blue-800 font-medium hover:underline"
+      >
+        {schedule.clinicDetails.contactNumber}
+      </a>
+    </div>
+  )}
+
+  {/* Right: Website + Email */}
+  <div className="flex flex-col sm:items-end text-sm space-y-0.5">
+    {schedule.clinicDetails.website && (
+      <p className="flex items-center gap-1.5">
+        <Globe className="h-4 w-4 text-blue-600" />
+        <a
+          href={schedule.clinicDetails.website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-700 hover:underline"
+        >
+          {schedule.clinicDetails.website}
+        </a>
+      </p>
+    )}
+    {schedule.clinicDetails.email && (
+      <p className="flex items-center gap-1.5">
+        <Mail className="h-4 w-4 text-blue-600" />
+        <a
+          href={`mailto:${schedule.clinicDetails.email}`}
+          className="text-blue-700 hover:underline"
+        >
+          {schedule.clinicDetails.email}
+        </a>
+      </p>
+    )}
+  </div>
+</div>
+
+      {/* 🧭 Google Maps link */}
+      <Button
+        variant="secondary"
+        size="sm"
+        className="w-full mt-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold flex items-center justify-center gap-2"
+        asChild
+      >
+        <a
+          href={
+            schedule.clinicDetails.googleMapsLink ||
+            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              schedule.clinicDetails.address || "Shanti Children's Clinic, Hyderabad"
+            )}`
+          }
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          🚗 Get directions
+        </a>
+      </Button>
+    </CardContent>
+  </Card>
+)}
+
+
+
+
+        {/* 🕒 Today's Clinic Schedule */}
+        {currentDaySchedule && (
+          <Card className="bg-white">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Calendar /> Today's Schedule</CardTitle>
+              <CardDescription className="font-bold text-lg text-blue-800">{format(currentTime, 'EEEE, MMMM d')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-base">Morning:</span>
+                <div className="text-right">
+                  <p className="font-semibold">{currentDaySchedule.morning.time}</p>
+                  <p className={`font-bold text-xs ${currentDaySchedule.morning.color}`}>{currentDaySchedule.morning.status}</p>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-bold text-base">Evening:</span>
-                   <div className="text-right">
-                    <span className="font-semibold text-base">{currentDaySchedule.evening.time}</span>
-                    <p className={cn("font-bold text-xs", currentDaySchedule.evening.statusColor)}>
-                        {currentDaySchedule.evening.status.startsWith('Online') ? <span className="flex items-center justify-end gap-1"><Wifi /> Online</span> : currentDaySchedule.evening.status === 'Offline' ? <span className="flex items-center justify-end gap-1"><WifiOff /> Offline</span> : currentDaySchedule.evening.status}
-                    </p>
-                  </div>
-                </div>
-                 {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && relevantSessionDetails && !relevantSessionDetails.isOver && (
-                  <Alert variant="destructive" className="mt-4">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Heads Up!</AlertTitle>
-                    <AlertDescription>
-                      The doctor is running late and will start the session approximately {doctorStatus.startDelay} minutes behind schedule.
-                    </AlertDescription>
-                  </Alert>
-                )}
               </div>
-            ) : (
-              <p>Loading schedule...</p>
-            )}
-          </CardContent>
-        </Card>
-        
+              <div className="flex justify-between items-center mt-2">
+                <span className="font-bold text-base">Evening:</span>
+                <div className="text-right">
+                  <p className="font-semibold">{currentDaySchedule.evening.time}</p>
+                  <p className={`font-bold text-xs ${currentDaySchedule.evening.color}`}>{currentDaySchedule.evening.status}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 📢 Notifications */}
         <NotificationCard notifications={schedule?.notifications} />
 
-        <Card style={{ backgroundColor: '#ffffff' }}>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl"><PlusCircle /> Book Your Next Visit</CardTitle>
-                <CardDescription>Select a family member and find a time that works for you.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    {familyPatients.length > 0 ? (
-                        familyPatients.map(member => (
-                            <div key={member.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer" onClick={() => handleMemberCardClick(member)}>
-                                <div className="flex items-center gap-3">
-                                    <Avatar>
-                                        <AvatarImage src={member.avatar || ''} alt={member.name} data-ai-hint="person" />
-                                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-semibold">{member.name}</p>
-                                        <p className="text-xs text-muted-foreground">{member.gender}</p>
-                                    </div>
-                                </div>
-                                <Button variant="secondary" size="sm" className="h-8">Book</Button>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-center text-muted-foreground text-sm py-4">No family members added. Add one to book an appointment.</p>
-                    )}
+        {/* 👨‍👩‍👧 Book Next Visit */}
+        <Card className="bg-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl"><PlusCircle /> Book Your Next Visit</CardTitle>
+            <CardDescription>Select a family member and find a time that works for you.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {familyPatients.length > 0 ? familyPatients.map(m => (
+              <div key={m.id} onClick={() => { setSelectedMember(m); setBookingOpen(true); }}
+                   className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <Avatar><AvatarImage src={m.avatar || ''} alt={m.name} /><AvatarFallback>{m.name.charAt(0)}</AvatarFallback></Avatar>
+                  <div><p className="font-semibold">{m.name}</p><p className="text-xs text-muted-foreground">{m.gender}</p></div>
                 </div>
-                <Button variant="outline" className="w-full" asChild>
-                    <Link href="/booking/family">
-                       <Users className="mr-2 h-4 w-4" /> Manage Family
-                    </Link>
-                </Button>
-            </CardContent>
+                <Button variant="secondary" size="sm">Book</Button>
+              </div>
+            )) : <p className="text-center text-muted-foreground py-4">No family members added.</p>}
+            <Button variant="outline" className="w-full mt-3" asChild>
+              <Link href="/booking/family"><Users className="mr-2 h-4 w-4" /> Manage Family</Link>
+            </Button>
+          </CardContent>
         </Card>
-        
-        <Card style={{ backgroundColor: '#ffffff' }}>
+
+        {/* 📅 Today's Appointments */}
+        <Card className="bg-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><List /> Today's Appointments</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {todaysAppointments.length > 0 ? todaysAppointments.map(appt => {
-              let queuePosition: number | null = null;
-              if (appt.status === 'Waiting') {
-                const position = waitingQueue.findIndex(p => p.id === appt.id);
-                // Position is 0-indexed, add 1 for display. upNext adds 1 more.
-                if (position !== -1) {
-                  queuePosition = position + (upNextPatient ? 2 : 1);
-                }
-              }
-
-              return (
-              <div key={appt.id} className="p-4 rounded-lg border bg-background flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            {todaysAppointments.length > 0 ? todaysAppointments.map(a => (
+              <div key={a.id} className="p-4 rounded-lg border flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
-                   <Avatar>
-                      <AvatarImage src={(family.find(f=> Number(f.id) === appt.familyMemberId)?.avatar || '')} alt={appt.familyMemberName} data-ai-hint="person" />
-                      <AvatarFallback>{appt.familyMemberName.charAt(0)}</AvatarFallback>
-                    </Avatar>
+                  <Avatar><AvatarImage src={(family.find(f => Number(f.id) === a.familyMemberId)?.avatar || '')} alt={a.familyMemberName} /><AvatarFallback>{a.familyMemberName.charAt(0)}</AvatarFallback></Avatar>
                   <div>
-                     <p className="font-bold text-lg">{appt.familyMemberName}</p>
-                     <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-                        <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(appt.date), 'EEE, MMM d, yyyy')}</span>
-                        <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appt.time}</span>
-                        {appt.tokenNo && <span className="flex items-center gap-1.5"><Ticket className="h-4 w-4" /> #{appt.tokenNo}</span>}
-                     </div>
-                     {appt.purpose && <p className="text-sm text-primary font-medium mt-1">{appt.purpose}</p>}
+                    <p className="font-bold text-lg">{a.familyMemberName}</p>
+                    <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                      <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {format(parseISO(a.date), 'EEE, MMM d')}</span>
+                      <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {a.time}</span>
+                    </div>
+                    {a.purpose && <p className="text-sm text-primary mt-1">{a.purpose}</p>}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-2 self-stretch justify-between">
-                   <div className="flex items-center gap-2">
-                     {appt.status === 'Waiting' && queuePosition !== null && (
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-white text-xs font-bold">
-                        {queuePosition}
-                      </span>
-                     )}
-                     <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(appt.status as string)}`}>{appt.status}</p>
-                   </div>
-                   <Button asChild variant="default" size="sm" className="h-8">
-                      <Link href={`/queue-status?id=${appt.id}`}><Bell className="h-3.5 w-3.5 mr-1.5" />View Queue</Link>
-                   </Button>
+                <div className="flex flex-col items-end gap-2">
+                  <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(a.status)}`}>{a.status}</p>
+                  <AppointmentActions
+                    appointment={a}
+                    schedule={schedule}
+                    onReschedule={(x) => router.push(`/booking/my-appointments?id=${x.id}&action=reschedule`)}
+                    onCancel={(id) => console.log("Cancel appointment", id)}
+                  />
                 </div>
               </div>
-              )
-            }) : (
-              <p className="text-muted-foreground text-center py-8">No appointments for today.</p>
-            )}
+            )) : <p className="text-center text-muted-foreground py-8">No appointments for today.</p>}
           </CardContent>
         </Card>
-        
+
+        {/* 📘 My Appointments */}
+                {/* 🔗 My Appointments link */}
         <Link href="/booking/my-appointments" className="block">
-  <Card className="cursor-pointer hover:border-primary/50 hover:bg-blue-50 transition-all bg-white shadow-sm">
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2 text-lg">
-        <Calendar className="h-5 w-5 text-blue-600" /> My Appointments
-      </CardTitle>
-      <CardDescription className="text-gray-600">
-        View and manage all your past and upcoming appointments.
-      </CardDescription>
-    </CardHeader>
-  </Card>
-</Link>
-
-
+          <Card className="cursor-pointer hover:border-primary/50 hover:bg-blue-50 transition-all bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Calendar className="h-5 w-5 text-blue-600" /> My Appointments
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                View and manage all your past and upcoming appointments.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
-    
-    <BookAppointmentDialog
-      isOpen={isBookingOpen}
-      onOpenChange={setBookingOpen}
-      familyMembers={familyPatients}
-      schedule={schedule}
-      onSave={handleBookAppointment}
-      bookedPatients={patients}
-      initialMemberId={selectedMember?.id}
-      onAddNewMember={() => {
-        setBookingOpen(false);
-        setAddMemberOpen(true);
-      }}
-      onDialogClose={() => setSelectedMember(null)}
-    />
-     <AddFamilyMemberDialog 
-        isOpen={isAddMemberOpen} 
-        onOpenChange={setAddMemberOpen}
-        onSave={handleAddFamilyMember} 
+
+      {/* ✅ Booking Dialog */}
+      <BookAppointmentDialog
+        isOpen={isBookingOpen}
+        onOpenChange={setBookingOpen}
+        familyMembers={familyPatients}
+        schedule={schedule}
+        onSave={handleBookAppointment}
+        bookedPatients={patients}
+        initialMemberId={selectedMember?.id}
+        onAddNewMember={() => {
+          setBookingOpen(false);
+          setAddMemberOpen(true);
+        }}
+        onDialogClose={() => setSelectedMember(null)}
       />
-  </main>
+
+      {/* ✅ Add Family Member Dialog */}
+      <AddFamilyMemberDialog
+        isOpen={isAddMemberOpen}
+        onOpenChange={setAddMemberOpen}
+        onSave={(member) => handleAddFamilyMember(member)}
+      />
+    </main>
   );
 }
