@@ -308,6 +308,18 @@ export default function BookingPage() {
                   <p className={`font-bold text-xs ${currentDaySchedule.evening.color}`}>{currentDaySchedule.evening.status}</p>
                 </div>
               </div>
+              {/* ✅ DOCTOR DELAY STATUS */}
+                {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Doctor is Running Late</AlertTitle>
+                    <AlertDescription>
+                      The session will begin with a delay of approximately{' '}
+                      <strong>{doctorStatus.startDelay} minutes.</strong>
+                    </AlertDescription>
+                  </Alert>
+      )}
+      {/* ✅ END INSERT */}
             </CardContent>
           </Card>
         )}

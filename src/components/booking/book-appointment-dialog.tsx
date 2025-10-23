@@ -344,46 +344,77 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         )}
 
         {step === 3 && (
-            <div className="space-y-4 py-4">
-                <Label>Select an available time slot</Label>
-                {availableSlots.length > 0 ? (
-                  <TooltipProvider>
-                    <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
-                        {availableSlots.map(slot => (
-                            <Tooltip key={slot.time} delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <span tabIndex={0}>
-                                        <Button 
-                                            variant={selectedSlot === slot.time ? 'default' : 'outline'}
-                                            onClick={() => setSelectedSlot(slot.time)}
-                                            disabled={slot.state !== 'available'}
-                                            className="w-full"
-                                        >
-                                            {slot.time}
-                                        </Button>
-                                    </span>
-                                </TooltipTrigger>
-                                {slot.state !== 'available' && (
-                                    <TooltipContent>
-                                        <p>{getTooltipMessage(slot.state)}</p>
-                                    </TooltipContent>
-                                )}
-                            </Tooltip>
-                        ))}
-                    </div>
-                  </TooltipProvider>
-                ) : (
-                  <p className="text-center text-muted-foreground">No slots available for this session.</p>
-                )}
-                 {isPaymentEnabled && <Label className="text-sm text-muted-foreground pt-4 block">A nominal fee of ₹{schedule?.clinicDetails.consultationFee || 0} will be charged upon confirmation.</Label>}
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>
-                    <Button onClick={handleSave} disabled={isPending || !selectedSlot} className="w-full">
-                      {isPending ? "Processing..." : (isPaymentEnabled ? "Pay & Confirm" : "Confirm Booking")}
-                    </Button>
-                </DialogFooter>
-            </div>
-        )}
+  <div className="space-y-4 py-4">
+    <Label>Select an available time slot</Label>
+
+    {/* ✅ Advisory message with animation + collapsible “Got it” */}
+    {!localStorage.getItem('hideSlotAdvisory') && (
+      <div
+        className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900 shadow-sm animate-slide-in"
+        style={{ animation: 'slide-in 0.4s ease-out' }}
+      >
+        <p>
+          ⏱️ <strong>Note:</strong> Appointment time is an <em>expected consultation time</em> and may vary
+          depending on real-time clinic flow. Please check for updates and watch the{' '}
+          <span className="font-semibold text-blue-700">live queue</span> for your actual turn.
+        </p>
+        <div className="text-right mt-2">
+          <button
+            onClick={() => {
+              localStorage.setItem('hideSlotAdvisory', 'true');
+              const el = document.querySelector('.animate-slide-in');
+              if (el) el.classList.add('animate-fade-out');
+              setTimeout(() => el?.remove(), 400);
+            }}
+            className="text-xs font-semibold text-blue-700 hover:text-blue-900 underline"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    )}
+
+    {availableSlots.length > 0 ? (
+      <TooltipProvider>
+        <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
+          {availableSlots.map(slot => (
+            <Tooltip key={slot.time} delayDuration={0}>
+              <TooltipTrigger asChild>
+                <span tabIndex={0}>
+                  <Button
+                    variant={selectedSlot === slot.time ? 'default' : 'outline'}
+                    onClick={() => setSelectedSlot(slot.time)}
+                    disabled={slot.state !== 'available'}
+                    className="w-full"
+                  >
+                    {slot.time}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {slot.state !== 'available' && (
+                <TooltipContent>
+                  <p>{getTooltipMessage(slot.state)}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          ))}
+        </div>
+      </TooltipProvider>
+    ) : (
+      <p className="text-center text-muted-foreground">No slots available for this session.</p>
+    )}
+
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setStep(2)} className="w-full">
+        Back
+      </Button>
+      <Button onClick={handleSave} disabled={isPending || !selectedSlot} className="w-full">
+        {isPending ? 'Processing...' : 'Confirm Booking'}
+      </Button>
+    </DialogFooter>
+  </div>
+)}
+
 
       </DialogContent>
     </Dialog>
