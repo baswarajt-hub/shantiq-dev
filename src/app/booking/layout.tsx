@@ -29,13 +29,6 @@ export default function PatientPortalLayout({
     loadSchedule();
   }, []);
 
-  const childrenWithProps = React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
-      return React.cloneElement(child, { schedule } as any);
-    }
-    return child;
-  });
-
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#e0e1ee' }}>
       <PatientPortalHeader
@@ -51,7 +44,7 @@ export default function PatientPortalLayout({
                 <Skeleton className="h-64 w-full" />
             </div>
          </main>
-      ) : childrenWithProps}
+      ) : children}
     </div>
   );
 }

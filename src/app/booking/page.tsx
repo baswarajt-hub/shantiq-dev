@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
@@ -14,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import {
   addAppointmentAction, getFamilyByPhoneAction, getPatientsAction,
-  addNewPatientAction, getDoctorStatusAction
+  addNewPatientAction, getDoctorStatusAction, getDoctorScheduleAction
 } from '@/app/actions';
 import { format, parseISO, parse, isToday, isWithinInterval } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -23,6 +24,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AppointmentActions } from '@/components/booking/appointment-actions';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 // ---------- Utility: status badge color ----------
 const getStatusBadgeClass = (status: string) => {
@@ -90,11 +93,12 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
 }
 
 // ---------- Main Booking Page ----------
-export default function BookingPage({ schedule }: { schedule: DoctorSchedule | null }) {
+export default function BookingPage() {
   const [family, setFamily] = useState<FamilyMember[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
+  const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [isBookingOpen, setBookingOpen] = useState(false);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -115,14 +119,16 @@ export default function BookingPage({ schedule }: { schedule: DoctorSchedule | n
   const loadData = useCallback(async () => {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) return;
-    const [familyData, patientData, statusData] = await Promise.all([
+    const [familyData, patientData, statusData, scheduleData] = await Promise.all([
       getFamilyByPhoneAction(userPhone),
       getPatientsAction(),
       getDoctorStatusAction(),
+      getDoctorScheduleAction(),
     ]);
     setFamily(familyData);
     setPatients(patientData);
     setDoctorStatus(statusData);
+    setSchedule(scheduleData);
   }, []);
 
   useEffect(() => {
@@ -189,7 +195,10 @@ export default function BookingPage({ schedule }: { schedule: DoctorSchedule | n
       const end = parse(s.end, 'HH:mm', today);
       let status = 'Upcoming', color = 'text-gray-500';
       if (today > end) { status = 'Completed'; color = 'text-green-600'; }
-      else if (today >= start && doctorStatus?.isOnline) { status = 'Online'; color = 'text-green-600'; }
+      else if (today >= start && doctorStatus?.isOnline) {
+            status = `Online`;
+            color = 'text-green-600';
+       }
       else if (today >= start && !doctorStatus?.isOnline) { status = 'Offline'; color = 'text-red-600'; }
       return { time: `${formatTime(s.start)} - ${formatTime(s.end)}`, status, color };
     };
@@ -212,7 +221,15 @@ export default function BookingPage({ schedule }: { schedule: DoctorSchedule | n
   };
   
   if (isLoading) {
-    return null;
+    return (
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
+            <div className="mx-auto w-full max-w-2xl space-y-8">
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-64 w-full" />
+            </div>
+        </main>
+    );
   }
 
   return (
