@@ -12,6 +12,7 @@ import { format, parseISO, isToday, differenceInMinutes, parse as parseDate } fr
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 const timeZone = "Asia/Kolkata";
 
@@ -150,6 +151,7 @@ function UpNextCard({ patient }: { patient: Patient | undefined}) {
 }
 
 function CompletionSummary({ patient }: { patient: Patient }) {
+    const router = useRouter();
     const waitTime = (patient.checkInTime && patient.consultationStartTime) ? differenceInMinutes(parseISO(patient.consultationStartTime), parseISO(patient.checkInTime)) : null;
 
     return (
@@ -177,6 +179,9 @@ function CompletionSummary({ patient }: { patient: Patient }) {
                     </div>
                 )}
             </div>
+            <Button className="mt-8" onClick={() => router.push('/booking')}>
+                Back to Home
+            </Button>
         </motion.div>
     );
 }
@@ -324,6 +329,7 @@ function QueueStatusPageContent() {
     }
     
     const checkSession = (sessionName: 'morning' | 'evening') => {
+      if (!daySchedule) return false;
       const session = daySchedule[sessionName];
       if (!session.isOpen) return false;
       const startUtc = sessionLocalToUtc(dateStr, session.start);
@@ -337,16 +343,6 @@ function QueueStatusPageContent() {
     return null;
   }, []);
 
-  useEffect(() => {
-    if (completedAppointmentForDisplay) {
-      const timer = setTimeout(() => {
-        router.push('/booking');
-      }, 60000); // 60 seconds
-
-      return () => clearTimeout(timer);
-    }
-  }, [completedAppointmentForDisplay, router]);
-  
   const fetchData = useCallback(async (isInitial: boolean) => {
     if (isInitial) setIsLoading(true);
   
@@ -398,15 +394,7 @@ function QueueStatusPageContent() {
         const updatedPatient = allPatientData.find((p: Patient) => p.id === current?.id);
         
         if (updatedPatient && updatedPatient.status === 'Completed') {
-            const lastCompletedId = sessionStorage.getItem('completedAppointmentId');
-            if (lastCompletedId !== String(updatedPatient.id)) {
-                setCompletedAppointmentForDisplay(updatedPatient);
-                sessionStorage.setItem('completedAppointmentId', String(updatedPatient.id));
-            } else {
-                router.push('/booking');
-            }
-        } else {
-             setCompletedAppointmentForDisplay(null);
+            setCompletedAppointmentForDisplay(updatedPatient);
         }
 
         if (updatedPatient) {

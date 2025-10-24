@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Bell, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,11 +101,10 @@ export function AppointmentActions({
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <TooltipProvider>
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            <span tabIndex={0}>
-              <Button asChild variant="default" size="sm" className="h-8" disabled={!isQueueButtonActive}>
+      <Popover>
+        <PopoverTrigger asChild>
+          <span tabIndex={0}>
+            <Button asChild variant="default" size="sm" className="h-8" disabled={!isQueueButtonActive}>
                 <Link
                   href={`/queue-status?id=${appointment.id}`}
                   aria-disabled={!isQueueButtonActive}
@@ -114,17 +114,19 @@ export function AppointmentActions({
                   <Bell className="h-3.5 w-3.5 mr-1.5" />
                   View Queue
                 </Link>
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{tooltipMessage}</p>
-          </TooltipContent>
-        </Tooltip>
+            </Button>
+          </span>
+        </PopoverTrigger>
+        {!isQueueButtonActive && (
+          <PopoverContent side="top" align="center" className="w-auto p-2 text-sm">
+            {tooltipMessage}
+          </PopoverContent>
+        )}
+      </Popover>
 
         {appointment.status === 'Booked' && (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
+           <Popover>
+            <PopoverTrigger asChild>
               <span tabIndex={0}>
                 <Button
                   variant="outline"
@@ -136,15 +138,14 @@ export function AppointmentActions({
                   <Edit className="h-3.5 w-3.5 mr-1.5" />Reschedule
                 </Button>
               </span>
-            </TooltipTrigger>
+            </PopoverTrigger>
             {hasBeenRescheduled && (
-              <TooltipContent>
-                <p>This appointment has already been rescheduled once.</p>
-              </TooltipContent>
+              <PopoverContent side="top" align="center" className="w-auto p-2 text-sm">
+                This appointment has already been rescheduled once.
+              </PopoverContent>
             )}
-          </Tooltip>
+          </Popover>
         )}
-      </TooltipProvider>
 
       {appointment.status === 'Booked' && (
         <AlertDialog>
