@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import {
   addAppointmentAction, getFamilyByPhoneAction, getPatientsAction,
-  getDoctorScheduleAction, addNewPatientAction, getDoctorStatusAction
+  addNewPatientAction, getDoctorStatusAction
 } from '@/app/actions';
 import { format, parseISO, parse, isToday, isWithinInterval } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -90,11 +90,10 @@ function NotificationCard({ notifications }: { notifications?: Notification[] })
 }
 
 // ---------- Main Booking Page ----------
-export default function BookingPage() {
+export default function BookingPage({ schedule }: { schedule: DoctorSchedule | null }) {
   const [family, setFamily] = useState<FamilyMember[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [isBookingOpen, setBookingOpen] = useState(false);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
@@ -116,15 +115,13 @@ export default function BookingPage() {
   const loadData = useCallback(async () => {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) return;
-    const [familyData, patientData, scheduleData, statusData] = await Promise.all([
+    const [familyData, patientData, statusData] = await Promise.all([
       getFamilyByPhoneAction(userPhone),
       getPatientsAction(),
-      getDoctorScheduleAction(),
       getDoctorStatusAction(),
     ]);
     setFamily(familyData);
     setPatients(patientData);
-    setSchedule(scheduleData);
     setDoctorStatus(statusData);
   }, []);
 
@@ -155,7 +152,7 @@ export default function BookingPage() {
     [phone, toast, loadData]
   );
 
-  const isLoading = !phone || isPending;
+  const isLoading = !phone || isPending || !schedule;
 
 
   // Map appointments
@@ -213,6 +210,10 @@ export default function BookingPage() {
       else { toast({ title: 'Success', description: 'Appointment booked.' }); if (phone) await loadData(); }
     });
   };
+  
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <main className="flex-1 p-4 md:p-6 lg:p-8">
