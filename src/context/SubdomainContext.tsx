@@ -8,30 +8,37 @@ type SubdomainContextType = {
   isDashboard: boolean
   isDoctor: boolean
   isTV: boolean
+  tvLayout: string
 }
 
 const SubdomainContext = createContext<SubdomainContextType | undefined>(undefined)
 
 export function SubdomainProvider({ children }: { children: React.ReactNode }) {
-  const [subdomain, setSubdomain] = useState('patient')
+  const [subdomain, setSubdomain] = useState('shantiq')
+  const [tvLayout, setTvLayout] = useState('1')
 
   useEffect(() => {
     const hostname = window.location.hostname
     const parts = hostname.split('.')
     
-    let currentSubdomain = 'patient'
+    let currentSubdomain = 'shantiq'
+    let currentTvLayout = '1'
+    
     if (parts.length > 2) {
       currentSubdomain = parts[0]
-    } else if (hostname === 'localhost') {
-      currentSubdomain = 'app' // default to dashboard in development
+      if (currentSubdomain.startsWith('tv')) {
+        currentTvLayout = currentSubdomain.replace('tv', '') || '1'
+      }
     }
     
     setSubdomain(currentSubdomain)
+    setTvLayout(currentTvLayout)
   }, [])
 
   const value = {
     subdomain,
-    isPatient: subdomain === 'patient' || subdomain === 'www' || subdomain === 'shantiq',
+    tvLayout,
+    isPatient: subdomain === 'shantiq' || subdomain === 'www',
     isDashboard: subdomain === 'app',
     isDoctor: subdomain === 'doc',
     isTV: subdomain.startsWith('tv')

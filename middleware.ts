@@ -12,21 +12,27 @@ export function middleware(request: NextRequest) {
   // Extract subdomain
   const subdomain = cleanHostname.split('.')[0]
 
-  // Map subdomains to routes
+  // Map subdomains to your existing routes
   const subdomainMap: { [key: string]: string } = {
-    'app': '/dashboard',
-    'doc': '/doctor',
-    'tv1': '/tv/1',
-    'tv2': '/tv/2',
-    'www': '/patient',
-    'shantiq': '/patient' // root domain
+    'app': '/',                    // app.shantiq.in → dashboard (root)
+    'doc': '/doctor',              // doc.shantiq.in → doctor panel
+    'tv1': '/tv-display',          // tv1.shantiq.in → TV display 1
+    'tv2': '/tv-display?layout=2', // tv2.shantiq.in → TV display 2 with layout param
+    'www': '/login',               // www.shantiq.in → patient portal login
+    'shantiq': '/login'            // shantiq.in → patient portal login
   }
 
   const pathname = subdomainMap[subdomain]
 
-  if (pathname && !url.pathname.startsWith(pathname)) {
-    // Rewrite to the appropriate route
-    url.pathname = `${pathname}${url.pathname}`
+  if (pathname && !url.pathname.startsWith('/_next') && !url.pathname.startsWith('/api')) {
+    // For routes with query parameters
+    if (pathname.includes('?')) {
+      const [basePath, queryString] = pathname.split('?')
+      url.pathname = basePath
+      url.search = queryString
+    } else {
+      url.pathname = pathname
+    }
     return NextResponse.rewrite(url)
   }
 

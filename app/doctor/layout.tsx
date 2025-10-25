@@ -1,9 +1,11 @@
 // app/doctor/layout.tsx
-export default function DoctorLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+import { ReactNode } from 'react';
+
+interface LayoutProps {
+  children: ReactNode;
+}
+
+export default function DoctorLayout({ children }: LayoutProps) {
   return (
     <div className="doctor-layout">
       <nav className="doctor-nav">
@@ -14,5 +16,5 @@ export default function DoctorLayout({
         {children}
       </main>
     </div>
-  )
+  );
 }

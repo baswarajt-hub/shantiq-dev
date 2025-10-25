@@ -1,10 +1,10 @@
-// app/page.tsx
-export default function PatientPortal() {
+// app/page.tsx (Dashboard)
+export default function DashboardPage() {
   return (
     <div>
-      <h1>Patient Portal (shantiq.in)</h1>
-      <p>This is the patient portal for shantiq.in</p>
-      {/* Add your patient portal content here */}
+      <h1>Dashboard</h1>
+      <p>This is the main dashboard</p>
+      {/* Add your dashboard content here */}
     </div>
-  )
+  );
 }

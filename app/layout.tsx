@@ -1,11 +1,12 @@
 // app/layout.tsx
-import { SubdomainProvider } from '@/context/SubdomainContext'
+import { ReactNode } from 'react';
+import { SubdomainProvider } from '../src/context/SubdomainContext';
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+interface RootLayoutProps {
+  children: ReactNode;
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body>
@@ -14,5 +15,5 @@ export default function RootLayout({
         </SubdomainProvider>
       </body>
     </html>
-  )
+  );
 }
