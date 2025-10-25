@@ -574,7 +574,9 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             const worstCaseETC = addMinutes(delayedClinicStartTime, (p.tokenNo - 1) * schedule.slotDuration);
             patientUpdates.set(p.id, { ...patientUpdates.get(p.id), worstCaseETC: worstCaseETC.toISOString(), slotTime: worstCaseETC.toISOString() });
             
-            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && !p.lateLocked && toDate(p.checkInTime)! > worstCaseETC) {
+            const isLateCandidate = p.type === 'Appointment' || p.subType === 'Booked Walk-in';
+
+            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && !p.lateLocked && isLateCandidate && toDate(p.checkInTime)! > worstCaseETC) {
                  const lateBy = Math.max(0, differenceInMinutes(toDate(p.checkInTime)!, worstCaseETC));
                  patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Late', lateBy });
             }
@@ -1346,5 +1348,7 @@ export async function patientImportAction(familyData: FormData, childData: FormD
 
 
 
+
+    
 
     
