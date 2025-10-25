@@ -511,11 +511,11 @@ export async function checkInPatientAction(patientId: string): Promise<ActionRes
 }
 
 export async function recalculateQueueWithETC(): Promise<ActionResult> {
-    let allPatients = await getPatientsData();
+    const allPatients = await getPatientsData();
     const schedule = await getDoctorScheduleData();
-    let doctorStatus = await getDoctorStatusData();
+    const doctorStatus = await getDoctorStatusData();
 
-    if (!schedule || !schedule.days) {
+    if (!schedule?.days) {
         console.warn("Recalculation skipped: schedule.days is not available.");
         return { error: "Doctor schedule is not fully configured." };
     }
@@ -531,39 +531,23 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
     if (specialClosure) {
         daySchedule = {
             morning: specialClosure.morningOverride ?? daySchedule.morning,
-            evening: specialClosure.eveningOverride ?? daySchedule.evening
+            evening: specialClosure.eveningOverride ?? daySchedule.evening,
         };
     }
-
-    const patientUpdates: Map<string, Partial<Patient>> = new Map();
+    
+    const patientUpdates = new Map<string, Partial<Patient>>();
     const sessions: ('morning' | 'evening')[] = ['morning', 'evening'];
 
     for (const session of sessions) {
         const sessionTimes = daySchedule[session];
         if (!sessionTimes?.isOpen) continue;
-
-        let sessionPatients = allPatients.filter(p => {
+    
+        const sessionPatients = allPatients.filter(p => {
             if (!p.appointmentTime) return false;
             const apptDate = parseISO(p.appointmentTime);
-            if (format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') !== todayStr) return false;
-            const apptSession = getSessionForTime(schedule, apptDate);
-            return apptSession === session;
+            return format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') === todayStr &&
+                   getSessionForTime(schedule, apptDate) === session;
         });
-
-        const sessionEndUtc = sessionLocalToUtc(todayStr, sessionTimes.end);
-        const patientCleanupTimeUtc = addMinutes(sessionEndUtc, 60);
-
-        if (now > patientCleanupTimeUtc) {
-            sessionPatients.forEach(p => {
-                if (p.status === 'Waiting') {
-                    patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Completed' });
-                } else if (p.status === 'Booked' || p.status === 'Confirmed') {
-                    patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Missed' });
-                }
-            });
-        }
-        
-        sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
 
         if (sessionPatients.length === 0) continue;
 
@@ -577,13 +561,13 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
                 sessionDelay = Math.max(0, actualDelay);
             }
         } else if (doctorStatus.startDelay > 0) {
-            const morningStartUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.start) : new Date(8.64e15);
-            const eveningStartUtc = daySchedule.evening.isOpen ? sessionLocalToUtc(todayStr, daySchedule.evening.start) : new Date(8.64e15);
-            if ((now < morningStartUtc && session === 'morning') || (now >= morningStartUtc && now < eveningStartUtc && session === 'morning') || (now >= eveningStartUtc && session === 'evening')) {
+             const morningStartUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.start) : new Date(8.64e15);
+             const eveningStartUtc = daySchedule.evening.isOpen ? sessionLocalToUtc(todayStr, daySchedule.evening.start) : new Date(8.64e15);
+             if ((now < morningStartUtc && session === 'morning') || (now >= morningStartUtc && now < eveningStartUtc && session === 'morning') || (now >= eveningStartUtc && session === 'evening')) {
                  sessionDelay = doctorStatus.startDelay;
-            }
+             }
         }
-
+        
         const delayedClinicStartTime = addMinutes(clinicSessionStartTime, sessionDelay);
         
         sessionPatients.forEach(p => {
@@ -596,19 +580,10 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             }
         });
         
-        sessionPatients = sessionPatients.map(p => ({...p, ...patientUpdates.get(p.id)}));
-
-        // Reset any existing 'Up-Next' patients to 'Waiting' before recalculating.
-        sessionPatients.forEach(p => {
-            if (p.status === 'Up-Next') {
-                patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Waiting' });
-            }
-        });
-        sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
-
         const inConsultation = sessionPatients.find(p => p.status === 'In-Consultation');
-        
-        const normalWaiting = sessionPatients.filter(p => ['Waiting', 'Priority'].includes(p.status) && !p.lateLocked).sort((a, b) => {
+        const currentUpNext = sessionPatients.find(p => p.status === 'Up-Next');
+
+        const normalWaiting = sessionPatients.filter(p => ['Waiting', 'Priority'].includes(p.status) && !p.lateLocked && p.id !== currentUpNext?.id).sort((a, b) => {
             if (a.status === 'Priority' && b.status !== 'Priority') return -1;
             if (b.status === 'Priority' && a.status !== 'Priority') return 1;
             return (a.tokenNo || 0) - (b.tokenNo || 0);
@@ -618,40 +593,46 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
 
         const fullQueue: Patient[] = [...normalWaiting];
         penalized.forEach(p => {
-            const anchorsRemaining = (p.lateAnchors || []).filter(id => sessionPatients.find(x => x.id === id && x.status !== 'Completed' && x.status !== 'Cancelled'));
+            const anchorsRemaining = (p.lateAnchors || []).filter(id => fullQueue.find(x => x.id === id));
             const lastIdx = Math.max(-1, ...anchorsRemaining.map(id => fullQueue.findIndex(q => q.id === id)));
-            fullQueue.splice(lastIdx + 1, 0, p);
+            if (lastIdx > -1) {
+                fullQueue.splice(lastIdx + 1, 0, p);
+            } else {
+                fullQueue.unshift(p); // If anchor is gone, place at front of waiting list
+            }
         });
 
-        const liveQueue = [...fullQueue];
-        if (inConsultation) {
-            liveQueue.unshift(inConsultation);
-        }
+        const liveQueue: Patient[] = [];
+        if (inConsultation) liveQueue.push(inConsultation);
+        if (currentUpNext) liveQueue.push(currentUpNext);
+        liveQueue.push(...fullQueue);
 
-        let effectiveDoctorStartTime = doctorStatus.isOnline && doctorStatus.onlineTime ? max([now, parseISO(doctorStatus.onlineTime), delayedClinicStartTime]) : delayedClinicStartTime;
+        let lastBestCaseETC = doctorStatus.isOnline && doctorStatus.onlineTime ? max([now, parseISO(doctorStatus.onlineTime), delayedClinicStartTime]) : delayedClinicStartTime;
 
         if (inConsultation?.consultationStartTime) {
             const expectedEndTime = addMinutes(parseISO(inConsultation.consultationStartTime), schedule.slotDuration);
-            effectiveDoctorStartTime = max([now, expectedEndTime]);
+            lastBestCaseETC = max([now, expectedEndTime]);
             patientUpdates.set(inConsultation.id, {
                 ...patientUpdates.get(inConsultation.id),
                 bestCaseETC: inConsultation.consultationStartTime,
             });
         }
         
-        let lastBestCaseETC = effectiveDoctorStartTime;
+        const newUpNextPatientId = liveQueue.find((p, index) => index > 0 && ['Waiting', 'Late', 'Priority'].includes(p.status))?.id;
 
         liveQueue.forEach((p, index) => {
             if (p.id === inConsultation?.id) return;
-
             const bestCaseETCValue = new Date(lastBestCaseETC);
             patientUpdates.set(p.id, { ...patientUpdates.get(p.id), bestCaseETC: bestCaseETCValue.toISOString() });
             lastBestCaseETC = addMinutes(bestCaseETCValue, schedule.slotDuration);
+        });
 
-            // Set the next patient in the queue (after the one in consultation) to 'Up-Next'
-            if (index === 1 && ['Waiting', 'Late'].includes(p.status)) {
+        sessionPatients.forEach(p => {
+             if (p.id !== currentUpNext?.id && p.id === newUpNextPatientId) {
                 patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Up-Next' });
-            }
+             } else if (p.id === currentUpNext?.id && p.id !== newUpNextPatientId) {
+                patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Waiting' });
+             }
         });
     }
 
@@ -667,6 +648,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
     revalidatePath('/', 'layout');
     return { success: 'Queue recalculated successfully.' };
 }
+
 
 
 export async function updateTodayScheduleOverrideAction(override: SpecialClosure): Promise<ActionResult> {
@@ -1005,17 +987,12 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
         return { error: 'Primary contact name is missing.' };
     }
     
-    // The user's provided fix is to destructure userData, but dob and gender aren't in the type.
-    // A primary member (parent account) does not have a dob or gender.
-    // The type `Omit<FamilyMember, 'id' | 'avatar' | 'name' | 'dob' | 'gender'>` confirms this.
-    // The correct approach is to satisfy the target type `Omit<FamilyMember, 'id' | 'avatar'>`
-    // by providing all required fields, including dob and gender, even if they are empty strings.
     const newPrimaryMember: Omit<FamilyMember, 'id' | 'avatar'> = {
         ...userData,
         name: name,
         isPrimary: true,
-        dob: '', // Parent/Primary account does not have a DOB
-        gender: 'Other', // Parent/Primary account does not have a gender
+        dob: null, 
+        gender: null,
     };
 
     const newMember = await addFamilyMember(newPrimaryMember);
@@ -1368,3 +1345,6 @@ export async function patientImportAction(familyData: FormData, childData: FormD
     
 
 
+
+
+    
