@@ -4,12 +4,12 @@
 
 import { useState, useTransition, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Edit, User, Users, Search, Phone, Mail, Trash2, PlusCircle, X } from 'lucide-react';
-import type { FamilyMember } from '@/lib/types';
+import type { FamilyMember, DoctorSchedule, VisitPurpose } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { updateFamilyMemberAction, searchFamilyMembersAction, deleteFamilyMemberAction, deleteFamilyByPhoneAction, addNewPatientAction, deleteAllFamiliesAction } from '@/app/actions';
+import { updateFamilyMemberAction, searchFamilyMembersAction, deleteFamilyMemberAction, deleteFamilyByPhoneAction, addNewPatientAction } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { AdminEditFamilyMemberDialog } from '@/components/admin/edit-family-member-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -17,8 +17,8 @@ import { AdminAddFamilyMemberDialog } from '@/components/admin/add-family-member
 import { format, parseISO } from 'date-fns';
 import Header from '@/components/header';
 import { getDoctorScheduleAction } from '@/app/actions';
-import { DoctorSchedule } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 
 type SearchByType = 'phone' | 'clinicId' | 'dob' | 'fatherName' | 'motherName' | 'name';
 
@@ -29,6 +29,7 @@ export default function FamilyAdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditMemberOpen, setEditMemberOpen] = useState(false);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
+  const [isNewPatientOpen, setNewPatientOpen] = useState(false);
   const [phoneForNewMember, setPhoneForNewMember] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const { toast } = useToast();
@@ -121,23 +122,28 @@ export default function FamilyAdminPage() {
       }
     });
   };
-  
-  const handleDeleteAllFamilies = () => {
-    startTransition(async () => {
-      const result = await deleteAllFamiliesAction();
-      if ("error" in result) {
-        toast({ title: "Error", description: result.error, variant: 'destructive' });
-      } else {
-        toast({ title: "Success", description: "All family records have been deleted." });
-        handleReset();
-      }
-    });
-  };
 
   const handleAddMember = (phone: string) => {
     setPhoneForNewMember(phone);
     setAddMemberOpen(true);
   };
+  
+  const handleAddNewPatient = useCallback(async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
+    return new Promise((resolve) => {
+        startTransition(() => {
+            addNewPatientAction(newPatientData).then(result => {
+                if ("error" in result || !('patient' in result)) {
+                    toast({ title: "Error", description: (result as any).error || "Failed to add patient", variant: "destructive"});
+                    resolve(null);
+                } else {
+                    toast({ title: "Success", description: result.success});
+                    handleSearch(); // Refresh search if a new family was added
+                    resolve(result.patient);
+                }
+            });
+        });
+    });
+  }, [handleSearch, toast]);
 
   const handleSaveNewMember = (memberData: Omit<FamilyMember, 'id' | 'avatar' | 'phone'>) => {
     if (!phoneForNewMember) return;
@@ -211,25 +217,9 @@ export default function FamilyAdminPage() {
                 <h1 className="text-3xl font-bold">Family Management</h1>
                 <p className="text-muted-foreground">Search for families and manage member details.</p>
             </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete All Families
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete ALL family and patient records from the database. This action cannot be undone and is intended for starting with fresh data.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAllFamilies}>Confirm Deletion</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+             <Button onClick={() => setNewPatientOpen(true)}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Add New Patient
+            </Button>
         </div>
         <Card>
           <CardHeader>
@@ -390,6 +380,12 @@ export default function FamilyAdminPage() {
         isOpen={isAddMemberOpen}
         onOpenChange={setAddMemberOpen}
         onSave={handleSaveNewMember}
+      />
+      <AddNewPatientDialog
+        isOpen={isNewPatientOpen}
+        onOpenChange={setNewPatientOpen}
+        onSave={handleAddNewPatient}
+        visitPurposes={schedule?.visitPurposes.filter(p => p.enabled) || []}
       />
     </main>
     </>

@@ -196,7 +196,7 @@ const defaultSchedule: DoctorSchedule = {
     website: 'shantichildrensclinic.com',
     consultationFee: 400,
     paymentQRCode: '',
-    clinicLogo: '',
+    clinicLogo: 'https://i.ibb.co/1KzVv7Z/logo.png',
     googleMapsLink: '',
   },
   smsSettings: {
@@ -531,15 +531,6 @@ export async function deleteTodaysPatientsData(): Promise<void> {
 
     await batch.commit();
 }
-
-export async function deleteAllFamilies(): Promise<void> {
-    const familySnapshot = await getDocs(familyCollection);
-    const batch = writeBatch(db);
-    familySnapshot.forEach(doc => {
-        batch.delete(doc.ref);
-    });
-    await batch.commit();
-}
     
 
 
@@ -554,4 +545,5 @@ export async function deleteAllFamilies(): Promise<void> {
     
 
     
+
 
