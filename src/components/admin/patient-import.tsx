@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -12,112 +11,164 @@ import { Upload } from 'lucide-react';
 import { patientImportAction } from '@/app/actions';
 
 export function PatientImport() {
-    const [file, setFile] = useState<File | null>(null);
-    const [isParsing, setIsParsing] = useState(false);
-    const [isUploading, startTransition] = useTransition();
-    const { toast } = useToast();
+  const [familyFile, setFamilyFile] = useState<File | null>(null);
+  const [childFile, setChildFile] = useState<File | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
+  const [isUploading, startTransition] = useTransition();
+  const { toast } = useToast();
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            setFile(event.target.files[0]);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'family' | 'child') => {
+    if (event.target.files && event.target.files[0]) {
+      if (type === 'family') setFamilyFile(event.target.files[0]);
+      else setChildFile(event.target.files[0]);
+    }
+  };
+
+  const parseExcelFile = (file: File): Promise<any[]> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const workbook = XLSX.read(event.target?.result, { type: 'binary' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(sheet);
+          resolve(jsonData);
+        } catch (err: any) {
+          reject(err);
         }
-    };
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsBinaryString(file);
+    });
 
-    const handleImport = () => {
-        if (!file) {
-            toast({ title: 'No file selected', description: 'Please select an Excel file to import.', variant: 'destructive' });
-            return;
+  const handleImport = async () => {
+    if (!familyFile || !childFile) {
+      toast({
+        title: 'Missing files',
+        description: 'Please select both Family and Child Excel files to import.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsParsing(true);
+    toast({
+      title: 'Processing files...',
+      description: 'Reading and validating Excel data. Please wait.',
+    });
+
+    try {
+      const [familyData, childData] = await Promise.all([
+        parseExcelFile(familyFile),
+        parseExcelFile(childFile),
+      ]);
+
+      if (familyData.length === 0 || !(familyData[0] as any)?.phone) {
+        toast({
+          title: 'Invalid Family Excel',
+          description: "Family file must include at least a 'phone' column.",
+          variant: 'destructive',
+        });
+        setIsParsing(false);
+        return;
+      }
+
+      if (childData.length === 0 || !(childData[0] as any)?.name) {
+        toast({
+          title: 'Invalid Child Excel',
+          description: "Child file must include at least a 'name' column.",
+          variant: 'destructive',
+        });
+        setIsParsing(false);
+        return;
+      }
+
+      // Prepare FormData for both files
+      const familyFormData = new FormData();
+      const childFormData = new FormData();
+      familyFormData.append('file', familyFile);
+      childFormData.append('file', childFile);
+
+      setIsParsing(false);
+      startTransition(async () => {
+        const result = await patientImportAction(familyFormData, childFormData);
+        if ('error' in result) {
+          toast({ title: 'Import Failed', description: result.error, variant: 'destructive' });
+        } else {
+          toast({ title: 'Import Successful', description: result.success || 'Data imported successfully.' });
         }
 
-        setIsParsing(true);
-        toast({ title: 'Processing file...', description: 'Please wait, this may take a moment for large files.' });
+        // Reset
+        setFamilyFile(null);
+        setChildFile(null);
+        const familyInput = document.getElementById('family-excel') as HTMLInputElement;
+        const childInput = document.getElementById('child-excel') as HTMLInputElement;
+        if (familyInput) familyInput.value = '';
+        if (childInput) childInput.value = '';
+      });
+    } catch (err: any) {
+      console.error(err);
+      setIsParsing(false);
+      toast({
+        title: 'Parsing Error',
+        description: err.message || 'Error reading one of the Excel files.',
+        variant: 'destructive',
+      });
+    }
+  };
 
-        const workerCode = `
-            self.importScripts("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
-            self.onmessage = function(e) {
-                const file = e.data;
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const arrayBuffer = event.target.result;
-                    try {
-                        const workbook = self.XLSX.read(arrayBuffer, { type: 'buffer' });
-                        const sheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[sheetName];
-                        const data = self.XLSX.utils.sheet_to_json(worksheet);
-                        self.postMessage({ success: true, data: data });
-                    } catch (error) {
-                        self.postMessage({ success: false, error: error.message });
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            };
-        `;
-        
-        const blob = new Blob([workerCode], { type: 'application/javascript' });
-        const worker = new Worker(URL.createObjectURL(blob));
+  const isProcessing = isParsing || isUploading;
 
-        worker.onmessage = (e) => {
-            setIsParsing(false);
-            worker.terminate();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Import Patient Data</CardTitle>
+        <CardDescription>
+          Upload two Excel files — one for Family records and one for Child records — to bulk import data.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Alert>
+          <Upload className="h-4 w-4" />
+          <AlertTitle>Excel File Format</AlertTitle>
+          <AlertDescription>
+            <strong>Family File:</strong> Columns: <code>phone</code>, <code>fatherName</code>,{' '}
+            <code>motherName</code>, <code>primaryContact</code>, <code>email</code>,{' '}
+            <code>location</code>, <code>city</code>, <code>clinicId</code>. <br />
+            <strong>Child File:</strong> Columns: <code>name</code>, <code>phone</code>,{' '}
+            <code>dob</code>, <code>gender</code>, <code>clinicId</code>. DOB must be in{' '}
+            <code>YYYY-MM-DD</code> format.
+          </AlertDescription>
+        </Alert>
 
-            if (!e.data.success) {
-                toast({ title: 'Parsing Error', description: e.data.error || 'Could not parse the Excel file.', variant: 'destructive'});
-                return;
-            }
+        <div className="space-y-2">
+          <Label htmlFor="family-excel">Upload Family Excel</Label>
+          <Input
+            id="family-excel"
+            type="file"
+            accept=".xlsx, .xls"
+            onChange={(e) => handleFileChange(e, 'family')}
+            disabled={isProcessing}
+          />
+        </div>
 
-            const data = e.data.data;
+        <div className="space-y-2">
+          <Label htmlFor="child-excel">Upload Child Excel</Label>
+          <Input
+            id="child-excel"
+            type="file"
+            accept=".xlsx, .xls"
+            onChange={(e) => handleFileChange(e, 'child')}
+            disabled={isProcessing}
+          />
+        </div>
 
-            if (data.length === 0 || !(data[0] as any)?.phone) {
-                toast({ title: 'Invalid Excel Format', description: "File must include at least a 'phone' header.", variant: 'destructive'});
-                return;
-            }
-
-            startTransition(async () => {
-                const result = await patientImportAction(data);
-                if ("error" in result) {
-                    toast({ title: 'Import Failed', description: result.error, variant: 'destructive' });
-                } else {
-                    toast({ title: 'Import Successful', description: result.success });
-                }
-                setFile(null);
-                const fileInput = document.getElementById('excel-import') as HTMLInputElement;
-                if(fileInput) fileInput.value = '';
-            });
-        };
-
-        worker.onerror = (e) => {
-            setIsParsing(false);
-            worker.terminate();
-            toast({ title: 'Worker Error', description: 'An unexpected error occurred during file processing.', variant: 'destructive' });
-            console.error('Worker error:', e);
-        };
-
-        worker.postMessage(file);
-    };
-
-    const isProcessing = isParsing || isUploading;
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Import Patient Data</CardTitle>
-                <CardDescription>Upload an Excel file (.xlsx) to bulk-add family and patient records.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <Alert>
-                    <Upload className="h-4 w-4" />
-                    <AlertTitle>Excel File Format</AlertTitle>
-                    <AlertDescription>
-                        Required headers: `phone`, `name`. Optional headers: `fatherName`, `motherName`, `primaryContact`, `email`, `location`, `city`, `dob`, `gender`, `clinicId`. DOB must be `YYYY-MM-DD`.
-                    </AlertDescription>
-                </Alert>
-                <div className="flex items-center gap-4">
-                    <Input id="excel-import" type="file" accept=".xlsx, .xls" onChange={handleFileChange} disabled={isProcessing} />
-                    <Button onClick={handleImport} disabled={isProcessing || !file}>
-                        {isParsing ? 'Processing...' : isUploading ? 'Importing...' : 'Import'}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-    );
+        <div className="flex items-center gap-4 pt-4">
+          <Button onClick={handleImport} disabled={isProcessing || !familyFile || !childFile}>
+            {isParsing ? 'Processing...' : isUploading ? 'Importing...' : 'Import'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
