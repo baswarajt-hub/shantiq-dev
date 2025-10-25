@@ -561,8 +561,9 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
                     patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Missed' });
                 }
             });
-            sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
         }
+        
+        sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
 
         if (sessionPatients.length === 0) continue;
 
@@ -584,7 +585,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         }
 
         const delayedClinicStartTime = addMinutes(clinicSessionStartTime, sessionDelay);
-
+        
         sessionPatients.forEach(p => {
             const worstCaseETC = addMinutes(delayedClinicStartTime, (p.tokenNo - 1) * schedule.slotDuration);
             patientUpdates.set(p.id, { ...patientUpdates.get(p.id), worstCaseETC: worstCaseETC.toISOString(), slotTime: worstCaseETC.toISOString() });
@@ -594,9 +595,10 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
                  patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Late', lateBy });
             }
         });
+        
+        sessionPatients = sessionPatients.map(p => ({...p, ...patientUpdates.get(p.id)}));
 
-        sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
-
+        // Reset any existing 'Up-Next' patients to 'Waiting' before recalculating.
         sessionPatients.forEach(p => {
             if (p.status === 'Up-Next') {
                 patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Waiting' });
@@ -626,13 +628,6 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             liveQueue.unshift(inConsultation);
         }
 
-        if (liveQueue.length > 1) {
-            const upNextPatient = liveQueue[1];
-            if (['Waiting', 'Late'].includes(upNextPatient.status)) {
-                patientUpdates.set(upNextPatient.id, { ...patientUpdates.get(upNextPatient.id), status: 'Up-Next' });
-            }
-        }
-        
         let effectiveDoctorStartTime = doctorStatus.isOnline && doctorStatus.onlineTime ? max([now, parseISO(doctorStatus.onlineTime), delayedClinicStartTime]) : delayedClinicStartTime;
 
         if (inConsultation?.consultationStartTime) {
@@ -641,15 +636,22 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             patientUpdates.set(inConsultation.id, {
                 ...patientUpdates.get(inConsultation.id),
                 bestCaseETC: inConsultation.consultationStartTime,
-                worstCaseETC: addMinutes(parseISO(inConsultation.bestCaseETC || inConsultation.consultationStartTime), schedule.slotDuration).toISOString()
             });
         }
         
         let lastBestCaseETC = effectiveDoctorStartTime;
-        liveQueue.filter(p => p.id !== inConsultation?.id).forEach(p => {
+
+        liveQueue.forEach((p, index) => {
+            if (p.id === inConsultation?.id) return;
+
             const bestCaseETCValue = new Date(lastBestCaseETC);
             patientUpdates.set(p.id, { ...patientUpdates.get(p.id), bestCaseETC: bestCaseETCValue.toISOString() });
             lastBestCaseETC = addMinutes(bestCaseETCValue, schedule.slotDuration);
+
+            // Set the next patient in the queue (after the one in consultation) to 'Up-Next'
+            if (index === 1 && ['Waiting', 'Late'].includes(p.status)) {
+                patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Up-Next' });
+            }
         });
     }
 
@@ -1364,4 +1366,5 @@ export async function patientImportAction(familyData: FormData, childData: FormD
     
 
     
+
 
