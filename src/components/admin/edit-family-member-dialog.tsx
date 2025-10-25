@@ -113,6 +113,20 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
                       </div>
                   </RadioGroup>
                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" value={formData.email || ''} onChange={(e) => handleInputChange('email', e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="location">Location Area</Label>
+                        <Input id="location" value={formData.location || ''} onChange={(e) => handleInputChange('location', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="city">City</Label>
+                        <Input id="city" value={formData.city || ''} onChange={(e) => handleInputChange('city', e.target.value)} />
+                    </div>
+                </div>
               </>
             ) : (
               <>
@@ -137,29 +151,12 @@ export function AdminEditFamilyMemberDialog({ isOpen, onOpenChange, member, onSa
                         </Select>
                     </div>
                 </div>
-              </>
-            )}
-
-            <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={formData.email || ''} onChange={(e) => handleInputChange('email', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="location">Location Area</Label>
-                    <Input id="location" value={formData.location || ''} onChange={(e) => handleInputChange('location', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input id="city" value={formData.city || ''} onChange={(e) => handleInputChange('city', e.target.value)} />
-                </div>
-            </div>
-             {!formData.isPrimary && (
                 <div className="space-y-2">
                     <Label htmlFor="clinicId">Clinic ID</Label>
                     <Input id="clinicId" value={formData.clinicId || ''} onChange={(e) => handleInputChange('clinicId', e.target.value)} />
                 </div>
-             )}
+              </>
+            )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
