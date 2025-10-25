@@ -12,14 +12,14 @@ export function middleware(request: NextRequest) {
   // Extract subdomain
   const subdomain = cleanHostname.split('.')[0]
 
-  // Map subdomains to your existing routes
+  // Map subdomains to your EXISTING routes
   const subdomainMap: { [key: string]: string } = {
-    'app': '/',                    // app.shantiq.in → dashboard (root)
-    'doc': '/doctor',              // doc.shantiq.in → doctor panel
-    'tv1': '/tv-display',          // tv1.shantiq.in → TV display 1
-    'tv2': '/tv-display?layout=2', // tv2.shantiq.in → TV display 2 with layout param
-    'www': '/login',               // www.shantiq.in → patient portal login
-    'shantiq': '/login'            // shantiq.in → patient portal login
+    'app': '/',                    // app.shantiq.in → your existing dashboard (root)
+    'doc': '/doctor',              // doc.shantiq.in → your existing doctor panel
+    'tv1': '/tv-display',          // tv1.shantiq.in → your existing TV display
+    'tv2': '/tv-display?layout=2', // tv2.shantiq.in → your existing TV display with layout param
+    'www': '/login',               // www.shantiq.in → your existing patient login
+    'shantiq': '/login'            // shantiq.in → your existing patient login
   }
 
   const pathname = subdomainMap[subdomain]
@@ -41,13 +41,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }
