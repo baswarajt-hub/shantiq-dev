@@ -4,12 +4,7 @@
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
 import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
-import { format } from 'date-fns';
-import { set } from 'date-fns';
-import { addMinutes } from 'date-fns';
-import { parseISO } from 'date-fns';
-import { isToday } from 'date-fns';
-import { differenceInMinutes } from 'date-fns';
+import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -581,7 +576,7 @@ export default function DashboardPage() {
     const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
         setBookWalkInOpen(false);
         // Basic check if the search term could be a phone number
-        if (/^\\d{5,}$/.test(searchTerm.replace(/\\D/g, ''))) {
+        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
             setPhoneToPreFill(searchTerm);
         }
         setNewPatientOpen(true);
@@ -1182,13 +1177,6 @@ export default function DashboardPage() {
                     onSave={handleAddNewPatient}
                     phoneToPreFill={phoneToPreFill}
                     onClose={() => setPhoneToPreFill('')}
-                    afterSave={(newPatient, purpose, checkIn) => {
-                        if (selectedSlot && selectedDate && purpose) {
-                            const date = new Date(selectedDate);
-                            const time = parse(selectedSlot, 'hh:mm a', date);
-                            handleBookAppointment(newPatient, time.toISOString(), checkIn, purpose);
-                        }
-                    }}
                     visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
                 />
                 {selectedPatient && schedule && (

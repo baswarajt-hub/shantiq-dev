@@ -33,12 +33,9 @@ type PatientFormProps = {
     setGender: (value: 'Male' | 'Female' | 'Other' | '') => void;
     clinicId: string;
     setClinicId: (value: string) => void;
-    purpose: string;
-    setPurpose: (value: string) => void;
-    visitPurposes: VisitPurpose[];
 };
 
-const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, clinicId, setClinicId, purpose, setPurpose, visitPurposes }: PatientFormProps) => (
+const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, clinicId, setClinicId }: PatientFormProps) => (
     <div className="space-y-4">
         <div className="space-y-2">
             <Label htmlFor="phone-display">Phone Number</Label>
@@ -67,22 +64,9 @@ const PatientForm = ({ phone, name, setName, dob, setDob, gender, setGender, cli
                 </Select>
             </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label htmlFor="clinicId">Clinic ID (Optional)</Label>
-                <Input id="clinicId" value={clinicId} onChange={(e) => setClinicId(e.target.value)} placeholder="e.g. C12345" />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="purpose">Purpose of Visit</Label>
-                <Select value={purpose} onValueChange={setPurpose}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select purpose" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {visitPurposes.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
+        <div className="space-y-2">
+            <Label htmlFor="clinicId">Clinic ID (Optional)</Label>
+            <Input id="clinicId" value={clinicId} onChange={(e) => setClinicId(e.target.value)} placeholder="e.g. C12345" />
         </div>
     </div>
 );
@@ -104,7 +88,6 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
   const [clinicId, setClinicId] = useState('');
-  const [purpose, setPurpose] = useState('Consultation');
   const [isPending, startTransition] = useTransition();
   const [foundFamily, setFoundFamily] = useState<FamilyMember[] | null>(null);
   const { toast } = useToast();
@@ -148,7 +131,6 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     setDob('');
     setGender('');
     setClinicId('');
-    setPurpose('Consultation');
     setFoundFamily(null);
     setFatherName('');
     setMotherName('');
@@ -184,8 +166,8 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
     });
   };
 
-  const handleSavePatient = (checkIn: boolean) => {
-    if (!phone || !name || !dob || !gender || !purpose) {
+  const handleSavePatient = () => {
+    if (!phone || !name || !dob || !gender) {
         toast({ title: "Error", description: "Please fill all required patient fields.", variant: 'destructive'});
         return;
     }
@@ -193,9 +175,6 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
         const newPatientData: Omit<FamilyMember, 'id' | 'avatar'> = { name, dob, gender, clinicId, phone };
         const newPatient = await onSave(newPatientData);
         if (newPatient) {
-          if (afterSave) {
-            afterSave(newPatient, purpose, checkIn);
-          }
           handleClose(false);
         }
     });
@@ -297,16 +276,10 @@ export function AddNewPatientDialog({ isOpen, onOpenChange, onSave, phoneToPreFi
                     setGender={setGender}
                     clinicId={clinicId}
                     setClinicId={setClinicId}
-                    purpose={purpose}
-                    setPurpose={setPurpose}
-                    visitPurposes={visitPurposes}
                 />
                 <DialogFooter>
                     <Button variant="outline" onClick={() => { setStep(1); setFoundFamily(null); }}>Back</Button>
-                    <div className="flex gap-2">
-                        <Button onClick={() => handleSavePatient(false)} disabled={isPending}>Save & Book Only</Button>
-                        <Button onClick={() => handleSavePatient(true)} disabled={isPending}>Save & Check-in</Button>
-                    </div>
+                    <Button onClick={handleSavePatient} disabled={isPending}>Save Patient</Button>
                 </DialogFooter>
              </div>
         )}
