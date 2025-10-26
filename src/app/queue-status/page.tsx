@@ -490,11 +490,12 @@ function QueueStatusPageContent() {
                         {(() => {
                           const isNowServing = nowServing?.id === targetPatient.id;
                           const isUpNext = upNext?.id === targetPatient.id;
-                          let queuePosition = -1;
+                          let queuePosition = 0;
                           if (['Waiting', 'Late', 'Priority'].includes(targetPatient.status)) {
-                              const position = waitingQueue.findIndex(p => p.id === targetPatient.id);
-                              if (position !== -1) {
-                                  queuePosition = position + (upNext ? 2 : 1);
+                              const positionInWaiting = waitingQueue.findIndex(p => p.id === targetPatient.id);
+                              if (positionInWaiting !== -1) {
+                                  // Position is 1-based, and we add 1 if there's an 'Up Next' patient
+                                  queuePosition = positionInWaiting + (upNext ? 2 : 1);
                               }
                           }
                           return (

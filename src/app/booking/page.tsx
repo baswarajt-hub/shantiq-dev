@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Calendar, Clock, Users, Wifi, WifiOff, Bell, AlertTriangle,
-  Megaphone, PlusCircle, List, MapPin, Phone, Mail, Globe
+  Megaphone, PlusCircle, List, MapPin, Phone, Mail, Globe, LogIn, LogOut
 } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
@@ -190,17 +190,18 @@ export default function BookingPage() {
     const todaySch = schedule.days[dayOfWeek];
     const formatTime = (t: string) => parse(t, 'HH:mm', new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const make = (s: any) => {
-      if (!s?.isOpen) return { time: 'Closed', status: 'Closed', color: 'text-red-600' };
+      if (!s?.isOpen) return { time: 'Closed', status: 'Closed', color: 'text-red-600', icon: LogOut };
       const start = parse(s.start, 'HH:mm', today);
       const end = parse(s.end, 'HH:mm', today);
-      let status = 'Upcoming', color = 'text-gray-500';
-      if (today > end) { status = 'Completed'; color = 'text-green-600'; }
+      let status = 'Upcoming', color = 'text-gray-500', icon = Clock;
+      if (today > end) { status = 'Completed'; color = 'text-green-600'; icon = CheckCircle; }
       else if (today >= start && doctorStatus?.isOnline) {
             status = `Online`;
             color = 'text-green-600';
+            icon = LogIn;
        }
-      else if (today >= start && !doctorStatus?.isOnline) { status = 'Offline'; color = 'text-red-600'; }
-      return { time: `${formatTime(s.start)} - ${formatTime(s.end)}`, status, color };
+      else if (today >= start && !doctorStatus?.isOnline) { status = 'Offline'; color = 'text-red-600'; icon = LogOut; }
+      return { time: `${formatTime(s.start)} - ${formatTime(s.end)}`, status, color, icon };
     };
     return { morning: make(todaySch.morning), evening: make(todaySch.evening) };
   };
@@ -316,14 +317,18 @@ export default function BookingPage() {
                 <span className="font-bold">Morning:</span>
                 <div className="text-right">
                   <p className="font-semibold">{currentDaySchedule.morning.time}</p>
-                  <p className={`font-bold text-xs ${currentDaySchedule.morning.color}`}>{currentDaySchedule.morning.status}</p>
+                  <p className={cn("font-bold text-xs flex items-center justify-end gap-1", currentDaySchedule.morning.color)}>
+                     <currentDaySchedule.morning.icon className="h-3 w-3"/> {currentDaySchedule.morning.status}
+                  </p>
                 </div>
               </div>
               <div className="flex justify-between items-center mt-2">
                 <span className="font-bold">Evening:</span>
                 <div className="text-right">
                   <p className="font-semibold">{currentDaySchedule.evening.time}</p>
-                  <p className={`font-bold text-xs ${currentDaySchedule.evening.color}`}>{currentDaySchedule.evening.status}</p>
+                   <p className={cn("font-bold text-xs flex items-center justify-end gap-1", currentDaySchedule.evening.color)}>
+                     <currentDaySchedule.evening.icon className="h-3 w-3"/> {currentDaySchedule.evening.status}
+                  </p>
                 </div>
               </div>
               {/* ✅ DOCTOR DELAY STATUS */}
