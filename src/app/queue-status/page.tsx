@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { getPatientsAction, getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
 import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { format, parseISO, isToday, differenceInMinutes, parse as parseDate } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
@@ -288,6 +288,7 @@ function QueueStatusPageContent() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [lastUpdated, setLastUpdated] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
@@ -329,6 +330,7 @@ function QueueStatusPageContent() {
 
   const fetchData = useCallback(async (isInitial: boolean) => {
     if (isInitial) setIsLoading(true);
+    else setIsRefreshing(true);
 
     try {
         const [allPatientData, statusData, scheduleData] = await Promise.all([
@@ -379,6 +381,7 @@ function QueueStatusPageContent() {
 
         if (!patientToTrack) {
             setIsLoading(false);
+            setIsRefreshing(false);
             return;
         }
         
@@ -388,6 +391,7 @@ function QueueStatusPageContent() {
         if (updatedPatient?.status === 'Completed') {
             setCompletedAppointmentForDisplay(updatedPatient);
             setIsLoading(false);
+            setIsRefreshing(false);
             return;
         }
 
@@ -425,26 +429,18 @@ function QueueStatusPageContent() {
       
         setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         if(isInitial) setIsLoading(false);
+        setIsRefreshing(false);
     } catch(e) {
         console.error("Fetch data error:", e);
         if (isInitial) setIsLoading(false);
+        setIsRefreshing(false);
     }
   }, [searchParams, getSessionForTime, router, targetPatient]);
 
 
   useEffect(() => {
-    fetchData(true);
-    
-    const intervalId = setInterval(() => {
-      if (completedAppointmentForDisplay || authError || !targetPatient) {
-          clearInterval(intervalId);
-          return;
-      };
-      fetchData(false);
-    }, 15000);
-
-    return () => clearInterval(intervalId);
-  }, [fetchData, completedAppointmentForDisplay, authError, targetPatient]);
+    fetchData(true); // Initial fetch only
+  }, []); // Empty dependency array ensures it runs only once on mount
   
   const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
   const upNext = allSessionPatients.find(p => p.status === 'Up-Next');
@@ -498,9 +494,12 @@ function QueueStatusPageContent() {
             <>
                 <div className="text-center">
                     <h1 className="text-2xl font-bold tracking-tight">Live Queue Status</h1>
-                    <p className="text-sm text-muted-foreground">
-                        {currentSession} session | Last updated: {lastUpdated}
-                    </p>
+                    <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                        <span>{currentSession} session | Last updated: {lastUpdated}</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => fetchData(false)} disabled={isRefreshing}>
+                            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                        </Button>
+                    </div>
                 </div>
                 
                 <motion.div
