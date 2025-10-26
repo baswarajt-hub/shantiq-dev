@@ -4,7 +4,7 @@
 import { PatientPortalHeader } from '@/components/patient-portal-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getPatientsAction, getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
-import type { DoctorSchedule, DoctorStatus, Patient } from '@/lib/types';
+import type { DoctorSchedule, DoctorStatus, Patient, Session } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Clock, FileClock, Hourglass, Shield, WifiOff, Timer, Ticket, ArrowRight, UserCheck, PartyPopper, Pause, AlertTriangle } from 'lucide-react';
 import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -296,13 +296,15 @@ function QueueStatusPageContent() {
   const initialLoadRef = useRef(true);
   
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule | null): 'morning' | 'evening' | null => {
-    if (!localSchedule) return null;
+    if (!localSchedule || !localSchedule.days) return null;
     
     const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
     const dayOfWeek = format(zonedAppt, 'EEEE') as keyof DoctorSchedule['days'];
     const dateStr = format(zonedAppt, 'yyyy-MM-dd');
 
     let daySchedule = localSchedule.days[dayOfWeek];
+    if (!daySchedule) return null;
+    
     const todayOverride = localSchedule.specialClosures.find(c => c.date === dateStr);
     if (todayOverride) {
       daySchedule = {
@@ -312,7 +314,6 @@ function QueueStatusPageContent() {
     }
     
     const checkSession = (sessionName: 'morning' | 'evening') => {
-      if (!daySchedule) return false;
       const session = daySchedule[sessionName];
       if (!session.isOpen) return false;
       const startUtc = sessionLocalToUtc(dateStr, session.start);
@@ -329,72 +330,105 @@ function QueueStatusPageContent() {
   const fetchData = useCallback(async (isInitial: boolean) => {
     if (isInitial) setIsLoading(true);
 
-    const [allPatientData, statusData, scheduleData] = await Promise.all([
-      getPatientsAction(),
-      getDoctorStatusAction(),
-      getDoctorScheduleAction(),
-    ]);
+    try {
+        const [allPatientData, statusData, scheduleData] = await Promise.all([
+            getPatientsAction(),
+            getDoctorStatusAction(),
+            getDoctorScheduleAction(),
+        ]);
 
-    setSchedule(scheduleData);
-    setDoctorStatus(statusData);
+        setSchedule(scheduleData);
+        setDoctorStatus(statusData);
 
-    let patientToTrack = targetPatient;
+        let patientToTrack = targetPatient;
 
-    if (initialLoadRef.current) {
-        const userPhone = localStorage.getItem('userPhone');
-        const patientIdParam = searchParams.get('id');
+        if (initialLoadRef.current) {
+            const userPhone = localStorage.getItem('userPhone');
+            const patientIdParam = searchParams.get('id');
+            
+            if (!patientIdParam) {
+              setAuthError("No appointment specified.");
+              setIsLoading(false);
+              return;
+            }
+            
+            if (!userPhone) {
+              router.push('/login');
+              return;
+            }
+
+            const foundPatient = allPatientData.find((p: Patient) => p.id === patientIdParam) || null;
         
-        if (!patientIdParam) {
-          setAuthError("No appointment specified.");
-          setIsLoading(false);
-          return;
+            if (!foundPatient) {
+                setAuthError("This appointment could not be found.");
+                setIsLoading(false);
+                return;
+            }
+
+            if (foundPatient.phone !== userPhone) {
+                setAuthError("You are not authorized to view this appointment's status.");
+                setIsLoading(false);
+                return;
+            }
+            
+            patientToTrack = foundPatient;
+            setAuthError(null);
+            setTargetPatient(foundPatient);
+            initialLoadRef.current = false;
+        }
+
+        if (!patientToTrack) {
+            setIsLoading(false);
+            return;
         }
         
-        if (!userPhone) {
-          router.push('/login');
-          return;
-        }
+        const updatedPatient = allPatientData.find((p: Patient) => p.id === patientToTrack?.id) || null;
+        setTargetPatient(updatedPatient);
 
-        const foundPatient = allPatientData.find((p: Patient) => p.id === patientIdParam) || null;
-    
-        if (!foundPatient) {
-            setAuthError("This appointment could not be found.");
+        if (updatedPatient?.status === 'Completed') {
+            setCompletedAppointmentForDisplay(updatedPatient);
             setIsLoading(false);
             return;
         }
 
-        if (foundPatient.phone !== userPhone) {
-            setAuthError("You are not authorized to view this appointment's status.");
-            setIsLoading(false);
-            return;
+        if (updatedPatient) {
+            let sessionToShow = getSessionForTime(parseISO(updatedPatient.appointmentTime), scheduleData);
+
+            if (!sessionToShow && scheduleData) {
+                const now = new Date();
+                const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+                const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+                const daySchedule = scheduleData.days[dayName];
+                
+                if (daySchedule) {
+                    const morningStartUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.start) : null;
+                    const morningEndUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.end) : null;
+                    const eveningStartUtc = daySchedule.evening.isOpen ? sessionLocalToUtc(todayStr, daySchedule.evening.start) : null;
+                    
+                    if (morningStartUtc && now < morningStartUtc) {
+                        sessionToShow = 'morning';
+                    } else if (morningEndUtc && eveningStartUtc && now >= morningEndUtc && now < eveningStartUtc) {
+                        sessionToShow = 'evening';
+                    } else {
+                        sessionToShow = now.getHours() < 14 ? 'morning' : 'evening';
+                    }
+                }
+            }
+            setCurrentSession(sessionToShow);
+
+            if (scheduleData) {
+                const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
+                const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+                setAllSessionPatients(filteredPatientsForSession);
+            }
         }
-        
-        patientToTrack = foundPatient;
-        setAuthError(null);
-        setTargetPatient(foundPatient);
-        initialLoadRef.current = false;
+      
+        setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        if(isInitial) setIsLoading(false);
+    } catch(e) {
+        console.error("Fetch data error:", e);
+        if (isInitial) setIsLoading(false);
     }
-    
-    const updatedPatient = allPatientData.find((p: Patient) => p.id === patientToTrack?.id) || null;
-
-    if (updatedPatient && updatedPatient.status === 'Completed') {
-        setCompletedAppointmentForDisplay(updatedPatient);
-        setIsLoading(false);
-        return; 
-    }
-
-    setTargetPatient(updatedPatient);
-
-    if (updatedPatient) {
-        const sessionToShow = getSessionForTime(parseISO(updatedPatient.appointmentTime), scheduleData);
-        setCurrentSession(sessionToShow);
-        const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
-        const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
-        setAllSessionPatients(filteredPatientsForSession);
-    }
-  
-    setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    if(isInitial) setIsLoading(false);
   }, [searchParams, getSessionForTime, router, targetPatient]);
 
 
@@ -402,7 +436,10 @@ function QueueStatusPageContent() {
     fetchData(true);
     
     const intervalId = setInterval(() => {
-      if (completedAppointmentForDisplay || authError || !targetPatient) return;
+      if (completedAppointmentForDisplay || authError || !targetPatient) {
+          clearInterval(intervalId);
+          return;
+      };
       fetchData(false);
     }, 15000);
 
@@ -428,7 +465,7 @@ function QueueStatusPageContent() {
           <div className="flex flex-col min-h-screen bg-muted/40">
               <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
               <div className="flex-1 flex items-center justify-center">
-                  <p>Loading and verifying...</p>
+                  <p className="animate-pulse">Loading and verifying...</p>
               </div>
           </div>
       );
@@ -455,7 +492,7 @@ function QueueStatusPageContent() {
             ) : !targetPatient ? (
                 <div className="text-center">
                     <h1 className="text-2xl font-bold">No Active Appointment</h1>
-                    <p className="text-muted-foreground mt-1">This appointment is not for today's session.</p>
+                    <p className="text-muted-foreground mt-1">This appointment may be over, or is not scheduled for today.</p>
                 </div>
             ) : (
             <>
@@ -478,9 +515,12 @@ function QueueStatusPageContent() {
                           let queuePosition = 0;
                           
                           if (['Waiting', 'Late', 'Priority'].includes(targetPatient.status)) {
-                            const waitingIndex = waitingQueue.findIndex(p => p.id === targetPatient.id);
+                            // Find the position in the combined waiting list (which includes the 'up next')
+                            const fullWaitingList = upNext ? [upNext, ...waitingQueue] : waitingQueue;
+                            const waitingIndex = fullWaitingList.findIndex(p => p.id === targetPatient.id);
                             if (waitingIndex !== -1) {
-                                queuePosition = waitingIndex + (upNext ? 2 : 1);
+                                // Add 1 because queuePosition is 1-based, and add 1 more if someone is being served
+                                queuePosition = waitingIndex + (nowServing ? 1 : 0) + 1;
                             }
                           }
                           
