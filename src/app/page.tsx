@@ -692,6 +692,7 @@ export default function DashboardPage() {
           const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
           const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
           if (timeA === Infinity && timeB === Infinity) {
+              // Fallback to token number if ETC is not available (e.g., before session start)
               return (a.tokenNo || 0) - (b.tokenNo || 0);
           }
           return timeA - timeB;
@@ -753,7 +754,7 @@ export default function DashboardPage() {
                 <AlertTriangle className="h-12 w-12 text-red-500" />
                 <h2 className="text-xl font-semibold">Failed to Load Data</h2>
                 <p className="text-muted-foreground">{error}</p>
-                <Button onClick={() => loadData()}>
+                <Button onClick={loadData}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Retry
                 </Button>
