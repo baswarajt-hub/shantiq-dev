@@ -328,16 +328,18 @@ function QueueStatusPageContent() {
 
   const fetchData = useCallback(async (isInitial: boolean) => {
     if (isInitial) setIsLoading(true);
-  
+
     const [allPatientData, statusData, scheduleData] = await Promise.all([
       getPatientsAction(),
       getDoctorStatusAction(),
       getDoctorScheduleAction(),
     ]);
-  
+
     setSchedule(scheduleData);
     setDoctorStatus(statusData);
-    
+
+    let patientToTrack = targetPatient;
+
     if (initialLoadRef.current) {
         const userPhone = localStorage.getItem('userPhone');
         const patientIdParam = searchParams.get('id');
@@ -366,46 +368,46 @@ function QueueStatusPageContent() {
             setIsLoading(false);
             return;
         }
-
+        
+        patientToTrack = foundPatient;
         setAuthError(null);
         setTargetPatient(foundPatient);
         initialLoadRef.current = false;
     }
+    
+    const updatedPatient = allPatientData.find((p: Patient) => p.id === patientToTrack?.id) || null;
 
-    // Now, update patient lists with the latest data, using the already-validated targetPatient
-    setTargetPatient(current => {
-        const updatedPatient = allPatientData.find((p: Patient) => p.id === current?.id);
-        
-        if (updatedPatient && updatedPatient.status === 'Completed') {
-            setCompletedAppointmentForDisplay(updatedPatient);
-        }
+    if (updatedPatient && updatedPatient.status === 'Completed') {
+        setCompletedAppointmentForDisplay(updatedPatient);
+        setIsLoading(false);
+        return; 
+    }
 
-        if (updatedPatient) {
-             const sessionToShow = getSessionForTime(parseISO(updatedPatient.appointmentTime), scheduleData);
-             setCurrentSession(sessionToShow);
-             const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
-             const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
-             setAllSessionPatients(filteredPatientsForSession);
-        }
+    setTargetPatient(updatedPatient);
 
-        return updatedPatient || null;
-    })
+    if (updatedPatient) {
+        const sessionToShow = getSessionForTime(parseISO(updatedPatient.appointmentTime), scheduleData);
+        setCurrentSession(sessionToShow);
+        const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
+        const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+        setAllSessionPatients(filteredPatientsForSession);
+    }
   
     setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     if(isInitial) setIsLoading(false);
-  }, [searchParams, getSessionForTime, router]);
+  }, [searchParams, getSessionForTime, router, targetPatient]);
 
 
   useEffect(() => {
-    fetchData(true); // Initial fetch
+    fetchData(true);
     
     const intervalId = setInterval(() => {
-      // Prevent polling if showing summary or error
-      if (completedAppointmentForDisplay || authError || initialLoadRef.current) return;
-      fetchData(false)
+      if (completedAppointmentForDisplay || authError || !targetPatient) return;
+      fetchData(false);
     }, 15000);
+
     return () => clearInterval(intervalId);
-  }, [fetchData, completedAppointmentForDisplay, authError]);
+  }, [fetchData, completedAppointmentForDisplay, authError, targetPatient]);
   
   const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
   const upNext = allSessionPatients.find(p => p.status === 'Up-Next');
@@ -476,10 +478,8 @@ function QueueStatusPageContent() {
                           let queuePosition = 0;
                           
                           if (['Waiting', 'Late', 'Priority'].includes(targetPatient.status)) {
-                            // Find position in the sorted waiting list
                             const waitingIndex = waitingQueue.findIndex(p => p.id === targetPatient.id);
                             if (waitingIndex !== -1) {
-                                // Position is 1-based, and we add 1 if there's an 'Up Next' patient
                                 queuePosition = waitingIndex + (upNext ? 2 : 1);
                             }
                           }
