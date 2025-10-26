@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
@@ -33,29 +34,51 @@ type TimeSlot = {
   time: string;
   isBooked: boolean;
   isReservedForWalkIn?: boolean;
-  patient?: Patient;
+  patient?: Patient & { clinicId?: string };
   patientDetails?: Partial<FamilyMember>;
 }
 
-const PatientNameWithBadges = ({ patient }: { patient: Patient }) => {
+const PatientNameWithBadges = ({ patient, patientDetails }: { patient: Patient, patientDetails?: Partial<FamilyMember> }) => {
+  const { toast } = useToast();
   const nameToDisplay = patient.name;
+  const clinicId = patientDetails?.clinicId;
+
+  const handleCopy = () => {
+    if (clinicId) {
+      navigator.clipboard.writeText(clinicId);
+      toast({
+        title: 'Copied!',
+        description: `Clinic ID ${clinicId} copied to clipboard.`,
+      });
+    }
+  };
+  
   return (
     <span className="flex items-center gap-2 font-semibold relative">
       {nameToDisplay}
-        <span className="flex gap-1">
-            {patient.subType === 'Booked Walk-in' && (
-              <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
-            )}
-            {patient.lateBy && patient.lateBy > 0 && patient.status !== 'Completed' && patient.status !== 'Cancelled' && (
-              <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">L</sup>
-            )}
-            {patient.subStatus === 'Reports' && (
-              <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
-            )}
-            {patient.status === 'Priority' && (
-                <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
-            )}
-        </span>
+      {clinicId && (
+        <button
+          onClick={handleCopy}
+          className="text-xs font-mono text-muted-foreground ml-2 hover:text-primary transition-colors cursor-pointer"
+          title="Click to copy Clinic ID"
+        >
+          ({clinicId})
+        </button>
+      )}
+      <span className="flex gap-1">
+          {patient.subType === 'Booked Walk-in' && (
+            <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
+          )}
+          {patient.lateBy && patient.lateBy > 0 && patient.status !== 'Completed' && patient.status !== 'Cancelled' && (
+            <sup className="inline-flex items-center justify-center rounded-md bg-red-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Late">L</sup>
+          )}
+          {patient.subStatus === 'Reports' && (
+            <sup className="inline-flex items-center justify-center rounded-md bg-purple-500 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Waiting for Reports">R</sup>
+          )}
+          {patient.status === 'Priority' && (
+              <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
+          )}
+      </span>
     </span>
   );
 };
@@ -767,8 +790,7 @@ export default function DashboardPage() {
     const doctorOnlineTime = doctorStatus.onlineTime ? new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
 
-    const PatientCard = ({ patient }: { patient: Patient }) => {
-        const patientDetails = family.find(f => f.phone === patient.phone && f.name === patient.name) || { name: patient.name, gender: 'Other' };
+    const PatientCard = ({ patient, patientDetails }: { patient: Patient, patientDetails?: Partial<FamilyMember> }) => {
         const statusKey = patient.status as keyof typeof statusConfig;
         const StatusIcon = statusConfig[statusKey]?.icon || HelpCircle;
         const statusColor = statusConfig[statusKey]?.color || '';
@@ -792,13 +814,13 @@ export default function DashboardPage() {
 
                 {/* Name */}
                 <div className={cn('flex items-center gap-2 text-base font-semibold', getPatientNameColorClass(patient.status, patient.type))}>
-                    <PatientNameWithBadges patient={patient} />
+                    <PatientNameWithBadges patient={patient} patientDetails={patientDetails} />
                 </div>
 
                 {/* Details */}
                 <div className="grid grid-cols-[24px_80px_24px_1fr] items-center gap-x-3 text-sm text-muted-foreground">
-                    <div title={patientDetails.gender || 'Gender not specified'} className="flex justify-center">
-                        {patientDetails.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" /> : <User className="h-4 w-4 text-pink-500" />}
+                    <div title={patientDetails?.gender || 'Gender not specified'} className="flex justify-center">
+                        {patientDetails?.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" /> : <User className="h-4 w-4 text-pink-500" />}
                     </div>
                     <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
                     <div title={patient.purpose || 'No purpose specified'} className="flex justify-center">
@@ -842,7 +864,7 @@ export default function DashboardPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    {isActionable && !isNextInLine && !isUpNext && !isLastInQueue && (
+                                    {isActionable && isNextInLine && !isUpNext && (
                                          <DropdownMenuItem onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
                                             <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                         </DropdownMenuItem>
@@ -1100,7 +1122,7 @@ export default function DashboardPage() {
                                       </div>
                                        <div className="flex-1 flex flex-col gap-1">
                                           <div className="flex items-center gap-2 font-semibold text-blue-600 text-lg">
-                                              <PatientNameWithBadges patient={nowServing} />
+                                              <PatientNameWithBadges patient={nowServing} patientDetails={family.find(f => f.phone === nowServing.phone && f.name === nowServing.name)} />
                                           </div>
                                        </div>
                                        <div className="flex items-center gap-2">
@@ -1121,13 +1143,13 @@ export default function DashboardPage() {
                                    </div>
                               </div>
                           )}
-                          {upNext && <PatientCard patient={upNext} />}
+                          {upNext && <PatientCard patient={upNext} patientDetails={family.find(f => f.phone === upNext.phone && f.name === upNext.name)} />}
                           {displayedTimeSlots.length > 0 ? displayedTimeSlots.map((slot, index) => {
 
                               if (searchTerm && !slot.isBooked) return null;
                               
                               if (slot.isBooked && slot.patient) {
-                                return <PatientCard key={slot.patient.id} patient={slot.patient} />
+                                return <PatientCard key={slot.patient.id} patient={slot.patient} patientDetails={slot.patientDetails} />
                               }
 
                               return (
@@ -1201,3 +1223,4 @@ export default function DashboardPage() {
         </div>
     );
 }
+
