@@ -830,7 +830,7 @@ export default function DashboardPage() {
                                     <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
                                 </Button>
                             )}
-                            {isLastInQueue && (
+                             {isLastInQueue && (
                                 <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
                                      <LogIn className="mr-2 h-4 w-4" /> Start
                                 </Button>
@@ -842,7 +842,7 @@ export default function DashboardPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    {isActionable && !isNextInLine && !isUpNext && (
+                                    {isActionable && !isNextInLine && !isUpNext && !isLastInQueue && (
                                          <DropdownMenuItem onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
                                             <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                         </DropdownMenuItem>
