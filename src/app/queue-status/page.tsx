@@ -226,7 +226,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
         )
     }
     
-    if (patient.status === 'Booked') {
+    if (patient.status === 'Booked' || patient.status === 'Confirmed') {
          return (
             <Card className="bg-blue-100 border-blue-400">
                 <CardHeader className="p-4">
@@ -474,13 +474,16 @@ function QueueStatusPageContent() {
                           const isNowServing = nowServing?.id === targetPatient.id;
                           const isUpNext = upNext?.id === targetPatient.id;
                           let queuePosition = 0;
+                          
                           if (['Waiting', 'Late', 'Priority'].includes(targetPatient.status)) {
-                              const positionInWaiting = waitingQueue.findIndex(p => p.id === targetPatient.id);
-                              if (positionInWaiting !== -1) {
-                                  // Position is 1-based, and we add 1 if there's an 'Up Next' patient
-                                  queuePosition = positionInWaiting + (upNext ? 2 : 1);
-                              }
+                            // Find position in the sorted waiting list
+                            const waitingIndex = waitingQueue.findIndex(p => p.id === targetPatient.id);
+                            if (waitingIndex !== -1) {
+                                // Position is 1-based, and we add 1 if there's an 'Up Next' patient
+                                queuePosition = waitingIndex + (upNext ? 2 : 1);
+                            }
                           }
+                          
                           return (
                               <motion.div
                                   key={targetPatient.id}

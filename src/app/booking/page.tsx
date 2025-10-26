@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Calendar, Clock, Users, Wifi, WifiOff, Bell, AlertTriangle,
-  Megaphone, PlusCircle, List, MapPin, Phone, Mail, Globe, LogIn, LogOut
+  Megaphone, PlusCircle, List, MapPin, Phone, Mail, Globe, LogIn, LogOut, CheckCircle
 } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
@@ -221,6 +221,15 @@ export default function BookingPage() {
     });
   };
   
+  const todaysLiveQueue = patients
+    .filter(p => isToday(parseISO(p.appointmentTime)) && ['Waiting', 'Up-Next', 'Priority', 'Late'].includes(p.status))
+    .sort((a, b) => (a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity) - (b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity));
+
+  const getQueuePosition = (patientId: string) => {
+    const index = todaysLiveQueue.findIndex(p => p.id === patientId);
+    return index !== -1 ? index + 1 : 0;
+  }
+
   if (isLoading) {
     return (
         <main className="flex-1 p-4 md:p-6 lg:p-8">
@@ -384,7 +393,9 @@ export default function BookingPage() {
             <CardTitle className="flex items-center gap-2"><List /> Today's Appointments</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {todaysAppointments.length > 0 ? todaysAppointments.map(a => (
+            {todaysAppointments.length > 0 ? todaysAppointments.map(a => {
+              const queuePosition = getQueuePosition(a.id);
+              return (
               <div key={a.id} className="p-4 rounded-lg border flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <Avatar>
@@ -401,7 +412,16 @@ export default function BookingPage() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(a.status)}`}>{a.status}</p>
+                   {['Waiting', 'Up-Next', 'Priority', 'Late'].includes(a.status) && queuePosition > 0 ? (
+                      <div className="flex items-center gap-2">
+                          <p className="text-sm text-muted-foreground">Queue Position</p>
+                          <div className="h-8 w-8 bg-blue-100 border-2 border-blue-300 rounded-full flex items-center justify-center">
+                              <span className="text-lg font-bold text-blue-800">{queuePosition}</span>
+                          </div>
+                      </div>
+                  ) : (
+                      <p className={`font-semibold text-sm px-2 py-1 rounded-full ${getStatusBadgeClass(a.status)}`}>{a.status}</p>
+                  )}
                   <AppointmentActions
                     appointment={a}
                     schedule={schedule}
@@ -410,7 +430,7 @@ export default function BookingPage() {
                   />
                 </div>
               </div>
-            )) : <p className="text-center text-muted-foreground py-8">No appointments for today.</p>}
+            )}) : <p className="text-center text-muted-foreground py-8">No appointments for today.</p>}
           </CardContent>
         </Card>
 
