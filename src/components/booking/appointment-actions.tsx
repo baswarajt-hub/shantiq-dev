@@ -34,7 +34,8 @@ export function AppointmentActions({
   onCancel: (id: string) => void;
 }) {
   const isAppointmentToday = isToday(parseISO(appointment.date));
-  const isQueueButtonActive = appointment.status === 'Booked' && isAppointmentToday;
+  const isActionableStatus = ['Booked', 'Confirmed'].includes(appointment.status);
+  const isQueueButtonActive = isAppointmentToday && !['Completed', 'Cancelled', 'Missed'].includes(appointment.status);
   
   const hasBeenRescheduled = (appointment.rescheduleCount || 0) > 0;
 
@@ -52,7 +53,7 @@ export function AppointmentActions({
           </Link>
       </Button>
       
-        {appointment.status === 'Booked' && (
+        {isActionableStatus && (
            <Popover>
             <PopoverTrigger asChild>
               <span tabIndex={0}>
@@ -75,7 +76,7 @@ export function AppointmentActions({
           </Popover>
         )}
 
-      {appointment.status === 'Booked' && (
+      {isActionableStatus && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" size="sm" className="h-8">

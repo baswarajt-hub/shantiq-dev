@@ -18,7 +18,7 @@ const timeZone = "Asia/Kolkata";
 
 function sessionLocalToUtc(dateStr: string, sessionTime: string) {
   let localDate: Date;
-  if (/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+  if (/^\\d{1,2}:\\d{2}$/.test(sessionTime)) {
     localDate = parseDate(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd HH:mm', new Date());
   } else {
     localDate = parseDate(`${dateStr} ${sessionTime}`, 'yyyy-MM-dd hh:mm a', new Date());
@@ -245,39 +245,22 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
             </Card>
         )
     }
-
-    if (queuePosition <= 0) {
-        return (
-            <Card className="bg-gray-100 border-gray-300">
-                <CardHeader className="p-4">
-                    <CardTitle className="text-lg">Calculating your position...</CardTitle>
-                    <CardDescription className="text-sm">Your status is being updated. Please wait a moment.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                     <div className="text-2xl font-bold flex items-center gap-2">
-                      Token <span className="text-sky-700">#{patient.tokenNo}</span>
-                      <StatusTags patient={patient} />
-                    </div>
-                </CardContent>
-            </Card>
-        )
-    }
-
+    
     return (
         <Card>
-            <CardHeader className="p-4">
+            <CardHeader className="p-4 text-center">
                 <CardTitle className="text-lg">Your Position in Queue</CardTitle>
-                <CardDescription className="text-sm">You are #{queuePosition} in the waiting list.</CardDescription>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
-                <div className="flex items-baseline gap-2">
-                  <div className="text-2xl font-bold flex items-center gap-2">
-                      Token <span className="text-sky-700">#{patient.tokenNo}</span>
-                      <StatusTags patient={patient} />
-                  </div>
+            <CardContent className="p-4 pt-0 flex flex-col items-center gap-3">
+                <div className="h-20 w-20 bg-blue-100 border-2 border-blue-300 rounded-full flex items-center justify-center">
+                    <span className="text-3xl font-bold text-blue-800">{queuePosition}</span>
                 </div>
-                <div className="text-muted-foreground mt-2 space-y-1">
-                    <div className="flex items-start gap-4 text-xs">
+                <div className="text-muted-foreground mt-2 space-y-1 text-center">
+                     <div className="text-2xl font-bold flex items-center gap-2">
+                        Token <span className="text-sky-700">#{patient.tokenNo}</span>
+                        <StatusTags patient={patient} />
+                    </div>
+                    <div className="flex items-center gap-4 text-xs pt-2">
                         <div className="flex-1 space-y-1">
                             <p className="flex items-center gap-2 font-semibold text-green-600">
                                 <Timer className="h-4 w-4" /> Best ETC:
