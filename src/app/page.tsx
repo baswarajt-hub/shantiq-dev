@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
@@ -222,10 +221,8 @@ export default function DashboardPage() {
 
     const [error, setError] = useState<string | null>(null);
 
-    const loadData = useCallback(async () => {
-      if (isLoading) {
-        // This is the initial load, no need to set refreshing
-      } else {
+    const loadData = useCallback(async (isInitial: boolean) => {
+      if (!isInitial) {
         setIsRefreshing(true);
       }
     
@@ -256,16 +253,20 @@ export default function DashboardPage() {
           variant: "destructive",
         });
       } finally {
-        setIsLoading(false);
+        if (isInitial) setIsLoading(false);
         setIsRefreshing(false);
       }
-    }, [toast, isLoading]); // Dependency on isLoading to differentiate initial load from polling
+    }, [toast]);
     
     useEffect(() => {
-        loadData();
-        const intervalId = setInterval(loadData, 30000); // Poll every 30 seconds
+        loadData(true); // Initial load
+        
+        const intervalId = setInterval(() => {
+            loadData(false); // Polling
+        }, 30000);
+        
         return () => clearInterval(intervalId);
-    }, [loadData]); // useEffect depends on the stable loadData function
+    }, [loadData]);
       
 
     useEffect(() => {
@@ -444,7 +445,7 @@ export default function DashboardPage() {
                     toast({ title: "Error", description: result.error, variant: 'destructive'});
                 } else {
                     toast({ title: "Success", description: "Appointment booked successfully."});
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -459,7 +460,7 @@ export default function DashboardPage() {
                         resolve(null);
                     } else {
                         toast({ title: "Success", description: result.success});
-                        loadData();
+                        loadData(false);
                         resolve(result.patient);
                     }
                 });
@@ -484,7 +485,7 @@ export default function DashboardPage() {
                         toast({ title: "Error", description: result.error, variant: 'destructive' });
                     } else {
                         toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
-                        loadData();
+                        loadData(false);
                     }
                 });
             });
@@ -498,7 +499,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -511,7 +512,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -524,7 +525,7 @@ export default function DashboardPage() {
                   toast({ title: 'Error', description: result.error, variant: 'destructive' });
               } else {
                   toast({ title: 'Success', description: result.success });
-                  loadData();
+                  loadData(false);
               }
           });
         });
@@ -537,7 +538,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -550,7 +551,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -564,7 +565,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: 'Failed to cancel appointment.', variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: 'Appointment cancelled.' });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -577,7 +578,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -590,7 +591,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -643,7 +644,7 @@ export default function DashboardPage() {
             } else {
               toast({ title: 'Success', description: result.success });
               // Refresh to ensure sync with server
-              loadData();
+              loadData(false);
             }
           });
         });
@@ -659,7 +660,7 @@ export default function DashboardPage() {
                         toast({ title: 'Error', description: result.error, variant: 'destructive'});
                     } else {
                         toast({ title: 'Success', description: result.success});
-                        loadData();
+                        loadData(false);
                     }
                 });
             });
@@ -673,7 +674,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -686,7 +687,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -699,7 +700,7 @@ export default function DashboardPage() {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
                     toast({ title: 'Success', description: result.success });
-                    loadData();
+                    loadData(false);
                 }
             });
         });
@@ -777,7 +778,7 @@ export default function DashboardPage() {
                 <AlertTriangle className="h-12 w-12 text-red-500" />
                 <h2 className="text-xl font-semibold">Failed to Load Data</h2>
                 <p className="text-muted-foreground">{error}</p>
-                <Button onClick={loadData}>
+                <Button onClick={() => loadData(true)}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Retry
                 </Button>
@@ -801,11 +802,7 @@ export default function DashboardPage() {
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
         const isCurrentlyServing = patient.status === 'In-Consultation';
         
-        // This patient is 'Up-Next' and is the last one in the entire queue (no one else is waiting).
         const isLastInQueue = isUpNext && waitingList.length === 0;
-        
-        // This patient is waiting, someone is being served, and they are the only one waiting.
-        const isConsultNext = isNextInLine && !isUpNext && !!nowServing && waitingList.length === 1;
 
         return (
              <div className={cn(
@@ -854,24 +851,20 @@ export default function DashboardPage() {
                              {['Booked', 'Confirmed'].includes(patient.status) && (
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                             )}
-                            {!isCurrentlyServing && (
-                                <>
-                                    {isConsultNext && (
-                                        <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
-                                            <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
-                                        </Button>
-                                    )}
-                                    {isNextInLine && !isUpNext && !isConsultNext && (
-                                        <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
-                                            <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
-                                        </Button>
-                                    )}
-                                    {isLastInQueue && (
-                                        <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
-                                            <LogIn className="mr-2 h-4 w-4" /> Start
-                                        </Button>
-                                    )}
-                                </>
+                            {!isCurrentlyServing && !isUpNext && isNextInLine && waitingList.length === 1 && (
+                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
+                                    <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
+                                </Button>
+                            )}
+                             {isNextInLine && !isUpNext && waitingList.length > 1 && (
+                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
+                                    <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
+                                </Button>
+                            )}
+                            {isLastInQueue && (
+                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
+                                     <LogIn className="mr-2 h-4 w-4" /> Start
+                                </Button>
                             )}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -880,7 +873,7 @@ export default function DashboardPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    {!isCurrentlyServing && !isConsultNext && isActionable && !isNextInLine && !isUpNext && (
+                                    {!isCurrentlyServing && isActionable && !isNextInLine && !isUpNext && (
                                          <DropdownMenuItem onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline}>
                                             <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                         </DropdownMenuItem>
@@ -1247,3 +1240,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    

@@ -186,13 +186,13 @@ function CompletionSummary({ patient }: { patient: Patient }) {
     );
 }
 
-function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { patient: Patient, queuePosition: number, isUpNext: boolean, isNowServing: boolean }) {
+function YourStatusCard({ patient, queuePosition }: { patient: Patient, queuePosition: number }) {
 
     if (patient.status === 'Completed') {
         return null;
     }
-
-    if (isNowServing) {
+    
+    if (patient.status === 'In-Consultation') {
         return (
             <Card className="bg-green-200 border-green-400">
                 <CardHeader className="p-4">
@@ -209,7 +209,7 @@ function YourStatusCard({ patient, queuePosition, isUpNext, isNowServing }: { pa
         )
     }
 
-    if (isUpNext) {
+    if (patient.status === 'Up-Next') {
          return (
             <Card className="bg-amber-100 border-amber-400">
                 <CardHeader className="p-4">
@@ -437,16 +437,22 @@ function QueueStatusPageContent() {
     }
   }, [searchParams, getSessionForTime, router, targetPatient]);
 
-
   useEffect(() => {
-    fetchData(true); // Initial fetch only
-  }, []); // Empty dependency array ensures it runs only once on mount
+    fetchData(true);
+    const interval = setInterval(() => {
+        if (!completedAppointmentForDisplay) {
+            fetchData(false);
+        }
+    }, 15000); // Poll every 15 seconds
+    
+    return () => clearInterval(interval);
+  }, [fetchData, completedAppointmentForDisplay]); // Re-run effect only if fetchData changes
   
   const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
   const upNext = allSessionPatients.find(p => p.status === 'Up-Next');
   
   const waitingQueue = allSessionPatients
-    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.id !== upNext?.id)
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
     .sort((a, b) => {
         const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
         const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
@@ -509,19 +515,9 @@ function QueueStatusPageContent() {
                 >
                     <AnimatePresence>
                         {(() => {
-                          const isNowServing = nowServing?.id === targetPatient.id;
-                          const isUpNext = upNext?.id === targetPatient.id;
-                          let queuePosition = 0;
-                          
-                          if (['Waiting', 'Late', 'Priority'].includes(targetPatient.status)) {
-                            // Find the position in the combined waiting list (which includes the 'up next')
-                            const fullWaitingList = upNext ? [upNext, ...waitingQueue] : waitingQueue;
-                            const waitingIndex = fullWaitingList.findIndex(p => p.id === targetPatient.id);
-                            if (waitingIndex !== -1) {
-                                // Add 1 because queuePosition is 1-based, and add 1 more if someone is being served
-                                queuePosition = waitingIndex + (nowServing ? 1 : 0) + 1;
-                            }
-                          }
+                          const fullWaitingList = upNext ? [upNext, ...waitingQueue] : waitingQueue;
+                          const waitingIndex = fullWaitingList.findIndex(p => p.id === targetPatient.id);
+                          const queuePosition = waitingIndex !== -1 ? waitingIndex + (nowServing ? 1 : 0) + 1 : 0;
                           
                           return (
                               <motion.div
@@ -534,8 +530,6 @@ function QueueStatusPageContent() {
                                   <YourStatusCard 
                                       patient={targetPatient}
                                       queuePosition={queuePosition}
-                                      isUpNext={isUpNext}
-                                      isNowServing={isNowServing}
                                   />
                               </motion.div>
                           );
@@ -564,3 +558,5 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
+
+    
