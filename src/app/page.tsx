@@ -798,9 +798,12 @@ export default function DashboardPage() {
         
         const isUpNext = upNext?.id === patient.id;
         const isNextInLine = nextInLine?.id === patient.id;
-        const isConsultNext = isNextInLine && !isUpNext && nowServing !== undefined && waitingList.length === 1;
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
         const isLastInQueue = isUpNext && waitingList.length === 0;
+        
+        // This patient is the only one waiting, and someone is currently being served.
+        const isConsultNext = isNextInLine && !isUpNext && !!nowServing && waitingList.length === 1;
+
 
         return (
              <div className={cn(
@@ -849,7 +852,7 @@ export default function DashboardPage() {
                              {['Booked', 'Confirmed'].includes(patient.status) && (
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                             )}
-                             {isConsultNext && (
+                            {isConsultNext && (
                                 <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
                                     <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
                                 </Button>
@@ -871,7 +874,7 @@ export default function DashboardPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    {isActionable && !isNextInLine && !isUpNext && (
+                                    {isActionable && !isNextInLine && !isUpNext && !isConsultNext && (
                                          <DropdownMenuItem onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
                                             <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                         </DropdownMenuItem>
@@ -1230,5 +1233,6 @@ export default function DashboardPage() {
         </div>
     );
 }
+
 
 
