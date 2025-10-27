@@ -799,6 +799,7 @@ export default function DashboardPage() {
         const isUpNext = upNext?.id === patient.id;
         const isNextInLine = nextInLine?.id === patient.id;
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
+        const isCurrentlyServing = patient.status === 'In-Consultation';
         
         // This patient is 'Up-Next' and is the last one in the entire queue (no one else is waiting).
         const isLastInQueue = isUpNext && waitingList.length === 0;
@@ -853,20 +854,24 @@ export default function DashboardPage() {
                              {['Booked', 'Confirmed'].includes(patient.status) && (
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                             )}
-                            {isConsultNext && (
-                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
-                                    <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
-                                </Button>
-                            )}
-                            {isNextInLine && !isUpNext && !isConsultNext && (
-                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
-                                    <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
-                                </Button>
-                            )}
-                             {isLastInQueue && (
-                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
-                                     <LogIn className="mr-2 h-4 w-4" /> Start
-                                </Button>
+                            {!isCurrentlyServing && (
+                                <>
+                                    {isConsultNext && (
+                                        <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
+                                            <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
+                                        </Button>
+                                    )}
+                                    {isNextInLine && !isUpNext && !isConsultNext && (
+                                        <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
+                                            <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
+                                        </Button>
+                                    )}
+                                    {isLastInQueue && (
+                                        <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
+                                            <LogIn className="mr-2 h-4 w-4" /> Start
+                                        </Button>
+                                    )}
+                                </>
                             )}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -875,7 +880,7 @@ export default function DashboardPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    {isActionable && !isNextInLine && !isUpNext && !isConsultNext && (
+                                    {!isCurrentlyServing && !isConsultNext && isActionable && !isNextInLine && !isUpNext && (
                                          <DropdownMenuItem onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline}>
                                             <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                         </DropdownMenuItem>
@@ -898,10 +903,16 @@ export default function DashboardPage() {
                                         </DropdownMenuSub>
                                     )}
                                     {patient.status === 'In-Consultation' && (
+                                      <>
+                                        <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Completed')} disabled={isPending}>
+                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                            Mark Completed
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Waiting for Reports')} disabled={isPending}>
                                             <FileClock className="mr-2 h-4 w-4" />
                                             Waiting for Reports
                                         </DropdownMenuItem>
+                                      </>
                                     )}
                                     {patient.status === 'Waiting for Reports' && (
                                         <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus?.isOnline}>
@@ -1143,9 +1154,11 @@ export default function DashboardPage() {
                                               </DropdownMenuTrigger>
                                               <DropdownMenuContent>
                                                   <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Completed')} disabled={isPending}>
+                                                      <CheckCircle className="mr-2 h-4 w-4" />
                                                       Mark Completed
                                                   </DropdownMenuItem>
                                                   <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Waiting for Reports')} disabled={isPending}>
+                                                      <FileClock className="mr-2 h-4 w-4" />
                                                       Waiting for Reports
                                                   </DropdownMenuItem>
                                               </DropdownMenuContent>
