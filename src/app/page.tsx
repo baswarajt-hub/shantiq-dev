@@ -778,6 +778,7 @@ export default function DashboardPage() {
                 <AlertTriangle className="h-12 w-12 text-red-500" />
                 <h2 className="text-xl font-semibold">Failed to Load Data</h2>
                 <p className="text-muted-foreground">{error}</p>
+
                 <Button onClick={() => loadData(true)}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Retry
@@ -808,7 +809,8 @@ export default function DashboardPage() {
              <div className={cn(
                 "p-3 grid grid-cols-[60px_1fr_320px_120px_100px] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
-                isUpNext && "bg-yellow-100/70 border-yellow-300"
+                isUpNext && "bg-yellow-100/70 border-yellow-300",
+                isCurrentlyServing && "bg-green-100/60 border-green-300"
             )}>
                 {/* Token */}
                 <div className="flex justify-start items-center font-bold text-lg text-primary gap-2">
@@ -846,18 +848,13 @@ export default function DashboardPage() {
 
                 {/* Actions */}
                 <div className="flex items-center justify-end">
-                    {isActionable && (
+                    {isActionable && !isCurrentlyServing && (
                         <>
                              {['Booked', 'Confirmed'].includes(patient.status) && (
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                             )}
-                            {!isCurrentlyServing && !isUpNext && isNextInLine && waitingList.length === 1 && (
-                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
-                                    <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
-                                </Button>
-                            )}
-                             {isNextInLine && !isUpNext && waitingList.length > 1 && (
-                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
+                            {isNextInLine && !isUpNext && (
+                                <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
                                     <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
                                 </Button>
                             )}
@@ -866,105 +863,107 @@ export default function DashboardPage() {
                                      <LogIn className="mr-2 h-4 w-4" /> Start
                                 </Button>
                             )}
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
-                                        <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    {!isCurrentlyServing && isActionable && !isNextInLine && !isUpNext && (
-                                         <DropdownMenuItem onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline}>
-                                            <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
-                                        </DropdownMenuItem>
-                                    )}
-                                     {(patient.status === 'Booked' || patient.status === 'Confirmed') && (
-                                        <DropdownMenuSub>
-                                            <DropdownMenuSubTrigger>
-                                                <Hourglass className="mr-2 h-4 w-4" />
-                                                Mark as Late
-                                            </DropdownMenuSubTrigger>
-                                            <DropdownMenuSubContent>
-                                                <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                {[1, 2, 3, 4, 5, 6, 7].map(penalty => (
-                                                    <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(patient!.id, penalty)}>
-                                                        {`${penalty} position${penalty > 1 ? 's' : ''}`}
-                                                    </DropdownMenuItem>
-                                                ))}
-                                            </DropdownMenuSubContent>
-                                        </DropdownMenuSub>
-                                    )}
-                                    {patient.status === 'In-Consultation' && (
-                                      <>
-                                        <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Completed')} disabled={isPending}>
-                                            <CheckCircle className="mr-2 h-4 w-4" />
-                                            Mark Completed
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Waiting for Reports')} disabled={isPending}>
-                                            <FileClock className="mr-2 h-4 w-4" />
-                                            Waiting for Reports
-                                        </DropdownMenuItem>
-                                      </>
-                                    )}
-                                    {patient.status === 'Waiting for Reports' && (
-                                        <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus?.isOnline}>
-                                            <ChevronsRight className="mr-2 h-4 w-4" />
-                                            Consult (Reports)
-                                        </DropdownMenuItem>
-                                    )}
-                                    {(patient.status === 'Waiting' || patient.status === 'Late') && (
-                                        <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Priority')} disabled={isPending} className="text-red-600 focus:text-red-600 focus:bg-red-50">
-                                            <Shield className="mr-2 h-4 w-4" />
-                                            Consult Now (Priority)
-                                        </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuSeparator />
+                        </>
+                    )}
+                     {isActionable && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                {isActionable && !isNextInLine && !isUpNext && !isCurrentlyServing && ['Waiting', 'Late'].includes(patient.status) && (
+                                     <DropdownMenuItem onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
+                                        <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
+                                    </DropdownMenuItem>
+                                )}
+                                 {(patient.status === 'Booked' || patient.status === 'Confirmed') && (
                                     <DropdownMenuSub>
                                         <DropdownMenuSubTrigger>
-                                            <Pencil className="mr-2 h-4 w-4" />
-                                            Change Purpose
+                                            <Hourglass className="mr-2 h-4 w-4" />
+                                            Mark as Late
                                         </DropdownMenuSubTrigger>
                                         <DropdownMenuSubContent>
-                                            <DropdownMenuRadioGroup value={patient.purpose || ''} onValueChange={(value) => handleUpdatePurpose(patient!.id, value)}>
-                                                {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
-                                                    <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
-                                                ))}
-                                            </DropdownMenuRadioGroup>
+                                            <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {[1, 2, 3, 4, 5, 6, 7].map(penalty => (
+                                                <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(patient!.id, penalty)}>
+                                                    {`${penalty} position${penalty > 1 ? 's' : ''}`}
+                                                </DropdownMenuItem>
+                                            ))}
                                         </DropdownMenuSubContent>
                                     </DropdownMenuSub>
-                                    <DropdownMenuItem onClick={() => handleOpenReschedule(patient!)}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        Reschedule
+                                )}
+                                {patient.status === 'In-Consultation' && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Completed')} disabled={isPending}>
+                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                        Mark Completed
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleSendReminder(patient!.id)} disabled={isPending}>
-                                        <Send className="mr-2 h-4 w-4" />
-                                        Send Reminder
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Waiting for Reports')} disabled={isPending}>
+                                        <FileClock className="mr-2 h-4 w-4" />
+                                        Waiting for Reports
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <div className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Cancel Appointment
-                                            </div>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently cancel the appointment.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Go Back</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleCancelAppointment(patient!.id)}>Confirm Cancellation</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </>
+                                  </>
+                                )}
+                                {patient.status === 'Waiting for Reports' && (
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus?.isOnline}>
+                                        <ChevronsRight className="mr-2 h-4 w-4" />
+                                        Consult (Reports)
+                                    </DropdownMenuItem>
+                                )}
+                                {(patient.status === 'Waiting' || patient.status === 'Late') && (
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Priority')} disabled={isPending} className="text-red-600 focus:text-red-600 focus:bg-red-50">
+                                        <Shield className="mr-2 h-4 w-4" />
+                                        Consult Now (Priority)
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Change Purpose
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuSubContent>
+                                        <DropdownMenuRadioGroup value={patient.purpose || ''} onValueChange={(value) => handleUpdatePurpose(patient!.id, value)}>
+                                            {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
+                                                <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
+                                            ))}
+                                        </DropdownMenuRadioGroup>
+                                    </DropdownMenuSubContent>
+                                </DropdownMenuSub>
+                                <DropdownMenuItem onClick={() => handleOpenReschedule(patient!)}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    Reschedule
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleSendReminder(patient!.id)} disabled={isPending}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Send Reminder
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <div className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Cancel Appointment
+                                        </div>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This action cannot be undone. This will permanently cancel the appointment.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Go Back</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleCancelAppointment(patient!.id)}>Confirm Cancellation</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     )}
                 </div>
             </div>
@@ -1129,36 +1128,7 @@ export default function DashboardPage() {
                     <div className="p-4">
                       <div className="mt-3 space-y-2">
                           {nowServing && (
-                              <div className="p-3 rounded-xl border bg-green-200/60 border-green-400 shadow-md">
-                                   <div className="flex items-center gap-4">
-                                      <div className="flex items-center gap-2">
-                                          <Hourglass className="h-5 w-5 text-green-700 animate-pulse" />
-                                          <h3 className="font-bold text-lg text-green-800">Now Serving</h3>
-                                      </div>
-                                       <div className="flex-1 flex flex-col gap-1">
-                                          <div className="flex items-center gap-2 font-semibold text-blue-600 text-lg">
-                                              <PatientNameWithBadges patient={nowServing} patientDetails={family.find(f => f.phone === nowServing.phone && f.name === nowServing.name)} />
-                                          </div>
-                                       </div>
-                                       <div className="flex items-center gap-2">
-                                          <DropdownMenu>
-                                              <DropdownMenuTrigger asChild>
-                                                  <Button variant="outline" size="sm" className="h-8 bg-white/70">Actions</Button>
-                                              </DropdownMenuTrigger>
-                                              <DropdownMenuContent>
-                                                  <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Completed')} disabled={isPending}>
-                                                      <CheckCircle className="mr-2 h-4 w-4" />
-                                                      Mark Completed
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => handleUpdateStatus(nowServing!.id, 'Waiting for Reports')} disabled={isPending}>
-                                                      <FileClock className="mr-2 h-4 w-4" />
-                                                      Waiting for Reports
-                                                  </DropdownMenuItem>
-                                              </DropdownMenuContent>
-                                          </DropdownMenu>
-                                       </div>
-                                   </div>
-                              </div>
+                            <PatientCard patient={nowServing} patientDetails={family.find(f => f.phone === nowServing.phone && f.name === nowServing.name)} />
                           )}
                           {upNext && <PatientCard patient={upNext} patientDetails={family.find(f => f.phone === upNext.phone && f.name === upNext.name)} />}
                           {displayedTimeSlots.length > 0 ? displayedTimeSlots.map((slot, index) => {
@@ -1240,5 +1210,7 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
 
     
