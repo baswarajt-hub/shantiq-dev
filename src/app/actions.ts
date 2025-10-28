@@ -333,27 +333,36 @@ const CLINIC_COORDINATES = {
 
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
   try {
-    const updates: Partial<DoctorStatus & {
-      qrSessionLocation?: { lat: number; lng: number } | null;
-      qrSessionStartTime?: string | null;
-    }> = { ...status };
+    const updates: Partial<DoctorStatus> = { ...status };
+    let shouldRecalculate = false;
+
+    // Check if a status affecting queue logic has changed.
+    if (
+      status.isOnline !== undefined ||
+      status.isPaused !== undefined ||
+      status.startDelay !== undefined
+    ) {
+      shouldRecalculate = true;
+    }
 
     // ✅ When doctor turns ON the QR toggle
     if (status.isQrCodeActive === true) {
-      updates.walkInSessionToken = randomBytes(16).toString('hex'); // unique token
-      updates.qrSessionStartTime = new Date().toISOString();       // session start time
-      updates.qrSessionLocation = CLINIC_COORDINATES;              // clinic location
+      updates.walkInSessionToken = randomBytes(16).toString('hex');
+      updates.qrSessionStartTime = new Date().toISOString();
     }
-
     // 🚫 When doctor turns OFF the QR toggle
     else if (status.isQrCodeActive === false) {
       updates.walkInSessionToken = null;
       updates.qrSessionStartTime = null;
-      updates.qrSessionLocation = null;
     }
 
     const newStatus = await updateDoctorStatus(updates);
-    await recalculateQueueWithETC();
+    
+    // Only recalculate if a relevant status changed.
+    if (shouldRecalculate) {
+        await recalculateQueueWithETC();
+    }
+    
     revalidatePath('/', 'layout');
 
     return { success: 'Doctor status updated successfully.', status: newStatus };
@@ -1363,3 +1372,4 @@ export async function patientImportAction(familyData: FormData, childData: FormD
     
 
     
+
