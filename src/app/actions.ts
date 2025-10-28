@@ -336,7 +336,7 @@ export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
     const updates: Partial<DoctorStatus> = { ...status };
     let shouldRecalculate = false;
 
-    // Check if a status affecting queue logic has changed.
+    // Only trigger recalculation for status changes that affect queue logic
     if (
       status.isOnline !== undefined ||
       status.isPaused !== undefined ||
@@ -344,6 +344,7 @@ export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
     ) {
       shouldRecalculate = true;
     }
+
 
     // ✅ When doctor turns ON the QR toggle
     if (status.isQrCodeActive === true) {
@@ -580,13 +581,13 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         const delayedClinicStartTime = addMinutes(clinicSessionStartTime, sessionDelay);
         
         sessionPatients.forEach(p => {
-            const worstCaseETC = addMinutes(delayedClinicStartTime, (p.tokenNo - 1) * schedule.slotDuration);
-            patientUpdates.set(p.id, { ...patientUpdates.get(p.id), worstCaseETC: worstCaseETC.toISOString(), slotTime: worstCaseETC.toISOString() });
+            const originalSlotTime = addMinutes(delayedClinicStartTime, (p.tokenNo - 1) * schedule.slotDuration);
+            patientUpdates.set(p.id, { slotTime: originalSlotTime.toISOString() });
             
             const isLateCandidate = p.type === 'Appointment' || p.subType === 'Booked Walk-in';
 
-            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && !p.lateLocked && isLateCandidate && toDate(p.checkInTime)! > worstCaseETC) {
-                 const lateBy = Math.max(0, differenceInMinutes(toDate(p.checkInTime)!, worstCaseETC));
+            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && !p.lateLocked && isLateCandidate && toDate(p.checkInTime)! > originalSlotTime) {
+                 const lateBy = Math.max(0, differenceInMinutes(toDate(p.checkInTime)!, originalSlotTime));
                  patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Late', lateBy });
             }
         });
@@ -642,8 +643,16 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
 
         liveQueue.forEach((p, index) => {
             if (p.id === inConsultation?.id) return;
+            
             const bestCaseETCValue = new Date(lastBestCaseETC);
-            patientUpdates.set(p.id, { ...patientUpdates.get(p.id), bestCaseETC: bestCaseETCValue.toISOString() });
+            const worstCaseETCValue = addMinutes(bestCaseETCValue, schedule.slotDuration); // DERIVE from best case
+            
+            patientUpdates.set(p.id, { 
+                ...patientUpdates.get(p.id), 
+                bestCaseETC: bestCaseETCValue.toISOString(),
+                worstCaseETC: worstCaseETCValue.toISOString(),
+            });
+
             lastBestCaseETC = addMinutes(bestCaseETCValue, schedule.slotDuration);
         });
 
@@ -1372,4 +1381,5 @@ export async function patientImportAction(familyData: FormData, childData: FormD
     
 
     
+
 
