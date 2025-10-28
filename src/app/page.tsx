@@ -222,9 +222,8 @@ export default function DashboardPage() {
     const [error, setError] = useState<string | null>(null);
 
     const loadData = useCallback(async (isInitial: boolean) => {
-      if (!isInitial) {
-        setIsRefreshing(true);
-      }
+      if (isInitial) setIsLoading(true);
+      else setIsRefreshing(true);
     
       try {
         const [scheduleData, patientData, familyData, statusData] = await Promise.all([
@@ -721,7 +720,7 @@ export default function DashboardPage() {
           }
           return timeA - timeB;
       });
-
+    
     const nextInLine = waitingList[0];
 
     const displayedTimeSlots = timeSlots.filter(slot => {
@@ -799,11 +798,17 @@ export default function DashboardPage() {
         const PurposeIcon = patient.purpose ? (purposeIcons[patient.purpose as keyof typeof purposeIcons] || HelpCircle) : HelpCircle;
         
         const isUpNext = upNext?.id === patient.id;
-        const isNextInLine = nextInLine?.id === patient.id;
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
         const isCurrentlyServing = patient.status === 'In-Consultation';
         
+        // This is the last patient in the queue if they are "Up-Next" and no one else is waiting.
         const isLastInQueue = isUpNext && waitingList.length === 0;
+        
+        // A patient is "next in line" if they are the first person in the simple waiting list.
+        const isNextInLine = waitingList.length > 0 && waitingList[0].id === patient.id;
+        
+        // This button appears if one patient is being served and the current patient is the ONLY ONE left waiting.
+        const isConsultNext = !!nowServing && isNextInLine && waitingList.length === 1 && !upNext;
 
         return (
              <div className={cn(
@@ -853,16 +858,21 @@ export default function DashboardPage() {
                              {['Booked', 'Confirmed'].includes(patient.status) && (
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                             )}
-                            {isNextInLine && !isUpNext && (
-                                <Button size="sm" onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
+                             {isConsultNext && (
+                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8 bg-blue-500 text-white hover:bg-blue-600">
+                                    Consult Next
+                                </Button>
+                             )}
+                             {!isConsultNext && isNextInLine && !isUpNext && (
+                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
                                     <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
                                 </Button>
-                            )}
-                            {isLastInQueue && (
-                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
+                             )}
+                             {isLastInQueue && (
+                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8 bg-green-600 text-white hover:bg-green-700">
                                      <LogIn className="mr-2 h-4 w-4" /> Start
                                 </Button>
-                            )}
+                             )}
                         </>
                     )}
                      {isActionable && (
@@ -873,7 +883,7 @@ export default function DashboardPage() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                {isActionable && !isNextInLine && !isUpNext && !isCurrentlyServing && ['Waiting', 'Late'].includes(patient.status) && (
+                                {isActionable && !isConsultNext && !isNextInLine && !isUpNext && !isCurrentlyServing && ['Waiting', 'Late'].includes(patient.status) && (
                                      <DropdownMenuItem onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
                                         <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
                                     </DropdownMenuItem>
