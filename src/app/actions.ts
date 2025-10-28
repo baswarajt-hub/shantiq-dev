@@ -583,7 +583,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         });
         
         const inConsultation = sessionPatients.find(p => p.status === 'In-Consultation');
-        const currentUpNext = sessionPatients.find(p => p.status === 'Up-Next');
+        let currentUpNext = sessionPatients.find(p => p.status === 'Up-Next');
 
         const normalWaiting = sessionPatients.filter(p => ['Waiting', 'Priority'].includes(p.status) && !p.lateLocked && p.id !== currentUpNext?.id).sort((a, b) => {
             if (a.status === 'Priority' && b.status !== 'Priority') return -1;
@@ -620,7 +620,16 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             });
         }
         
+        // Find the new Up-Next patient from the queue if one doesn't exist already
+        if (!currentUpNext) {
+            currentUpNext = liveQueue.find((p) => p.status === 'Waiting' || p.status === 'Late' || p.status === 'Priority');
+            if (currentUpNext) {
+                patientUpdates.set(currentUpNext.id, { ...patientUpdates.get(currentUpNext.id), status: 'Up-Next' });
+            }
+        }
+        
         const newUpNextPatientId = liveQueue.find((p, index) => index > 0 && ['Waiting', 'Late', 'Priority'].includes(p.status))?.id;
+
 
         liveQueue.forEach((p, index) => {
             if (p.id === inConsultation?.id) return;
