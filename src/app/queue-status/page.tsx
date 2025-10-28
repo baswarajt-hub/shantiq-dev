@@ -290,7 +290,6 @@ function QueueStatusPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [completedAppointmentForDisplay, setCompletedAppointmentForDisplay] = useState<Patient | null>(null);
   const [currentSession, setCurrentSession] = useState<'morning' | 'evening' | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -328,125 +327,100 @@ function QueueStatusPageContent() {
     return null;
   }, []);
 
-  const fetchData = useCallback(async (isInitial: boolean) => {
-    if (isInitial) setIsLoading(true);
-    else setIsRefreshing(true);
-
+  const fetchData = useCallback(async (patientId: string) => {
+    setIsRefreshing(true);
     try {
-        const [allPatientData, statusData, scheduleData] = await Promise.all([
-            getPatientsAction(),
-            getDoctorStatusAction(),
-            getDoctorScheduleAction(),
-        ]);
+      const [allPatientData, statusData, scheduleData] = await Promise.all([
+        getPatientsAction(),
+        getDoctorStatusAction(),
+        getDoctorScheduleAction(),
+      ]);
 
-        setSchedule(scheduleData);
-        setDoctorStatus(statusData);
+      const patientToTrack = allPatientData.find(p => p.id === patientId) || null;
+      setTargetPatient(patientToTrack);
+      setDoctorStatus(statusData);
+      setSchedule(scheduleData);
 
-        let patientToTrack = targetPatient;
-
-        if (initialLoadRef.current) {
-            const userPhone = localStorage.getItem('userPhone');
-            const patientIdParam = searchParams.get('id');
-            
-            if (!patientIdParam) {
-              setAuthError("No appointment specified.");
-              setIsLoading(false);
-              return;
-            }
-            
-            if (!userPhone) {
-              router.push('/login');
-              return;
-            }
-
-            const foundPatient = allPatientData.find((p: Patient) => p.id === patientIdParam) || null;
-        
-            if (!foundPatient) {
-                setAuthError("This appointment could not be found.");
-                setIsLoading(false);
-                return;
-            }
-
-            if (foundPatient.phone !== userPhone) {
-                setAuthError("You are not authorized to view this appointment's status.");
-                setIsLoading(false);
-                return;
-            }
-            
-            patientToTrack = foundPatient;
-            setAuthError(null);
-            setTargetPatient(foundPatient);
-            initialLoadRef.current = false;
+      if (patientToTrack) {
+        let sessionToShow = getSessionForTime(parseISO(patientToTrack.appointmentTime), scheduleData);
+        if (!sessionToShow && scheduleData) {
+           const now = new Date();
+           sessionToShow = now.getHours() < 14 ? 'morning' : 'evening';
         }
-
-        if (!patientToTrack) {
-            setIsLoading(false);
-            setIsRefreshing(false);
-            return;
-        }
-        
-        const updatedPatient = allPatientData.find((p: Patient) => p.id === patientToTrack?.id) || null;
-        setTargetPatient(updatedPatient);
-
-        if (updatedPatient?.status === 'Completed') {
-            setCompletedAppointmentForDisplay(updatedPatient);
-            setIsLoading(false);
-            setIsRefreshing(false);
-            return;
-        }
-
-        if (updatedPatient) {
-            let sessionToShow = getSessionForTime(parseISO(updatedPatient.appointmentTime), scheduleData);
-
-            if (!sessionToShow && scheduleData) {
-                const now = new Date();
-                const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
-                const dayName = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
-                const daySchedule = scheduleData.days[dayName];
-                
-                if (daySchedule) {
-                    const morningStartUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.start) : null;
-                    const morningEndUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.end) : null;
-                    const eveningStartUtc = daySchedule.evening.isOpen ? sessionLocalToUtc(todayStr, daySchedule.evening.start) : null;
-                    
-                    if (morningStartUtc && now < morningStartUtc) {
-                        sessionToShow = 'morning';
-                    } else if (morningEndUtc && eveningStartUtc && now >= morningEndUtc && now < eveningStartUtc) {
-                        sessionToShow = 'evening';
-                    } else {
-                        sessionToShow = now.getHours() < 14 ? 'morning' : 'evening';
-                    }
-                }
-            }
-            setCurrentSession(sessionToShow);
-
-            if (scheduleData) {
-                const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
-                const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
-                setAllSessionPatients(filteredPatientsForSession);
-            }
-        }
-      
-        setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        if(isInitial) setIsLoading(false);
-        setIsRefreshing(false);
-    } catch(e) {
-        console.error("Fetch data error:", e);
-        if (isInitial) setIsLoading(false);
-        setIsRefreshing(false);
+        setCurrentSession(sessionToShow);
+        const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
+        const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+        setAllSessionPatients(filteredPatientsForSession);
+      }
+      setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } catch (e) {
+      console.error("Fetch data error:", e);
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [searchParams, getSessionForTime, router, targetPatient]);
+  }, [getSessionForTime]);
 
   useEffect(() => {
-    fetchData(true);
+    // This effect runs ONLY ONCE to validate and do the initial load.
+    const initialValidation = async () => {
+      if (!initialLoadRef.current) return;
+      initialLoadRef.current = false;
+      setIsLoading(true);
+
+      const patientIdParam = searchParams.get('id');
+      const userPhone = localStorage.getItem('userPhone');
+
+      if (!patientIdParam) {
+        setAuthError("No appointment specified.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!userPhone) {
+        router.push('/login');
+        return;
+      }
+
+      const allPatientData = await getPatientsAction();
+      const foundPatient = allPatientData.find(p => p.id === patientIdParam) || null;
+
+      if (!foundPatient) {
+        setAuthError("This appointment could not be found.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (foundPatient.phone !== userPhone) {
+        setAuthError("You are not authorized to view this appointment's status.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Initial data fetch is successful and authorized
+      await fetchData(patientIdParam);
+      setAuthError(null);
+      setIsLoading(false);
+    };
+
+    initialValidation();
+  }, [searchParams, router, fetchData]);
+
+  useEffect(() => {
+    // This effect handles the POLLING after the initial load.
+    const patientId = searchParams.get('id');
+    if (isLoading || !patientId || authError) return;
+
     const interval = setInterval(() => {
-        if (!completedAppointmentForDisplay) {
-            fetchData(false);
-        }
+      // If the patient status becomes 'Completed', stop polling.
+      if (targetPatient?.status === 'Completed') {
+        clearInterval(interval);
+        return;
+      }
+      fetchData(patientId);
     }, 15000); // Poll every 15 seconds
-    
+
     return () => clearInterval(interval);
-  }, [fetchData, completedAppointmentForDisplay]); // Re-run effect only if fetchData changes
+  }, [isLoading, authError, searchParams, fetchData, targetPatient?.status]);
   
   const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
   const upNext = allSessionPatients.find(p => p.status === 'Up-Next');
@@ -489,8 +463,8 @@ function QueueStatusPageContent() {
       <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
       <main className="flex-1 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-4">
-            {completedAppointmentForDisplay ? (
-                <CompletionSummary patient={completedAppointmentForDisplay} />
+            {targetPatient?.status === 'Completed' ? (
+                <CompletionSummary patient={targetPatient} />
             ) : !targetPatient ? (
                 <div className="text-center">
                     <h1 className="text-2xl font-bold">No Active Appointment</h1>
@@ -502,7 +476,7 @@ function QueueStatusPageContent() {
                     <h1 className="text-2xl font-bold tracking-tight">Live Queue Status</h1>
                     <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
                         <span>{currentSession} session | Last updated: {lastUpdated}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => fetchData(false)} disabled={isRefreshing}>
+                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => targetPatient && fetchData(targetPatient.id)} disabled={isRefreshing}>
                             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
                         </Button>
                     </div>
@@ -558,5 +532,3 @@ export default function QueueStatusPage() {
         </Suspense>
     )
 }
-
-    
