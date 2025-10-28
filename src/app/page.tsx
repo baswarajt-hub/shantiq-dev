@@ -801,13 +801,8 @@ export default function DashboardPage() {
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
         const isCurrentlyServing = patient.status === 'In-Consultation';
         
-        // This is the last patient in the queue if they are "Up-Next" and no one else is waiting.
         const isLastInQueue = isUpNext && waitingList.length === 0;
-        
-        // A patient is "next in line" if they are the first person in the simple waiting list.
         const isNextInLine = waitingList.length > 0 && waitingList[0].id === patient.id;
-        
-        // This button appears if one patient is being served and the current patient is the ONLY ONE left waiting.
         const isConsultNext = !!nowServing && isNextInLine && waitingList.length === 1 && !upNext;
 
         return (
