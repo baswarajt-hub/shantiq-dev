@@ -328,7 +328,7 @@ function QueueStatusPageContent() {
   }, []);
 
   const fetchData = useCallback(async (patientId: string) => {
-    setIsRefreshing(true);
+    if (!isRefreshing) setIsRefreshing(true);
     try {
       const [allPatientData, statusData, scheduleData] = await Promise.all([
         getPatientsAction(),
@@ -341,16 +341,23 @@ function QueueStatusPageContent() {
       setDoctorStatus(statusData);
       setSchedule(scheduleData);
 
-      if (patientToTrack) {
-        let sessionToShow = getSessionForTime(parseISO(patientToTrack.appointmentTime), scheduleData);
-        if (!sessionToShow && scheduleData) {
-           const now = new Date();
-           sessionToShow = now.getHours() < 14 ? 'morning' : 'evening';
-        }
-        setCurrentSession(sessionToShow);
-        const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
-        const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
-        setAllSessionPatients(filteredPatientsForSession);
+      if (scheduleData) {
+          const now = new Date();
+          let sessionToShow: 'morning' | 'evening' | null = getSessionForTime(now, scheduleData);
+          
+          if (!sessionToShow) {
+              if (patientToTrack) {
+                  sessionToShow = getSessionForTime(parseISO(patientToTrack.appointmentTime), scheduleData);
+              }
+              if (!sessionToShow) {
+                  sessionToShow = now.getHours() < 14 ? 'morning' : 'evening';
+              }
+          }
+          
+          setCurrentSession(sessionToShow);
+          const todaysPatients = allPatientData.filter((p: Patient) => isToday(new Date(p.appointmentTime)));
+          const filteredPatientsForSession = todaysPatients.filter((p: Patient) => getSessionForTime(parseISO(p.appointmentTime), scheduleData) === sessionToShow);
+          setAllSessionPatients(filteredPatientsForSession);
       }
       setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } catch (e) {
@@ -358,7 +365,7 @@ function QueueStatusPageContent() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [getSessionForTime]);
+  }, [getSessionForTime, isRefreshing]);
 
   useEffect(() => {
     // This effect runs ONLY ONCE to validate and do the initial load.
