@@ -803,7 +803,7 @@ export default function DashboardPage() {
         
         const isLastInQueue = isUpNext && waitingList.length === 0;
         const isNextInLine = waitingList.length > 0 && waitingList[0].id === patient.id;
-        const isConsultNext = !!nowServing && isNextInLine && waitingList.length === 1 && !upNext;
+        const isConsultNext = !!nowServing && isNextInLine && !upNext;
 
         return (
              <div className={cn(
@@ -854,7 +854,7 @@ export default function DashboardPage() {
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                             )}
                              {isConsultNext && (
-                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8 bg-blue-500 text-white hover:bg-blue-600">
+                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8 bg-blue-500 text-white hover:bg-blue-600">
                                     Consult Next
                                 </Button>
                              )}
