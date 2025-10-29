@@ -1,46 +1,62 @@
-// middleware.ts
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+// src/middleware.ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  const url = request.nextUrl.clone()
-  const hostname = request.headers.get('host') || ''
-  
-  // Remove port from hostname if present
-  const cleanHostname = hostname.replace(/:\d+$/, '')
-  
-  // Extract subdomain
-  const subdomain = cleanHostname.split('.')[0]
+export default function middleware(request: NextRequest) {
+  const hostname = request.nextUrl.hostname;
+  const pathname = request.nextUrl.pathname;
 
-  // Map subdomains to your EXISTING routes
-  const subdomainMap: { [key: string]: string } = {
-    'app': '/',                    // app.shantiq.in → your existing dashboard (root)
-    'doc': '/doctor',              // doc.shantiq.in → your existing doctor panel
-    'tv1': '/tv-display',          // tv1.shantiq.in → your existing TV display
-    'tv2': '/tv-display?layout=2', // tv2.shantiq.in → your existing TV display with layout param
-    'www': '/login',               // www.shantiq.in → your existing patient login
-    'shantiq': '/login'            // shantiq.in → your existing patient login
-  }
+  console.log('🔍 MIDDLEWARE TRIGGERED:', {
+    hostname,
+    pathname,
+    fullUrl: request.url,
+    userAgent: request.headers.get('user-agent')
+  });
 
-  const pathname = subdomainMap[subdomain]
+  if (pathname === '/') {
+    let redirectPath = '';
 
-  if (pathname && !url.pathname.startsWith('/_next') && !url.pathname.startsWith('/api')) {
-    // For routes with query parameters
-    if (pathname.includes('?')) {
-      const [basePath, queryString] = pathname.split('?')
-      url.pathname = basePath
-      url.search = queryString
-    } else {
-      url.pathname = pathname
+    switch (hostname) {
+      case 'shantiq.in':
+        redirectPath = '/login';
+        break;
+      case 'app.shantiq.in':
+        redirectPath = '/';
+        break;
+      case 'doc.shantiq.in':
+        redirectPath = '/admin';
+        break;
+      case 'tv1.shantiq.in':
+        redirectPath = '/admin/tv-display';
+        break;
+      case 'tv2.shantiq.in':
+        redirectPath = '/admin/tv-display?layout=2';
+        break;
+      case 'shantiq.vercel.app':
+        redirectPath = '/';
+        break;
+      default:
+        redirectPath = '/';
+        console.log('🔄 No redirect for hostname:', hostname);
     }
-    return NextResponse.rewrite(url)
+
+    console.log('🎯 Planning to redirect to:', redirectPath);
+
+    if (redirectPath && redirectPath !== '/') {
+      const url = request.nextUrl.clone();
+      url.pathname = redirectPath.split('?')[0];
+      if (redirectPath.includes('?')) {
+        url.search = redirectPath.split('?')[1];
+      }
+      console.log('🚀 Actually redirecting to:', url.toString());
+      return NextResponse.redirect(url);
+    }
   }
 
-  return NextResponse.next()
+  console.log('➡️ No redirect applied, continuing...');
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
-}
+  matcher: '/',
+};

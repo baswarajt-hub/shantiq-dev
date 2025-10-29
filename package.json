@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "predev": "npm run sync-env",
-    "dev": "next dev --turbopack -p 9002",
-    "prebuild": "npm run sync-env",
+    "dev": "next dev --turbopack -p 9002 -H 0.0.0.0",
+    "prebuild": "npm run sync-env", 
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

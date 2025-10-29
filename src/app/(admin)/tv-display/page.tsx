@@ -1,4 +1,3 @@
-
 'use client';
 import { getPatientsAction, getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
@@ -166,7 +165,15 @@ function TVDisplayPageContent() {
   const [currentSessionName, setCurrentSessionName] = useState<'morning' | 'evening' | null>(null);
   const [isSessionOver, setIsSessionOver] = useState(false);
   const searchParams = useSearchParams();
-  const layout = searchParams.get('layout') || '1';
+  
+  // Domain-based layout detection
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  let layout = searchParams.get('layout') || '1';
+  
+  // Domain takes priority over query parameter
+  if (hostname === 'tv2.shantiq.in') {
+    layout = '2';
+  }
 
   const listRef = useRef<HTMLDivElement>(null);
   const timeZone = "Asia/Kolkata";
@@ -746,5 +753,3 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
-
-    
