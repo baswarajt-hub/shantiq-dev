@@ -413,17 +413,22 @@ function QueueStatusPageContent() {
   }, [searchParams, getSessionForTime, router]);
 
 
-  useEffect(() => {
-    fetchData(true); // Initial fetch
-    
+    useEffect(() => {
+    // ✅ Skip fetching completely if already showing completion summary
+    if (completedAppointmentForDisplay) return;
+
+    // Initial fetch (only once)
+    fetchData(true);
+
+    // Refresh every 15s — but stop if completed or error
     const intervalId = setInterval(() => {
-      // Prevent polling if showing summary or error
       if (completedAppointmentForDisplay || authError || initialLoadRef.current) return;
-      fetchData(false)
+      fetchData(false);
     }, 15000);
+
     return () => clearInterval(intervalId);
   }, [fetchData, completedAppointmentForDisplay, authError]);
-  
+
   const nowServing = allSessionPatients.find(p => p.status === 'In-Consultation');
   const upNext = allSessionPatients.find(p => p.status === 'Up-Next');
   
@@ -438,16 +443,36 @@ function QueueStatusPageContent() {
         return timeA - timeB;
     });
 
-  if (isLoading) {
-      return (
-          <div className="flex flex-col min-h-screen bg-muted/40">
-              <PatientPortalHeader logoSrc={schedule?.clinicDetails?.clinicLogo} clinicName={schedule?.clinicDetails?.clinicName} />
-              <div className="flex-1 flex items-center justify-center">
-                  <p>Loading and verifying...</p>
-              </div>
-          </div>
-      );
-  }
+  if (isLoading && !completedAppointmentForDisplay) {
+  return (
+    <div className="flex flex-col min-h-screen bg-muted/40">
+      <PatientPortalHeader
+        logoSrc={schedule?.clinicDetails?.clinicLogo}
+        clinicName={schedule?.clinicDetails?.clinicName}
+      />
+      <div className="flex-1 flex items-center justify-center">
+        <p>Loading queue status...</p>
+      </div>
+    </div>
+    );
+    }
+
+
+    // ✅ If consultation completed, directly show summary — no verification
+    if (completedAppointmentForDisplay) {
+    return (
+        <div className="flex flex-col min-h-screen bg-muted/40">
+        <PatientPortalHeader
+            logoSrc={schedule?.clinicDetails?.clinicLogo}
+            clinicName={schedule?.clinicDetails?.clinicName}
+        />
+        <main className="flex-1 flex flex-col items-center justify-center p-4">
+            <CompletionSummary patient={completedAppointmentForDisplay} />
+        </main>
+        </div>
+    );
+    }
+
   
   if (authError) {
       return (
