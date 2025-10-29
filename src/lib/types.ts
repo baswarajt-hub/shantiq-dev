@@ -42,6 +42,7 @@ export type DoctorStatus = {
   startDelay: number; // in minutes
   isPaused?: boolean;
   isQrCodeActive?: boolean;
+  qrSessionStartTime?: string; // ISO timestamp when QR session starts
   walkInSessionToken?: string | null;
 };
 
