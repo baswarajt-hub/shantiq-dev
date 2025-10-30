@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 import { AdminEditFamilyMemberDialog } from '@/components/admin/edit-family-member-dialog';
+import { FamilyDetailsDialog } from '@/components/reception/family-details-dialog';
 
 
 
@@ -187,8 +188,8 @@ export default function DashboardPage() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isPending, startTransition] = useTransition();
 
-    const [editingFamilyMember, setEditingFamilyMember] = useState<FamilyMember | null>(null);
-    const [isFamilyEditOpen, setFamilyEditOpen] = useState(false);
+    const [familyToUpdatePhone, setFamilyToUpdatePhone] = useState<string | null>(null);
+    const [isFamilyDetailsOpen, setFamilyDetailsOpen] = useState(false);
     
     const { toast } = useToast();
 
@@ -709,26 +710,13 @@ export default function DashboardPage() {
     }, [loadData, toast]);
     
     const handleOpenFamilyEditor = (patient: Patient) => {
-        const primaryMember = family.find(f => f.phone === patient.phone && f.isPrimary);
-        if (primaryMember) {
-            setEditingFamilyMember(primaryMember);
-            setFamilyEditOpen(true);
-        } else {
-            toast({ title: "Error", description: "Could not find primary family member to edit.", variant: 'destructive' });
-        }
+        setFamilyToUpdatePhone(patient.phone);
+        setFamilyDetailsOpen(true);
     };
     
-    const handleUpdateFamily = useCallback((updatedMember: FamilyMember) => {
-        startTransition(() => {
-            updateFamilyMemberAction(updatedMember).then(result => {
-                if ("error" in result) {
-                    toast({ title: "Error", description: result.error, variant: "destructive" });
-                } else {
-                    toast({ title: "Success", description: "Family details updated." });
-                    loadData(false);
-                }
-            });
-        });
+    const handleUpdateFamily = useCallback(async () => {
+        await loadData(false);
+        toast({ title: "Success", description: "Family details updated." });
     }, [loadData, toast]);
 
 
@@ -1241,14 +1229,16 @@ export default function DashboardPage() {
                         onSave={handleAdjustTiming}
                     />
                 )}
-                {editingFamilyMember && (
-                    <AdminEditFamilyMemberDialog 
-                        isOpen={isFamilyEditOpen}
-                        onOpenChange={setFamilyEditOpen}
-                        member={editingFamilyMember}
-                        onSave={handleUpdateFamily}
+                {isFamilyDetailsOpen && familyToUpdatePhone && (
+                    <FamilyDetailsDialog
+                        isOpen={isFamilyDetailsOpen}
+                        onOpenChange={setFamilyDetailsOpen}
+                        phone={familyToUpdatePhone}
+                        onUpdate={handleUpdateFamily}
                     />
                 )}
         </div>
     );
 }
+
+    
