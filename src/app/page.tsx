@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
@@ -16,7 +17,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction, updateFamilyMemberAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
+import { AdminEditFamilyMemberDialog } from '@/components/admin/edit-family-member-dialog';
 
 
 
@@ -184,6 +186,9 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isPending, startTransition] = useTransition();
+
+    const [editingFamilyMember, setEditingFamilyMember] = useState<FamilyMember | null>(null);
+    const [isFamilyEditOpen, setFamilyEditOpen] = useState(false);
     
     const { toast } = useToast();
 
@@ -614,10 +619,8 @@ export default function DashboardPage() {
       
         let updates: Partial<DoctorStatus> = { [field]: newStatusValue };
       
-        if (field === 'isQrCodeActive' && newStatusValue) {
-          // QR code activation logic
-        } else if (field === 'isQrCodeActive' && !newStatusValue) {
-          updates.walkInSessionToken = null;
+        if (field === 'isQrCodeActive') {
+            // This will be handled server-side if needed
         }
       
         if (field === 'isOnline') {
@@ -705,6 +708,29 @@ export default function DashboardPage() {
         });
     }, [loadData, toast]);
     
+    const handleOpenFamilyEditor = (patient: Patient) => {
+        const primaryMember = family.find(f => f.phone === patient.phone && f.isPrimary);
+        if (primaryMember) {
+            setEditingFamilyMember(primaryMember);
+            setFamilyEditOpen(true);
+        } else {
+            toast({ title: "Error", description: "Could not find primary family member to edit.", variant: 'destructive' });
+        }
+    };
+    
+    const handleUpdateFamily = useCallback((updatedMember: FamilyMember) => {
+        startTransition(() => {
+            updateFamilyMemberAction(updatedMember).then(result => {
+                if ("error" in result) {
+                    toast({ title: "Error", description: result.error, variant: "destructive" });
+                } else {
+                    toast({ title: "Success", description: "Family details updated." });
+                    loadData(false);
+                }
+            });
+        });
+    }, [loadData, toast]);
+
 
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
     const upNext = sessionPatients.find(p => p.status === 'Up-Next');
@@ -715,7 +741,6 @@ export default function DashboardPage() {
           const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
           const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
           if (timeA === Infinity && timeB === Infinity) {
-              // Fallback to token number if ETC is not available (e.g., before session start)
               return (a.tokenNo || 0) - (b.tokenNo || 0);
           }
           return timeA - timeB;
@@ -925,6 +950,10 @@ export default function DashboardPage() {
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleOpenFamilyEditor(patient)}>
+                                    <Users className="mr-2 h-4 w-4" />
+                                    Update Family
+                                </DropdownMenuItem>
                                 <DropdownMenuSub>
                                     <DropdownMenuSubTrigger>
                                         <Pencil className="mr-2 h-4 w-4" />
@@ -1212,10 +1241,14 @@ export default function DashboardPage() {
                         onSave={handleAdjustTiming}
                     />
                 )}
+                {editingFamilyMember && (
+                    <AdminEditFamilyMemberDialog 
+                        isOpen={isFamilyEditOpen}
+                        onOpenChange={setFamilyEditOpen}
+                        member={editingFamilyMember}
+                        onSave={handleUpdateFamily}
+                    />
+                )}
         </div>
     );
 }
-
-    
-
-    
