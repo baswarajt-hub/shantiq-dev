@@ -323,36 +323,9 @@ export async function getDoctorStatusAction(): Promise<DoctorStatus> {
 
 
 
-import { doc, updateDoc } from 'firebase/firestore';
-
-
-// Approximate clinic coordinates for 300m radius validation
-const CLINIC_COORDINATES = {
-  lat: 17.4036,
-  lng: 78.4871,
-};
-
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
   try {
-    const updates: Partial<DoctorStatus & {
-      qrSessionLocation?: { lat: number; lng: number } | null;
-      qrSessionStartTime?: string | null;
-    }> = { ...status };
-
-    // ✅ When doctor turns ON the QR toggle
-    if (status.isQrCodeActive === true) {
-      updates.walkInSessionToken = randomBytes(16).toString('hex'); // unique token
-      updates.qrSessionStartTime = new Date().toISOString();       // session start time
-      updates.qrSessionLocation = CLINIC_COORDINATES;              // clinic location
-    }
-
-    // 🚫 When doctor turns OFF the QR toggle
-    else if (status.isQrCodeActive === false) {
-      updates.walkInSessionToken = null;
-      updates.qrSessionStartTime = null;
-      updates.qrSessionLocation = null;
-    }
-
+    const updates: Partial<DoctorStatus> = { ...status };
     const newStatus = await updateDoctorStatus(updates);
     await recalculateQueueWithETC();
     revalidatePath('/', 'layout');
@@ -567,14 +540,17 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         const delayedClinicStartTime = addMinutes(clinicSessionStartTime, sessionDelay);
 
         sessionPatients.forEach(p => {
+            const slotTime = addMinutes(clinicSessionStartTime, (p.tokenNo - 1) * schedule.slotDuration);
             const worstCaseETC = addMinutes(delayedClinicStartTime, (p.tokenNo - 1) * schedule.slotDuration);
+            
             patientUpdates.set(p.id, { 
                 ...patientUpdates.get(p.id), 
-                worstCaseETC: worstCaseETC.toISOString(), 
-                slotTime: worstCaseETC.toISOString() 
+                slotTime: slotTime.toISOString(),
+                worstCaseETC: worstCaseETC.toISOString() 
             });
-            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && !p.lateLocked && toDate(p.checkInTime)! > worstCaseETC) {
-                 const lateBy = differenceInMinutes(toDate(p.checkInTime)!, worstCaseETC);
+
+            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && !p.lateLocked && toDate(p.checkInTime)! > slotTime) {
+                 const lateBy = differenceInMinutes(toDate(p.checkInTime)!, slotTime);
                  patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Late', lateBy: Math.max(0, lateBy) });
             }
         });
@@ -590,40 +566,47 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
 
         const inConsultation = updatedSessionPatients.find(p => p.status === 'In-Consultation');
         
+        const priorityQueue = updatedSessionPatients
+            .filter(p => p.status === 'Priority' && !p.lateLocked)
+            .sort((a,b) => (a.tokenNo || 0) - (b.tokenNo || 0));
+
         const normalWaiting = updatedSessionPatients
-          .filter(p => ['Waiting', 'Priority'].includes(p.status) && !p.lateLocked)
-          .sort((a, b) => {
-              if (a.status === 'Priority' && b.status !== 'Priority') return -1;
-              if (b.status === 'Priority' && a.status !== 'Priority') return 1;
-              return (a.tokenNo || 0) - (b.tokenNo || 0);
-          });
+          .filter(p => p.status === 'Waiting' && !p.lateLocked)
+          .sort((a, b) => (a.tokenNo || 0) - (b.tokenNo || 0));
           
         const penalized = updatedSessionPatients
           .filter(p => p.lateLocked)
           .sort((a, b) => new Date(a.lateLockedAt || 0).getTime() - new Date(b.lateLockedAt || 0).getTime());
 
-        let fullQueue: Patient[] = [];
-        if (inConsultation) fullQueue.push(inConsultation);
-        fullQueue.push(...normalWaiting);
+        let baseQueue = [...priorityQueue, ...normalWaiting];
 
-        for (const p of penalized) {
-          const anchorsRemaining = (p.lateAnchors || []).filter(anchorId => {
-            const anchor = updatedSessionPatients.find(x => x.id === anchorId);
-            return anchor && !['Completed', 'Cancelled'].includes(anchor.status);
-          });
-          let lastIdx = -1;
-          for (const anchorId of anchorsRemaining) {
-            const idx = fullQueue.findIndex(q => q.id === anchorId);
-            if (idx > lastIdx) lastIdx = idx;
-          }
-          fullQueue.splice(Math.min(lastIdx + 1, fullQueue.length), 0, p);
-        }
+        let finalQueue: Patient[] = [];
+        if (inConsultation) finalQueue.push(inConsultation);
         
-        const liveQueue = fullQueue.filter(p => p.status !== 'In-Consultation');
+        // Interleave late patients
+        let tempQueue = [...baseQueue];
+        for (const latePatient of penalized) {
+            const anchorsRemaining = (latePatient.lateAnchors || []).filter(anchorId => {
+                const anchor = tempQueue.find(p => p.id === anchorId);
+                return anchor && ['Waiting', 'Priority'].includes(anchor.status);
+            });
+
+            if (anchorsRemaining.length > 0) {
+                const lastAnchorId = anchorsRemaining[anchorsRemaining.length - 1];
+                const insertIndex = tempQueue.findIndex(p => p.id === lastAnchorId) + 1;
+                tempQueue.splice(insertIndex, 0, latePatient);
+            } else {
+                // If all anchors are gone, add them to the start of the waiting list.
+                tempQueue.unshift(latePatient);
+            }
+        }
+        finalQueue.push(...tempQueue);
+
+        const liveQueue = finalQueue.filter(p => p.status !== 'In-Consultation');
         
         if (liveQueue.length > 0) {
             const upNextPatient = liveQueue[0];
-            if (['Waiting', 'Late'].includes(upNextPatient.status)) {
+            if (['Waiting', 'Late', 'Priority'].includes(upNextPatient.status)) {
                 patientUpdates.set(upNextPatient.id, { ...patientUpdates.get(upNextPatient.id), status: 'Up-Next' });
             }
         }
@@ -633,39 +616,35 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             : delayedClinicStartTime;
 
         if (inConsultation?.consultationStartTime) {
-            const expectedEndTime = addMinutes(parseISO(inConsultation.consultationStartTime), schedule.slotDuration);
+            const avgConsultTime = schedule.slotDuration;
+            const expectedEndTime = addMinutes(parseISO(inConsultation.consultationStartTime), avgConsultTime);
             effectiveStartTime = max([now, expectedEndTime]);
         }
         
         liveQueue.forEach((p, i) => {
             const prevPatientETC = i === 0 ? effectiveStartTime : toDate(patientUpdates.get(liveQueue[i - 1].id)?.bestCaseETC || liveQueue[i-1].bestCaseETC!)!;
-            const bestCaseETCValue = addMinutes(prevPatientETC, schedule.slotDuration);
+            const avgConsultTime = schedule.slotDuration; // Can be made more dynamic later
+            const bestCaseETCValue = addMinutes(prevPatientETC, avgConsultTime);
             
             let finalUpdates = patientUpdates.get(p.id) || {};
             finalUpdates.bestCaseETC = bestCaseETCValue.toISOString();
-
-            const worstETC = toDate(finalUpdates.worstCaseETC || p.worstCaseETC);
-            if (worstETC && bestCaseETCValue > worstETC) {
-                finalUpdates.worstCaseETC = bestCaseETCValue.toISOString();
-            }
             patientUpdates.set(p.id, finalUpdates);
         });
-
-        if (inConsultation) {
-            let finalUpdates = patientUpdates.get(inConsultation.id) || {};
-            const bestETC = toDate(finalUpdates.bestCaseETC || inConsultation.bestCaseETC || inConsultation.consultationStartTime!);
-            if (bestETC) {
-                finalUpdates.worstCaseETC = addMinutes(bestETC, schedule.slotDuration).toISOString();
-                patientUpdates.set(inConsultation.id, finalUpdates);
-            }
-        }
     }
     
-    const updatedPatients = allPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
-    await updateAllPatients(updatedPatients);
+    const finalPatientUpdates = Array.from(patientUpdates.entries()).map(([id, updates]) => ({ id, ...updates }));
+    
+    if (finalPatientUpdates.length > 0) {
+        const batch = writeBatch(db);
+        finalPatientUpdates.forEach(update => {
+            const patientRef = doc(db, 'patients', update.id);
+            batch.update(patientRef, update);
+        });
+        await batch.commit();
+    }
 
     revalidatePath('/', 'layout');
-    return { success: `Queue recalculated for all sessions.` };
+    return { success: `Queue recalculated successfully.` };
 }
 
 export async function updateTodayScheduleOverrideAction(override: SpecialClosure): Promise<ActionResult> {
@@ -1022,7 +1001,6 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
     return { success: true, user: newMember };
 }
     
-
 export async function advanceQueueAction(patientIdToBecomeUpNext: string): Promise<ActionResult> {
   // Step 1: Complete the current 'In-Consultation' patient
   let allPatients = await getPatientsData();
@@ -1304,5 +1282,4 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
         return { error: `An error occurred during import: ${e.message}` };
     }
 }
-
     
