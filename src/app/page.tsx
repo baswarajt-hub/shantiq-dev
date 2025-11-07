@@ -827,12 +827,18 @@ export default function DashboardPage() {
 
                 {/* Actions */}
                 <div className="flex items-center justify-end">
-                    {isActionable && !isCurrentlyServing && (
-                        <>
-                             {['Booked', 'Confirmed'].includes(patient.status) && (
-                                <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
-                            )}
-                        </>
+                    {isUpNext && (
+                        <Button 
+                            size="sm" 
+                            className="bg-blue-600 hover:bg-blue-700 h-8"
+                            onClick={handleConsultNext}
+                            disabled={isPending || !doctorStatus?.isOnline}
+                        >
+                            <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
+                        </Button>
+                    )}
+                    {['Booked', 'Confirmed'].includes(patient.status) && (
+                        <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                     )}
                      {isActionable && (
                         <DropdownMenu>
@@ -1095,17 +1101,7 @@ export default function DashboardPage() {
                             <PatientCard patient={nowServing} patientDetails={family.find(f => f.phone === nowServing.phone && f.name === nowServing.name)} />
                           )}
                           {upNext && (
-                            <div className="relative">
-                                <PatientCard patient={upNext} patientDetails={family.find(f => f.phone === upNext.phone && f.name === upNext.name)} />
-                                <Button 
-                                    size="sm" 
-                                    className="absolute top-1/2 right-40 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 h-8"
-                                    onClick={handleConsultNext}
-                                    disabled={isPending || !doctorStatus?.isOnline}
-                                >
-                                    <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
-                                </Button>
-                            </div>
+                            <PatientCard patient={upNext} patientDetails={family.find(f => f.phone === upNext.phone && f.name === upNext.name)} />
                           )}
                           {displayedTimeSlots.length > 0 ? displayedTimeSlots.map((slot, index) => {
 
@@ -1193,5 +1189,6 @@ export default function DashboardPage() {
         </div>
     );
 }
+
 
 
