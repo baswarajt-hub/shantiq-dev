@@ -27,6 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
+import { FamilyDetailsDialog } from '@/components/reception/family-details-dialog';
 
 
 
@@ -187,6 +188,8 @@ export default function DashboardPage() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isPending, startTransition] = useTransition();
 
+    const [isFamilyDetailsOpen, setFamilyDetailsOpen] = useState(false);
+    const [phoneForFamilyDetails, setPhoneForFamilyDetails] = useState('');
     
     const { toast } = useToast();
 
@@ -692,6 +695,11 @@ export default function DashboardPage() {
             });
         });
     }, [loadData, toast]);
+
+    const handleOpenFamilyDetails = (phone: string) => {
+        setPhoneForFamilyDetails(phone);
+        setFamilyDetailsOpen(true);
+    };
     
 
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
@@ -827,7 +835,7 @@ export default function DashboardPage() {
 
                 {/* Actions */}
                 <div className="flex items-center justify-end">
-                    {isUpNext && (
+                    {isUpNext ? (
                         <Button 
                             size="sm" 
                             className="bg-blue-600 hover:bg-blue-700 h-8"
@@ -836,10 +844,9 @@ export default function DashboardPage() {
                         >
                             <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
                         </Button>
-                    )}
-                    {['Booked', 'Confirmed'].includes(patient.status) && (
+                    ): (['Booked', 'Confirmed'].includes(patient.status)) ? (
                         <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
-                    )}
+                    ): null}
                      {isActionable && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -906,6 +913,10 @@ export default function DashboardPage() {
                                 <DropdownMenuItem onClick={() => handleOpenReschedule(patient!)}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     Reschedule
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenFamilyDetails(patient.phone)}>
+                                    <Users className="mr-2 h-4 w-4" />
+                                    Update Family
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleSendReminder(patient!.id)} disabled={isPending}>
                                     <Send className="mr-2 h-4 w-4" />
@@ -1186,9 +1197,18 @@ export default function DashboardPage() {
                         onSave={handleAdjustTiming}
                     />
                 )}
+                 <FamilyDetailsDialog
+                    isOpen={isFamilyDetailsOpen}
+                    onOpenChange={setFamilyDetailsOpen}
+                    phone={phoneForFamilyDetails}
+                    onUpdate={loadData}
+                />
         </div>
     );
 }
 
 
 
+
+
+    
