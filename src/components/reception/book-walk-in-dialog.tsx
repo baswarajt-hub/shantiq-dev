@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import type { FamilyMember, VisitPurpose } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserPlus, Info } from 'lucide-react';
-import { searchFamilyMembersAction } from '@/app/actions';
+import { searchFamilyMembersAction, addNewPatientAction } from '@/app/actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type BookWalkInDialogProps = {

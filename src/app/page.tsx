@@ -14,8 +14,10 @@ import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
 import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
+import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, getDoctorStatusAction, consultNextAction } from '@/app/actions';
+import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, getDoctorStatusAction, consultNextAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -170,11 +172,15 @@ export default function DashboardPage() {
     const [averageWaitTime, setAverageWaitTime] = useState(0);
 
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
+    const [isNewPatientOpen, setNewPatientOpen] = useState(false);
     const [isRescheduleOpen, setRescheduleOpen] = useState(false);
     const [isAdjustTimingOpen, setAdjustTimingOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [searchTerm, setSearchTerm] = useState('');
+    const [phoneToPreFill, setPhoneToPreFill] = useState('');
+    const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [showCompleted, setShowCompleted] = useState(false);
     
     const [isLoading, setIsLoading] = useState(true);
@@ -426,6 +432,44 @@ export default function DashboardPage() {
       }
     }, [schedule, patients, family, selectedSession, selectedDate]);
 
+    const handleSlotClick = (time: string) => {
+        const slot = timeSlots.find(s => s.time === time);
+        if (slot) {
+          setSelectedSlot(time);
+          setBookWalkInOpen(true);
+        }
+    };
+
+    const handleBookAppointment = useCallback(async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
+        startTransition(() => {
+            addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn).then(result => {
+                if ("error" in result) {
+                    toast({ title: "Error", description: result.error, variant: 'destructive'});
+                } else {
+                    toast({ title: "Success", description: "Appointment booked successfully."});
+                    loadData(false);
+                }
+            });
+        });
+    }, [loadData, toast]);
+
+    const handleAddNewPatient = useCallback(async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
+        return new Promise((resolve) => {
+            startTransition(() => {
+                addNewPatientAction(newPatientData).then(result => {
+                    if ("error" in result || !('patient' in result)) {
+                        toast({ title: "Error", description: (result as any).error || "Failed to add patient", variant: "destructive"});
+                        resolve(null);
+                    } else {
+                        toast({ title: "Success", description: result.success});
+                        loadData(false);
+                        resolve(result.patient);
+                    }
+                });
+            });
+        });
+    }, [loadData, toast]);
+
     const handleOpenReschedule = (patient: Patient) => {
         setSelectedPatient(patient);
         setRescheduleOpen(true);
@@ -541,6 +585,15 @@ export default function DashboardPage() {
             });
         });
     }, [loadData, toast]);
+
+    const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
+        setBookWalkInOpen(false);
+        // Basic check if the search term could be a phone number
+        if (/^\\d{5,}$/.test(searchTerm.replace(/\\D/g, ''))) {
+            setPhoneToPreFill(searchTerm);
+        }
+        setNewPatientOpen(true);
+    };
 
     const handleToggleStatus = useCallback((field: keyof DoctorStatus) => {
         if (!doctorStatus) return;
@@ -944,6 +997,7 @@ export default function DashboardPage() {
                                 </Label>
                                 <Switch id="qr-code-toggle" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending}/>
                             </div>
+                            <ToolbarButton label="New Patient" icon={<UserPlus className="h-5 w-5" />} onClick={() => setNewPatientOpen(true)} />
                             <ToolbarButton label="Adjust Timing" icon={<Clock className="h-5 w-5" />} onClick={() => setAdjustTimingOpen(true)} />
                             <ToolbarButton label="Show Completed" icon={<ListChecks className="h-5 w-5" />} onClick={() => setShowCompleted(prev => !prev)} />
                             <ToolbarButton label="Recalculate Queue" icon={<RefreshCw className="h-5 w-5" />} onClick={handleRunRecalculation} disabled={isPending} />
@@ -1065,9 +1119,10 @@ export default function DashboardPage() {
                               <div key={slot.time}>
                                   <div
                                     className={cn(
-                                        "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-not-allowed transition-colors",
+                                        "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-pointer transition-colors",
                                          "bg-neutral-50"
                                     )}
+                                    onClick={() => handleSlotClick(slot.time)}
                                   >
                                        <div className="w-[60px] text-center font-bold text-lg text-muted-foreground">-</div>
                                        <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
@@ -1091,6 +1146,32 @@ export default function DashboardPage() {
                 </main>
             </div>
 
+                {schedule && selectedSlot && selectedDate && (
+                    <BookWalkInDialog
+                        isOpen={isBookWalkInOpen}
+                        onOpenChange={setBookWalkInOpen}
+                        timeSlot={selectedSlot}
+                        selectedDate={selectedDate}
+                        onSave={handleBookAppointment}
+                        onAddNewPatient={handleOpenNewPatientDialogFromWalkIn}
+                        visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
+                    />
+                )}
+                <AddNewPatientDialog
+                    isOpen={isNewPatientOpen}
+                    onOpenChange={setNewPatientOpen}
+                    onSave={handleAddNewPatient}
+                    phoneToPreFill={phoneToPreFill}
+                    onClose={() => setPhoneToPreFill('')}
+                    afterSave={(newPatient, purpose, checkIn) => {
+                        if (selectedSlot && selectedDate && purpose) {
+                            const date = new Date(selectedDate);
+                            const time = parse(selectedSlot, 'hh:mm a', date);
+                            handleBookAppointment(newPatient, time.toISOString(), checkIn, purpose);
+                        }
+                    }}
+                    visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
+                />
                 {selectedPatient && schedule && (
                     <RescheduleDialog
                         isOpen={isRescheduleOpen}
@@ -1112,4 +1193,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
 
