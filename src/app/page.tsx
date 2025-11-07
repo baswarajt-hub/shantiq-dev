@@ -14,10 +14,8 @@ import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
 import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
-import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
-import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, advanceQueueAction, startLastConsultationAction, getDoctorStatusAction, updateFamilyMemberAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, getDoctorStatusAction, consultNextAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -27,8 +25,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
-import { AdminEditFamilyMemberDialog } from '@/components/admin/edit-family-member-dialog';
-import { FamilyDetailsDialog } from '@/components/reception/family-details-dialog';
+
 
 
 
@@ -172,24 +169,18 @@ export default function DashboardPage() {
     const [averageConsultationTime, setAverageConsultationTime] = useState(0);
     const [averageWaitTime, setAverageWaitTime] = useState(0);
 
-    const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-    const [isBookWalkInOpen, setBookWalkInOpen] = useState(false);
-    const [isNewPatientOpen, setNewPatientOpen] = useState(false);
     const [isRescheduleOpen, setRescheduleOpen] = useState(false);
     const [isAdjustTimingOpen, setAdjustTimingOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<'morning' | 'evening'>('morning');
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [searchTerm, setSearchTerm] = useState('');
-    const [phoneToPreFill, setPhoneToPreFill] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
     
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isPending, startTransition] = useTransition();
 
-    const [familyToUpdatePhone, setFamilyToUpdatePhone] = useState<string | null>(null);
-    const [isFamilyDetailsOpen, setFamilyDetailsOpen] = useState(false);
     
     const { toast } = useToast();
 
@@ -435,44 +426,6 @@ export default function DashboardPage() {
       }
     }, [schedule, patients, family, selectedSession, selectedDate]);
 
-    const handleSlotClick = (time: string) => {
-        const slot = timeSlots.find(s => s.time === time);
-        if (slot) {
-          setSelectedSlot(time);
-          setBookWalkInOpen(true);
-        }
-    };
-
-    const handleBookAppointment = useCallback(async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
-        startTransition(() => {
-            addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn).then(result => {
-                if ("error" in result) {
-                    toast({ title: "Error", description: result.error, variant: 'destructive'});
-                } else {
-                    toast({ title: "Success", description: "Appointment booked successfully."});
-                    loadData(false);
-                }
-            });
-        });
-    }, [loadData, toast]);
-
-    const handleAddNewPatient = useCallback(async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {
-        return new Promise((resolve) => {
-            startTransition(() => {
-                addNewPatientAction(newPatientData).then(result => {
-                    if ("error" in result || !('patient' in result)) {
-                        toast({ title: "Error", description: (result as any).error || "Failed to add patient", variant: "destructive"});
-                        resolve(null);
-                    } else {
-                        toast({ title: "Success", description: result.success});
-                        loadData(false);
-                        resolve(result.patient);
-                    }
-                });
-            });
-        });
-    }, [loadData, toast]);
-
     const handleOpenReschedule = (patient: Patient) => {
         setSelectedPatient(patient);
         setRescheduleOpen(true);
@@ -509,10 +462,10 @@ export default function DashboardPage() {
             });
         });
     }, [loadData, toast]);
-
-    const handleStartLastConsultation = useCallback((patientId: string) => {
+    
+    const handleConsultNext = useCallback(() => {
         startTransition(() => {
-            startLastConsultationAction(patientId).then(result => {
+            consultNextAction().then(result => {
                 if ("error" in result) {
                     toast({ title: 'Error', description: result.error, variant: 'destructive' });
                 } else {
@@ -520,19 +473,6 @@ export default function DashboardPage() {
                     loadData(false);
                 }
             });
-        });
-    }, [loadData, toast]);
-
-    const handleAdvanceQueue = useCallback((patientId: string) => {
-        startTransition(() => {
-          advanceQueueAction(patientId).then(result => {
-              if ("error" in result) {
-                  toast({ title: 'Error', description: result.error, variant: 'destructive' });
-              } else {
-                  toast({ title: 'Success', description: result.success });
-                  loadData(false);
-              }
-          });
         });
     }, [loadData, toast]);
 
@@ -601,15 +541,6 @@ export default function DashboardPage() {
             });
         });
     }, [loadData, toast]);
-
-    const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
-        setBookWalkInOpen(false);
-        // Basic check if the search term could be a phone number
-        if (/^\d{5,}$/.test(searchTerm.replace(/\D/g, ''))) {
-            setPhoneToPreFill(searchTerm);
-        }
-        setNewPatientOpen(true);
-    };
 
     const handleToggleStatus = useCallback((field: keyof DoctorStatus) => {
         if (!doctorStatus) return;
@@ -709,16 +640,6 @@ export default function DashboardPage() {
         });
     }, [loadData, toast]);
     
-    const handleOpenFamilyEditor = (patient: Patient) => {
-        setFamilyToUpdatePhone(patient.phone);
-        setFamilyDetailsOpen(true);
-    };
-    
-    const handleUpdateFamily = useCallback(async () => {
-        await loadData(false);
-        toast({ title: "Success", description: "Family details updated." });
-    }, [loadData, toast]);
-
 
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
     const upNext = sessionPatients.find(p => p.status === 'Up-Next');
@@ -734,8 +655,6 @@ export default function DashboardPage() {
           return timeA - timeB;
       });
     
-    const nextInLine = waitingList[0];
-
     const displayedTimeSlots = timeSlots.filter(slot => {
         if (slot.patient && (slot.patient.status === 'In-Consultation' || slot.patient.status === 'Up-Next')) {
             return false;
@@ -753,8 +672,6 @@ export default function DashboardPage() {
                slot.patientDetails.phone?.includes(lowerSearch) ||
                (slot.patientDetails.clinicId && String(slot.patientDetails.clinicId).toLowerCase().includes(lowerSearch));
     });
-
-    const canDoctorCheckIn = selectedDate ? isToday(selectedDate) : false;
 
 
     if (isLoading || !schedule || !doctorStatus || !selectedDate) {
@@ -814,10 +731,6 @@ export default function DashboardPage() {
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
         const isCurrentlyServing = patient.status === 'In-Consultation';
         
-        const isLastInQueue = isUpNext && waitingList.length === 0;
-        const isNextInLine = waitingList.length > 0 && waitingList[0].id === patient.id;
-        const isConsultNext = !!nowServing && isNextInLine && !upNext;
-
         return (
              <div className={cn(
                 "p-3 grid grid-cols-[60px_1fr_320px_120px_100px] items-center gap-4 rounded-xl border bg-white shadow-sm",
@@ -866,21 +779,6 @@ export default function DashboardPage() {
                              {['Booked', 'Confirmed'].includes(patient.status) && (
                                 <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                             )}
-                             {isConsultNext && (
-                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8 bg-blue-500 text-white hover:bg-blue-600">
-                                    Consult Next
-                                </Button>
-                             )}
-                             {!isConsultNext && isNextInLine && !isUpNext && (
-                                <Button size="sm" onClick={() => handleAdvanceQueue(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8">
-                                    <ChevronsRight className="mr-2 h-4 w-4" /> Up Next
-                                </Button>
-                             )}
-                             {isLastInQueue && (
-                                <Button size="sm" onClick={() => handleStartLastConsultation(patient.id)} disabled={isPending || !doctorStatus?.isOnline} className="h-8 bg-green-600 text-white hover:bg-green-700">
-                                     <LogIn className="mr-2 h-4 w-4" /> Start
-                                </Button>
-                             )}
                         </>
                     )}
                      {isActionable && (
@@ -891,10 +789,17 @@ export default function DashboardPage() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                {isActionable && !isConsultNext && !isNextInLine && !isUpNext && !isCurrentlyServing && ['Waiting', 'Late'].includes(patient.status) && (
-                                     <DropdownMenuItem onClick={() => handleAdvanceQueue(patient!.id)} disabled={isPending || !doctorStatus?.isOnline}>
-                                        <ChevronsRight className="mr-2 h-4 w-4" /> Move to Up Next
+                                {isCurrentlyServing && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Completed')} disabled={isPending}>
+                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                        Mark Completed
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Waiting for Reports')} disabled={isPending}>
+                                        <FileClock className="mr-2 h-4 w-4" />
+                                        Waiting for Reports
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                                  {(patient.status === 'Booked' || patient.status === 'Confirmed') && (
                                     <DropdownMenuSub>
@@ -913,18 +818,6 @@ export default function DashboardPage() {
                                         </DropdownMenuSubContent>
                                     </DropdownMenuSub>
                                 )}
-                                {patient.status === 'In-Consultation' && (
-                                  <>
-                                    <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Completed')} disabled={isPending}>
-                                        <CheckCircle className="mr-2 h-4 w-4" />
-                                        Mark Completed
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'Waiting for Reports')} disabled={isPending}>
-                                        <FileClock className="mr-2 h-4 w-4" />
-                                        Waiting for Reports
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
                                 {patient.status === 'Waiting for Reports' && (
                                     <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus?.isOnline}>
                                         <ChevronsRight className="mr-2 h-4 w-4" />
@@ -938,10 +831,6 @@ export default function DashboardPage() {
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleOpenFamilyEditor(patient)}>
-                                    <Users className="mr-2 h-4 w-4" />
-                                    Update Family
-                                </DropdownMenuItem>
                                 <DropdownMenuSub>
                                     <DropdownMenuSubTrigger>
                                         <Pencil className="mr-2 h-4 w-4" />
@@ -1055,7 +944,6 @@ export default function DashboardPage() {
                                 </Label>
                                 <Switch id="qr-code-toggle" checked={!!doctorStatus.isQrCodeActive} onCheckedChange={() => handleToggleStatus('isQrCodeActive')} disabled={isPending}/>
                             </div>
-                            <ToolbarButton label="New Patient" icon={<UserPlus className="h-5 w-5" />} onClick={() => setNewPatientOpen(true)} />
                             <ToolbarButton label="Adjust Timing" icon={<Clock className="h-5 w-5" />} onClick={() => setAdjustTimingOpen(true)} />
                             <ToolbarButton label="Show Completed" icon={<ListChecks className="h-5 w-5" />} onClick={() => setShowCompleted(prev => !prev)} />
                             <ToolbarButton label="Recalculate Queue" icon={<RefreshCw className="h-5 w-5" />} onClick={handleRunRecalculation} disabled={isPending} />
@@ -1152,7 +1040,19 @@ export default function DashboardPage() {
                           {nowServing && (
                             <PatientCard patient={nowServing} patientDetails={family.find(f => f.phone === nowServing.phone && f.name === nowServing.name)} />
                           )}
-                          {upNext && <PatientCard patient={upNext} patientDetails={family.find(f => f.phone === upNext.phone && f.name === upNext.name)} />}
+                          {upNext && (
+                            <div className="relative">
+                                <PatientCard patient={upNext} patientDetails={family.find(f => f.phone === upNext.phone && f.name === upNext.name)} />
+                                <Button 
+                                    size="sm" 
+                                    className="absolute top-1/2 right-40 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 h-8"
+                                    onClick={handleConsultNext}
+                                    disabled={isPending || !doctorStatus?.isOnline}
+                                >
+                                    <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
+                                </Button>
+                            </div>
+                          )}
                           {displayedTimeSlots.length > 0 ? displayedTimeSlots.map((slot, index) => {
 
                               if (searchTerm && !slot.isBooked) return null;
@@ -1165,10 +1065,9 @@ export default function DashboardPage() {
                               <div key={slot.time}>
                                   <div
                                     className={cn(
-                                        "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-pointer transition-colors",
+                                        "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-not-allowed transition-colors",
                                          "bg-neutral-50"
                                     )}
-                                    onClick={() => handleSlotClick(slot.time)}
                                   >
                                        <div className="w-[60px] text-center font-bold text-lg text-muted-foreground">-</div>
                                        <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
@@ -1192,25 +1091,6 @@ export default function DashboardPage() {
                 </main>
             </div>
 
-                {schedule && selectedSlot && selectedDate && (
-                    <BookWalkInDialog
-                        isOpen={isBookWalkInOpen}
-                        onOpenChange={setBookWalkInOpen}
-                        timeSlot={selectedSlot}
-                        selectedDate={selectedDate}
-                        onSave={handleBookAppointment}
-                        onAddNewPatient={handleOpenNewPatientDialogFromWalkIn}
-                        visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
-                    />
-                )}
-                <AddNewPatientDialog
-                    isOpen={isNewPatientOpen}
-                    onOpenChange={setNewPatientOpen}
-                    onSave={handleAddNewPatient}
-                    phoneToPreFill={phoneToPreFill}
-                    onClose={() => setPhoneToPreFill('')}
-                    visitPurposes={schedule.visitPurposes.filter(p => p.enabled)}
-                />
                 {selectedPatient && schedule && (
                     <RescheduleDialog
                         isOpen={isRescheduleOpen}
@@ -1229,16 +1109,7 @@ export default function DashboardPage() {
                         onSave={handleAdjustTiming}
                     />
                 )}
-                {isFamilyDetailsOpen && familyToUpdatePhone && (
-                    <FamilyDetailsDialog
-                        isOpen={isFamilyDetailsOpen}
-                        onOpenChange={setFamilyDetailsOpen}
-                        phone={familyToUpdatePhone}
-                        onUpdate={handleUpdateFamily}
-                    />
-                )}
         </div>
     );
 }
 
-    

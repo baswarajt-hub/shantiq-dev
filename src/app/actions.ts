@@ -1142,6 +1142,40 @@ export async function advanceQueueAction(patientIdToBecomeUpNext: string): Promi
 
   return { success: 'Queue advanced successfully.' };
 }
+
+export async function consultNextAction(): Promise<ActionResult> {
+    const allPatients = await getPatientsData();
+    const nowServing = allPatients.find(p => p.status === 'In-Consultation');
+    const upNext = allPatients.find(p => p.status === 'Up-Next');
+
+    // 1. Complete the current 'In-Consultation' patient
+    if (nowServing?.consultationStartTime) {
+        const startTime = toDate(nowServing.consultationStartTime)!;
+        const endTime = new Date();
+        await updatePatient(nowServing.id, {
+            status: 'Completed',
+            consultationEndTime: endTime.toISOString(),
+            consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)),
+            subStatus: undefined,
+            lateLocked: false,
+        });
+    }
+
+    // 2. Promote 'Up-Next' to 'In-Consultation'
+    if (upNext) {
+        await updatePatient(upNext.id, {
+            status: 'In-Consultation',
+            consultationStartTime: new Date().toISOString(),
+        });
+    }
+
+    // 3. Promote next in line to 'Up-Next' and recalculate queue
+    // The recalculateQueueWithETC function already handles finding the next in line and setting them to 'Up-Next'.
+    await recalculateQueueWithETC();
+    
+    revalidatePath('/', 'layout');
+    return { success: 'Queue advanced.' };
+}
     
 export async function startLastConsultationAction(patientId: string): Promise<ActionResult> {
   // Step 1: Complete any currently serving patient
@@ -1347,5 +1381,3 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
         return { error: `An error occurred during import: ${e.message}` };
     }
 }
-
-    
