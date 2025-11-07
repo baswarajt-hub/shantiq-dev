@@ -187,10 +187,24 @@ export default function BookingPage() {
     if (!schedule || !doctorStatus) return null;
     const today = currentTime;
     const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
-    const todaySch = schedule.days[dayOfWeek];
+    const dateStr = format(today, 'yyyy-MM-dd');
+    let todaySch = schedule.days[dayOfWeek];
+
+    const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+    if(todayOverride) {
+        todaySch = {
+            morning: todayOverride.morningOverride ?? todaySch.morning,
+            evening: todayOverride.eveningOverride ?? todaySch.evening,
+        };
+    }
+    
     const formatTime = (t: string) => parse(t, 'HH:mm', new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const make = (s: any) => {
-      if (!s?.isOpen) return { time: 'Closed', status: 'Closed', color: 'text-red-600', icon: LogOut };
+    
+    const make = (s: any, sessionName: 'morning' | 'evening') => {
+      const isClosedByOverride = sessionName === 'morning' ? todayOverride?.isMorningClosed : todayOverride?.isEveningClosed;
+
+      if (!s?.isOpen || isClosedByOverride) return { time: 'Closed', status: 'Closed', color: 'text-red-600', icon: LogOut };
+      
       const start = parse(s.start, 'HH:mm', today);
       const end = parse(s.end, 'HH:mm', today);
       let status = 'Upcoming', color = 'text-gray-500', icon = Clock;
@@ -203,7 +217,7 @@ export default function BookingPage() {
       else if (today >= start && !doctorStatus?.isOnline) { status = 'Offline'; color = 'text-red-600'; icon = LogOut; }
       return { time: `${formatTime(s.start)} - ${formatTime(s.end)}`, status, color, icon };
     };
-    return { morning: make(todaySch.morning), evening: make(todaySch.evening) };
+    return { morning: make(todaySch.morning, 'morning'), evening: make(todaySch.evening, 'evening') };
   };
 
   const currentDaySchedule = getTodayScheduleDetails();
