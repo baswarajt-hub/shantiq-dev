@@ -512,12 +512,11 @@ export async function checkInPatientAction(patientId: string): Promise<ActionRes
 }
 
 export async function recalculateQueueWithETC(): Promise<ActionResult> {
-    let allPatients = await getPatientsData();
+    const allPatients = await getPatientsData();
     const schedule = await getDoctorScheduleData();
-    let doctorStatus = await getDoctorStatusData();
+    const doctorStatus = await getDoctorStatusData();
 
     if (!schedule || !schedule.days) {
-        // Can't calculate without a schedule
         console.warn("Recalculation skipped: schedule.days is not available.");
         return { error: "Doctor schedule is not fully configured." };
     }
@@ -539,9 +538,6 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
     
     const patientUpdates = new Map<string, Partial<Patient>>();
     const sessions: ('morning' | 'evening')[] = ['morning', 'evening'];
-    
-    // --- Manual QR Code Logic: remove auto-offline logic ---
-    // The QR code state is now fully manual and not tied to session times.
 
     for (const session of sessions) {
         const sessionTimes = daySchedule[session];
@@ -550,28 +546,8 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         let sessionPatients = allPatients.filter(p => {
             const apptDate = parseISO(p.appointmentTime);
             if (format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') !== todayStr) return false;
-            const apptSession = getSessionForTime(schedule, apptDate);
-            return apptSession === session;
+            return getSessionForTime(schedule, apptDate) === session;
         });
-
-        // --- Post-Session Cleanup ---
-        const sessionEndUtc = sessionLocalToUtc(todayStr, sessionTimes.end);
-        const patientCleanupTimeUtc = new Date(sessionEndUtc.getTime() + 60 * 60 * 1000); // 1 hour after session end
-        
-        if (now > patientCleanupTimeUtc) {
-            sessionPatients.forEach(p => {
-                if (p.status === 'Waiting') {
-                     patientUpdates.set(p.id.toString(), { ...patientUpdates.get(p.id.toString()), status: 'Completed' });
-                } else if (p.status === 'Booked' || p.status === 'Confirmed') {
-                     patientUpdates.set(p.id.toString(), { ...patientUpdates.get(p.id.toString()), status: 'Missed' });
-                }
-            });
-             // Map again to include cleanup updates before continuing
-            sessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id.toString()) }));
-        }
-
-        // --- End Cleanup Logic ---
-
 
         if (sessionPatients.length === 0) continue;
 
@@ -580,63 +556,37 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         let sessionDelay = 0;
         if (doctorStatus.isOnline && doctorStatus.onlineTime) {
             const onlineTimeUtc = parseISO(doctorStatus.onlineTime);
-            const onlineSession = getSessionForTime(schedule, onlineTimeUtc);
-            if (onlineSession === session) {
+            if (getSessionForTime(schedule, onlineTimeUtc) === session) {
                 const actualDelay = differenceInMinutes(onlineTimeUtc, clinicSessionStartTime);
-                sessionDelay = actualDelay > 0 ? actualDelay : 0;
+                sessionDelay = Math.max(0, actualDelay);
             }
         } else if (doctorStatus.startDelay > 0) {
-             // Logic for when doctor is NOT online but a delay is set
-             const morningStartUtc = daySchedule.morning.isOpen ? sessionLocalToUtc(todayStr, daySchedule.morning.start) : new Date(8.64e15); // Far future
-             const eveningStartUtc = daySchedule.evening.isOpen ? sessionLocalToUtc(todayStr, daySchedule.evening.start) : new Date(8.64e15); // Far future
-
-            let delayAppliesToSession: 'morning' | 'evening' | null = null;
-            
-            // If it's before the morning session even starts, the delay applies to the morning.
-            if (now < morningStartUtc) {
-                delayAppliesToSession = 'morning'; 
-            } 
-            // If we are between the start of morning and start of evening, the delay applies to the current (morning) session.
-            else if (now >= morningStartUtc && now < eveningStartUtc) {
-                delayAppliesToSession = 'morning';
-            } 
-            // If we are past the start of the evening session, the delay applies to the evening session.
-            else if (now >= eveningStartUtc) {
-                delayAppliesToSession = 'evening';
-            }
-            
-            // Only apply the startDelay if it's for the session we are currently calculating
-             if (delayAppliesToSession === session) {
-                 sessionDelay = doctorStatus.startDelay;
-             }
+            sessionDelay = doctorStatus.startDelay;
         }
 
-        const delayedClinicStartTime = new Date(clinicSessionStartTime.getTime() + sessionDelay * 60000);
+        const delayedClinicStartTime = addMinutes(clinicSessionStartTime, sessionDelay);
 
         sessionPatients.forEach(p => {
-            const worstCaseETC = new Date(
-                delayedClinicStartTime.getTime() + (p.tokenNo - 1) * schedule.slotDuration * 60000
-            ).toISOString();
-            patientUpdates.set(p.id.toString(), { ...patientUpdates.get(p.id.toString()), worstCaseETC: worstCaseETC, slotTime: worstCaseETC });
-            
-            const currentUpdates = patientUpdates.get(p.id.toString()) || {};
-            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && !p.lateLocked && toDate(p.checkInTime)! > toDate(worstCaseETC)!) {
-                 const lateBy = differenceInMinutes(toDate(p.checkInTime)!, toDate(worstCaseETC)!);
-                 patientUpdates.set(p.id.toString(), { ...currentUpdates, status: 'Late', lateBy: lateBy > 0 ? lateBy : 0 });
+            const worstCaseETC = addMinutes(delayedClinicStartTime, (p.tokenNo - 1) * schedule.slotDuration);
+            patientUpdates.set(p.id, { 
+                ...patientUpdates.get(p.id), 
+                worstCaseETC: worstCaseETC.toISOString(), 
+                slotTime: worstCaseETC.toISOString() 
+            });
+            if (p.checkInTime && doctorStatus.isOnline && p.status === 'Waiting' && !p.lateLocked && toDate(p.checkInTime)! > worstCaseETC) {
+                 const lateBy = differenceInMinutes(toDate(p.checkInTime)!, worstCaseETC);
+                 patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Late', lateBy: Math.max(0, lateBy) });
             }
         });
+        
+        let updatedSessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
 
-        let updatedSessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id.toString()) }));
-
-        // Clear Up-Next status from anyone who has it, it will be reassigned.
         updatedSessionPatients.forEach(p => {
             if (p.status === 'Up-Next') {
-                const currentUpdates = patientUpdates.get(p.id.toString()) || {};
-                patientUpdates.set(p.id.toString(), { ...currentUpdates, status: 'Waiting' });
+                patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Waiting' });
             }
         });
-        // Important: map again after clearing Up-Next to ensure subsequent logic uses the correct status
-        updatedSessionPatients = updatedSessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id.toString()) }));
+        updatedSessionPatients = updatedSessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
 
         const inConsultation = updatedSessionPatients.find(p => p.status === 'In-Consultation');
         
@@ -644,7 +594,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
           .filter(p => ['Waiting', 'Priority'].includes(p.status) && !p.lateLocked)
           .sort((a, b) => {
               if (a.status === 'Priority' && b.status !== 'Priority') return -1;
-              if (a.status !== 'Priority' && b.status === 'Priority') return 1;
+              if (b.status === 'Priority' && a.status !== 'Priority') return 1;
               return (a.tokenNo || 0) - (b.tokenNo || 0);
           });
           
@@ -652,93 +602,66 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
           .filter(p => p.lateLocked)
           .sort((a, b) => new Date(a.lateLockedAt || 0).getTime() - new Date(b.lateLockedAt || 0).getTime());
 
-        const fullQueue: Patient[] = [];
+        let fullQueue: Patient[] = [];
         if (inConsultation) fullQueue.push(inConsultation);
         fullQueue.push(...normalWaiting);
 
         for (const p of penalized) {
           const anchorsRemaining = (p.lateAnchors || []).filter(anchorId => {
             const anchor = updatedSessionPatients.find(x => x.id === anchorId);
-            return anchor && anchor.status !== 'Completed' && anchor.status !== 'Cancelled';
+            return anchor && !['Completed', 'Cancelled'].includes(anchor.status);
           });
-
           let lastIdx = -1;
           for (const anchorId of anchorsRemaining) {
             const idx = fullQueue.findIndex(q => q.id === anchorId);
             if (idx > lastIdx) lastIdx = idx;
           }
-
-          const insertAt = Math.min(lastIdx + 1, fullQueue.length);
-          fullQueue.splice(insertAt, 0, p);
+          fullQueue.splice(Math.min(lastIdx + 1, fullQueue.length), 0, p);
         }
         
-        const liveQueue = inConsultation ? fullQueue.slice(1) : [...fullQueue];
+        const liveQueue = fullQueue.filter(p => p.status !== 'In-Consultation');
         
-        // Designate the new "Up-Next" patient
         if (liveQueue.length > 0) {
             const upNextPatient = liveQueue[0];
-            const currentUpdates = patientUpdates.get(upNextPatient.id.toString()) || {};
-            // Only set to Up-Next if they are currently Waiting or Late (and not already Priority)
             if (['Waiting', 'Late'].includes(upNextPatient.status)) {
-                patientUpdates.set(upNextPatient.id.toString(), { ...currentUpdates, status: 'Up-Next' });
+                patientUpdates.set(upNextPatient.id, { ...patientUpdates.get(upNextPatient.id), status: 'Up-Next' });
             }
         }
         
-        let effectiveDoctorStartTime: Date;
-        if (doctorStatus.isOnline && doctorStatus.onlineTime) {
-            effectiveDoctorStartTime = max([now, toDate(doctorStatus.onlineTime)!, delayedClinicStartTime]);
-        } else {
-            effectiveDoctorStartTime = delayedClinicStartTime;
-        }
+        let effectiveStartTime = doctorStatus.isOnline && doctorStatus.onlineTime 
+            ? max([now, parseISO(doctorStatus.onlineTime), delayedClinicStartTime])
+            : delayedClinicStartTime;
 
-        if (inConsultation && inConsultation.consultationStartTime) {
-            const expectedEndTime = new Date(toDate(inConsultation.consultationStartTime)!.getTime() + schedule.slotDuration * 60000);
-            effectiveDoctorStartTime = max([now, expectedEndTime]);
+        if (inConsultation?.consultationStartTime) {
+            const expectedEndTime = addMinutes(parseISO(inConsultation.consultationStartTime), schedule.slotDuration);
+            effectiveStartTime = max([now, expectedEndTime]);
         }
         
         liveQueue.forEach((p, i) => {
-            let bestCaseETCValue: Date;
-            if (i === 0) {
-                bestCaseETCValue = effectiveDoctorStartTime;
-            } else {
-                const previousPatientETC = patientUpdates.get(liveQueue[i - 1].id.toString())?.bestCaseETC || liveQueue[i-1].bestCaseETC!;
-                bestCaseETCValue = new Date(
-                    toDate(previousPatientETC)!.getTime() + schedule.slotDuration * 60000
-                );
-            }
+            const prevPatientETC = i === 0 ? effectiveStartTime : toDate(patientUpdates.get(liveQueue[i - 1].id)?.bestCaseETC || liveQueue[i-1].bestCaseETC!)!;
+            const bestCaseETCValue = addMinutes(prevPatientETC, schedule.slotDuration);
             
-            const currentUpdates = patientUpdates.get(p.id.toString()) || {};
-            let finalUpdates: Partial<Patient> = { ...currentUpdates, bestCaseETC: bestCaseETCValue.toISOString() };
+            let finalUpdates = patientUpdates.get(p.id) || {};
+            finalUpdates.bestCaseETC = bestCaseETCValue.toISOString();
 
-            const worstETC = finalUpdates.worstCaseETC || p.worstCaseETC;
-            if (worstETC && bestCaseETCValue && toDate(worstETC)! < bestCaseETCValue) {
+            const worstETC = toDate(finalUpdates.worstCaseETC || p.worstCaseETC);
+            if (worstETC && bestCaseETCValue > worstETC) {
                 finalUpdates.worstCaseETC = bestCaseETCValue.toISOString();
             }
-            
-            if (i === 0) {
-                finalUpdates.worstCaseETC = bestCaseETCValue.toISOString();
-            }
-
-            patientUpdates.set(p.id.toString(), finalUpdates);
+            patientUpdates.set(p.id, finalUpdates);
         });
 
         if (inConsultation) {
-            const currentUpdates = patientUpdates.get(inConsultation.id.toString()) || {};
-            const bestETC = currentUpdates.bestCaseETC || inConsultation.bestCaseETC || inConsultation.consultationStartTime;
+            let finalUpdates = patientUpdates.get(inConsultation.id) || {};
+            const bestETC = toDate(finalUpdates.bestCaseETC || inConsultation.bestCaseETC || inConsultation.consultationStartTime!);
             if (bestETC) {
-                const worstETC = new Date(toDate(bestETC)!.getTime() + schedule.slotDuration * 60000).toISOString();
-                patientUpdates.set(inConsultation.id.toString(), { ...currentUpdates, worstCaseETC: worstETC });
+                finalUpdates.worstCaseETC = addMinutes(bestETC, schedule.slotDuration).toISOString();
+                patientUpdates.set(inConsultation.id, finalUpdates);
             }
         }
     }
     
-    const updatedPatients = allPatients.map(p => {
-        if (patientUpdates.has(p.id.toString())) {
-            return { ...p, ...patientUpdates.get(p.id.toString()) };
-        }
-        return p;
-    });
-
+    const updatedPatients = allPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
     await updateAllPatients(updatedPatients);
 
     revalidatePath('/', 'layout');
@@ -1381,3 +1304,5 @@ export async function patientImportAction(data: Omit<FamilyMember, 'id' | 'avata
         return { error: `An error occurred during import: ${e.message}` };
     }
 }
+
+    
