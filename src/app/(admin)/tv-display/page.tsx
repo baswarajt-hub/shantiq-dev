@@ -1,3 +1,4 @@
+
 'use client';
 import { getPatientsAction, getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
@@ -387,21 +388,17 @@ function TVDisplayPageContent() {
   const nowServing = patients.find((p) => p.status === 'In-Consultation');
   
   const waitingList = patients
-  .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
-  .sort((a, b) => {
-      const safeParse = (dateString?: string) => {
-          try {
-              return dateString ? parseISO(dateString).getTime() : Infinity;
-          } catch {
-              return Infinity;
-          }
-      };
-
-      const timeA = a.bestCaseETC ? safeParse(a.bestCaseETC) : safeParse(a.slotTime);
-      const timeB = b.bestCaseETC ? safeParse(b.bestCaseETC) : safeParse(b.slotTime);
-
-      return timeA - timeB;
-  });
+    .filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status))
+    .sort((a, b) => {
+        const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
+        const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
+        
+        if (timeA === Infinity && timeB === Infinity) {
+            return (a.tokenNo || 0) - (b.tokenNo || 0); // Fallback to token if ETC is missing
+        }
+        
+        return timeA - timeB;
+    });
 
 
   const waitingForReports = patients.filter(p => p.status === 'Waiting for Reports');
@@ -753,3 +750,5 @@ export default function TVDisplayPage() {
         </Suspense>
     )
 }
+
+    
