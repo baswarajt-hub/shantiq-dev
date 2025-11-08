@@ -1201,7 +1201,7 @@ export default function DashboardPage() {
                     isOpen={isFamilyDetailsOpen}
                     onOpenChange={setFamilyDetailsOpen}
                     phone={phoneForFamilyDetails}
-                    onUpdate={loadData}
+                    onUpdate={() => loadData(false)}
                 />
         </div>
     );
