@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -39,6 +38,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
+import { SplitButton } from '@/components/ui/split-button';
 
 const statusConfig: Record<Patient['status'], { color: string, label: string }> = {
   Waiting: { color: 'text-blue-600', label: 'Waiting' },
@@ -220,85 +220,80 @@ export function DoctorQueue({
                       </TableCell>
                       <TableCell>{p.purpose}</TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={isPending}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {p.status === 'In-Consultation' && (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleUpdateStatus(p.id, 'Completed')
-                                  }
-                                >
-                                  <CircleCheck className="mr-2 h-4 w-4" />
-                                  Mark as Completed
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleUpdateStatus(
-                                      p.id,
-                                      'Waiting for Reports'
-                                    )
-                                  }
-                                >
-                                  <FileClock className="mr-2 h-4 w-4" />
-                                  Waiting for Reports
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                             {p.status === 'Up-Next' && isLastInQueue && (
-                                <DropdownMenuItem onClick={() => handleStartLastConsultation(p.id)}>
-                                    <CircleCheck className="mr-2 h-4 w-4" />
-                                    Start Final Consultation
-                                </DropdownMenuItem>
-                            )}
-                            {p.status === 'Waiting for Reports' && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleUpdateStatus(p.id, 'In-Consultation')
-                                }
+                        {p.status === 'In-Consultation' ? (
+                          <SplitButton
+                            size="sm"
+                            variant="secondary"
+                            disabled={isPending}
+                            mainAction={{
+                              label: <><CircleCheck className="mr-2 h-4 w-4" /> Mark as Completed</>,
+                              onClick: () => handleUpdateStatus(p.id, 'Completed'),
+                            }}
+                            dropdownActions={[
+                              {
+                                label: <><FileClock className="mr-2 h-4 w-4" /> Waiting for Reports</>,
+                                onClick: () => handleUpdateStatus(p.id, 'Waiting for Reports'),
+                              },
+                            ]}
+                          />
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={isPending}
                               >
-                                <ChevronsRight className="mr-2 h-4 w-4" />
-                                Re-Consult (Reports)
-                              </DropdownMenuItem>
-                            )}
-                            {['Waiting', 'Late'].includes(p.status) && (
-                              <>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              {p.status === 'Up-Next' && isLastInQueue && (
+                                  <DropdownMenuItem onClick={() => handleStartLastConsultation(p.id)}>
+                                      <CircleCheck className="mr-2 h-4 w-4" />
+                                      Start Final Consultation
+                                  </DropdownMenuItem>
+                              )}
+                              {p.status === 'Waiting for Reports' && (
                                 <DropdownMenuItem
-                                  onClick={() => handleAdvanceQueue(p.id)}
+                                  onClick={() =>
+                                    handleUpdateStatus(p.id, 'In-Consultation')
+                                  }
                                 >
                                   <ChevronsRight className="mr-2 h-4 w-4" />
-                                  Move to Up Next
+                                  Re-Consult (Reports)
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleUpdateStatus(p.id, 'Priority')
-                                  }
-                                  className="text-red-600 focus:text-red-600"
-                                >
-                                  <Shield className="mr-2 h-4 w-4" />
-                                  Consult Now (Priority)
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleCancel(p.id)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Cancel Appointment
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              )}
+                              {['Waiting', 'Late'].includes(p.status) && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => handleAdvanceQueue(p.id)}
+                                  >
+                                    <ChevronsRight className="mr-2 h-4 w-4" />
+                                    Move to Up Next
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleUpdateStatus(p.id, 'Priority')
+                                    }
+                                    className="text-red-600 focus:text-red-600"
+                                  >
+                                    <Shield className="mr-2 h-4 w-4" />
+                                    Consult Now (Priority)
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleCancel(p.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Cancel Appointment
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </TableCell>
                     </motion.tr>
                   ))
