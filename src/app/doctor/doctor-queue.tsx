@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -315,3 +316,4 @@ export function DoctorQueue({
     </Card>
   );
 }
+
