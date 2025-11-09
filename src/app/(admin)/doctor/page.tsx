@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
 import type {
   DoctorSchedule,
   DoctorStatus,
@@ -28,7 +29,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DoctorHeader } from '@/components/doctor/doctor-header';
 import { DoctorStatusControls } from '@/components/doctor/doctor-status-controls';
 import { InfoCards } from '@/components/doctor/info-cards';
-import { DoctorStats } from '@/components/doctor/doctor-stats';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Accordion,
@@ -64,6 +64,7 @@ export default function DoctorPage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule) => {
     if (!localSchedule.days) return null;
@@ -113,7 +114,7 @@ export default function DoctorPage() {
       getDoctorStatusAction(),
       getFamilyAction(),
     ])
-      .then(([scheduleData, patientData, familyData, statusData]) => {
+      .then(([scheduleData, patientData, statusData, familyData]) => {
         setSchedule(scheduleData);
         setPatients(patientData);
         setDoctorStatus(statusData);
@@ -349,7 +350,7 @@ export default function DoctorPage() {
             </CardContent>
           </Card>
 
-          <DoctorQueue patients={sessionPatients} onUpdate={loadData} />
+          <DoctorQueue patients={sessionPatients} schedule={schedule} family={family} onUpdate={loadData} />
         </div>
       </main>
     </>
