@@ -17,10 +17,11 @@ import {
   getDoctorScheduleAction,
   getPatientsAction,
   getDoctorStatusAction,
-  setDoctorStatusAction,
   getFamilyAction,
   rescheduleAppointmentAction,
   consultNextAction,
+  setDoctorStatusAction,
+  updateFamilyMemberAction,
 } from '@/app/actions';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { format } from 'date-fns';
@@ -40,12 +41,13 @@ import {
 import { DoctorNotificationForm } from '@/components/doctor/doctor-notification-form';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, SlidersHorizontal, QrCode, RefreshCw, ChevronsRight } from 'lucide-react';
+import { SlidersHorizontal, QrCode, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DoctorQueue } from '@/components/doctor/doctor-queue';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
+import { FamilyDetailsDialog } from '@/components/reception/family-details-dialog';
 
 const timeZone = 'Asia/Kolkata';
 
@@ -64,8 +66,15 @@ export default function DoctorPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  // State for dialogs
+  const [isRescheduleOpen, setRescheduleOpen] = useState(false);
+  const [isFamilyDetailsOpen, setFamilyDetailsOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [phoneForFamilyDetails, setPhoneForFamilyDetails] = useState('');
+
 
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule) => {
     if (!localSchedule.days) return null;
@@ -169,8 +178,39 @@ export default function DoctorPage() {
 
   const handleNotificationsSave = (updatedNotifications: Notification[]) => handleAction(() => updateNotificationsAction(updatedNotifications), 'Notifications updated successfully.');
   const handleClosuresSave = (updatedClosures: SpecialClosure[]) => handleAction(() => updateSpecialClosuresAction(updatedClosures), 'Closures updated successfully.');
-  const handleConsultNext = () => handleAction(consultNextAction, 'Queue advanced.');
+  
+  // --- Dialog Handlers ---
+  const handleOpenReschedule = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setRescheduleOpen(true);
+  };
 
+  const handleOpenFamilyDetails = (phone: string) => {
+    setPhoneForFamilyDetails(phone);
+    setFamilyDetailsOpen(true);
+  };
+
+  const handleReschedule = (newDate: string, newTime: string, newPurpose: string) => {
+    if (!selectedPatient) return;
+    startTransition(() => {
+      const dateObj = parse(newDate, 'yyyy-MM-dd', new Date());
+      const timeObj = parse(newTime, 'hh:mm a', dateObj);
+      const appointmentTime = timeObj.toISOString();
+
+      rescheduleAppointmentAction(selectedPatient.id, appointmentTime, newPurpose).then(result => {
+        if ("error" in result) {
+          toast({ title: "Error", description: result.error, variant: 'destructive' });
+        } else {
+          toast({ title: 'Success', description: 'Appointment has been rescheduled.' });
+          loadData();
+        }
+      });
+    });
+  };
+
+  const handleFamilyUpdate = async () => {
+    loadData(); // This is a simpler way to refresh parent data
+  };
 
   const { currentSession, sessionPatients, averageConsultationTime, nowServing, upNext } = useMemo(() => {
     if (!schedule || !schedule.days) {
@@ -285,20 +325,6 @@ export default function DoctorPage() {
             averageConsultationTime={averageConsultationTime}
           />
           
-          {upNext && doctorStatus.isOnline && (
-            <Card className="bg-blue-100 border-blue-300">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className='flex items-center gap-3'>
-                  <span className='font-bold text-lg text-blue-800'>Up Next:</span>
-                  <span className='font-semibold text-lg'>#{upNext.tokenNo} - {upNext.name}</span>
-                </div>
-                <Button onClick={handleConsultNext} disabled={isPending}>
-                  <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
           <div className="grid gap-6 md:grid-cols-2">
             <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />
             <InfoCards schedule={schedule} />
@@ -351,9 +377,34 @@ export default function DoctorPage() {
             </CardContent>
           </Card>
 
-          <DoctorQueue patients={sessionPatients} onUpdate={loadData} />
+          <DoctorQueue
+            patients={sessionPatients}
+            onUpdate={loadData}
+            onReschedule={handleOpenReschedule}
+            onUpdateFamily={handleOpenFamilyDetails}
+          />
         </div>
       </main>
+
+      {selectedPatient && schedule && (
+        <RescheduleDialog
+          isOpen={isRescheduleOpen}
+          onOpenChange={setRescheduleOpen}
+          patient={selectedPatient}
+          schedule={schedule}
+          onSave={handleReschedule}
+          bookedPatients={patients.filter(p => p.id !== selectedPatient.id)}
+        />
+      )}
+
+      {phoneForFamilyDetails && (
+        <FamilyDetailsDialog
+          isOpen={isFamilyDetailsOpen}
+          onOpenChange={setFamilyDetailsOpen}
+          phone={phoneForFamilyDetails}
+          onUpdate={handleFamilyUpdate}
+        />
+      )}
     </>
   );
 }

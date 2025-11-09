@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -8,20 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Patient, FamilyMember } from '@/lib/types';
+import type { Patient } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   ChevronsRight,
   CircleCheck,
   FileClock,
-  MoreVertical,
   Shield,
   Trash2,
   Calendar,
@@ -29,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useTransition, useState } from 'react';
+import { useTransition } from 'react';
 import {
   consultNextAction,
   cancelAppointmentAction,
@@ -39,8 +32,6 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SplitButton } from '@/components/ui/split-button';
-import { RescheduleDialog } from '../reception/reschedule-dialog';
-import { FamilyDetailsDialog } from '../reception/family-details-dialog';
 
 const statusConfig: Record<Patient['status'], { color: string, label: string }> = {
   Waiting: { color: 'text-blue-600', label: 'Waiting' },
@@ -81,9 +72,13 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
 export function DoctorQueue({
   patients,
   onUpdate,
+  onReschedule,
+  onUpdateFamily,
 }: {
   patients: Patient[];
   onUpdate: () => void;
+  onReschedule: (patient: Patient) => void;
+  onUpdateFamily: (phone: string) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -189,6 +184,8 @@ export function DoctorQueue({
                             }}
                             dropdownActions={[
                               { label: <><FileClock className="mr-2 h-4 w-4" /> Waiting for Reports</>, onClick: () => handleWaitForReports(p.id) },
+                              { label: <><Users className="mr-2 h-4 w-4" /> Update Family</>, onClick: () => onUpdateFamily(p.phone) },
+                              { label: <><Calendar className="mr-2 h-4 w-4" /> Reschedule</>, onClick: () => onReschedule(p) },
                               { label: <><Trash2 className="mr-2 h-4 w-4" /> Cancel Appointment</>, onClick: () => handleCancel(p.id) },
                             ]}
                           />
