@@ -28,6 +28,7 @@ import { parse } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DoctorHeader } from '@/components/doctor/doctor-header';
 import { DoctorStatusControls } from '@/components/doctor/doctor-status-controls';
+import { DoctorStats } from '@/components/doctor/doctor-stats';
 import { InfoCards } from '@/components/doctor/info-cards';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -350,7 +351,7 @@ export default function DoctorPage() {
             </CardContent>
           </Card>
 
-          <DoctorQueue patients={sessionPatients} schedule={schedule} family={family} onUpdate={loadData} />
+          <DoctorQueue patients={sessionPatients} onUpdate={loadData} />
         </div>
       </main>
     </>
