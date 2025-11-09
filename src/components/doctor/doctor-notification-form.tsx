@@ -8,12 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { format } from 'date-fns';
-import { parseISO } from 'date-fns';
-import { setHours } from 'date-fns';
-import { setMinutes } from 'date-fns';
-import { parse } from 'date-fns';
-import { isFuture } from 'date-fns';
+import { format, parseISO, setHours, setMinutes, parse, isFuture } from 'date-fns';
 import { CalendarIcon, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -28,8 +23,9 @@ const BLANK_NOTIFICATION: Omit<Notification, 'id'> = {
 
 type NotificationFormProps = {
   initialNotifications: Notification[];
-  onSave: (notifications: Notification[]) => Promise<void>;
+  onSave: (notifications: Notification[]) => void | Promise<void>;
 };
+
 
 export function DoctorNotificationForm({ initialNotifications, onSave }: NotificationFormProps) {
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
