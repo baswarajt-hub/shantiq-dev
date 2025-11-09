@@ -314,12 +314,13 @@ function WalkInPageContent() {
               <CardDescription className="text-center">This phone number is new to us. Please enter the parents' details to create a family account.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Attention!</AlertTitle>
-                <AlertDescription>
-                  If you have registered with the doctor before, please contact the receptionist for assistance.
-                </AlertDescription>
+              <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>New Phone Number</AlertTitle>
+                  <AlertDescription>
+                    <strong>This phone number is not registered in our system.</strong>
+                    <p className="mt-1">If you have previously registered with the doctor, please contact the receptionist before completing your registration.</p>
+                  </AlertDescription>
               </Alert>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { FamilyMember } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 
 export default function RegisterPage() {
@@ -88,11 +88,12 @@ export default function RegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Attention!</AlertTitle>
+            <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>New Phone Number</AlertTitle>
                 <AlertDescription>
-                  If you have registered with the doctor before, please contact the receptionist for assistance.
+                  <strong>This phone number is not registered in our system.</strong>
+                  <p className="mt-1">If you have previously registered with the doctor, please contact the receptionist before completing your registration.</p>
                 </AlertDescription>
             </Alert>
             <div className="space-y-2">
