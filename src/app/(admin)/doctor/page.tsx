@@ -8,6 +8,7 @@ import type {
   Session,
   Notification,
   SpecialClosure,
+  FamilyMember,
 } from '@/lib/types';
 import {
   updateNotificationsAction,
@@ -16,6 +17,9 @@ import {
   getPatientsAction,
   getDoctorStatusAction,
   setDoctorStatusAction,
+  getFamilyAction,
+  rescheduleAppointmentAction,
+  consultNextAction,
 } from '@/app/actions';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { format } from 'date-fns';
@@ -35,11 +39,12 @@ import {
 import { DoctorNotificationForm } from '@/components/doctor/doctor-notification-form';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, SlidersHorizontal, QrCode, RefreshCw } from 'lucide-react';
+import { Settings, SlidersHorizontal, QrCode, RefreshCw, ChevronsRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DoctorQueue } from '@/components/doctor/doctor-queue';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 const timeZone = 'Asia/Kolkata';
 
@@ -54,12 +59,12 @@ export default function DoctorPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
+  const [family, setFamily] = useState<FamilyMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
 
-  // ✅ Helper to determine which session a time belongs to
   const getSessionForTime = useCallback((appointmentUtcDate: Date, localSchedule: DoctorSchedule) => {
     if (!localSchedule.days) return null;
     const zonedAppt = toZonedTime(appointmentUtcDate, timeZone);
@@ -98,16 +103,21 @@ export default function DoctorPage() {
     return null;
   }, []);
 
-  // ✅ Load schedule, patients, status
   const loadData = useCallback(() => {
     if (initialLoad) setIsLoading(true);
     else setIsRefreshing(true);
 
-    Promise.all([getDoctorScheduleAction(), getPatientsAction(), getDoctorStatusAction()])
-      .then(([scheduleData, patientData, statusData]) => {
+    Promise.all([
+      getDoctorScheduleAction(),
+      getPatientsAction(),
+      getDoctorStatusAction(),
+      getFamilyAction(),
+    ])
+      .then(([scheduleData, patientData, familyData, statusData]) => {
         setSchedule(scheduleData);
         setPatients(patientData);
         setDoctorStatus(statusData);
+        setFamily(familyData);
       })
       .catch((error) => {
         console.error('Failed to load data for Doctor page', error);
@@ -126,73 +136,43 @@ export default function DoctorPage() {
 
   useEffect(() => {
     loadData();
-    const intervalId = setInterval(loadData, 15000); // safer interval
+    const intervalId = setInterval(loadData, 15000);
     return () => clearInterval(intervalId);
   }, [loadData]);
+  
+  const handleAction = (action: () => Promise<any>, successMessage: string) => {
+    startTransition(async () => {
+      const result = await action();
+      if ("success" in result) {
+        toast({ title: 'Success', description: successMessage });
+        loadData();
+      } else {
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
+      }
+    });
+  };
 
-  // ✅ QR Code toggle handler
-  const handleToggleQrCode = async () => {
+  const handleToggleQrCode = () => {
     if (!doctorStatus) return;
-
     const isActivating = !doctorStatus.isQrCodeActive;
-    const newToken = isActivating ? generateSecureToken() : null;
-
-    const payload = {
-      isQrCodeActive: isActivating,
-      walkInSessionToken: newToken,
-      qrActivatedAt: isActivating ? new Date().toISOString() : null,
-    };
-
-    const result = await setDoctorStatusAction(payload);
-
-    if ('error' in result) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update QR code status.',
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Success',
-        description: isActivating
-          ? 'QR Code activated successfully. A new token has been generated.'
-          : 'QR Code deactivated successfully.',
-      });
-      loadData();
-    }
+    handleAction(
+      () => setDoctorStatusAction({ 
+        isQrCodeActive: isActivating, 
+        walkInSessionToken: isActivating ? generateSecureToken() : null,
+        qrSessionStartTime: isActivating ? new Date().toISOString() : null,
+      }),
+      isActivating ? 'QR Code activated successfully.' : 'QR Code deactivated successfully.'
+    );
   };
 
-  // ✅ Notification save handler
-  const handleNotificationsSave = async (updatedNotifications: Notification[]) => {
-    const result = await updateNotificationsAction(updatedNotifications);
-    if ('error' in result) {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
-    } else {
-      toast({ title: 'Success', description: result.success });
-      setSchedule((prev) =>
-        prev ? { ...prev, notifications: updatedNotifications } : null
-      );
-    }
-  };
+  const handleNotificationsSave = (updatedNotifications: Notification[]) => handleAction(() => updateNotificationsAction(updatedNotifications), 'Notifications updated successfully.');
+  const handleClosuresSave = (updatedClosures: SpecialClosure[]) => handleAction(() => updateSpecialClosuresAction(updatedClosures), 'Closures updated successfully.');
+  const handleConsultNext = () => handleAction(consultNextAction, 'Queue advanced.');
 
-  // ✅ Special closures save handler
-  const handleClosuresSave = async (updatedClosures: SpecialClosure[]) => {
-    if (!schedule) return;
-    const result = await updateSpecialClosuresAction(updatedClosures);
-    if ('error' in result) {
-      toast({ title: 'Error', description: result.error, variant: 'destructive' });
-    } else {
-      toast({ title: 'Success', description: 'Closure updated successfully.' });
-      setSchedule((prev) =>
-        prev ? { ...prev, specialClosures: updatedClosures } : null
-      );
-    }
-  };
 
-  // ✅ Memoized session & patient data
-  const { currentSession, sessionPatients, averageConsultationTime } = useMemo(() => {
+  const { currentSession, sessionPatients, averageConsultationTime, nowServing, upNext } = useMemo(() => {
     if (!schedule || !schedule.days) {
-      return { currentSession: null, sessionPatients: [], averageConsultationTime: 0 };
+      return { currentSession: null, sessionPatients: [], averageConsultationTime: 0, nowServing: undefined, upNext: undefined };
     }
 
     const now = new Date();
@@ -201,7 +181,7 @@ export default function DoctorPage() {
 
     let daySchedule = schedule.days[dayOfWeek];
     if (!daySchedule)
-      return { currentSession: null, sessionPatients: [], averageConsultationTime: 0 };
+      return { currentSession: null, sessionPatients: [], averageConsultationTime: 0, nowServing: undefined, upNext: undefined };
 
     const todayOverride = schedule.specialClosures?.find((c) => c.date === todayStr);
     if (todayOverride) {
@@ -214,7 +194,7 @@ export default function DoctorPage() {
     let session: 'morning' | 'evening' = 'morning';
     if (daySchedule.morning.isOpen) {
       const morningEndTime = parse(daySchedule.morning.end, 'HH:mm', now);
-      if (now > morningEndTime) session = 'evening';
+      if (now > morningEndTime && daySchedule.evening.isOpen) session = 'evening';
     } else {
       session = 'evening';
     }
@@ -241,10 +221,11 @@ export default function DoctorPage() {
       currentSession: session,
       sessionPatients: filteredPatients,
       averageConsultationTime: avgTime,
+      nowServing: filteredPatients.find(p => p.status === 'In-Consultation'),
+      upNext: filteredPatients.find(p => p.status === 'Up-Next'),
     };
   }, [schedule, patients, getSessionForTime]);
 
-  // ✅ Loading skeleton
   if (isLoading || !schedule || !doctorStatus) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -269,7 +250,6 @@ export default function DoctorPage() {
     );
   }
 
-  // ✅ Final render
   return (
     <>
       <DoctorHeader
@@ -302,13 +282,26 @@ export default function DoctorPage() {
             patients={sessionPatients}
             averageConsultationTime={averageConsultationTime}
           />
+          
+          {upNext && doctorStatus.isOnline && (
+            <Card className="bg-blue-100 border-blue-300">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className='flex items-center gap-3'>
+                  <span className='font-bold text-lg text-blue-800'>Up Next:</span>
+                  <span className='font-semibold text-lg'>#{upNext.tokenNo} - {upNext.name}</span>
+                </div>
+                <Button onClick={handleConsultNext} disabled={isPending}>
+                  <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid gap-6 md:grid-cols-2">
             <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />
             <InfoCards schedule={schedule} />
           </div>
 
-          {/* ⚙️ Advanced Settings */}
           <Card>
             <CardContent className="p-0">
               <Accordion type="single" collapsible className="w-full">
@@ -321,7 +314,6 @@ export default function DoctorPage() {
                   </AccordionTrigger>
                   <AccordionContent className="p-4 md:p-6 pt-2 bg-muted/50">
                     <div className="space-y-6">
-                      {/* ✅ QR Code Toggle */}
                       <div className="flex items-center space-x-2 p-3 rounded-lg bg-background">
                         <Label
                           htmlFor="qr-code-status"
@@ -341,6 +333,7 @@ export default function DoctorPage() {
                           id="qr-code-status"
                           checked={!!doctorStatus.isQrCodeActive}
                           onCheckedChange={handleToggleQrCode}
+                          disabled={isPending}
                         />
                       </div>
 

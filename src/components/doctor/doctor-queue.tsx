@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import {
@@ -10,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Patient } from '@/lib/types';
+import type { Patient, FamilyMember } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -26,19 +24,23 @@ import {
   MoreVertical,
   Shield,
   Trash2,
+  Calendar,
+  Users,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useTransition } from 'react';
+import { useTransition, useState } from 'react';
 import {
-  advanceQueueAction,
+  consultNextAction,
   cancelAppointmentAction,
-  startLastConsultationAction,
   updatePatientStatusAction,
 } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
+import { SplitButton } from '@/components/ui/split-button';
+import { RescheduleDialog } from '../reception/reschedule-dialog';
+import { FamilyDetailsDialog } from '../reception/family-details-dialog';
 
 const statusConfig: Record<Patient['status'], { color: string, label: string }> = {
   Waiting: { color: 'text-blue-600', label: 'Waiting' },
@@ -85,80 +87,36 @@ export function DoctorQueue({
 }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-
-  const handleUpdateStatus = (patientId: string, status: Patient['status']) => {
-    startTransition(async () => {
-      const result = await updatePatientStatusAction(patientId, status);
-      if ("success" in result) {
-        toast({ title: 'Success', description: result.success });
-        onUpdate();
-      } else {
-        toast({
-          title: 'Error',
-          description: result.error,
-          variant: 'destructive',
-        });
-      }
-    });
-  };
-
-  const handleAdvanceQueue = (patientId: string) => {
-    startTransition(async () => {
-      const result = await advanceQueueAction(patientId);
-      if ("success" in result) {
-        toast({ title: 'Success', description: result.success });
-        onUpdate();
-      } else {
-        toast({
-          title: 'Error',
-          description: result.error,
-          variant: 'destructive',
-        });
-      }
-    });
-  };
   
-  const handleStartLastConsultation = (patientId: string) => {
+  const handleAction = (action: () => Promise<any>, successMessage: string) => {
     startTransition(async () => {
-        const result = await startLastConsultationAction(patientId);
-        if("success" in result) {
-            toast({ title: 'Success', description: result.success});
-            onUpdate();
-        } else {
-            toast({ title: 'Error', description: result.error, variant: 'destructive'});
-        }
-    })
-  }
-
-  const handleCancel = (patientId: string) => {
-    startTransition(async () => {
-      const result = await cancelAppointmentAction(patientId);
+      const result = await action();
       if ("success" in result) {
-        toast({ title: 'Success', description: result.success });
+        toast({ title: 'Success', description: successMessage });
         onUpdate();
       } else {
-        toast({
-          title: 'Error',
-          description: result.error,
-          variant: 'destructive',
-        });
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
       }
     });
   };
+
+  const handleConsultNext = () => handleAction(consultNextAction, 'Queue advanced.');
+  const handleMarkComplete = (id: string) => handleAction(() => updatePatientStatusAction(id, 'Completed'), 'Consultation completed.');
+  const handleWaitForReports = (id: string) => handleAction(() => updatePatientStatusAction(id, 'Waiting for Reports'), 'Patient moved to Waiting for Reports.');
+  const handleReConsultReports = (id: string) => handleAction(() => updatePatientStatusAction(id, 'In-Consultation'), 'Patient moved back to consultation.');
+  const handleCancel = (id: string) => handleAction(() => cancelAppointmentAction(id), 'Appointment cancelled.');
 
   const nowServing = patients.find(p => p.status === 'In-Consultation');
   const upNext = patients.find(p => p.status === 'Up-Next');
   const waitingList = patients
-    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status))
+    .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.id !== upNext?.id)
     .sort((a, b) => (a.tokenNo || 0) - (b.tokenNo || 0));
 
   const queue = [
     ...(nowServing ? [nowServing] : []),
     ...(upNext ? [upNext] : []),
     ...waitingList,
-  ];
-
-  const isLastInQueue = upNext && waitingList.length === 0;
+  ].filter(p => p.status !== 'Completed' && p.status !== 'Cancelled');
 
   return (
     <Card>
@@ -174,7 +132,7 @@ export function DoctorQueue({
                 <TableHead>Patient Name</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Purpose</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right w-[200px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -220,85 +178,29 @@ export function DoctorQueue({
                       </TableCell>
                       <TableCell>{p.purpose}</TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={isPending}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {p.status === 'In-Consultation' && (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleUpdateStatus(p.id, 'Completed')
-                                  }
-                                >
-                                  <CircleCheck className="mr-2 h-4 w-4" />
-                                  Mark as Completed
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleUpdateStatus(
-                                      p.id,
-                                      'Waiting for Reports'
-                                    )
-                                  }
-                                >
-                                  <FileClock className="mr-2 h-4 w-4" />
-                                  Waiting for Reports
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                             {p.status === 'Up-Next' && isLastInQueue && (
-                                <DropdownMenuItem onClick={() => handleStartLastConsultation(p.id)}>
-                                    <CircleCheck className="mr-2 h-4 w-4" />
-                                    Start Final Consultation
-                                </DropdownMenuItem>
-                            )}
-                            {p.status === 'Waiting for Reports' && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleUpdateStatus(p.id, 'In-Consultation')
-                                }
-                              >
-                                <ChevronsRight className="mr-2 h-4 w-4" />
-                                Re-Consult (Reports)
-                              </DropdownMenuItem>
-                            )}
-                            {['Waiting', 'Late'].includes(p.status) && (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={() => handleAdvanceQueue(p.id)}
-                                >
-                                  <ChevronsRight className="mr-2 h-4 w-4" />
-                                  Move to Up Next
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleUpdateStatus(p.id, 'Priority')
-                                  }
-                                  className="text-red-600 focus:text-red-600"
-                                >
-                                  <Shield className="mr-2 h-4 w-4" />
-                                  Consult Now (Priority)
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleCancel(p.id)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Cancel Appointment
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {p.status === 'In-Consultation' ? (
+                           <SplitButton
+                            size="sm"
+                            variant="secondary"
+                            disabled={isPending}
+                            mainAction={{
+                              label: <><CircleCheck className="mr-2 h-4 w-4" /> Mark Complete</>,
+                              onClick: () => handleMarkComplete(p.id),
+                            }}
+                            dropdownActions={[
+                              { label: <><FileClock className="mr-2 h-4 w-4" /> Waiting for Reports</>, onClick: () => handleWaitForReports(p.id) },
+                              { label: <><Trash2 className="mr-2 h-4 w-4" /> Cancel Appointment</>, onClick: () => handleCancel(p.id) },
+                            ]}
+                          />
+                        ) : p.status === 'Up-Next' ? (
+                          <Button size="sm" onClick={handleConsultNext} disabled={isPending}>
+                            <ChevronsRight className="mr-2 h-4 w-4"/>Consult Next
+                          </Button>
+                        ) : p.status === 'Waiting for Reports' ? (
+                          <Button size="sm" onClick={() => handleReConsultReports(p.id)} disabled={isPending}>
+                             <ChevronsRight className="mr-2 h-4 w-4"/>Re-Consult
+                          </Button>
+                        ) : null}
                       </TableCell>
                     </motion.tr>
                   ))
