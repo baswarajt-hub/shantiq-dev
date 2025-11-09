@@ -277,9 +277,9 @@ function TVDisplayPageContent() {
                     }
                     // As a final fallback, if we are in a valid day, determine which is closer or active
                     else {
-                       if (now >= eveningStartUtc!) {
+                       if (eveningStartUtc && now >= eveningStartUtc) {
                            sessionToShow = 'evening';
-                       } else if (now >= morningStartUtc!) {
+                       } else if (morningStartUtc && now >= morningStartUtc) {
                            sessionToShow = 'morning';
                        } else { // Before any session on an open day
                            sessionToShow = morningSession.isOpen ? 'morning' : 'evening';
@@ -432,14 +432,12 @@ function TVDisplayPageContent() {
     };
   }
 
-  // --- Updated QR Code Logic ---
-
-const qrCodeUrl =
-  doctorStatus.isQrCodeActive && doctorStatus.walkInSessionToken && baseUrl
-    ? `${baseUrl}/walk-in?token=${doctorStatus.walkInSessionToken}`
-    : '';
-
-const showQrCode = Boolean(doctorStatus.isQrCodeActive && qrCodeUrl);
+  const qrCodeUrl =
+    doctorStatus.isQrCodeActive && doctorStatus.walkInSessionToken && baseUrl
+      ? `${baseUrl}/walk-in?token=${doctorStatus.walkInSessionToken}`
+      : '';
+  
+  const showQrCode = !!qrCodeUrl;
 
 
   if (layout === '2') {
