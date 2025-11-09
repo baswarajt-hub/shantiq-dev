@@ -52,7 +52,7 @@ function WalkInPageContent() {
 
   // --- Hard-coded clinic coordinates (Shanti Children’s Clinic, Gowliguda Chaman, Hyderabad) ---
   const clinicCoords = { lat: 17.3784598, lng: 78.4788769 };
-  const allowedRadiusMeters = 300;
+  const allowedRadiusMeters = 150;
 
   useEffect(() => {
     if (validationAttempted.current) return;
