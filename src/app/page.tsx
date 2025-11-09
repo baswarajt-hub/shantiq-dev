@@ -596,46 +596,16 @@ export default function DashboardPage() {
     };
 
     const handleToggleStatus = useCallback((field: keyof DoctorStatus) => {
-        if (!doctorStatus) return;
-      
-        // Optimistically update UI
-        const newStatusValue = !doctorStatus[field];
-        setDoctorStatus(prev => prev ? { ...prev, [field]: newStatusValue } : null);
-      
-        let updates: Partial<DoctorStatus> = { [field]: newStatusValue };
-      
-        if (field === 'isQrCodeActive') {
-            // This will be handled server-side if needed
+      startTransition(async () => {
+        const result = await setDoctorStatusAction({ [field]: !doctorStatus?.[field] });
+        if ('error' in result) {
+          toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+          toast({ title: 'Success', description: result.success });
+          loadData(false); // Refresh data
         }
-      
-        if (field === 'isOnline') {
-          if (newStatusValue) {
-            updates.startDelay = 0;
-            updates.onlineTime = new Date().toISOString();
-          } else {
-            updates.onlineTime = undefined;
-            if (doctorStatus.isPaused) updates.isPaused = false;
-          }
-        }
-      
-        startTransition(() => {
-          setDoctorStatusAction(updates).then(result => {
-            if ("error" in result) {
-              // Revert on error
-              setDoctorStatus(prev => prev ? { ...prev, [field]: !newStatusValue } : null);
-              toast({ 
-                title: 'Error', 
-                description: `Failed to update status: ${result.error}`, 
-                variant: 'destructive' 
-              });
-            } else {
-              toast({ title: 'Success', description: result.success });
-              // Refresh to ensure sync with server
-              loadData(false);
-            }
-          });
-        });
-      }, [doctorStatus, loadData, toast]);
+      });
+    }, [doctorStatus, loadData, toast]);
 
     const handleUpdateDelay = useCallback(() => {
         const delayInput = document.getElementById('doctor-delay') as HTMLInputElement;
@@ -1203,10 +1173,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-
-
-
-
-    
-

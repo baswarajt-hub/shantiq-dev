@@ -1,8 +1,5 @@
 
 
-
-
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -328,6 +325,16 @@ export async function getDoctorStatusAction(): Promise<DoctorStatus> {
 export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
   try {
     const updates: Partial<DoctorStatus> = { ...status };
+    
+    // Centralize token generation logic
+    if (status.isQrCodeActive === true) {
+      updates.walkInSessionToken = randomBytes(16).toString('hex');
+      updates.qrSessionStartTime = new Date().toISOString();
+    } else if (status.isQrCodeActive === false) {
+      updates.walkInSessionToken = null;
+      updates.qrSessionStartTime = null;
+    }
+    
     const newStatus = await updateDoctorStatus(updates);
     await recalculateQueueWithETC();
     revalidatePath('/', 'layout');
@@ -1299,12 +1306,3 @@ export async function patientImportAction(familyFormData: FormData, childFormDat
         return { error: `An error occurred during import: ${e.message}` };
     }
 }
-    
-
-
-
-    
-
-    
-
-

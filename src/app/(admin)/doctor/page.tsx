@@ -51,13 +51,6 @@ import { FamilyDetailsDialog } from '@/components/reception/family-details-dialo
 
 const timeZone = 'Asia/Kolkata';
 
-// 🔐 Helper to generate random secure tokens
-function generateSecureToken(prefix = 'walkin') {
-  const randomPart = Math.random().toString(36).substring(2, 10);
-  const timePart = Date.now().toString(36);
-  return `${prefix}_${randomPart}${timePart}`;
-}
-
 export default function DoctorPage() {
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -167,11 +160,7 @@ export default function DoctorPage() {
     if (!doctorStatus) return;
     const isActivating = !doctorStatus.isQrCodeActive;
     handleAction(
-      () => setDoctorStatusAction({ 
-        isQrCodeActive: isActivating, 
-        walkInSessionToken: isActivating ? generateSecureToken() : null,
-        qrSessionStartTime: isActivating ? new Date().toISOString() : null,
-      }),
+      () => setDoctorStatusAction({ isQrCodeActive: isActivating }),
       isActivating ? 'QR Code activated successfully.' : 'QR Code deactivated successfully.'
     );
   };
@@ -327,7 +316,7 @@ export default function DoctorPage() {
 
           <Card>
             <CardContent className="p-0">
-              <Accordion type="single" collapsible className="w-full">
+              <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
                 <AccordionItem value="item-1">
                   <AccordionTrigger className="px-6 text-lg font-semibold">
                     <div className="flex items-center gap-2">
@@ -425,5 +414,3 @@ export default function DoctorPage() {
     </>
   );
 }
-
-    
