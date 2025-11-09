@@ -589,12 +589,9 @@ export default function DashboardPage() {
         });
     }, [loadData, toast]);
 
-    const handleOpenNewPatientDialogFromWalkIn = (searchTerm: string) => {
+    const handleOpenNewPatientDialogFromWalkIn = (phone: string) => {
         setBookWalkInOpen(false);
-        // Basic check if the search term could be a phone number
-        if (/^\\d{5,}$/.test(searchTerm.replace(/\\D/g, ''))) {
-            setPhoneToPreFill(searchTerm);
-        }
+        setPhoneToPreFill(phone);
         setNewPatientOpen(true);
     };
 
