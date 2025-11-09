@@ -41,7 +41,7 @@ import {
 import { DoctorNotificationForm } from '@/components/doctor/doctor-notification-form';
 import { SpecialClosures } from '@/components/admin/special-closures';
 import { useToast } from '@/hooks/use-toast';
-import { SlidersHorizontal, QrCode, RefreshCw } from 'lucide-react';
+import { SlidersHorizontal, QrCode, RefreshCw, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DoctorQueue } from '@/components/doctor/doctor-queue';
 import { Switch } from '@/components/ui/switch';
@@ -324,6 +324,29 @@ export default function DoctorPage() {
             patients={sessionPatients}
             averageConsultationTime={averageConsultationTime}
           />
+
+          <Card>
+            <CardContent className="p-0">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="item-1">
+                  <AccordionTrigger className="px-6 text-lg font-semibold">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Live Queue
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4 md:p-6 pt-0 bg-muted/50">
+                    <DoctorQueue
+                      patients={sessionPatients}
+                      onUpdate={loadData}
+                      onReschedule={handleOpenReschedule}
+                      onUpdateFamily={handleOpenFamilyDetails}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
           
           <div className="grid gap-6 md:grid-cols-2">
             <DoctorStatusControls initialStatus={doctorStatus} onUpdate={loadData} />
@@ -377,12 +400,6 @@ export default function DoctorPage() {
             </CardContent>
           </Card>
 
-          <DoctorQueue
-            patients={sessionPatients}
-            onUpdate={loadData}
-            onReschedule={handleOpenReschedule}
-            onUpdateFamily={handleOpenFamilyDetails}
-          />
         </div>
       </main>
 
@@ -408,3 +425,5 @@ export default function DoctorPage() {
     </>
   );
 }
+
+    
