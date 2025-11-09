@@ -17,8 +17,9 @@ const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 
 type SpecialClosuresProps = {
   schedule: DoctorSchedule;
-  onSave: (closures: SpecialClosure[]) => Promise<void>;
-}
+  onSave: (closures: SpecialClosure[]) => void | Promise<void>;  // ✅ fix
+};
+
 
 type CustomDayContentProps = DayContentProps & {
   customProps?: {
