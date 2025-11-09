@@ -2,6 +2,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -539,15 +540,17 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
 
         // --- 2. Intelligent Late Marking ---
         const inConsultation = sessionPatients.find(p => p.status === 'In-Consultation');
-        const highestCompletedToken = Math.max(0, ...sessionPatients.filter(p => p.status === 'Completed').map(p => p.tokenNo));
-        const doctorTokenProgress = inConsultation ? inConsultation.tokenNo : highestCompletedToken;
+        const highestCompletedToken = Math.max(0, ...sessionPatients.filter(p => p.status === 'Completed').map(p => p.tokenNo || 0));
+        const doctorTokenProgress = inConsultation ? (inConsultation.tokenNo || 0) : highestCompletedToken;
 
         sessionPatients.forEach(p => {
+            // Compute slotTime for all patients first.
+            const slotTime = addMinutes(clinicSessionStartTime, ((p.tokenNo || 0) - 1) * schedule.slotDuration);
+            patientUpdates.set(p.id, { ...patientUpdates.get(p.id), slotTime: slotTime.toISOString() });
+            
             if (['Booked', 'Confirmed'].includes(p.status) && p.checkInTime) {
-                const slotTime = addMinutes(clinicSessionStartTime, (p.tokenNo - 1) * schedule.slotDuration);
-                const checkInTime = parseISO(p.checkInTime);
-                if (isAfter(checkInTime, slotTime) && p.tokenNo < doctorTokenProgress) {
-                    patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Late', lateBy: differenceInMinutes(checkInTime, slotTime) });
+                if (isAfter(parseISO(p.checkInTime), slotTime) && (p.tokenNo || 0) < doctorTokenProgress) {
+                    patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Late', lateBy: differenceInMinutes(parseISO(p.checkInTime), slotTime) });
                 } else {
                      patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Waiting' });
                 }
@@ -556,29 +559,30 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             if (p.status === 'Up-Next') {
                 patientUpdates.set(p.id, { ...patientUpdates.get(p.id), status: 'Waiting' });
             }
-            // Set slotTime for all patients in session
-            const slotTime = addMinutes(clinicSessionStartTime, (p.tokenNo - 1) * schedule.slotDuration);
-            patientUpdates.set(p.id, { ...patientUpdates.get(p.id), slotTime: slotTime.toISOString() });
         });
 
         // Apply updates before building queues
         let updatedSessionPatients = sessionPatients.map(p => ({ ...p, ...patientUpdates.get(p.id) }));
 
-        // --- 3. Build Queues (Priority, Waiting, Late, Booked) ---
-        const priorityQueue = updatedSessionPatients.filter(p => p.status === 'Priority').sort((a,b) => a.tokenNo - b.tokenNo);
-        const baseWaitingQueue = updatedSessionPatients.filter(p => p.status === 'Waiting').sort((a,b) => a.tokenNo - b.tokenNo);
-        const lateWithAnchors = updatedSessionPatients.filter(p => p.status === 'Late' && p.lateLocked && p.lateAnchors);
+        // --- 3. Build Queues (Priority, Waiting, Late) ---
+        const priorityQueue = updatedSessionPatients.filter(p => p.status === 'Priority').sort((a,b) => (a.tokenNo || 0) - (b.tokenNo || 0));
+        const baseWaitingQueue = updatedSessionPatients.filter(p => p.status === 'Waiting').sort((a,b) => (a.tokenNo || 0) - (b.tokenNo || 0));
+        const lateWithAnchors = updatedSessionPatients.filter(p => p.status === 'Late' && p.lateLocked && p.lateAnchors && p.lateAnchors.length > 0);
 
         // Position late patients with anchors correctly
         let waitingQueue = [...baseWaitingQueue];
         for(const latePatient of lateWithAnchors) {
-            const lastAnchorId = latePatient.lateAnchors!.pop();
-            const lastAnchor = waitingQueue.find(p => p.id === lastAnchorId);
-            if(lastAnchor) {
-                const insertIndex = waitingQueue.indexOf(lastAnchor) + 1;
-                waitingQueue.splice(insertIndex, 0, latePatient);
+            const activeAnchors = latePatient.lateAnchors!.filter(anchorId => waitingQueue.some(p => p.id === anchorId));
+            const lastAnchorId = activeAnchors.pop();
+            if(lastAnchorId) {
+                const lastAnchorIndex = waitingQueue.findIndex(p => p.id === lastAnchorId);
+                if (lastAnchorIndex !== -1) {
+                    waitingQueue.splice(lastAnchorIndex + 1, 0, latePatient);
+                } else {
+                    waitingQueue.push(latePatient); // Fallback
+                }
             } else {
-                waitingQueue.push(latePatient); // Fallback if anchor not found
+                 waitingQueue.unshift(latePatient); // If all anchors are gone, they are at the front of the late queue
             }
         }
         
@@ -592,36 +596,25 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         }
 
         // --- 5. Calculate Worst Case ETC ---
-        const checkedInPatients = updatedSessionPatients
-            .filter(p => ['Waiting', 'Priority', 'Late'].includes(p.status))
-            .sort((a, b) => a.tokenNo - b.tokenNo);
-
-        let worstCaseQueue = [...checkedInPatients];
-        let runningWorstET = inConsultation ? max([effectiveStartTime, addMinutes(parseISO(inConsultation.consultationStartTime!), schedule.slotDuration)]) : effectiveStartTime;
-
-        for (const patient of updatedSessionPatients.sort((a, b) => a.tokenNo - b.tokenNo)) {
+        for (const patient of updatedSessionPatients) {
             if (!['Booked', 'Confirmed', 'Waiting', 'Priority', 'Late'].includes(patient.status)) continue;
 
-            const isCheckedIn = ['Waiting', 'Priority', 'Late'].includes(patient.status);
+            const patientsAheadWhoMightArrive = updatedSessionPatients.filter(p => 
+                (p.tokenNo || 0) < (patient.tokenNo || 0) && 
+                ['Booked', 'Confirmed', 'Waiting', 'Priority', 'Late'].includes(p.status)
+            );
             
-            if (isCheckedIn) {
-                // For checked-in patients, their worst case is their best case.
-                const bestETC = patientUpdates.get(patient.id)?.bestCaseETC;
-                if (bestETC) {
-                    patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: bestETC });
-                }
-            } else { // 'Booked' or 'Confirmed'
-                // This patient hasn't checked in. Their worst case is based on everyone before them showing up.
-                const patientsAheadWhoMightArrive = updatedSessionPatients.filter(p => 
-                    p.tokenNo < patient.tokenNo && 
-                    ['Booked', 'Confirmed', 'Waiting', 'Priority', 'Late'].includes(p.status)
-                );
-                
-                let worstCaseTime = inConsultation ? max([effectiveStartTime, addMinutes(parseISO(inConsultation.consultationStartTime!), schedule.slotDuration)]) : effectiveStartTime;
-                worstCaseTime = addMinutes(worstCaseTime, patientsAheadWhoMightArrive.length * schedule.slotDuration);
+            let worstCaseTime = inConsultation ? max([effectiveStartTime, addMinutes(parseISO(inConsultation.consultationStartTime!), schedule.slotDuration)]) : effectiveStartTime;
+            worstCaseTime = addMinutes(worstCaseTime, patientsAheadWhoMightArrive.length * schedule.slotDuration);
 
-                patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
-            }
+            // The patient's own slot duration
+            worstCaseTime = addMinutes(worstCaseTime, schedule.slotDuration);
+            
+            // The ETC should be the END of their slot, so we subtract one slot duration
+            worstCaseTime = subMinutes(worstCaseTime, schedule.slotDuration);
+
+
+            patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
         }
 
 
@@ -631,7 +624,6 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             const upNextPatient = finalQueue[0];
             patientUpdates.set(upNextPatient.id, { ...patientUpdates.get(upNextPatient.id), status: 'Up-Next' });
         } else if (finalQueue.length > 0 && inConsultation) {
-            // If someone is in consultation, the next in line is Up-Next
              if (finalQueue[0]) {
                 const upNextPatient = finalQueue[0];
                 patientUpdates.set(upNextPatient.id, { ...patientUpdates.get(upNextPatient.id), status: 'Up-Next' });
@@ -1314,4 +1306,5 @@ export async function patientImportAction(familyFormData: FormData, childFormDat
     
 
     
+
 
