@@ -1,6 +1,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -565,7 +566,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
 
         // --- 3. Build Queues (Priority, Waiting, Late, Booked) ---
         const priorityQueue = updatedSessionPatients.filter(p => p.status === 'Priority').sort((a,b) => a.tokenNo - b.tokenNo);
-        const baseWaitingQueue = updatedSessionPatients.filter(p => p.status === 'Waiting').sort((a,b) => a.tokenNo - b_tokenNo);
+        const baseWaitingQueue = updatedSessionPatients.filter(p => p.status === 'Waiting').sort((a,b) => a.tokenNo - b.tokenNo);
         const lateWithAnchors = updatedSessionPatients.filter(p => p.status === 'Late' && p.lateLocked && p.lateAnchors);
 
         // Position late patients with anchors correctly
@@ -591,27 +592,38 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         }
 
         // --- 5. Calculate Worst Case ETC ---
-        const bookedNotArrived = updatedSessionPatients
-            .filter(p => ['Booked', 'Confirmed'].includes(p.status))
+        const checkedInPatients = updatedSessionPatients
+            .filter(p => ['Waiting', 'Priority', 'Late'].includes(p.status))
             .sort((a, b) => a.tokenNo - b.tokenNo);
 
+        let worstCaseQueue = [...checkedInPatients];
         let runningWorstET = inConsultation ? max([effectiveStartTime, addMinutes(parseISO(inConsultation.consultationStartTime!), schedule.slotDuration)]) : effectiveStartTime;
-        
-        // Process all patients by token order for worst-case scenario
-        const allPotentialPatients = [...bestCaseQueue, ...bookedNotArrived].sort((a,b) => a.tokenNo - b.tokenNo);
 
-        for (const p of allPotentialPatients) {
-            // Checked-in patients' worst case is their best case.
-            if (['Waiting', 'Priority', 'Late'].includes(p.status)) {
-                const bestETC = patientUpdates.get(p.id)?.bestCaseETC;
-                if(bestETC) {
-                    patientUpdates.set(p.id, { ...patientUpdates.get(p.id), worstCaseETC: bestETC });
+        for (const patient of updatedSessionPatients.sort((a, b) => a.tokenNo - b.tokenNo)) {
+            if (!['Booked', 'Confirmed', 'Waiting', 'Priority', 'Late'].includes(patient.status)) continue;
+
+            const isCheckedIn = ['Waiting', 'Priority', 'Late'].includes(patient.status);
+            
+            if (isCheckedIn) {
+                // For checked-in patients, their worst case is their best case.
+                const bestETC = patientUpdates.get(patient.id)?.bestCaseETC;
+                if (bestETC) {
+                    patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: bestETC });
                 }
-            } else { // Booked patients
-                 patientUpdates.set(p.id, { ...patientUpdates.get(p.id), worstCaseETC: runningWorstET.toISOString() });
+            } else { // 'Booked' or 'Confirmed'
+                // This patient hasn't checked in. Their worst case is based on everyone before them showing up.
+                const patientsAheadWhoMightArrive = updatedSessionPatients.filter(p => 
+                    p.tokenNo < patient.tokenNo && 
+                    ['Booked', 'Confirmed', 'Waiting', 'Priority', 'Late'].includes(p.status)
+                );
+                
+                let worstCaseTime = inConsultation ? max([effectiveStartTime, addMinutes(parseISO(inConsultation.consultationStartTime!), schedule.slotDuration)]) : effectiveStartTime;
+                worstCaseTime = addMinutes(worstCaseTime, patientsAheadWhoMightArrive.length * schedule.slotDuration);
+
+                patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
             }
-            runningWorstET = addMinutes(runningWorstET, schedule.slotDuration);
         }
+
 
         // --- 6. Set Up-Next Patient ---
         const finalQueue = [...priorityQueue, ...waitingQueue];
@@ -1302,3 +1314,4 @@ export async function patientImportAction(familyFormData: FormData, childFormDat
     
 
     
+
