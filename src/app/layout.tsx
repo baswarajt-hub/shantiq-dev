@@ -5,11 +5,17 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import Script from 'next/script';
 
-export const metadata: Metadata = {
-  title: 'QueueWise',
-  description: 'A smart queue management system for clinics.',
-  manifest: '/manifest.json'
+export const metadata = {
+  title: 'ShantiQ',
+  description: 'Next-gen smart queue and appointment system for pediatric clinics.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-32x32.png',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/manifest.json',
 };
+
 
 export default async function RootLayout({
   children,
