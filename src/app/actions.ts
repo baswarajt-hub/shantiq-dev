@@ -2,6 +2,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -906,64 +907,54 @@ export async function markPatientAsLateAndCheckInAction(patientId: string, penal
 // ========================================================================================
 // ==  SMS PROVIDER INTEGRATION ==========================================================
 // ========================================================================================
-// The code below handles OTP generation and sending. It is currently in SIMULATION mode.
+// The code below handles OTP generation and sending. It is now configured for live OTPs.
 // To enable live OTPs:
 // 1. Configure your SMS Provider in the Admin Panel.
-// 2. Uncomment the 'try...catch' block below.
-// 3. Adjust the 'apiUrl' and 'body' of the fetch call to match your provider's API.
+// 2. Adjust the 'apiUrl' and 'body' of the fetch call to match your provider's API.
 // ========================================================================================
 export async function checkUserAuthAction(phone: string) {
     const user = await findPrimaryUserByPhone(phone);
     
-    // For new or existing users, generate and send OTP.
     const schedule = await getDoctorScheduleData();
     if (!schedule || !schedule.smsSettings) {
-        // Fail gracefully if SMS settings are not configured at all.
         console.error("SMS settings are not configured in the admin panel.");
         return { error: "SMS service is not available. Please contact support." };
     }
     const smsSettings = schedule.smsSettings;
 
-    /*
-    // --- FOR TESTING: Simulate success without sending SMS ---
-    console.log(`OTP check is in SIMULATION mode. Simulating success for ${phone}.`);
-    return { userExists: !!user, otp: "123456", user: user || undefined, simulation: true };
-    */
-    
-    // --- LIVE OTP LOGIC ---
     if (smsSettings.provider === 'none') {
-        // If provider is 'none', this can be treated as an error or a different kind of simulation.
-        console.error("SMS provider is set to 'none'. Cannot send live OTP.");
-        return { error: "SMS service is not enabled. Please contact support." };
+        console.warn("SMS provider is set to 'none'. Simulating OTP for development.");
+        return { userExists: !!user, otp: "123456", user: user || undefined, simulation: true };
     }
-
-    if (!smsSettings.apiKey || !smsSettings.senderId) {
-        console.error(`SMS settings for ${smsSettings.provider} are incomplete.`);
+    
+    if (smsSettings.provider === 'bulksms' && (!smsSettings.username || !smsSettings.password || !smsSettings.senderId || !smsSettings.templateId)) {
+        console.error(`BulkSMS settings are incomplete.`);
         return { error: "SMS service is not configured correctly. Please contact support." };
     }
+
+    if (smsSettings.provider === 'twilio' && (!smsSettings.apiKey || !smsSettings.senderId)) {
+      console.error(`Twilio settings are incomplete.`);
+      return { error: "SMS service is not configured correctly. Please contact support." };
+    }
     
-    const apiKey = smsSettings.apiKey;
-    const senderId = smsSettings.senderId;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+    const message = `${otp} is the OTP to login to Shanti Children's Clinic app to book appointment with Dr Baswaraj Tandur.`;
     
     try {
-        // Replace with your actual SMS provider's API endpoint.
-        const apiUrl = 'https://api.your-sms-provider.com/send'; 
+        let apiUrl = '';
+        
+        if (smsSettings.provider === 'bulksms') {
+          apiUrl = `http://www.metamorphsystems.com/index.php/api/bulk-sms?username=${smsSettings.username}&password=${encodeURIComponent(smsSettings.password!)}&from=${smsSettings.senderId}&to=${phone}&message=${encodeURIComponent(message)}&sms_type=2&template_id=${smsSettings.templateId}`;
+        } else if (smsSettings.provider === 'twilio') {
+          // You would configure your Twilio logic here
+          // Example:
+          // const twilioClient = require('twilio')(smsSettings.apiKey, smsSettings.password);
+          // await twilioClient.messages.create({ body: message, from: smsSettings.senderId, to: phone });
+          console.warn("Twilio provider selected but sending logic is not fully implemented in actions.ts.");
+          return { error: "Twilio SMS sending is not yet configured by the developer." };
+        }
 
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}` // Or other auth method
-            },
-            body: JSON.stringify({
-                // Adjust this body to match your provider's API requirements.
-                to: phone,
-                from: senderId,
-                message: `${otp} is the OTP to login to ${schedule.clinicDetails.clinicName} app to book appointment with ${schedule.clinicDetails.doctorName}.`
-            })
-        });
+        const response = await fetch(apiUrl);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -978,8 +969,6 @@ export async function checkUserAuthAction(phone: string) {
         return { error: "Failed to send OTP. Please try again later." };
     }
     
-    
-    // Return the generated OTP for verification on the client side.
     return { userExists: !!user, otp: otp, user: user || undefined, simulation: false };
 }
 

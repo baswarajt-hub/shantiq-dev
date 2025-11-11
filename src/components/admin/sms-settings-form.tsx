@@ -8,11 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Info } from 'lucide-react';
 
 const EMPTY_SETTINGS: SmsSettings = {
   provider: 'none',
   apiKey: '',
   senderId: '',
+  username: '',
+  password: '',
+  templateId: '',
 };
 
 type SmsSettingsFormProps = {
@@ -63,23 +68,54 @@ export function SmsSettingsForm({ initialSettings, onSave }: SmsSettingsFormProp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None (Disabled)</SelectItem>
-                <SelectItem value="bulksms">BulkSMS</SelectItem>
+                <SelectItem value="bulksms">BulkSMS (Metamorph, etc.)</SelectItem>
                 <SelectItem value="twilio">Twilio</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          {settings.provider !== 'none' && (
+          {settings.provider === 'twilio' && (
             <>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Twilio Configuration</AlertTitle>
+                <AlertDescription>
+                  Enter your Twilio Account SID as the API Key and your Twilio Phone Number as the Sender ID.
+                </AlertDescription>
+              </Alert>
               <div className="space-y-2">
-                <Label htmlFor="apiKey">API Key</Label>
+                <Label htmlFor="apiKey">Account SID (API Key)</Label>
                 <Input id="apiKey" name="apiKey" type="password" value={settings.apiKey} onChange={handleInputChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="senderId">Sender ID</Label>
+                <Label htmlFor="senderId">Twilio Phone Number (Sender ID)</Label>
                 <Input id="senderId" name="senderId" value={settings.senderId} onChange={handleInputChange} />
-                <p className="text-sm text-muted-foreground">
-                  For Twilio, this is your Twilio phone number. For BulkSMS, this is your Sender ID.
-                </p>
+              </div>
+            </>
+          )}
+           {settings.provider === 'bulksms' && (
+            <>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Bulk SMS Configuration</AlertTitle>
+                <AlertDescription>
+                  Enter the credentials provided by your bulk SMS provider (e.g., Metamorph Systems).
+                </AlertDescription>
+              </Alert>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input id="username" name="username" value={settings.username || ''} onChange={handleInputChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" name="password" type="password" value={settings.password || ''} onChange={handleInputChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="senderId">Sender ID</Label>
+                <Input id="senderId" name="senderId" value={settings.senderId} onChange={handleInputChange} placeholder="e.g. DrBRAJ" />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="templateId">DLT Template ID</Label>
+                <Input id="templateId" name="templateId" value={settings.templateId || ''} onChange={handleInputChange} placeholder="Enter your DLT Template ID" />
               </div>
             </>
           )}

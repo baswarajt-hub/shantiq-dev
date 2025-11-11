@@ -90,9 +90,12 @@ export type ClinicDetails = {
 
 export type SmsSettings = {
   provider: 'none' | 'bulksms' | 'twilio';
-  apiKey: string;
+  apiKey: string; // Used for Twilio Account SID or other API keys
   senderId: string;
-}
+  username?: string; // For providers like Metamorph
+  password?: string;
+  templateId?: string;
+};
 
 export type PaymentGatewaySettings = {
   provider: 'none' | 'easebuzz';
