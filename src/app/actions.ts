@@ -1,5 +1,6 @@
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -922,14 +923,13 @@ export async function checkUserAuthAction(phone: string) {
     }
     const smsSettings = schedule.smsSettings;
 
-    // FOR TESTING: Simulate success without sending SMS.
+    /*
+    // --- FOR TESTING: Simulate success without sending SMS ---
     console.log(`OTP check is in SIMULATION mode. Simulating success for ${phone}.`);
     return { userExists: !!user, otp: "123456", user: user || undefined, simulation: true };
-
-    /*
+    */
+    
     // --- LIVE OTP LOGIC ---
-    // To enable live OTP, comment out the simulation block above and uncomment this block.
-
     if (smsSettings.provider === 'none') {
         // If provider is 'none', this can be treated as an error or a different kind of simulation.
         console.error("SMS provider is set to 'none'. Cannot send live OTP.");
@@ -945,9 +945,7 @@ export async function checkUserAuthAction(phone: string) {
     const senderId = smsSettings.senderId;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // In simulation mode, we log the OTP and return it.
-    console.log(`SIMULATING OTP: To=${phone}, OTP=${otp}, Provider=${smsSettings.provider}`);
-
+    /*
     try {
         // Replace with your actual SMS provider's API endpoint.
         const apiUrl = 'https://api.your-sms-provider.com/send'; 
@@ -978,10 +976,10 @@ export async function checkUserAuthAction(phone: string) {
         console.error("Live SMS API Error:", error);
         return { error: "Failed to send OTP. Please try again later." };
     }
+    */
     
     // Return the generated OTP for verification on the client side.
     return { userExists: !!user, otp: otp, user: user || undefined, simulation: false };
-    */
 }
 
 export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'avatar' | 'name' | 'dob' | 'gender'>) {
