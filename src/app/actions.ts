@@ -1,6 +1,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -945,7 +946,7 @@ export async function checkUserAuthAction(phone: string) {
     const senderId = smsSettings.senderId;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    /*
+    
     try {
         // Replace with your actual SMS provider's API endpoint.
         const apiUrl = 'https://api.your-sms-provider.com/send'; 
@@ -960,7 +961,7 @@ export async function checkUserAuthAction(phone: string) {
                 // Adjust this body to match your provider's API requirements.
                 to: phone,
                 from: senderId,
-                message: `Your OTP for ${schedule.clinicDetails.clinicName} is: ${otp}`
+                message: `${otp} is the OTP to login to ${schedule.clinicDetails.clinicName} app to book appointment with ${schedule.clinicDetails.doctorName}.`
             })
         });
 
@@ -976,7 +977,7 @@ export async function checkUserAuthAction(phone: string) {
         console.error("Live SMS API Error:", error);
         return { error: "Failed to send OTP. Please try again later." };
     }
-    */
+    
     
     // Return the generated OTP for verification on the client side.
     return { userExists: !!user, otp: otp, user: user || undefined, simulation: false };
