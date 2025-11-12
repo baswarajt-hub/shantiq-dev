@@ -76,10 +76,15 @@ function FeeSummaryCard({ title, fees }: { title: string, fees: Fee[] }) {
 }
 
 export default function FinancePage() {
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>();
     const [morningFees, setMorningFees] = useState<Fee[]>([]);
     const [eveningFees, setEveningFees] = useState<Fee[]>([]);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // Set initial date on the client to avoid hydration mismatch
+        setSelectedDate(new Date());
+    }, []);
 
     useEffect(() => {
         if(selectedDate) {
