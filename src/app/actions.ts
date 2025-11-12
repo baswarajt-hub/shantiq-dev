@@ -3,11 +3,14 @@
 
 
 
+
+
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData } from '@/lib/data';
-import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult } from '@/lib/types';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData, saveFeeData, getFeesForSessionData } from '@/lib/data';
+import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult, Fee } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
 import { format, parseISO, parse, differenceInMinutes, isAfter } from 'date-fns';
@@ -166,7 +169,6 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     newPatientData.checkInTime = new Date().toISOString();
   }
 
-  // Only set subType for walk-ins that are "Book Only", not "Book & Check-in"
   if (isWalkIn && !checkIn) {
       newPatientData.subType = 'Booked Walk-in';
   }
@@ -204,9 +206,11 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
           subStatus: undefined,
           lateLocked: false,
           lateAnchors: undefined,
-          lateLockedAt: undefined
+          lateLockedAt: undefined,
+          feeStatus: 'Locked',
         };
         await updatePatient(currentlyServing.id, completedUpdates);
+        await lockFeeAction(currentlyServing.id);
       }
       
       updates.consultationStartTime = new Date().toISOString();
@@ -214,6 +218,8 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
       updates.lateLocked = false;
       updates.lateAnchors = undefined;
       updates.lateLockedAt = undefined;
+      updates.feeStatus = 'Locked';
+      await lockFeeAction(patientId);
       break;
 
     case 'Completed':
@@ -227,6 +233,8 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
       updates.lateLocked = false;
       updates.lateAnchors = undefined;
       updates.lateLockedAt = undefined;
+      updates.feeStatus = 'Locked';
+      await lockFeeAction(patientId);
       break;
 
     case 'Waiting for Reports':
@@ -923,8 +931,8 @@ export async function checkUserAuthAction(phone: string) {
     const smsSettings = schedule.smsSettings;
 
     if (smsSettings.provider === 'none') {
-        console.warn("SMS provider is set to 'none'. Simulating OTP for development.");
-        return { userExists: !!user, otp: "123456", user: user || undefined, simulation: true };
+        // console.warn("SMS provider is set to 'none'. Simulating OTP for development.");
+        // return { userExists: !!user, otp: "123456", user: user || undefined, simulation: true };
     }
     
     if (smsSettings.provider === 'bulksms' && (!smsSettings.username || !smsSettings.password || !smsSettings.senderId || !smsSettings.templateId)) {
@@ -1293,4 +1301,52 @@ export async function patientImportAction(familyFormData: FormData, childFormDat
         console.error("Patient import failed:", e);
         return { error: `An error occurred during import: ${e.message}` };
     }
+}
+
+// --- Fee Management Actions ---
+export async function saveFeeAction(feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'>, existingFeeId?: string): Promise<ActionResult> {
+  const schedule = await getDoctorScheduleData();
+  const patient = await findPatientById(feeData.patientId);
+  if (!patient) return { error: "Patient not found." };
+  
+  const session = getSessionForTime(schedule, parseISO(patient.appointmentTime));
+  if (!session) return { error: "Cannot determine session for fee." };
+
+  const fullFeeData: Omit<Fee, 'id'> = {
+    ...feeData,
+    date: format(parseISO(patient.appointmentTime), 'yyyy-MM-dd'),
+    session: session,
+    createdBy: 'reception', // Replace with actual user later
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    await saveFeeData(fullFeeData, existingFeeId);
+    await updatePatient(feeData.patientId, { feeStatus: 'Paid' });
+    revalidatePath('/', 'layout');
+    return { success: 'Fee saved successfully.' };
+  } catch (e: any) {
+    return { error: `Failed to save fee: ${e.message}` };
+  }
+}
+
+export async function getSessionFeesAction(date: string, session: 'morning' | 'evening'): Promise<Fee[]> {
+  try {
+    return await getFeesForSessionData(date, session);
+  } catch (error) {
+    console.error("Error fetching session fees:", error);
+    return [];
+  }
+}
+
+export async function lockFeeAction(patientId: string): Promise<void> {
+  // This is a simplified lock. In a real app, you'd find the fee by patientId for the current session.
+  const allFees = await getFeesForSessionData(format(new Date(), 'yyyy-MM-dd'), 'morning'); // This is a placeholder, needs better logic
+  allFees.push(...await getFeesForSessionData(format(new Date(), 'yyyy-MM-dd'), 'evening'));
+  const feeToLock = allFees.find(f => f.patientId === patientId);
+
+  if (feeToLock && feeToLock.status !== 'Locked') {
+      const feeWithId: Omit<Fee, 'id'> & { id: string } = { ...feeToLock, id: feeToLock.id };
+      await saveFeeData({ ...feeWithId, status: 'Locked' }, feeToLock.id);
+  }
 }

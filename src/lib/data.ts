@@ -1,6 +1,5 @@
 
-
-import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings } from './types';
+import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, Fee } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { db } from './firebase';
@@ -9,6 +8,7 @@ import { collection, getDocs, doc, getDoc, addDoc, writeBatch, updateDoc, query,
 const settingsDoc = doc(db, 'settings', 'live');
 const patientsCollection = collection(db, 'patients');
 const familyCollection = collection(db, 'family');
+const feesCollection = collection(db, 'fees');
 
 
 // --- Helper Functions ---
@@ -526,21 +526,22 @@ export async function deleteTodaysPatientsData(): Promise<void> {
 
     await batch.commit();
 }
+
+// --- Fee Management Functions ---
+export async function saveFeeData(feeData: Omit<Fee, 'id'>, existingFeeId?: string): Promise<Fee> {
+    if (existingFeeId) {
+        const feeRef = doc(db, 'fees', existingFeeId);
+        await setDoc(feeRef, feeData, { merge: true });
+        return { ...feeData, id: existingFeeId };
+    } else {
+        const docRef = await addDoc(feesCollection, feeData);
+        return { ...feeData, id: docRef.id };
+    }
+}
+
+export async function getFeesForSessionData(date: string, session: 'morning' | 'evening'): Promise<Fee[]> {
+    const q = query(feesCollection, where("date", "==", date), where("session", "==", session));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...processFirestoreDoc(doc.data()) } as Fee));
+}
     
-
-
-
-    
-
-    
-
-
-
-
-    
-
-    
-
-
-
-

@@ -4,20 +4,20 @@
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import Header from '@/components/header';
-import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session } from '@/lib/types';
+import type { DoctorSchedule, DoctorStatus, FamilyMember, Patient, SpecialClosure, Session, Fee, VisitPurpose } from '@/lib/types';
 import { format, set, addMinutes, parseISO, isToday, differenceInMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity, Users } from 'lucide-react';
+import { ChevronDown, Sun, Moon, UserPlus, Calendar as CalendarIcon, Trash2, Clock, Search, User, CheckCircle, Hourglass, UserX, XCircle, ChevronsRight, Send, EyeOff, Eye, FileClock, Footprints, LogIn, PlusCircle, AlertTriangle, Sparkles, LogOut, Repeat, Shield, Pencil, Ticket, Timer, Stethoscope, Syringe, HelpCircle, Pause, Play, MoreVertical, QrCode, Wrench, ListChecks, PanelsLeftBottom, RefreshCw, UserCheck, Activity, Users, DollarSign } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog';
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, getDoctorStatusAction, consultNextAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, getDoctorStatusAction, consultNextAction, saveFeeAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,8 @@ import { Label } from '@/components/ui/label';
 import { parse } from 'date-fns';
 import type { ActionResult } from '@/lib/types';
 import { FamilyDetailsDialog } from '@/components/reception/family-details-dialog';
+import { FeeEntryDialog } from '@/components/reception/fee-entry-dialog';
+import Link from 'next/link';
 
 
 
@@ -144,24 +146,30 @@ const StatCard: React.FC<{ title: string; value: string | number; icon?: React.R
     </div>
   );
 
-const ToolbarButton: React.FC<{ label: string; icon: React.ReactNode; variant?: "default" | "danger", onClick?: () => void, disabled?: boolean }> = ({ label, icon, variant = "default", onClick, disabled }) => (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "flex w-full items-center gap-3 rounded-lg border p-2.5 text-left text-sm font-medium transition-all disabled:opacity-50",
-        variant === "danger"
-          ? "border-red-200 bg-red-50 hover:bg-red-100 text-red-700"
-          : "border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700",
-      )}
-    >
-      <span className={cn(
-          "inline-flex h-7 w-7 items-center justify-center rounded-md",
-           variant === "danger" ? "bg-red-100" : "bg-neutral-100"
-      )}>{icon}</span>
-      <span className="truncate">{label}</span>
-    </button>
-  );
+const ToolbarButton: React.FC<{ label: string; icon: React.ReactNode; variant?: "default" | "danger", onClick?: () => void, disabled?: boolean, asChild?: boolean, href?: string }> = ({ label, icon, variant = "default", onClick, disabled, asChild, href }) => {
+    const content = (
+        <span
+            className={cn(
+                "flex w-full items-center gap-3 rounded-lg border p-2.5 text-left text-sm font-medium transition-all disabled:opacity-50",
+                variant === "danger"
+                ? "border-red-200 bg-red-50 hover:bg-red-100 text-red-700"
+                : "border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700",
+            )}
+        >
+            <span className={cn(
+                "inline-flex h-7 w-7 items-center justify-center rounded-md",
+                variant === "danger" ? "bg-red-100" : "bg-neutral-100"
+            )}>{icon}</span>
+            <span className="truncate">{label}</span>
+        </span>
+    );
+    
+    if (asChild && href) {
+        return <Link href={href}>{content}</Link>;
+    }
+
+    return <button onClick={onClick} disabled={disabled}>{content}</button>;
+  };
 
 export default function DashboardPage() {
     const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
@@ -190,6 +198,7 @@ export default function DashboardPage() {
 
     const [isFamilyDetailsOpen, setFamilyDetailsOpen] = useState(false);
     const [phoneForFamilyDetails, setPhoneForFamilyDetails] = useState('');
+    const [isFeeEntryOpen, setFeeEntryOpen] = useState(false);
     
     const { toast } = useToast();
 
@@ -667,21 +676,27 @@ export default function DashboardPage() {
         setPhoneForFamilyDetails(phone);
         setFamilyDetailsOpen(true);
     };
+
+    const handleOpenFeeDialog = (patient: Patient) => {
+        setSelectedPatient(patient);
+        setFeeEntryOpen(true);
+    };
+
+    const handleSaveFee = (feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'>) => {
+        startTransition(async () => {
+            const result = await saveFeeAction(feeData);
+            if ('error' in result) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.success });
+                loadData(false);
+            }
+        });
+    };
     
 
     const nowServing = sessionPatients.find(p => p.status === 'In-Consultation');
     const upNext = sessionPatients.find(p => p.status === 'Up-Next');
-
-    const waitingList = sessionPatients
-      .filter(p => ['Waiting', 'Late', 'Priority'].includes(p.status) && p.id !== upNext?.id)
-      .sort((a, b) => {
-          const timeA = a.bestCaseETC ? parseISO(a.bestCaseETC).getTime() : Infinity;
-          const timeB = b.bestCaseETC ? parseISO(b.bestCaseETC).getTime() : Infinity;
-          if (timeA === Infinity && timeB === Infinity) {
-              return (a.tokenNo || 0) - (b.tokenNo || 0);
-          }
-          return timeA - timeB;
-      });
     
     const displayedTimeSlots = timeSlots.filter(slot => {
         if (slot.patient && (slot.patient.status === 'In-Consultation' || slot.patient.status === 'Up-Next')) {
@@ -746,8 +761,6 @@ export default function DashboardPage() {
         );
       }
 
-    const doctorOnlineTime = doctorStatus.onlineTime ? new Date(doctorStatus.onlineTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
 
     const PatientCard = ({ patient, patientDetails }: { patient: Patient, patientDetails?: Partial<FamilyMember> }) => {
         const statusKey = patient.status as keyof typeof statusConfig;
@@ -761,7 +774,7 @@ export default function DashboardPage() {
         
         return (
              <div className={cn(
-                "p-3 grid grid-cols-[60px_1fr_320px_120px_100px] items-center gap-4 rounded-xl border bg-white shadow-sm",
+                "p-3 grid grid-cols-[60px_auto_1fr_320px_120px_100px] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
                 isUpNext && "bg-yellow-100/70 border-yellow-300",
                 isCurrentlyServing && "bg-green-100/60 border-green-300"
@@ -771,6 +784,15 @@ export default function DashboardPage() {
                     <Ticket className="h-5 w-5" />
                     #{patient.tokenNo}
                 </div>
+                 {/* Fee Status */}
+                <button 
+                    onClick={() => isActionable && handleOpenFeeDialog(patient)} 
+                    disabled={!isActionable}
+                    className="flex justify-center items-center" 
+                    title={patient.feeStatus === 'Paid' ? 'Fee Paid' : 'Fee Pending'}
+                >
+                    <div className={cn("w-3.5 h-3.5 rounded-full border-2", patient.feeStatus === 'Paid' ? 'bg-green-500 border-green-600' : 'bg-red-500 border-red-600')} />
+                </button>
 
                 {/* Name */}
                 <div className={cn('flex items-center gap-2 text-base font-semibold', getPatientNameColorClass(patient.status, patient.type))}>
@@ -985,6 +1007,7 @@ export default function DashboardPage() {
                             <ToolbarButton label="Adjust Timing" icon={<Clock className="h-5 w-5" />} onClick={() => setAdjustTimingOpen(true)} />
                             <ToolbarButton label="Show Completed" icon={<ListChecks className="h-5 w-5" />} onClick={() => setShowCompleted(prev => !prev)} />
                             <ToolbarButton label="Recalculate Queue" icon={<RefreshCw className="h-5 w-5" />} onClick={handleRunRecalculation} disabled={isPending} />
+                            <ToolbarButton label="Finance" icon={<DollarSign className="h-5 w-5" />} asChild href="/finance" />
                              
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -1013,7 +1036,7 @@ export default function DashboardPage() {
                     <div className="sticky top-0 z-10 bg-neutral-50/80 backdrop-blur-sm p-4 space-y-3">
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                             <StatCard title="Total Appointments" value={sessionPatients.length} icon={<CalendarIcon className="h-4 w-4" />} />
-                            <StatCard title="In Queue" value={waitingList.length + (upNext ? 1 : 0)} icon={<Users className="h-4 w-4" />} />
+                            <StatCard title="In Queue" value={sessionPatients.filter(p => ['Waiting', 'Late', 'Priority', 'Up-Next'].includes(p.status)).length} icon={<Users className="h-4 w-4" />} />
                             <StatCard title="Yet to Arrive" value={sessionPatients.filter(p => ['Booked', 'Confirmed'].includes(p.status)).length} icon={<UserCheck className="h-4 w-4" />} />
                             <StatCard title="Completed" value={sessionPatients.filter(p => p.status === 'Completed').length} icon={<CheckCircle className="h-4 w-4" />} />
                             <StatCard title="Avg. Wait" value={`${averageWaitTime} min`} icon={<Clock className="h-4 w-4" />} />
@@ -1170,6 +1193,16 @@ export default function DashboardPage() {
                     phone={phoneForFamilyDetails}
                     onUpdate={() => loadData(false)}
                 />
+                {selectedPatient && schedule && (
+                    <FeeEntryDialog 
+                        isOpen={isFeeEntryOpen}
+                        onOpenChange={setFeeEntryOpen}
+                        patient={selectedPatient}
+                        visitPurposes={schedule.visitPurposes}
+                        onSave={handleSaveFee}
+                    />
+                )}
         </div>
     );
 }
+

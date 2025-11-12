@@ -13,11 +13,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { FamilyMember, VisitPurpose } from '@/lib/types';
+import type { FamilyMember, VisitPurpose, Fee } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserPlus, Info } from 'lucide-react';
-import { searchFamilyMembersAction, addNewPatientAction } from '@/app/actions';
+import { searchFamilyMembersAction } from '@/app/actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { saveFeeAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 type BookWalkInDialogProps = {
   isOpen: boolean;
@@ -39,10 +42,16 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [selectedPurpose, setSelectedPurpose] = useState('Consultation');
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  // Fee state
+  const [amount, setAmount] = useState(0);
+  const [mode, setMode] = useState<'Cash' | 'Online'>('Cash');
+  const [onlineType, setOnlineType] = useState<'Easebuzz' | 'Paytm' | 'PhonePe' | 'Other'>('Easebuzz');
+  const [isPaid, setIsPaid] = useState(false);
   
   useEffect(() => {
     if (!isOpen) {
-      // Reset state when dialog is closed
       resetState();
     }
   }, [isOpen]);
@@ -55,14 +64,20 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
       }
       startTransition(async () => {
         const results = await searchFamilyMembersAction(searchTerm, searchBy);
-        // Filter out primary members from the search results
         const nonPrimaryMembers = results.filter(member => !member.isPrimary);
         setFoundMembers(nonPrimaryMembers);
       });
-    }, 500); // Debounce search
+    }, 500);
 
     return () => clearTimeout(handler);
   }, [searchTerm, searchBy]);
+
+   useEffect(() => {
+    if(selectedPurpose) {
+        const purposeDetails = visitPurposes.find(p => p.name === selectedPurpose);
+        setAmount(purposeDetails?.fee || 0);
+    }
+   }, [selectedPurpose, visitPurposes]);
 
   const handleSearchByChange = (value: SearchByType) => {
     setSearchBy(value);
@@ -89,7 +104,28 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
         const appointmentDate = new Date(selectedDate);
         appointmentDate.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
 
-        onSave(selectedMember, appointmentDate.toISOString(), checkIn, selectedPurpose);
+        if(isPaid && amount > 0) {
+            const feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'> = {
+                patientId: selectedMember.id,
+                patientName: selectedMember.name,
+                purpose: selectedPurpose,
+                amount,
+                mode,
+                onlineType: mode === 'Online' ? onlineType : undefined,
+                status: 'Paid',
+            };
+            startTransition(async () => {
+                const result = await saveFeeAction(feeData);
+                if ('error' in result) {
+                    toast({ title: 'Fee Error', description: result.error, variant: 'destructive'});
+                } else {
+                    onSave(selectedMember, appointmentDate.toISOString(), checkIn, selectedPurpose);
+                }
+            });
+        } else {
+            onSave(selectedMember, appointmentDate.toISOString(), checkIn, selectedPurpose);
+        }
+
         handleClose(false);
     }
   };
@@ -101,6 +137,10 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
     setFoundMembers([]);
     setSelectedMember(null);
     setSelectedPurpose('Consultation');
+    setAmount(0);
+    setMode('Cash');
+    setOnlineType('Easebuzz');
+    setIsPaid(false);
   };
 
   const handleClose = (open: boolean) => {
@@ -135,7 +175,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
           <DialogTitle>Book Walk-in for {timeSlot}</DialogTitle>
           <DialogDescription>
             {step === 1 && "Find a patient to book a walk-in appointment."}
-            {step === 2 && "Confirm the appointment details."}
+            {step === 2 && "Confirm the appointment and payment details."}
           </DialogDescription>
         </DialogHeader>
 
@@ -198,7 +238,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
         
         {step === 2 && selectedMember && (
             <div className="py-4 space-y-4">
-                <p>You are booking a walk-in appointment for:</p>
+                <p>Booking a walk-in appointment for:</p>
                 <div className="p-3 border rounded-md bg-muted flex items-center gap-3">
                      <Avatar>
                         <AvatarImage src={selectedMember.avatar || ''} alt={selectedMember.name} data-ai-hint="person" />
@@ -226,11 +266,57 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
                         </div>
                     )}
                 </div>
+
+                <div className="p-4 border rounded-lg space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <input type="checkbox" id="isPaid" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} className="h-4 w-4" />
+                        <Label htmlFor="isPaid" className="text-base font-medium">Mark as Paid</Label>
+                    </div>
+
+                    {isPaid && (
+                        <>
+                           <div className="space-y-2">
+                                <Label htmlFor="amount">Amount (INR)</Label>
+                                <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Payment Mode</Label>
+                                <RadioGroup value={mode} onValueChange={(value: 'Cash' | 'Online') => setMode(value)} className="flex gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Cash" id="cash" />
+                                    <Label htmlFor="cash">Cash</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Online" id="online" />
+                                    <Label htmlFor="online">Online</Label>
+                                </div>
+                                </RadioGroup>
+                            </div>
+                             {mode === 'Online' && (
+                                <div className="space-y-2">
+                                <Label htmlFor="onlineType">Online Payment Type</Label>
+                                <Select value={onlineType} onValueChange={(value) => setOnlineType(value as any)}>
+                                    <SelectTrigger id="onlineType">
+                                    <SelectValue placeholder="Select online payment type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    <SelectItem value="Easebuzz">Easebuzz</SelectItem>
+                                    <SelectItem value="Paytm">Paytm</SelectItem>
+                                    <SelectItem value="PhonePe">PhonePe</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+
                 <DialogFooter className="gap-2 sm:gap-0">
                     <Button variant="outline" onClick={goBackToSearch}>Back to Search</Button>
                     <div className="flex gap-2">
-                        <Button onClick={() => handleConfirmBooking(false)} disabled={!selectedPurpose}>Book Only</Button>
-                        <Button onClick={() => handleConfirmBooking(true)} disabled={!selectedPurpose}>Book & Check-in</Button>
+                        <Button variant="secondary" onClick={() => handleConfirmBooking(false)} disabled={isPending || !selectedPurpose}>Save & Book</Button>
+                        <Button onClick={() => handleConfirmBooking(true)} disabled={isPending || !selectedPurpose}>Save & Check-in</Button>
                     </div>
                 </DialogFooter>
             </div>
