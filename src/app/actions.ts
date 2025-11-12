@@ -997,49 +997,6 @@ export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'av
     return { success: true, user: newMember };
 }
     
-export async function advanceQueueAction(patientIdToBecomeUpNext: string): Promise<ActionResult> {
-  // Step 1: Complete the current 'In-Consultation' patient
-  let allPatients = await getPatientsData();
-  const nowServing = allPatients.find(p => p.status === 'In-Consultation');
-  
-  if (nowServing && nowServing.consultationStartTime) {
-    const startTime = toDate(nowServing.consultationStartTime)!;
-    const endTime = new Date();
-    await updatePatient(nowServing.id, {
-      status: 'Completed',
-      consultationEndTime: endTime.toISOString(),
-      consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)),
-      subStatus: undefined,
-      lateLocked: false,
-    });
-  }
-
-  // Step 2: Move the current 'Up Next' patient to 'In-Consultation'
-  // Re-fetch patients to get the latest state after the completion
-  allPatients = await getPatientsData(); 
-  const upNext = allPatients.find(p => p.status === 'Up-Next');
-  
-  if (upNext) {
-    await updatePatient(upNext.id, {
-      status: 'In-Consultation',
-      consultationStartTime: new Date().toISOString(),
-      subStatus: undefined,
-      lateLocked: false,
-    });
-  }
-
-  // Step 3: Set the selected patient to 'Up-Next'
-  await updatePatient(patientIdToBecomeUpNext, { status: 'Up-Next' });
-
-  // Recalculate the entire queue with the new statuses
-  await recalculateQueueWithETC();
-
-  // Revalidate all paths
-  revalidatePath('/', 'layout');
-
-  return { success: 'Queue advanced successfully.' };
-}
-
 export async function consultNextAction(): Promise<ActionResult> {
     const allPatients = await getPatientsData();
     const nowServing = allPatients.find(p => p.status === 'In-Consultation');
@@ -1074,41 +1031,6 @@ export async function consultNextAction(): Promise<ActionResult> {
     return { success: 'Queue advanced.' };
 }
     
-export async function startLastConsultationAction(patientId: string): Promise<ActionResult> {
-  // Step 1: Complete any currently serving patient
-  let allPatients = await getPatientsData();
-  const nowServing = allPatients.find(p => p.status === 'In-Consultation');
-  
-  if (nowServing && nowServing.consultationStartTime) {
-    const startTime = toDate(nowServing.consultationStartTime)!;
-    const endTime = new Date();
-    await updatePatient(nowServing.id, {
-      status: 'Completed',
-      consultationEndTime: endTime.toISOString(),
-      consultationTime: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)),
-      subStatus: undefined,
-      lateLocked: false,
-    });
-  }
-
-  // Step 2: Move the target patient (who was Up-Next) to In-Consultation
-  await updatePatient(patientId, {
-    status: 'In-Consultation',
-    consultationStartTime: new Date().toISOString(),
-    lateLocked: false,
-  });
-
-  // Recalculate the queue to reflect the final state
-  await recalculateQueueWithETC();
-
-  // Revalidate all paths
-  revalidatePath('/', 'layout');
-
-  return { success: 'Started final consultation.' };
-}
-
-
-
 
 export async function deleteFamilyMemberAction(id: string): Promise<ActionResult> {
     await deleteFamilyMemberData(id);
