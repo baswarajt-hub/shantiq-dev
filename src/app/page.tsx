@@ -453,16 +453,14 @@ export default function DashboardPage() {
     };
 
     const handleBookAppointment = useCallback(async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
-        startTransition(() => {
-            addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn).then(result => {
-                if ("error" in result) {
-                    toast({ title: "Error", description: result.error, variant: 'destructive'});
-                } else {
-                    toast({ title: "Success", description: "Appointment booked successfully."});
-                    loadData(false);
-                }
-            });
-        });
+        const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn);
+        if ("error" in result) {
+            toast({ title: "Error", description: result.error, variant: 'destructive'});
+        } else {
+            toast({ title: "Success", description: "Appointment booked successfully."});
+            loadData(false);
+        }
+        return result;
     }, [loadData, toast]);
 
     const handleAddNewPatient = useCallback(async (newPatientData: Omit<FamilyMember, 'id' | 'avatar'>): Promise<FamilyMember | null> => {

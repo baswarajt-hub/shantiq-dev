@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { FamilyMember, VisitPurpose, Fee, ClinicDetails } from '@/lib/types';
+import type { FamilyMember, VisitPurpose, Fee, ClinicDetails, Patient } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserPlus, Info } from 'lucide-react';
 import { searchFamilyMembersAction } from '@/app/actions';
@@ -27,7 +26,7 @@ type BookWalkInDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   timeSlot: string;
   selectedDate: Date;
-  onSave: (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => void;
+  onSave: (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => Promise<{ success: string; patient: Patient; } | { error: string; }>;
   onAddNewPatient: (searchTerm: string) => void;
   visitPurposes: VisitPurpose[];
   clinicDetails: ClinicDetails;
@@ -104,43 +103,50 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
   }
 
   const handleConfirmBooking = (checkIn: boolean) => {
-    if (selectedMember && selectedPurpose) {
-        const [time, ampm] = timeSlot.split(' ');
-        const [hours, minutes] = time.split(':');
-        let hourNumber = parseInt(hours, 10);
-        if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
-            hourNumber += 12;
-        }
-        if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
-            hourNumber = 0;
-        }
-        const appointmentDate = new Date(selectedDate);
-        appointmentDate.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
+    if (!selectedMember || !selectedPurpose) return;
 
-        if(isPaid && amount > 0) {
-            const feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'> = {
-                patientId: selectedMember.id,
-                patientName: selectedMember.name,
-                purpose: selectedPurpose,
-                amount,
-                mode,
-                onlineType: mode === 'Online' ? onlineType : undefined,
-                status: 'Paid',
-            };
-            startTransition(async () => {
-                const result = await saveFeeAction(feeData);
-                if ('error' in result) {
-                    toast({ title: 'Fee Error', description: result.error, variant: 'destructive'});
-                } else {
-                    onSave(selectedMember, appointmentDate.toISOString(), checkIn, selectedPurpose);
-                }
-            });
-        } else {
-            onSave(selectedMember, appointmentDate.toISOString(), checkIn, selectedPurpose);
-        }
-
-        handleClose(false);
+    const [time, ampm] = timeSlot.split(' ');
+    const [hours, minutes] = time.split(':');
+    let hourNumber = parseInt(hours, 10);
+    if (ampm.toLowerCase() === 'pm' && hourNumber < 12) {
+      hourNumber += 12;
     }
+    if (ampm.toLowerCase() === 'am' && hourNumber === 12) {
+      hourNumber = 0;
+    }
+    const appointmentDate = new Date(selectedDate);
+    appointmentDate.setHours(hourNumber, parseInt(minutes, 10), 0, 0);
+
+    startTransition(async () => {
+      // Step 1: Create the appointment first
+      const appointmentResult = await onSave(selectedMember, appointmentDate.toISOString(), checkIn, selectedPurpose);
+
+      if ('error' in appointmentResult) {
+        toast({ title: 'Booking Error', description: appointmentResult.error, variant: 'destructive' });
+        return;
+      }
+      
+      // Step 2: If appointment is successful AND fee needs to be saved, save the fee.
+      if (isPaid && amount > 0) {
+        const newPatient = appointmentResult.patient;
+        const feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'> = {
+          patientId: newPatient.id,
+          patientName: newPatient.name,
+          purpose: newPatient.purpose || 'Unknown',
+          amount,
+          mode,
+          onlineType: mode === 'Online' ? onlineType : undefined,
+          status: 'Paid',
+        };
+        
+        const feeResult = await saveFeeAction(feeData);
+        if ('error' in feeResult) {
+          toast({ title: 'Fee Error', description: `Appointment was booked, but fee failed to save: ${feeResult.error}`, variant: 'destructive' });
+        }
+      }
+
+      handleClose(false);
+    });
   };
 
   const resetState = () => {
@@ -329,7 +335,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
                 <DialogFooter className="gap-2 sm:gap-0">
                     <Button variant="outline" onClick={goBackToSearch}>Back to Search</Button>
                     <div className="flex gap-2">
-                        <Button variant="secondary" onClick={() => handleConfirmBooking(false)} disabled={isPending || !selectedPurpose}>Save & Book</Button>
+                         <Button variant="secondary" onClick={() => handleConfirmBooking(false)} disabled={isPending || !selectedPurpose}>Save & Book</Button>
                         <Button onClick={() => handleConfirmBooking(true)} disabled={isPending || !selectedPurpose}>Save & Check-in</Button>
                     </div>
                 </DialogFooter>
