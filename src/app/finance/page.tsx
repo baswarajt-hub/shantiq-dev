@@ -1,15 +1,16 @@
 
 'use client';
 import { useState, useEffect } from "react";
-import { getSessionFeesAction } from "@/app/actions";
-import type { Fee } from "@/lib/types";
+import { getSessionFeesAction, getFamilyAction } from "@/app/actions";
+import type { Fee, FamilyMember } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Banknote, Landmark, Calendar as CalendarIcon, Sun, Moon } from "lucide-react";
+import { Banknote, Landmark, Calendar as CalendarIcon, Sun, Moon, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount);
@@ -79,7 +80,10 @@ export default function FinancePage() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
     const [morningFees, setMorningFees] = useState<Fee[]>([]);
     const [eveningFees, setEveningFees] = useState<Fee[]>([]);
+    const [allFamily, setAllFamily] = useState<FamilyMember[]>([]);
     const [loading, setLoading] = useState(true);
+    const [sessionFilter, setSessionFilter] = useState<'all' | 'morning' | 'evening'>('all');
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         // Set initial date on the client to avoid hydration mismatch
@@ -92,15 +96,34 @@ export default function FinancePage() {
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
             Promise.all([
                 getSessionFeesAction(dateStr, 'morning'),
-                getSessionFeesAction(dateStr, 'evening')
-            ]).then(([morning, evening]) => {
+                getSessionFeesAction(dateStr, 'evening'),
+                getFamilyAction() // Fetch all family members
+            ]).then(([morning, evening, familyData]) => {
                 setMorningFees(morning);
                 setEveningFees(evening);
+                setAllFamily(familyData);
             }).finally(() => setLoading(false));
         }
     }, [selectedDate]);
 
-    const allFees = [...morningFees, ...eveningFees];
+    const familyMap = new Map(allFamily.map(f => [f.name, f]));
+
+    const filteredFees = [ ...morningFees, ...eveningFees].filter(fee => {
+        if (sessionFilter !== 'all' && fee.session !== sessionFilter) {
+            return false;
+        }
+        if (searchTerm) {
+            const lowerSearch = searchTerm.toLowerCase();
+            const member = familyMap.get(fee.patientName);
+            return (
+                member?.clinicId?.toLowerCase().includes(lowerSearch) ||
+                fee.patientName.toLowerCase().includes(lowerSearch) ||
+                fee.purpose.toLowerCase().includes(lowerSearch) ||
+                fee.mode.toLowerCase().includes(lowerSearch)
+            );
+        }
+        return true;
+    });
 
     return (
         <div className="space-y-6">
@@ -122,13 +145,38 @@ export default function FinancePage() {
                 </div>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Detailed Transactions</CardTitle>
+                    <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <CardTitle>Detailed Transactions</CardTitle>
+                            <p className="text-sm text-muted-foreground">A log of all financial records for the selected day.</p>
+                        </div>
+                         <div className="flex items-center gap-2 pt-4 md:pt-0">
+                             <div className="relative w-full max-w-sm">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    placeholder="Search by ID, name, purpose..."
+                                    className="pl-8"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <Select value={sessionFilter} onValueChange={(value: any) => setSessionFilter(value)}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Filter by session" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Sessions</SelectItem>
+                                    <SelectItem value="morning">Morning</SelectItem>
+                                    <SelectItem value="evening">Evening</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>Clinic ID</TableHead>
                                     <TableHead>Patient</TableHead>
                                     <TableHead>Purpose</TableHead>
                                     <TableHead>Amount</TableHead>
@@ -138,18 +186,22 @@ export default function FinancePage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {allFees.length > 0 ? allFees.map(fee => (
-                                    <TableRow key={fee.id}>
-                                        <TableCell>{fee.patientName}</TableCell>
-                                        <TableCell>{fee.purpose}</TableCell>
-                                        <TableCell>{formatCurrency(fee.amount)}</TableCell>
-                                        <TableCell>{fee.mode}{fee.onlineType ? ` (${fee.onlineType})` : ''}</TableCell>
-                                        <TableCell>{fee.session}</TableCell>
-                                        <TableCell>{fee.status}</TableCell>
-                                    </TableRow>
-                                )) : (
+                                {filteredFees.length > 0 ? filteredFees.map(fee => {
+                                    const member = familyMap.get(fee.patientName);
+                                    return (
+                                        <TableRow key={fee.id}>
+                                            <TableCell>{member?.clinicId || 'N/A'}</TableCell>
+                                            <TableCell>{fee.patientName}</TableCell>
+                                            <TableCell>{fee.purpose}</TableCell>
+                                            <TableCell>{formatCurrency(fee.amount)}</TableCell>
+                                            <TableCell>{fee.mode}{fee.onlineType ? ` (${fee.onlineType})` : ''}</TableCell>
+                                            <TableCell>{fee.session}</TableCell>
+                                            <TableCell>{fee.status}</TableCell>
+                                        </TableRow>
+                                    )
+                                }) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center">No transactions for this day.</TableCell>
+                                        <TableCell colSpan={7} className="text-center">No transactions found for the selected filters.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
