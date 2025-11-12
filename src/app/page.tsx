@@ -151,14 +151,14 @@ const ToolbarButton: React.FC<{ label: string; icon: React.ReactNode; variant?: 
     const content = (
         <span
             className={cn(
-                "flex w-full items-center gap-3 rounded-lg border p-2.5 text-left text-sm font-medium transition-all disabled:opacity-50",
+                "flex w-full items-center justify-start gap-3 rounded-lg border p-2.5 text-left text-sm font-medium transition-all disabled:opacity-50",
                 variant === "danger"
                 ? "border-red-200 bg-red-50 hover:bg-red-100 text-red-700"
-                : "border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700",
+                : "border-neutral-200 bg-background hover:bg-neutral-50 text-neutral-700",
             )}
         >
             <span className={cn(
-                "inline-flex h-7 w-7 items-center justify-center rounded-md",
+                "inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md",
                 variant === "danger" ? "bg-red-100" : "bg-neutral-100"
             )}>{icon}</span>
             <span className="truncate">{label}</span>
@@ -169,7 +169,7 @@ const ToolbarButton: React.FC<{ label: string; icon: React.ReactNode; variant?: 
         return <Link href={href}>{content}</Link>;
     }
 
-    return <button onClick={onClick} disabled={disabled}>{content}</button>;
+    return <button onClick={onClick} disabled={disabled} className="w-full">{content}</button>;
   };
 
 export default function DashboardPage() {
@@ -783,7 +783,7 @@ export default function DashboardPage() {
 
         let feeStatusClass = 'bg-red-500 border-red-600'; // Default: Pending
         let feeTooltip = 'Fee Pending';
-
+        
         if (isZeroFee) {
             feeStatusClass = 'bg-[#F97A00] border-[#F97A00]';
             feeTooltip = patient.purpose || 'Zero Fee Visit';
