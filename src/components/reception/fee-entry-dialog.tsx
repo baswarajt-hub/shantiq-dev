@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Fee, Patient, VisitPurpose } from '@/lib/types';
+import type { Fee, Patient, VisitPurpose, ClinicDetails } from '@/lib/types';
 
 type FeeEntryDialogProps = {
   isOpen: boolean;
@@ -23,22 +23,29 @@ type FeeEntryDialogProps = {
   patient: Patient;
   visitPurposes: VisitPurpose[];
   onSave: (feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'>) => void;
+  clinicDetails: ClinicDetails;
 };
 
-export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, onSave }: FeeEntryDialogProps) {
+export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, onSave, clinicDetails }: FeeEntryDialogProps) {
   const [amount, setAmount] = useState(0);
   const [mode, setMode] = useState<'Cash' | 'Online'>('Cash');
-  const [onlineType, setOnlineType] = useState<'Easebuzz' | 'Paytm' | 'PhonePe' | 'Other'>('Easebuzz');
+  const [onlineType, setOnlineType] = useState<string>('');
 
   useEffect(() => {
     if (patient && visitPurposes) {
       const purpose = visitPurposes.find(p => p.name === patient.purpose);
-      setAmount(purpose?.fee || 0);
+      const fee = purpose?.fee ?? 0;
+      setAmount(fee);
+      
+      const paymentTypes = clinicDetails.onlinePaymentTypes || [];
+      if(paymentTypes.length > 0) {
+        setOnlineType(paymentTypes[0].name);
+      }
     }
-  }, [patient, visitPurposes, isOpen]);
+  }, [patient, visitPurposes, isOpen, clinicDetails]);
 
   const handleSave = () => {
-    if (!patient || amount <= 0) return;
+    if (!patient) return;
     onSave({
       patientId: patient.id,
       patientName: patient.name,
@@ -50,6 +57,8 @@ export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, o
     });
     onOpenChange(false);
   };
+  
+  const isZeroFee = amount === 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -64,34 +73,33 @@ export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, o
             <Input id="purpose-display" value={patient.purpose || 'N/A'} disabled />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount (INR)</Label>
+            <Label htmlFor="amount">Amount (₹)</Label>
             <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
           </div>
           <div className="space-y-2">
             <Label>Payment Mode</Label>
-            <RadioGroup value={mode} onValueChange={(value: 'Cash' | 'Online') => setMode(value)} className="flex gap-4">
+            <RadioGroup value={mode} onValueChange={(value: 'Cash' | 'Online') => setMode(value)} className="flex gap-4" disabled={isZeroFee}>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Cash" id="cash" />
+                <RadioGroupItem value="Cash" id="cash" disabled={isZeroFee}/>
                 <Label htmlFor="cash">Cash</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Online" id="online" />
+                <RadioGroupItem value="Online" id="online" disabled={isZeroFee}/>
                 <Label htmlFor="online">Online</Label>
               </div>
             </RadioGroup>
           </div>
-          {mode === 'Online' && (
+          {mode === 'Online' && !isZeroFee && (
             <div className="space-y-2">
               <Label htmlFor="onlineType">Online Payment Type</Label>
-              <Select value={onlineType} onValueChange={(value) => setOnlineType(value as 'Easebuzz' | 'Paytm' | 'PhonePe' | 'Other')}>
+              <Select value={onlineType} onValueChange={(value) => setOnlineType(value)}>
                 <SelectTrigger id="onlineType">
                   <SelectValue placeholder="Select online payment type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Easebuzz">Easebuzz</SelectItem>
-                  <SelectItem value="Paytm">Paytm</SelectItem>
-                  <SelectItem value="PhonePe">PhonePe</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                   {(clinicDetails.onlinePaymentTypes || []).map(type => (
+                    <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -99,7 +107,7 @@ export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, o
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save Payment</Button>
+          <Button onClick={handleSave} disabled={!isZeroFee && amount <= 0}>Save Payment</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Banknote, Landmark, DollarSign, Calendar as CalendarIcon, Sun, Moon } from "lucide-react";
+import { Banknote, Landmark, Calendar as CalendarIcon, Sun, Moon } from "lucide-react";
 
 const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount);

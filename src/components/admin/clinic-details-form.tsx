@@ -2,13 +2,15 @@
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
-import type { ClinicDetails } from '@/lib/types';
+import type { ClinicDetails, OnlinePaymentType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
+import { PlusCircle, Trash2 } from 'lucide-react';
+import { Separator } from '../ui/separator';
 
 const EMPTY_DETAILS: ClinicDetails = {
   doctorName: '',
@@ -22,7 +24,8 @@ const EMPTY_DETAILS: ClinicDetails = {
   consultationFee: 0,
   paymentQRCode: '',
   clinicLogo: '',
-  googleMapsLink: ''
+  googleMapsLink: '',
+  onlinePaymentTypes: [],
 };
 
 type ClinicDetailsFormProps = {
@@ -35,7 +38,8 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    setDetails(initialDetails || EMPTY_DETAILS);
+    const onlinePaymentTypes = initialDetails?.onlinePaymentTypes || [];
+    setDetails({ ...(initialDetails || EMPTY_DETAILS), onlinePaymentTypes });
   }, [initialDetails]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -56,6 +60,28 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
       reader.readAsDataURL(file);
     }
   }
+
+  const handleAddPaymentType = () => {
+    const newType = { id: `opt_${Date.now()}`, name: '' };
+    setDetails(prev => ({
+      ...prev,
+      onlinePaymentTypes: [...(prev.onlinePaymentTypes || []), newType]
+    }));
+  };
+
+  const handlePaymentTypeChange = (id: string, name: string) => {
+    setDetails(prev => ({
+      ...prev,
+      onlinePaymentTypes: (prev.onlinePaymentTypes || []).map(pt => pt.id === id ? { ...pt, name } : pt)
+    }));
+  };
+
+  const handleRemovePaymentType = (id: string) => {
+    setDetails(prev => ({
+      ...prev,
+      onlinePaymentTypes: (prev.onlinePaymentTypes || []).filter(pt => pt.id !== id)
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +126,7 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
                     <Input id="contactNumber" name="contactNumber" value={details.contactNumber} onChange={handleInputChange} />
                 </div>
                  <div className="space-y-2">
-                    <Label htmlFor="consultationFee">Consultation Fee</Label>
+                    <Label htmlFor="consultationFee">Default Consultation Fee (₹)</Label>
                     <Input id="consultationFee" name="consultationFee" type="number" value={details.consultationFee} onChange={handleInputChange} />
                 </div>
             </div>
@@ -140,6 +166,30 @@ export function ClinicDetailsForm({ initialDetails, onSave }: ClinicDetailsFormP
                   </div>
                 )}
               </div>
+            </div>
+
+            <Separator />
+            
+            <div className="space-y-4">
+                <Label>Online Payment Methods</Label>
+                <div className="space-y-2">
+                    {(details.onlinePaymentTypes || []).map((type, index) => (
+                        <div key={type.id} className="flex items-center gap-2">
+                            <Input 
+                                value={type.name}
+                                onChange={(e) => handlePaymentTypeChange(type.id, e.target.value)}
+                                placeholder={`Payment Type ${index + 1}`}
+                            />
+                            <Button variant="ghost" size="icon" onClick={() => handleRemovePaymentType(type.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddPaymentType}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Payment Type
+                </Button>
             </div>
         </CardContent>
         <CardFooter>

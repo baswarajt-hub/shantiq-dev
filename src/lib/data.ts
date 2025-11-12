@@ -1,4 +1,5 @@
 
+
 import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, Session, VisitPurpose, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, Fee } from './types';
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -198,6 +199,12 @@ const defaultSchedule: DoctorSchedule = {
     paymentQRCode: '',
     clinicLogo: 'https://ibb.co/VW5hYvcS',
     googleMapsLink: '',
+    onlinePaymentTypes: [
+        { id: 'opt_1', name: 'Easebuzz'},
+        { id: 'opt_2', name: 'Paytm'},
+        { id: 'opt_3', name: 'PhonePe'},
+        { id: 'opt_4', name: 'Other'},
+    ]
   },
   smsSettings: {
     provider: 'none',
@@ -217,10 +224,10 @@ const defaultSchedule: DoctorSchedule = {
   days: defaultDays(),
   specialClosures: [],
   visitPurposes: [
-    { id: 'vp_1', name: 'Consultation', enabled: true, description: '' },
-    { id: 'vp_2', name: 'Follow-up visit', enabled: true, description: 'Next visit after paid consultation. Only one visit within 5 days of paid consultation.' },
-    { id: 'vp_3', name: 'Vaccination', enabled: true, description: '' },
-    { id: 'vp_4', name: 'Others', enabled: true, description: '' },
+    { id: 'vp_1', name: 'Consultation', fee: 400, enabled: true, description: '' },
+    { id: 'vp_2', name: 'Follow-up visit', fee: 0, enabled: true, description: 'Next visit after paid consultation. Only one visit within 5 days of paid consultation.' },
+    { id: 'vp_3', name: 'Vaccination', fee: 0, enabled: true, description: '' },
+    { id: 'vp_4', name: 'Others', fee: 400, enabled: true, description: '' },
   ],
 };
 

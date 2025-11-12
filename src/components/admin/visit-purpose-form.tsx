@@ -73,11 +73,11 @@ export function VisitPurposeForm({ initialPurposes, onSave }: VisitPurposeFormPr
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor={`purpose-fee-${index}`}>Default Fee</Label>
+                    <Label htmlFor={`purpose-fee-${index}`}>Default Fee (₹)</Label>
                     <Input
                       id={`purpose-fee-${index}`}
                       type="number"
-                      value={purpose.fee || ''}
+                      value={purpose.fee}
                       onChange={(e) => handlePurposeChange(purpose.id, 'fee', parseInt(e.target.value, 10) || 0)}
                       placeholder="e.g. 400"
                     />

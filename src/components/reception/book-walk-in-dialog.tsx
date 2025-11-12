@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { FamilyMember, VisitPurpose, Fee } from '@/lib/types';
+import type { FamilyMember, VisitPurpose, Fee, ClinicDetails } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserPlus, Info } from 'lucide-react';
 import { searchFamilyMembersAction } from '@/app/actions';
@@ -30,11 +30,12 @@ type BookWalkInDialogProps = {
   onSave: (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => void;
   onAddNewPatient: (searchTerm: string) => void;
   visitPurposes: VisitPurpose[];
+  clinicDetails: ClinicDetails;
 };
 
 type SearchByType = 'clinicId' | 'phone' | 'dob';
 
-export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate, onSave, onAddNewPatient, visitPurposes }: BookWalkInDialogProps) {
+export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate, onSave, onAddNewPatient, visitPurposes, clinicDetails }: BookWalkInDialogProps) {
   const [step, setStep] = useState(1);
   const [searchBy, setSearchBy] = useState<SearchByType>('clinicId');
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,7 +48,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
   // Fee state
   const [amount, setAmount] = useState(0);
   const [mode, setMode] = useState<'Cash' | 'Online'>('Cash');
-  const [onlineType, setOnlineType] = useState<'Easebuzz' | 'Paytm' | 'PhonePe' | 'Other'>('Easebuzz');
+  const [onlineType, setOnlineType] = useState<string>('');
   const [isPaid, setIsPaid] = useState(false);
   
   useEffect(() => {
@@ -75,9 +76,21 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
    useEffect(() => {
     if(selectedPurpose) {
         const purposeDetails = visitPurposes.find(p => p.name === selectedPurpose);
-        setAmount(purposeDetails?.fee || 0);
+        const fee = purposeDetails?.fee ?? 0;
+        setAmount(fee);
+        if (fee > 0) {
+            setIsPaid(true);
+        } else {
+            setIsPaid(false);
+        }
     }
    }, [selectedPurpose, visitPurposes]);
+
+   useEffect(() => {
+     if (clinicDetails.onlinePaymentTypes && clinicDetails.onlinePaymentTypes.length > 0) {
+        setOnlineType(clinicDetails.onlinePaymentTypes[0].name);
+     }
+   }, [clinicDetails.onlinePaymentTypes]);
 
   const handleSearchByChange = (value: SearchByType) => {
     setSearchBy(value);
@@ -139,7 +152,7 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
     setSelectedPurpose('Consultation');
     setAmount(0);
     setMode('Cash');
-    setOnlineType('Easebuzz');
+    setOnlineType(clinicDetails.onlinePaymentTypes?.[0]?.name || '');
     setIsPaid(false);
   };
 
@@ -167,6 +180,8 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
       phone: 'Enter 10-digit phone number...',
       dob: ''
   };
+  
+  const isZeroFee = amount === 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -269,41 +284,40 @@ export function BookWalkInDialog({ isOpen, onOpenChange, timeSlot, selectedDate,
 
                 <div className="p-4 border rounded-lg space-y-4">
                     <div className="flex items-center space-x-2">
-                        <input type="checkbox" id="isPaid" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} className="h-4 w-4" />
+                        <input type="checkbox" id="isPaid" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} className="h-4 w-4" disabled={isZeroFee} />
                         <Label htmlFor="isPaid" className="text-base font-medium">Mark as Paid</Label>
                     </div>
 
                     {isPaid && (
                         <>
                            <div className="space-y-2">
-                                <Label htmlFor="amount">Amount (INR)</Label>
+                                <Label htmlFor="amount">Amount (₹)</Label>
                                 <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
                             </div>
                             <div className="space-y-2">
                                 <Label>Payment Mode</Label>
-                                <RadioGroup value={mode} onValueChange={(value: 'Cash' | 'Online') => setMode(value)} className="flex gap-4">
+                                <RadioGroup value={mode} onValueChange={(value: 'Cash' | 'Online') => setMode(value)} className="flex gap-4" disabled={isZeroFee}>
                                 <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Cash" id="cash" />
+                                    <RadioGroupItem value="Cash" id="cash" disabled={isZeroFee}/>
                                     <Label htmlFor="cash">Cash</Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Online" id="online" />
+                                    <RadioGroupItem value="Online" id="online" disabled={isZeroFee}/>
                                     <Label htmlFor="online">Online</Label>
                                 </div>
                                 </RadioGroup>
                             </div>
-                             {mode === 'Online' && (
+                             {mode === 'Online' && !isZeroFee && (
                                 <div className="space-y-2">
                                 <Label htmlFor="onlineType">Online Payment Type</Label>
-                                <Select value={onlineType} onValueChange={(value) => setOnlineType(value as any)}>
+                                <Select value={onlineType} onValueChange={(value) => setOnlineType(value)}>
                                     <SelectTrigger id="onlineType">
                                     <SelectValue placeholder="Select online payment type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                    <SelectItem value="Easebuzz">Easebuzz</SelectItem>
-                                    <SelectItem value="Paytm">Paytm</SelectItem>
-                                    <SelectItem value="PhonePe">PhonePe</SelectItem>
-                                    <SelectItem value="Other">Other</SelectItem>
+                                    {(clinicDetails.onlinePaymentTypes || []).map(type => (
+                                        <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
+                                    ))}
                                     </SelectContent>
                                 </Select>
                                 </div>

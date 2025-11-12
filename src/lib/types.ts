@@ -72,7 +72,12 @@ export type VisitPurpose = {
   name: string;
   enabled: boolean;
   description?: string | null;
-  fee?: number;
+  fee: number;
+}
+
+export type OnlinePaymentType = {
+  id: string;
+  name: string;
 }
 
 export type ClinicDetails = {
@@ -88,6 +93,7 @@ export type ClinicDetails = {
     paymentQRCode?: string | null;
     clinicLogo?: string | null;
     googleMapsLink?: string | null;
+    onlinePaymentTypes?: OnlinePaymentType[];
 };
 
 export type SmsSettings = {
@@ -182,7 +188,7 @@ export type Fee = {
   purpose: string;
   amount: number;
   mode: 'Cash' | 'Online';
-  onlineType?: 'Easebuzz' | 'Paytm' | 'PhonePe' | 'Other';
+  onlineType?: string;
   status: 'Pending' | 'Paid' | 'Locked';
   createdBy: string; // user/receptionist email or UID
   createdAt: string; // ISO timestamp
