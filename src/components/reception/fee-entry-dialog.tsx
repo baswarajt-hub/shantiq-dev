@@ -30,11 +30,15 @@ export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, o
   const [amount, setAmount] = useState(0);
   const [mode, setMode] = useState<'Cash' | 'Online'>('Cash');
   const [onlineType, setOnlineType] = useState<string>('');
+  const [purpose, setPurpose] = useState('');
 
   useEffect(() => {
     if (patient && visitPurposes) {
-      const purpose = visitPurposes.find(p => p.name === patient.purpose);
-      const fee = purpose?.fee ?? 0;
+      const currentPurpose = patient.purpose || 'Consultation';
+      const purposeDetails = visitPurposes.find(p => p.name === currentPurpose);
+      const fee = purposeDetails?.fee ?? 0;
+      
+      setPurpose(currentPurpose);
       setAmount(fee);
       
       const paymentTypes = clinicDetails.onlinePaymentTypes || [];
@@ -43,13 +47,20 @@ export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, o
       }
     }
   }, [patient, visitPurposes, isOpen, clinicDetails]);
+  
+  const handlePurposeChange = (newPurpose: string) => {
+    setPurpose(newPurpose);
+    const purposeDetails = visitPurposes.find(p => p.name === newPurpose);
+    const fee = purposeDetails?.fee ?? 0;
+    setAmount(fee);
+  }
 
   const handleSave = () => {
     if (!patient) return;
     onSave({
       patientId: patient.id,
       patientName: patient.name,
-      purpose: patient.purpose || 'Unknown',
+      purpose: purpose,
       amount,
       mode,
       onlineType: mode === 'Online' ? onlineType : undefined,
@@ -69,8 +80,17 @@ export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, o
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="purpose-display">Purpose of Visit</Label>
-            <Input id="purpose-display" value={patient.purpose || 'N/A'} disabled />
+            <Label htmlFor="purpose-select">Purpose of Visit</Label>
+            <Select value={purpose} onValueChange={handlePurposeChange}>
+                <SelectTrigger id="purpose-select">
+                    <SelectValue placeholder="Select purpose" />
+                </SelectTrigger>
+                <SelectContent>
+                    {visitPurposes.map(p => (
+                        <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (₹)</Label>
