@@ -25,7 +25,8 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
+        <meta charSet="UTF-8" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
         <Script src="https://ebz-static.s3.ap-south-1.amazonaws.com/easebuzz-checkout.js" strategy="beforeInteractive" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased')}>
