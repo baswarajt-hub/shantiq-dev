@@ -56,7 +56,7 @@ export function PatientPortalHeader({ logoSrc, clinicName, googleMapsLink }: Pat
         
         <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
           <LogOut className="h-4 w-4" />
-          Logout
+          <span>Logout</span>
         </Button>
       </div>
     </header>
