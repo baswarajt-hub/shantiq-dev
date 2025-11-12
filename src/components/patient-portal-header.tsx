@@ -39,7 +39,7 @@ export function PatientPortalHeader({ logoSrc, clinicName, googleMapsLink }: Pat
         <Button variant="ghost" size="sm" asChild>
           <Link href="/booking" className="gap-2">
             <Home className="h-4 w-4" />
-            Home
+            <span>Home</span>
           </Link>
         </Button>
         
@@ -62,5 +62,3 @@ export function PatientPortalHeader({ logoSrc, clinicName, googleMapsLink }: Pat
     </header>
   );
 }
-
-    
