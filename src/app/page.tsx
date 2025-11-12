@@ -17,7 +17,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, getDoctorStatusAction, consultNextAction, saveFeeAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, getDoctorStatusAction, consultNextAction, saveFeeAction, getSessionFeesAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -176,6 +176,7 @@ export default function DashboardPage() {
     const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
     const [family, setFamily] = useState<FamilyMember[]>([]);
     const [patients, setPatients] = useState<Patient[]>([]);
+    const [fees, setFees] = useState<Fee[]>([]);
     const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
     const [averageConsultationTime, setAverageConsultationTime] = useState(0);
@@ -242,11 +243,14 @@ export default function DashboardPage() {
       else setIsRefreshing(true);
     
       try {
-        const [scheduleData, patientData, familyData, statusData] = await Promise.all([
+        const dateStr = format(new Date(), 'yyyy-MM-dd');
+        const [scheduleData, patientData, familyData, statusData, morningFees, eveningFees] = await Promise.all([
           getDoctorScheduleAction(),
           getPatientsAction(),
           getFamilyAction(),
           getDoctorStatusAction(),
+          getSessionFeesAction(dateStr, 'morning'),
+          getSessionFeesAction(dateStr, 'evening'),
         ]);
         
         if (!scheduleData || !statusData) {
@@ -257,6 +261,7 @@ export default function DashboardPage() {
         setPatients(patientData);
         setFamily(familyData);
         setDoctorStatus(statusData);
+        setFees([...morningFees, ...eveningFees]);
         setError(null);
       } catch (error) {
         console.error("Failed to load data", error);
@@ -455,7 +460,7 @@ export default function DashboardPage() {
 
     const handleBookAppointment = useCallback(async (familyMember: FamilyMember, appointmentIsoString: string, checkIn: boolean, purpose: string) => {
         const result = await addAppointmentAction(familyMember, appointmentIsoString, purpose, true, checkIn);
-        if ("error" in result) {
+        if ('error' in result) {
             toast({ title: "Error", description: result.error, variant: 'destructive'});
         } else {
             toast({ title: "Success", description: "Appointment booked successfully."});
@@ -681,9 +686,9 @@ export default function DashboardPage() {
         setFeeEntryOpen(true);
     };
 
-    const handleSaveFee = (feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'>) => {
+    const handleSaveFee = (feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'>, existingFeeId?: string) => {
         startTransition(async () => {
-            const result = await saveFeeAction(feeData);
+            const result = await saveFeeAction(feeData, existingFeeId);
             if ('error' in result) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
@@ -774,15 +779,22 @@ export default function DashboardPage() {
         const purposeDetails = schedule?.visitPurposes.find(p => p.name === patient.purpose);
         const isZeroFee = purposeDetails?.fee === 0;
 
-        let feeStatusClass = 'bg-red-500 border-red-600';
+        const feeRecord = fees.find(f => f.patientId === patient.id);
+
+        let feeStatusClass = 'bg-red-500 border-red-600'; // Default: Pending
         let feeTooltip = 'Fee Pending';
 
-        if (patient.feeStatus === 'Paid') {
-            feeStatusClass = 'bg-green-500 border-green-600';
-            feeTooltip = 'Fee Paid';
-        } else if (isZeroFee) {
-            feeStatusClass = 'bg-yellow-400 border-yellow-500';
+        if (isZeroFee) {
+            feeStatusClass = 'bg-[#F97A00] border-[#F97A00]';
             feeTooltip = patient.purpose || 'Zero Fee Visit';
+        } else if (feeRecord?.status === 'Paid') {
+            if (feeRecord.mode === 'Cash') {
+                feeStatusClass = 'bg-[#31694E] border-[#31694E]';
+                feeTooltip = 'Paid (Cash)';
+            } else {
+                feeStatusClass = 'bg-[#B0CE88] border-[#B0CE88]';
+                feeTooltip = `Paid (Online - ${feeRecord.onlineType || 'N/A'})`;
+            }
         }
         
         return (
@@ -806,7 +818,7 @@ export default function DashboardPage() {
                             disabled={!isActionable}
                             className="flex justify-center items-center" 
                         >
-                            <div className={cn("w-3.5 h-3.5 rounded-full border-2", feeStatusClass)} />
+                            <div className={cn("w-3.5 h-3.5 rounded-full border-2", feeStatusClass)} style={{ backgroundColor: feeStatusClass.startsWith('bg-[') ? feeStatusClass.split('[')[1].split(']')[0] : ''}}/>
                         </button>
                     </TooltipTrigger>
                     <TooltipContent>
