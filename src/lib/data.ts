@@ -552,3 +552,5 @@ export async function getFeesForSessionData(date: string, session: 'morning' | '
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...processFirestoreDoc(doc.data()) } as Fee));
 }
     
+
+    
