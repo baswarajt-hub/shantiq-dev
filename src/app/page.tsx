@@ -30,6 +30,7 @@ import type { ActionResult } from '@/lib/types';
 import { FamilyDetailsDialog } from '@/components/reception/family-details-dialog';
 import { FeeEntryDialog } from '@/components/reception/fee-entry-dialog';
 import Link from 'next/link';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 
@@ -769,8 +770,23 @@ export default function DashboardPage() {
         const isUpNext = upNext?.id === patient.id;
         const isActionable = patient.status !== 'Completed' && patient.status !== 'Cancelled';
         const isCurrentlyServing = patient.status === 'In-Consultation';
+
+        const purposeDetails = schedule?.visitPurposes.find(p => p.name === patient.purpose);
+        const isZeroFee = purposeDetails?.fee === 0;
+
+        let feeStatusClass = 'bg-red-500 border-red-600';
+        let feeTooltip = 'Fee Pending';
+
+        if (patient.feeStatus === 'Paid') {
+            feeStatusClass = 'bg-green-500 border-green-600';
+            feeTooltip = 'Fee Paid';
+        } else if (isZeroFee) {
+            feeStatusClass = 'bg-yellow-400 border-yellow-500';
+            feeTooltip = patient.purpose || 'Zero Fee Visit';
+        }
         
         return (
+            <TooltipProvider>
              <div className={cn(
                 "p-3 grid grid-cols-[60px_auto_1fr_320px_120px_100px] items-center gap-4 rounded-xl border bg-white shadow-sm",
                 !isActionable && "opacity-60",
@@ -783,14 +799,20 @@ export default function DashboardPage() {
                     #{patient.tokenNo}
                 </div>
                  {/* Fee Status */}
-                <button 
-                    onClick={() => isActionable && handleOpenFeeDialog(patient)} 
-                    disabled={!isActionable}
-                    className="flex justify-center items-center" 
-                    title={patient.feeStatus === 'Paid' ? 'Fee Paid' : 'Fee Pending'}
-                >
-                    <div className={cn("w-3.5 h-3.5 rounded-full border-2", patient.feeStatus === 'Paid' ? 'bg-green-500 border-green-600' : 'bg-red-500 border-red-600')} />
-                </button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                         <button 
+                            onClick={() => isActionable && handleOpenFeeDialog(patient)} 
+                            disabled={!isActionable}
+                            className="flex justify-center items-center" 
+                        >
+                            <div className={cn("w-3.5 h-3.5 rounded-full border-2", feeStatusClass)} />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{feeTooltip}</p>
+                    </TooltipContent>
+                </Tooltip>
 
                 {/* Name */}
                 <div className={cn('flex items-center gap-2 text-base font-semibold', getPatientNameColorClass(patient.status, patient.type))}>
@@ -935,6 +957,7 @@ export default function DashboardPage() {
                     )}
                 </div>
             </div>
+            </TooltipProvider>
         )
     }
 
@@ -1206,3 +1229,6 @@ export default function DashboardPage() {
     );
 }
 
+
+
+    
