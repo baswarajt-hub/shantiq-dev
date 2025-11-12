@@ -28,6 +28,7 @@ export type Patient = {
   lateLocked?: boolean;
   lateLockedAt?: string; // ISO timestamp
   lateAnchors?: string[]; // Array of patient IDs
+  feeStatus?: 'Paid' | 'Pending';
 };
 
 export type AIPatientData = {
@@ -71,6 +72,7 @@ export type VisitPurpose = {
   name: string;
   enabled: boolean;
   description?: string | null;
+  fee?: number;
 }
 
 export type ClinicDetails = {
@@ -92,7 +94,7 @@ export type SmsSettings = {
   provider: 'none' | 'bulksms' | 'twilio';
   apiKey: string; // Used for Twilio Account SID or other API keys
   senderId: string;
-  username?: string; // For providers like Metamorph
+  username?: string;
   password?: string;
   templateId?: string;
 };
@@ -170,3 +172,18 @@ export type Appointment = {
 };
 
 export type ActionResult = { success: string } | { error: string };
+
+export type Fee = {
+  id: string;
+  session: 'morning' | 'evening';
+  date: string; // YYYY-MM-DD
+  patientId: string;
+  patientName: string;
+  purpose: string;
+  amount: number;
+  mode: 'Cash' | 'Online';
+  onlineType?: 'Easebuzz' | 'Paytm' | 'PhonePe' | 'Other';
+  status: 'Pending' | 'Paid' | 'Locked';
+  createdBy: string; // user/receptionist email or UID
+  createdAt: string; // ISO timestamp
+}

@@ -22,14 +22,14 @@ export function VisitPurposeForm({ initialPurposes, onSave }: VisitPurposeFormPr
 
   const handleAddPurpose = () => {
     const newId = `vp_${Date.now()}`;
-    setPurposes([...purposes, { id: newId, name: '', enabled: true }]);
+    setPurposes([...purposes, { id: newId, name: '', enabled: true, fee: 0 }]);
   };
 
   const handleRemovePurpose = (id: string) => {
     setPurposes(purposes.filter(p => p.id !== id));
   };
 
-  const handlePurposeChange = (id: string, field: keyof VisitPurpose, value: string | boolean) => {
+  const handlePurposeChange = (id: string, field: keyof VisitPurpose, value: string | boolean | number) => {
     setPurposes(purposes.map(p => (p.id === id ? { ...p, [field]: value } : p)));
   };
 
@@ -45,13 +45,13 @@ export function VisitPurposeForm({ initialPurposes, onSave }: VisitPurposeFormPr
       <form onSubmit={handleSubmit}>
         <CardHeader>
           <CardTitle>Purpose of Visit Options</CardTitle>
-          <CardDescription>Manage the options available for patients when booking an appointment.</CardDescription>
+          <CardDescription>Manage the options available for patients and set default fees.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {purposes.map((purpose, index) => (
             <div key={purpose.id} className="flex flex-col md:flex-row items-start gap-4 p-4 border rounded-lg">
               <div className="grid gap-4 flex-1">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor={`purpose-name-${index}`}>Purpose Name</Label>
                     <Input
@@ -69,6 +69,16 @@ export function VisitPurposeForm({ initialPurposes, onSave }: VisitPurposeFormPr
                       onChange={(e) => handlePurposeChange(purpose.id, 'description', e.target.value)}
                       placeholder="e.g. Follow-up within 5 days"
                       className="h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`purpose-fee-${index}`}>Default Fee</Label>
+                    <Input
+                      id={`purpose-fee-${index}`}
+                      type="number"
+                      value={purpose.fee || ''}
+                      onChange={(e) => handlePurposeChange(purpose.id, 'fee', parseInt(e.target.value, 10) || 0)}
+                      placeholder="e.g. 400"
                     />
                   </div>
                 </div>
