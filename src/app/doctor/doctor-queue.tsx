@@ -221,12 +221,7 @@ export function DoctorQueue({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              {p.status === 'Up-Next' && isLastInQueue && (
-                                  <DropdownMenuItem onClick={() => handleStartLastConsultation(p.id)}>
-                                      <CircleCheck className="mr-2 h-4 w-4" />
-                                      Start Final Consultation
-                                  </DropdownMenuItem>
-                              )}
+                           
                               {p.status === 'Waiting for Reports' && (
                                 <DropdownMenuItem
                                   onClick={() =>
@@ -239,12 +234,7 @@ export function DoctorQueue({
                               )}
                               {['Waiting', 'Late'].includes(p.status) && (
                                 <>
-                                  <DropdownMenuItem
-                                    onClick={() => handleAdvanceQueue(p.id)}
-                                  >
-                                    <ChevronsRight className="mr-2 h-4 w-4" />
-                                    Move to Up Next
-                                  </DropdownMenuItem>
+                                  
                                   <DropdownMenuItem
                                     onClick={() =>
                                       handleUpdateStatus(p.id, 'Priority')
