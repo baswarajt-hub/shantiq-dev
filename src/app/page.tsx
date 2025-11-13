@@ -31,6 +31,7 @@ import { FamilyDetailsDialog } from '@/components/reception/family-details-dialo
 import { FeeEntryDialog } from '@/components/reception/fee-entry-dialog';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { SplitButton } from '@/components/ui/split-button';
 
 
 
@@ -861,14 +862,19 @@ export default function DashboardPage() {
                 {/* Actions */}
                 <div className="flex items-center justify-end">
                     {isUpNext ? (
-                        <Button 
-                            size="sm" 
-                            className="bg-blue-600 hover:bg-blue-700 h-8"
-                            onClick={handleConsultNext}
+                        <SplitButton
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700"
                             disabled={isPending || !doctorStatus?.isOnline}
-                        >
-                            <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
-                        </Button>
+                            mainAction={{
+                              label: <><ChevronsRight className="mr-2 h-4 w-4" /> Consult Next</>,
+                              onClick: handleConsultNext,
+                            }}
+                            dropdownActions={[
+                              { label: <>Reschedule</>, onClick: () => handleOpenReschedule(patient) },
+                              { label: <>Cancel</>, onClick: () => handleCancelAppointment(patient.id) },
+                            ]}
+                          />
                     ) : ['Booked', 'Confirmed'].includes(patient.status) ? (
                         <div className="flex items-center gap-1">
                           <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
@@ -1293,6 +1299,7 @@ export default function DashboardPage() {
 
 
     
+
 
 
 
