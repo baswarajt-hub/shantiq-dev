@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Patient } from '@/lib/types';
+import type { Patient, Fee, VisitPurpose } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ChevronsRight,
@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SplitButton } from '@/components/ui/split-button';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const statusConfig: Record<Patient['status'], { color: string, label: string }> = {
   Waiting: { color: 'text-blue-600', label: 'Waiting' },
@@ -48,9 +49,38 @@ const statusConfig: Record<Patient['status'], { color: string, label: string }> 
 };
 
 
-const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
-    <span className="flex items-center gap-2">
-      {patient.name}
+const PatientNameWithBadges = ({ patient, feeRecord, visitPurposes }: { patient: Patient, feeRecord?: Fee, visitPurposes: VisitPurpose[] }) => {
+  const purposeDetails = visitPurposes.find(p => p.name === patient.purpose);
+  const isZeroFee = purposeDetails?.fee === 0;
+
+  let feeStatusClass = 'bg-red-500 border-red-600'; // Default: Pending
+  let feeTooltip = 'Fee Pending';
+  
+  if (isZeroFee) {
+      feeStatusClass = 'bg-[#F97A00] border-[#F97A00]';
+      feeTooltip = patient.purpose || 'Zero Fee Visit';
+  } else if (feeRecord?.status === 'Paid') {
+      if (feeRecord.mode === 'Cash') {
+          feeStatusClass = 'bg-[#31694E] border-[#31694E]';
+          feeTooltip = 'Paid (Cash)';
+      } else {
+          feeStatusClass = 'bg-[#B0CE88] border-[#B0CE88]';
+          feeTooltip = `Paid (Online - ${feeRecord.onlineType || 'N/A'})`;
+      }
+  }
+
+  return (
+    <TooltipProvider>
+      <div className="flex items-center gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className={cn("w-3 h-3 rounded-full border", feeStatusClass)} style={{ backgroundColor: feeStatusClass.startsWith('bg-[') ? feeStatusClass.split('[')[1].split(']')[0] : ''}}/>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{feeTooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+        <span>{patient.name}</span>
         <span className="flex gap-1">
             {patient.subType === 'Booked Walk-in' && (
               <sup className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold" title="Booked Walk-in">B</sup>
@@ -65,17 +95,23 @@ const PatientNameWithBadges = ({ patient }: { patient: Patient }) => (
                <sup className="inline-flex items-center justify-center rounded-md bg-red-700 px-1.5 py-0.5 text-white text-[10px] font-bold" title="Priority">P</sup>
             )}
         </span>
-    </span>
+      </div>
+    </TooltipProvider>
 );
+}
 
 
 export function DoctorQueue({
   patients,
+  fees,
+  visitPurposes,
   onUpdate,
   onReschedule,
   onUpdateFamily,
 }: {
   patients: Patient[];
+  fees: Fee[];
+  visitPurposes: VisitPurpose[];
   onUpdate: () => void;
   onReschedule: (patient: Patient) => void;
   onUpdateFamily: (phone: string) => void;
@@ -133,7 +169,9 @@ export function DoctorQueue({
             <TableBody>
               <AnimatePresence>
                 {queue.length > 0 ? (
-                  queue.map(p => (
+                  queue.map(p => {
+                    const feeRecord = fees.find(f => f.patientId === p.id);
+                    return (
                     <motion.tr
                       key={p.id}
                       layout
@@ -152,7 +190,7 @@ export function DoctorQueue({
                         #{p.tokenNo}
                       </TableCell>
                       <TableCell>
-                        <PatientNameWithBadges patient={p} />
+                        <PatientNameWithBadges patient={p} feeRecord={feeRecord} visitPurposes={visitPurposes} />
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -200,7 +238,7 @@ export function DoctorQueue({
                         ) : null}
                       </TableCell>
                     </motion.tr>
-                  ))
+                  )})
                 ) : (
                   <TableRow>
                     <TableCell

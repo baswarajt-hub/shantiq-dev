@@ -10,6 +10,7 @@ import type {
   Notification,
   SpecialClosure,
   FamilyMember,
+  Fee,
 } from '@/lib/types';
 import {
   updateNotificationsAction,
@@ -22,6 +23,7 @@ import {
   consultNextAction,
   setDoctorStatusAction,
   updateFamilyMemberAction,
+  getSessionFeesAction,
 } from '@/app/actions';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { format } from 'date-fns';
@@ -56,6 +58,7 @@ export default function DoctorPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [family, setFamily] = useState<FamilyMember[]>([]);
+  const [fees, setFees] = useState<Fee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -110,18 +113,23 @@ export default function DoctorPage() {
   const loadData = useCallback(() => {
     if (initialLoad) setIsLoading(true);
     else setIsRefreshing(true);
+    
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
 
     Promise.all([
       getDoctorScheduleAction(),
       getPatientsAction(),
       getDoctorStatusAction(),
       getFamilyAction(),
+      getSessionFeesAction(dateStr, 'morning'),
+      getSessionFeesAction(dateStr, 'evening'),
     ])
-      .then(([scheduleData, patientData, statusData, familyData]) => {
+      .then(([scheduleData, patientData, statusData, familyData, morningFees, eveningFees]) => {
         setSchedule(scheduleData);
         setPatients(patientData);
         setDoctorStatus(statusData);
         setFamily(familyData);
+        setFees([...morningFees, ...eveningFees]);
       })
       .catch((error) => {
         console.error('Failed to load data for Doctor page', error);
@@ -327,6 +335,8 @@ export default function DoctorPage() {
                   <AccordionContent className="p-4 md:p-6 pt-0 bg-muted/50">
                     <DoctorQueue
                       patients={sessionPatients}
+                      fees={fees}
+                      visitPurposes={schedule.visitPurposes}
                       onUpdate={loadData}
                       onReschedule={handleOpenReschedule}
                       onUpdateFamily={handleOpenFamilyDetails}

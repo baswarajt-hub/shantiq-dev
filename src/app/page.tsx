@@ -871,7 +871,7 @@ export default function DashboardPage() {
                      {isActionable && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending || isCurrentlyServing}>
                                     <MoreVertical className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
