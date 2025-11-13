@@ -868,66 +868,66 @@ export default function DashboardPage() {
                         >
                             <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
                         </Button>
-                    ) : (['Booked', 'Confirmed'].includes(patient.status)) ? (
+                    ) : ['Booked', 'Confirmed'].includes(patient.status) ? (
                         <div className="flex items-center gap-1">
-                            <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
-                                        <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger>
-                                            <Hourglass className="mr-2 h-4 w-4" />
-                                            Mark as Late
-                                        </DropdownMenuSubTrigger>
-                                        <DropdownMenuSubContent>
-                                            <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            {[1, 2, 3, 4, 5, 6, 7].map(penalty => (
-                                                <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(patient!.id, penalty)}>
-                                                    {`${penalty} position${penalty > 1 ? 's' : ''}`}
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuSubContent>
-                                    </DropdownMenuSub>
-                                    <DropdownMenuSeparator/>
-                                    <DropdownMenuSub>
-                                      <DropdownMenuSubTrigger><Pencil className="mr-2 h-4 w-4" />Change Purpose</DropdownMenuSubTrigger>
-                                      <DropdownMenuSubContent>
-                                        <DropdownMenuRadioGroup value={patient.purpose || ''} onValueChange={(value) => handleUpdatePurpose(patient!.id, value)}>
-                                          {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
-                                            <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
-                                          ))}
-                                        </DropdownMenuRadioGroup>
-                                      </DropdownMenuSubContent>
-                                    </DropdownMenuSub>
-                                    <DropdownMenuItem onClick={() => handleOpenReschedule(patient!)}><CalendarIcon className="mr-2 h-4 w-4" />Reschedule</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleOpenFamilyDetails(patient.phone)}><Users className="mr-2 h-4 w-4" />Update Family</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleSendReminder(patient!.id)} disabled={isPending}><Send className="mr-2 h-4 w-4" />Send Reminder</DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <div className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Cancel Appointment
-                                            </div>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>This will permanently cancel the appointment.</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Go Back</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleCancelAppointment(patient!.id)}>Confirm Cancellation</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                          <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <Hourglass className="mr-2 h-4 w-4" />
+                                  Mark as Late
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                  <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  {[1, 2, 3, 4, 5, 6, 7].map(penalty => (
+                                    <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(patient!.id, penalty)}>
+                                      {`${penalty} position${penalty > 1 ? 's' : ''}`}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator/>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger><Pencil className="mr-2 h-4 w-4" />Change Purpose</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                  <DropdownMenuRadioGroup value={patient.purpose || ''} onValueChange={(value) => handleUpdatePurpose(patient!.id, value)}>
+                                    {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
+                                      <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
+                                    ))}
+                                  </DropdownMenuRadioGroup>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              <DropdownMenuItem onClick={() => handleOpenReschedule(patient!)}><CalendarIcon className="mr-2 h-4 w-4" />Reschedule</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenFamilyDetails(patient.phone)}><Users className="mr-2 h-4 w-4" />Update Family</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleSendReminder(patient!.id)} disabled={isPending}><Send className="mr-2 h-4 w-4" />Send Reminder</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                      <div className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Cancel Appointment
+                                      </div>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                          <AlertDialogDescription>This will permanently cancel the appointment.</AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                          <AlertDialogCancel>Go Back</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleCancelAppointment(patient!.id)}>Confirm Cancellation</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
+                              </AlertDialog>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                     ) : isActionable ? (
                         <DropdownMenu>
@@ -1292,4 +1292,5 @@ export default function DashboardPage() {
 
 
     
+
 
