@@ -610,6 +610,7 @@ export default function DashboardPage() {
     };
 
     const handleToggleStatus = useCallback((field: keyof DoctorStatus) => {
+      if (!doctorStatus) return;
       startTransition(async () => {
         const result = await setDoctorStatusAction({ [field]: !doctorStatus?.[field] });
         if ('error' in result) {
@@ -780,7 +781,7 @@ export default function DashboardPage() {
         const isCurrentlyServing = patient.status === 'In-Consultation';
 
         const purposeDetails = schedule?.visitPurposes.find(p => p.name === patient.purpose);
-        const isZeroFee = purposeDetails?.fee === 0;
+        const isZeroFee = schedule && purposeDetails?.fee === 0;
 
         const feeRecord = fees.find(f => f.patientId === patient.id);
 
@@ -1292,5 +1293,6 @@ export default function DashboardPage() {
 
 
     
+
 
 
