@@ -400,30 +400,35 @@ export async function addFamilyMember(memberData: Omit<FamilyMember, 'id'>): Pro
     return { ...memberWithAvatar, id: docRef.id };
 }
 
-export async function updateFamilyMember(updatedMember: FamilyMember): Promise<FamilyMember> {
+export async function updateFamilyMemberData(updatedMember: FamilyMember): Promise<FamilyMember> {
   const { id, ...memberData } = updatedMember;
   const memberRef = doc(db, 'family', id);
 
   // Get the original member data to check if phone number has changed
   const originalDoc = await getDoc(memberRef);
-  const originalData = originalDoc.data() as FamilyMember;
+  
+  if (originalDoc.exists()) {
+    const originalData = originalDoc.data() as FamilyMember;
+     // If phone number has changed, update all members of that family
+    if (originalData && originalData.phone !== updatedMember.phone) {
+        const familyMembersToUpdate = await getFamilyByPhone(originalData.phone);
+        const batch = writeBatch(db);
+        familyMembersToUpdate.forEach(member => {
+        const ref = doc(db, 'family', member.id);
+        batch.update(ref, { phone: updatedMember.phone });
+        });
+        
+        // Also update the current member being edited
+        batch.update(memberRef, memberData);
 
-  // If phone number has changed, update all members of that family
-  if (originalData && originalData.phone !== updatedMember.phone) {
-    const familyMembersToUpdate = await getFamilyByPhone(originalData.phone);
-    const batch = writeBatch(db);
-    familyMembersToUpdate.forEach(member => {
-      const ref = doc(db, 'family', member.id);
-      batch.update(ref, { phone: updatedMember.phone });
-    });
-    
-    // Also update the current member being edited
-    batch.update(memberRef, memberData);
-
-    await batch.commit();
+        await batch.commit();
+    } else {
+        // If phone number is the same, just update the single record
+        await updateDoc(memberRef, memberData);
+    }
   } else {
-    // If phone number is the same, just update the single record
-    await updateDoc(memberRef, memberData);
+    // If the doc doesn't exist (e.g., new member being saved via this flow)
+    await setDoc(memberRef, memberData);
   }
 
   return updatedMember;
