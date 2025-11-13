@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData, saveFeeData, getFeesForSessionData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember as updateFamilyMemberData, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData, saveFeeData, getFeesForSessionData } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult, Fee } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -12,6 +12,7 @@ import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { createHash, randomBytes } from 'crypto';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, where, doc, writeBatch } from 'firebase/firestore';
+import { toProperCase } from '@/lib/utils';
 
 const timeZone = "Asia/Kolkata";
 
@@ -434,7 +435,7 @@ export async function addPatientAction(patientData: Omit<Patient, 'id' | 'estima
         const minutesFromStart = differenceInMinutes(newAppointmentDate, sessionStart);
         tokenNo = Math.floor(minutesFromStart / schedule.slotDuration) + 1;
     }
-    // --- End Calculation ---
+    // --- End Recalculation ---
     
     const newPatient = await addPatientData({...patientData, tokenNo });
 
@@ -457,7 +458,16 @@ export async function addNewPatientAction(memberData: Omit<FamilyMember, 'id' | 
         }
     }
 
-    const newMember = await addFamilyMember(memberData);
+    const cleanData = {
+      ...memberData,
+      name: toProperCase(memberData.name || ''),
+      fatherName: toProperCase(memberData.fatherName || ''),
+      motherName: toProperCase(memberData.motherName || ''),
+      city: toProperCase(memberData.city || ''),
+      location: toProperCase(memberData.location || ''),
+    };
+
+    const newMember = await addFamilyMember(cleanData);
     if (!newMember) {
         return { error: 'Failed to create a new family member.' };
     }
@@ -750,27 +760,34 @@ export async function updateNotificationsAction(notifications: Notification[]): 
 
 export async function updateFamilyMemberAction(member: FamilyMember): Promise<ActionResult> {
     try {
-        // If the ID starts with 'new_', it's a new primary member, so we need to add it.
+        const cleanData = {
+            ...member,
+            name: toProperCase(member.name || ''),
+            fatherName: toProperCase(member.fatherName || ''),
+            motherName: toProperCase(member.motherName || ''),
+            city: toProperCase(member.city || ''),
+            location: toProperCase(member.location || ''),
+        };
+
         if (member.id.startsWith('new_')) {
-            const { id, ...newMemberData } = member; // remove the temporary ID
+            const { id, ...newMemberData } = cleanData;
             await addFamilyMember(newMemberData);
             revalidatePath('/api/family');
             return { success: 'Family details created successfully.' };
         }
         
-        // Otherwise, proceed with the update logic
-        if (member.clinicId) {
+        if (cleanData.clinicId) {
             const q = query(
                 collection(db, 'family'),
-                where('clinicId', '==', member.clinicId)
+                where('clinicId', '==', cleanData.clinicId)
             );
             const existing = await getDocs(q);
-            const duplicate = existing.docs.find(doc => doc.id !== member.id);
+            const duplicate = existing.docs.find(doc => doc.id !== cleanData.id);
             if (duplicate) {
                 return { error: 'Clinic ID already assigned to another patient.' };
             }
         }
-        await updateFamilyMember(member);
+        await updateFamilyMemberData(cleanData);
         revalidatePath('/', 'layout');
         return { success: 'Family member updated.' };
     } catch (e: any) {
@@ -974,22 +991,25 @@ export async function checkUserAuthAction(phone: string) {
 }
 
 export async function registerUserAction(userData: Omit<FamilyMember, 'id' | 'avatar' | 'name' | 'dob' | 'gender'>) {
-    const name = userData.primaryContact === 'Father' ? userData.fatherName : userData.motherName;
+    const cleanData = {
+        ...userData,
+        fatherName: toProperCase(userData.fatherName || ''),
+        motherName: toProperCase(userData.motherName || ''),
+        city: toProperCase(userData.city || ''),
+        location: toProperCase(userData.location || ''),
+    };
+
+    const name = cleanData.primaryContact === 'Father' ? cleanData.fatherName : cleanData.motherName;
     if (!name) {
         return { error: 'Primary contact name is missing.' };
     }
     
-    // The user's provided fix is to destructure userData, but dob and gender aren't in the type.
-    // A primary member (parent account) does not have a dob or gender.
-    // The type `Omit<FamilyMember, 'id' | 'avatar' | 'name' | 'dob' | 'gender'>` confirms this.
-    // The correct approach is to satisfy the target type `Omit<FamilyMember, 'id' | 'avatar'>`
-    // by providing all required fields, including dob and gender, even if they are empty strings.
     const newPrimaryMember: Omit<FamilyMember, 'id' | 'avatar'> = {
-        ...userData,
+        ...cleanData,
         name: name,
         isPrimary: true,
-        dob: '', // Parent/Primary account does not have a DOB
-        gender: 'Other', // Parent/Primary account does not have a gender
+        dob: '',
+        gender: 'Other',
     };
 
     const newMember = await addFamilyMember(newPrimaryMember);
@@ -1013,6 +1033,7 @@ export async function consultNextAction(): Promise<ActionResult> {
             subStatus: undefined,
             lateLocked: false,
         });
+        await lockFeeAction(nowServing.id);
     }
 
     // 2. Promote 'Up-Next' to 'In-Consultation'
@@ -1021,10 +1042,10 @@ export async function consultNextAction(): Promise<ActionResult> {
             status: 'In-Consultation',
             consultationStartTime: new Date().toISOString(),
         });
+        await lockFeeAction(upNext.id);
     }
 
-    // 3. Promote next in line to 'Up-Next' and recalculate queue
-    // The recalculateQueueWithETC function already handles finding the next in line and setting them to 'Up-Next'.
+    // 3. Recalculate queue which will automatically set the next patient to 'Up-Next'
     await recalculateQueueWithETC();
     
     revalidatePath('/', 'layout');
