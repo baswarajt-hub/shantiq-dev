@@ -862,19 +862,21 @@ export default function DashboardPage() {
                 {/* Actions */}
                 <div className="flex items-center justify-end">
                     {isUpNext ? (
-                         <SplitButton
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
-                            disabled={isPending || !doctorStatus?.isOnline}
-                            mainAction={{
-                              label: <><ChevronsRight className="mr-2 h-4 w-4" /> Next</>,
-                              onClick: handleConsultNext,
-                            }}
-                            dropdownActions={[
-                              { label: <>Reschedule</>, onClick: () => handleOpenReschedule(patient) },
-                              { label: <>Cancel</>, onClick: () => handleCancelAppointment(patient.id) },
-                            ]}
-                          />
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={handleConsultNext} disabled={isPending || !doctorStatus?.isOnline} className="font-semibold text-blue-600 focus:bg-blue-50 focus:text-blue-700">
+                                    <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleOpenReschedule(patient)}><CalendarIcon className="mr-2 h-4 w-4" /> Reschedule</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)}><Trash2 className="mr-2 h-4 w-4 text-destructive" /> Cancel</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     ) : ['Booked', 'Confirmed'].includes(patient.status) ? (
                         <div className="flex items-center gap-1">
                           <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
@@ -1299,6 +1301,7 @@ export default function DashboardPage() {
 
 
     
+
 
 
 
