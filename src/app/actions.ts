@@ -201,7 +201,6 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
           lateLocked: false,
           lateAnchors: undefined,
           lateLockedAt: undefined,
-          feeStatus: 'Locked',
         };
         await updatePatient(currentlyServing.id, completedUpdates);
         await lockFeeAction(currentlyServing.id);
@@ -212,7 +211,6 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
       updates.lateLocked = false;
       updates.lateAnchors = undefined;
       updates.lateLockedAt = undefined;
-      updates.feeStatus = 'Locked';
       await lockFeeAction(patientId);
       break;
 
@@ -227,7 +225,6 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
       updates.lateLocked = false;
       updates.lateAnchors = undefined;
       updates.lateLockedAt = undefined;
-      updates.feeStatus = 'Locked';
       await lockFeeAction(patientId);
       break;
 
