@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,38 +22,45 @@ type FeeEntryDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   patient: Patient;
+  fee?: Fee;
   visitPurposes: VisitPurpose[];
-  onSave: (feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'>) => void;
+  onSave: (feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'>, existingFeeId?: string) => void;
   clinicDetails: ClinicDetails;
 };
 
-export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, onSave, clinicDetails }: FeeEntryDialogProps) {
+export function FeeEntryDialog({ isOpen, onOpenChange, patient, fee, visitPurposes, onSave, clinicDetails }: FeeEntryDialogProps) {
   const [amount, setAmount] = useState(0);
   const [mode, setMode] = useState<'Cash' | 'Online'>('Cash');
   const [onlineType, setOnlineType] = useState<string>('');
   const [purpose, setPurpose] = useState('');
 
   useEffect(() => {
-    if (patient && visitPurposes) {
-      const currentPurpose = patient.purpose || 'Consultation';
-      const purposeDetails = visitPurposes.find(p => p.name === currentPurpose);
-      const fee = purposeDetails?.fee ?? 0;
-      
-      setPurpose(currentPurpose);
-      setAmount(fee);
-      
-      const paymentTypes = clinicDetails.onlinePaymentTypes || [];
-      if(paymentTypes.length > 0) {
-        setOnlineType(paymentTypes[0].name);
+    if (isOpen) {
+      if (fee) {
+        // Editing an existing fee
+        setPurpose(fee.purpose);
+        setAmount(fee.amount);
+        setMode(fee.mode);
+        setOnlineType(fee.onlineType || clinicDetails.onlinePaymentTypes?.[0]?.name || '');
+      } else {
+        // Creating a new fee record
+        const currentPurpose = patient.purpose || 'Consultation';
+        const purposeDetails = visitPurposes.find(p => p.name === currentPurpose);
+        const feeAmount = purposeDetails?.fee ?? 0;
+        
+        setPurpose(currentPurpose);
+        setAmount(feeAmount);
+        setMode('Cash');
+        setOnlineType(clinicDetails.onlinePaymentTypes?.[0]?.name || '');
       }
     }
-  }, [patient, visitPurposes, isOpen, clinicDetails]);
+  }, [patient, fee, visitPurposes, isOpen, clinicDetails]);
   
   const handlePurposeChange = (newPurpose: string) => {
     setPurpose(newPurpose);
     const purposeDetails = visitPurposes.find(p => p.name === newPurpose);
-    const fee = purposeDetails?.fee ?? 0;
-    setAmount(fee);
+    const feeAmount = purposeDetails?.fee ?? 0;
+    setAmount(feeAmount);
   }
 
   const handleSave = () => {
@@ -65,7 +73,7 @@ export function FeeEntryDialog({ isOpen, onOpenChange, patient, visitPurposes, o
       mode,
       onlineType: mode === 'Online' ? onlineType : undefined,
       status: 'Paid',
-    });
+    }, fee?.id);
     onOpenChange(false);
   };
   

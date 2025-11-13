@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
@@ -16,7 +17,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, consultNextAction, saveFeeAction, getSessionFeesAction, getDoctorStatusAction } from '@/app/actions';
+import { getDoctorStatusAction, setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, consultNextAction, saveFeeAction, getSessionFeesAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn, toProperCase } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -200,6 +201,7 @@ export default function DashboardPage() {
     const [isFamilyDetailsOpen, setFamilyDetailsOpen] = useState(false);
     const [phoneForFamilyDetails, setPhoneForFamilyDetails] = useState('');
     const [isFeeEntryOpen, setFeeEntryOpen] = useState(false);
+    const [feeToEdit, setFeeToEdit] = useState<Fee | undefined>(undefined);
     
     const { toast } = useToast();
 
@@ -681,6 +683,8 @@ export default function DashboardPage() {
     };
 
     const handleOpenFeeDialog = (patient: Patient) => {
+        const fee = fees.find(f => f.patientId === patient.id);
+        setFeeToEdit(fee);
         setSelectedPatient(patient);
         setFeeEntryOpen(true);
     };
@@ -1272,6 +1276,7 @@ export default function DashboardPage() {
                         isOpen={isFeeEntryOpen}
                         onOpenChange={setFeeEntryOpen}
                         patient={selectedPatient}
+                        fee={feeToEdit}
                         visitPurposes={schedule.visitPurposes}
                         onSave={handleSaveFee}
                         clinicDetails={schedule.clinicDetails}
@@ -1287,3 +1292,4 @@ export default function DashboardPage() {
 
 
     
+
