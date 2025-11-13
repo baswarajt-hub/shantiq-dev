@@ -860,23 +860,37 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-end gap-1">
                     {isUpNext ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
-                                    <MoreVertical className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={handleConsultNext} disabled={isPending || !doctorStatus?.isOnline} className="font-semibold text-blue-600 focus:bg-blue-50 focus:text-blue-700">
-                                    <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleOpenReschedule(patient)}><CalendarIcon className="mr-2 h-4 w-4" /> Reschedule</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)}><Trash2 className="mr-2 h-4 w-4 text-destructive" /> Cancel</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <>
+                            <Button size="sm" onClick={handleConsultNext} disabled={isPending || !doctorStatus?.isOnline} className="bg-blue-600 hover:bg-blue-700 h-8">
+                                <ChevronsRight className="mr-2 h-4 w-4" /> Next
+                            </Button>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger><Pencil className="mr-2 h-4 w-4" />Change Purpose</DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuRadioGroup value={patient.purpose || ''} onValueChange={(value) => handleUpdatePurpose(patient.id, value)}>
+                                                {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
+                                                    <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
+                                                ))}
+                                            </DropdownMenuRadioGroup>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuItem onClick={() => handleOpenReschedule(patient)}><CalendarIcon className="mr-2 h-4 w-4" /> Reschedule</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenFamilyDetails(patient.phone)}><Users className="mr-2 h-4 w-4" />Update Family</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleSendReminder(patient.id)} disabled={isPending}><Send className="mr-2 h-4 w-4" />Send Reminder</DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Cancel Appointment</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </>
                     ) : ['Booked', 'Confirmed'].includes(patient.status) ? (
                         <div className="flex items-center gap-1">
                           <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
@@ -1301,6 +1315,7 @@ export default function DashboardPage() {
 
 
     
+
 
 
 
