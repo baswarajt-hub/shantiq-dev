@@ -31,9 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTransition } from 'react';
 import {
-  advanceQueueAction,
   cancelAppointmentAction,
-  startLastConsultationAction,
   updatePatientStatusAction,
 } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
