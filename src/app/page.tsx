@@ -17,7 +17,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, getDoctorStatusAction, consultNextAction, saveFeeAction, getSessionFeesAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, consultNextAction, saveFeeAction, getSessionFeesAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn, toProperCase } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -875,6 +875,22 @@ export default function DashboardPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                            <Hourglass className="mr-2 h-4 w-4" />
+                                            Mark as Late
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {[1, 2, 3, 4, 5, 6, 7].map(penalty => (
+                                                <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(patient!.id, penalty)}>
+                                                    {`${penalty} position${penalty > 1 ? 's' : ''}`}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuSeparator/>
                                     <DropdownMenuItem onClick={() => handleOpenReschedule(patient!)}>
                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                         Reschedule
@@ -919,23 +935,6 @@ export default function DashboardPage() {
                                         Waiting for Reports
                                     </DropdownMenuItem>
                                   </>
-                                )}
-                                 {(patient.status === 'Booked' || patient.status === 'Confirmed') && (
-                                    <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger>
-                                            <Hourglass className="mr-2 h-4 w-4" />
-                                            Mark as Late
-                                        </DropdownMenuSubTrigger>
-                                        <DropdownMenuSubContent>
-                                            <DropdownMenuLabel>Push Down By</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            {[1, 2, 3, 4, 5, 6, 7].map(penalty => (
-                                                <DropdownMenuItem key={penalty} onClick={() => handleMarkAsLateAndCheckIn(patient!.id, penalty)}>
-                                                    {`${penalty} position${penalty > 1 ? 's' : ''}`}
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuSubContent>
-                                    </DropdownMenuSub>
                                 )}
                                 {patient.status === 'Waiting for Reports' && (
                                     <DropdownMenuItem onClick={() => handleUpdateStatus(patient!.id, 'In-Consultation')} disabled={isPending || !doctorStatus?.isOnline}>
