@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMember as updateFamilyMemberData, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData, saveFeeData, getFeesForSessionData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMemberData, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData, saveFeeData, getFeesForSessionData } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult, Fee } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -201,10 +201,8 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
           lateLocked: false,
           lateAnchors: undefined,
           lateLockedAt: undefined,
-          feeStatus: 'Locked',
         };
         await updatePatient(currentlyServing.id, completedUpdates);
-        await lockFeeAction(currentlyServing.id);
       }
       
       updates.consultationStartTime = new Date().toISOString();
@@ -212,8 +210,6 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
       updates.lateLocked = false;
       updates.lateAnchors = undefined;
       updates.lateLockedAt = undefined;
-      updates.feeStatus = 'Locked';
-      await lockFeeAction(patientId);
       break;
 
     case 'Completed':
@@ -227,8 +223,6 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
       updates.lateLocked = false;
       updates.lateAnchors = undefined;
       updates.lateLockedAt = undefined;
-      updates.feeStatus = 'Locked';
-      await lockFeeAction(patientId);
       break;
 
     case 'Waiting for Reports':
@@ -1033,7 +1027,6 @@ export async function consultNextAction(): Promise<ActionResult> {
             subStatus: undefined,
             lateLocked: false,
         });
-        await lockFeeAction(nowServing.id);
     }
 
     // 2. Promote 'Up-Next' to 'In-Consultation'
@@ -1042,7 +1035,6 @@ export async function consultNextAction(): Promise<ActionResult> {
             status: 'In-Consultation',
             consultationStartTime: new Date().toISOString(),
         });
-        await lockFeeAction(upNext.id);
     }
 
     // 3. Recalculate queue which will automatically set the next patient to 'Up-Next'
@@ -1275,14 +1267,4 @@ export async function getSessionFeesAction(date: string, session: 'morning' | 'e
   }
 }
 
-export async function lockFeeAction(patientId: string): Promise<void> {
-  // This is a simplified lock. In a real app, you'd find the fee by patientId for the current session.
-  const allFees = await getFeesForSessionData(format(new Date(), 'yyyy-MM-dd'), 'morning'); // This is a placeholder, needs better logic
-  allFees.push(...await getFeesForSessionData(format(new Date(), 'yyyy-MM-dd'), 'evening'));
-  const feeToLock = allFees.find(f => f.patientId === patientId);
-
-  if (feeToLock && feeToLock.status !== 'Locked') {
-      const feeWithId: Omit<Fee, 'id'> & { id: string } = { ...feeToLock, id: feeToLock.id };
-      await saveFeeData({ ...feeWithId, status: 'Locked' }, feeToLock.id);
-  }
-}
+    
