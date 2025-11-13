@@ -867,11 +867,10 @@ export default function DashboardPage() {
                         </Button>
                     ): (['Booked', 'Confirmed'].includes(patient.status)) ? (
                         <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
-                    ): null}
-                     {isActionable && !isCurrentlyServing && (
+                    ): isActionable ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending || isCurrentlyServing}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
                                     <MoreVertical className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -966,7 +965,7 @@ export default function DashboardPage() {
                                 </AlertDialog>
                             </DropdownMenuContent>
                         </DropdownMenu>
-                    )}
+                    ) : null}
                 </div>
             </div>
             </TooltipProvider>
@@ -1244,3 +1243,4 @@ export default function DashboardPage() {
 
 
     
+
