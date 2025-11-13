@@ -203,7 +203,6 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
           lateLockedAt: undefined,
         };
         await updatePatient(currentlyServing.id, completedUpdates);
-        await lockFeeAction(currentlyServing.id);
       }
       
       updates.consultationStartTime = new Date().toISOString();
@@ -211,7 +210,6 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
       updates.lateLocked = false;
       updates.lateAnchors = undefined;
       updates.lateLockedAt = undefined;
-      await lockFeeAction(patientId);
       break;
 
     case 'Completed':
@@ -225,7 +223,6 @@ export async function updatePatientStatusAction(patientId: string, newStatus: Pa
       updates.lateLocked = false;
       updates.lateAnchors = undefined;
       updates.lateLockedAt = undefined;
-      await lockFeeAction(patientId);
       break;
 
     case 'Waiting for Reports':
@@ -1030,7 +1027,6 @@ export async function consultNextAction(): Promise<ActionResult> {
             subStatus: undefined,
             lateLocked: false,
         });
-        await lockFeeAction(nowServing.id);
     }
 
     // 2. Promote 'Up-Next' to 'In-Consultation'
@@ -1039,7 +1035,6 @@ export async function consultNextAction(): Promise<ActionResult> {
             status: 'In-Consultation',
             consultationStartTime: new Date().toISOString(),
         });
-        await lockFeeAction(upNext.id);
     }
 
     // 3. Recalculate queue which will automatically set the next patient to 'Up-Next'
@@ -1269,17 +1264,5 @@ export async function getSessionFeesAction(date: string, session: 'morning' | 'e
   } catch (error) {
     console.error("Error fetching session fees:", error);
     return [];
-  }
-}
-
-export async function lockFeeAction(patientId: string): Promise<void> {
-  // This is a simplified lock. In a real app, you'd find the fee by patientId for the current session.
-  const allFees = await getFeesForSessionData(format(new Date(), 'yyyy-MM-dd'), 'morning'); // This is a placeholder, needs better logic
-  allFees.push(...await getFeesForSessionData(format(new Date(), 'yyyy-MM-dd'), 'evening'));
-  const feeToLock = allFees.find(f => f.patientId === patientId);
-
-  if (feeToLock && feeToLock.status !== 'Locked') {
-      const feeWithId: Omit<Fee, 'id'> & { id: string } = { ...feeToLock, id: feeToLock.id };
-      await saveFeeData({ ...feeWithId, status: 'Locked' }, feeToLock.id);
   }
 }
