@@ -17,7 +17,7 @@ import { AdjustTimingDialog } from '@/components/reception/adjust-timing-dialog'
 import { AddNewPatientDialog } from '@/components/reception/add-new-patient-dialog';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
-import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, consultNextAction, saveFeeAction, getSessionFeesAction } from '@/app/actions';
+import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, consultNextAction, saveFeeAction, getSessionFeesAction, getDoctorStatusAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn, toProperCase } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -1272,6 +1272,9 @@ export default function DashboardPage() {
     );
 }
 
+
+
+    
 
 
     
