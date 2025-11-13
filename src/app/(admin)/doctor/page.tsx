@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
@@ -24,6 +25,7 @@ import {
   setDoctorStatusAction,
   updateFamilyMemberAction,
   getSessionFeesAction,
+  saveFeeAction,
 } from '@/app/actions';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { format } from 'date-fns';
@@ -50,6 +52,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { FamilyDetailsDialog } from '@/components/reception/family-details-dialog';
+import { FeeEntryDialog } from '@/components/reception/fee-entry-dialog';
 
 const timeZone = 'Asia/Kolkata';
 
@@ -68,6 +71,7 @@ export default function DoctorPage() {
   // State for dialogs
   const [isRescheduleOpen, setRescheduleOpen] = useState(false);
   const [isFamilyDetailsOpen, setFamilyDetailsOpen] = useState(false);
+  const [isFeeEntryOpen, setFeeEntryOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [phoneForFamilyDetails, setPhoneForFamilyDetails] = useState('');
 
@@ -186,6 +190,11 @@ export default function DoctorPage() {
     setPhoneForFamilyDetails(phone);
     setFamilyDetailsOpen(true);
   };
+  
+  const handleOpenFeeDialog = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setFeeEntryOpen(true);
+  };
 
   const handleReschedule = (newDate: string, newTime: string, newPurpose: string) => {
     if (!selectedPatient) return;
@@ -202,6 +211,18 @@ export default function DoctorPage() {
           loadData();
         }
       });
+    });
+  };
+  
+  const handleSaveFee = (feeData: Omit<Fee, 'id' | 'createdAt' | 'createdBy' | 'session' | 'date'>, existingFeeId?: string) => {
+    startTransition(async () => {
+        const result = await saveFeeAction(feeData, existingFeeId);
+        if ('error' in result) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: result.success });
+            loadData();
+        }
     });
   };
 
@@ -340,6 +361,7 @@ export default function DoctorPage() {
                       onUpdate={loadData}
                       onReschedule={handleOpenReschedule}
                       onUpdateFamily={handleOpenFamilyDetails}
+                      onOpenFeeDialog={handleOpenFeeDialog}
                     />
                   </AccordionContent>
                 </AccordionItem>
@@ -419,6 +441,17 @@ export default function DoctorPage() {
           onOpenChange={setFamilyDetailsOpen}
           phone={phoneForFamilyDetails}
           onUpdate={handleFamilyUpdate}
+        />
+      )}
+
+      {selectedPatient && schedule && (
+        <FeeEntryDialog 
+            isOpen={isFeeEntryOpen}
+            onOpenChange={setFeeEntryOpen}
+            patient={selectedPatient}
+            visitPurposes={schedule.visitPurposes}
+            onSave={handleSaveFee}
+            clinicDetails={schedule.clinicDetails}
         />
       )}
     </>

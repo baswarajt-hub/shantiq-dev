@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -49,7 +50,7 @@ const statusConfig: Record<Patient['status'], { color: string, label: string }> 
 };
 
 
-const PatientNameWithBadges = ({ patient, feeRecord, visitPurposes }: { patient: Patient, feeRecord?: Fee, visitPurposes: VisitPurpose[] }) => {
+const PatientNameWithBadges = ({ patient, feeRecord, visitPurposes, onFeeClick }: { patient: Patient, feeRecord?: Fee, visitPurposes: VisitPurpose[], onFeeClick: () => void }) => {
   const purposeDetails = visitPurposes.find(p => p.name === patient.purpose);
   const isZeroFee = purposeDetails?.fee === 0;
 
@@ -74,7 +75,9 @@ const PatientNameWithBadges = ({ patient, feeRecord, visitPurposes }: { patient:
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className={cn("w-3 h-3 rounded-full border", feeStatusClass)} style={{ backgroundColor: feeStatusClass.startsWith('bg-[') ? feeStatusClass.split('[')[1].split(']')[0] : ''}}/>
+            <button onClick={onFeeClick}>
+              <div className={cn("w-3 h-3 rounded-full border", feeStatusClass)} style={{ backgroundColor: feeStatusClass.startsWith('bg-[') ? feeStatusClass.split('[')[1].split(']')[0] : ''}}/>
+            </button>
           </TooltipTrigger>
           <TooltipContent>
             <p>{feeTooltip}</p>
@@ -108,6 +111,7 @@ export function DoctorQueue({
   onUpdate,
   onReschedule,
   onUpdateFamily,
+  onOpenFeeDialog,
 }: {
   patients: Patient[];
   fees: Fee[];
@@ -115,6 +119,7 @@ export function DoctorQueue({
   onUpdate: () => void;
   onReschedule: (patient: Patient) => void;
   onUpdateFamily: (phone: string) => void;
+  onOpenFeeDialog: (patient: Patient) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -190,7 +195,7 @@ export function DoctorQueue({
                         #{p.tokenNo}
                       </TableCell>
                       <TableCell>
-                        <PatientNameWithBadges patient={p} feeRecord={feeRecord} visitPurposes={visitPurposes} />
+                        <PatientNameWithBadges patient={p} feeRecord={feeRecord} visitPurposes={visitPurposes} onFeeClick={() => onOpenFeeDialog(p)} />
                       </TableCell>
                       <TableCell>
                         <Badge

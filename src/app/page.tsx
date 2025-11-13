@@ -815,7 +815,7 @@ export default function DashboardPage() {
                     <TooltipTrigger asChild>
                          <button 
                             onClick={() => isActionable && handleOpenFeeDialog(patient)} 
-                            disabled={!isActionable}
+                            disabled={!isActionable || isCurrentlyServing}
                             className="flex justify-center items-center" 
                         >
                             <div className={cn("w-3.5 h-3.5 rounded-full border-2", feeStatusClass)} style={{ backgroundColor: feeStatusClass.startsWith('bg-[') ? feeStatusClass.split('[')[1].split(']')[0] : ''}}/>
@@ -868,7 +868,7 @@ export default function DashboardPage() {
                     ): (['Booked', 'Confirmed'].includes(patient.status)) ? (
                         <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
                     ): null}
-                     {isActionable && (
+                     {isActionable && !isCurrentlyServing && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending || isCurrentlyServing}>
