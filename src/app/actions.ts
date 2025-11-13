@@ -1250,10 +1250,17 @@ export async function saveFeeAction(feeData: Omit<Fee, 'id' | 'createdAt' | 'cre
   };
 
   try {
+    // 1. Save the fee data
     await saveFeeData(fullFeeData, existingFeeId);
-    await updatePatient(feeData.patientId, { feeStatus: 'Paid' });
+    
+    // 2. Update the patient's purpose and feeStatus
+    await updatePatient(feeData.patientId, { 
+        purpose: feeData.purpose,
+        feeStatus: 'Paid'
+    });
+
     revalidatePath('/', 'layout');
-    return { success: 'Fee saved successfully.' };
+    return { success: 'Fee and patient purpose updated successfully.' };
   } catch (e: any) {
     return { error: `Failed to save fee: ${e.message}` };
   }
@@ -1269,3 +1276,4 @@ export async function getSessionFeesAction(date: string, session: 'morning' | 'e
 }
 
     
+
