@@ -19,7 +19,7 @@ import { RescheduleDialog } from '@/components/reception/reschedule-dialog';
 import { BookWalkInDialog } from '@/components/reception/book-walk-in-dialog';
 import { setDoctorStatusAction, emergencyCancelAction, getPatientsAction, addAppointmentAction, addNewPatientAction, updatePatientStatusAction, sendReminderAction, cancelAppointmentAction, checkInPatientAction, updateTodayScheduleOverrideAction, updatePatientPurposeAction, getDoctorScheduleAction, getFamilyAction, recalculateQueueWithETC, updateDoctorStartDelayAction, rescheduleAppointmentAction, markPatientAsLateAndCheckInAction, getDoctorStatusAction, consultNextAction, saveFeeAction, getSessionFeesAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, toProperCase } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
@@ -865,9 +865,42 @@ export default function DashboardPage() {
                         >
                             <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
                         </Button>
-                    ): (['Booked', 'Confirmed'].includes(patient.status)) ? (
-                        <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
-                    ): isActionable ? (
+                    ) : (['Booked', 'Confirmed'].includes(patient.status)) ? (
+                        <div className="flex items-center gap-1">
+                            <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleOpenReschedule(patient!)}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        Reschedule
+                                    </DropdownMenuItem>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <div className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Cancel Appointment
+                                            </div>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>This will permanently cancel the appointment.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Go Back</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleCancelAppointment(patient!.id)}>Confirm Cancellation</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    ) : isActionable ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
@@ -1243,4 +1276,3 @@ export default function DashboardPage() {
 
 
     
-
