@@ -862,12 +862,12 @@ export default function DashboardPage() {
                 {/* Actions */}
                 <div className="flex items-center justify-end">
                     {isUpNext ? (
-                        <SplitButton
+                         <SplitButton
                             size="sm"
                             className="bg-blue-600 hover:bg-blue-700"
                             disabled={isPending || !doctorStatus?.isOnline}
                             mainAction={{
-                              label: <><ChevronsRight className="mr-2 h-4 w-4" /> Consult Next</>,
+                              label: <><ChevronsRight className="mr-2 h-4 w-4" /> Next</>,
                               onClick: handleConsultNext,
                             }}
                             dropdownActions={[
@@ -1299,6 +1299,7 @@ export default function DashboardPage() {
 
 
     
+
 
 
 
