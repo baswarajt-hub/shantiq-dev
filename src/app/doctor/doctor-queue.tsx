@@ -101,33 +101,7 @@ export function DoctorQueue({
     });
   };
 
-  const handleAdvanceQueue = (patientId: string) => {
-    startTransition(async () => {
-      const result = await advanceQueueAction(patientId);
-      if ("success" in result) {
-        toast({ title: 'Success', description: result.success });
-        onUpdate();
-      } else {
-        toast({
-          title: 'Error',
-          description: result.error,
-          variant: 'destructive',
-        });
-      }
-    });
-  };
-  
-  const handleStartLastConsultation = (patientId: string) => {
-    startTransition(async () => {
-        const result = await startLastConsultationAction(patientId);
-        if("success" in result) {
-            toast({ title: 'Success', description: result.success});
-            onUpdate();
-        } else {
-            toast({ title: 'Error', description: result.error, variant: 'destructive'});
-        }
-    })
-  }
+
 
   const handleCancel = (patientId: string) => {
     startTransition(async () => {
