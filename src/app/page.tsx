@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
@@ -847,7 +848,7 @@ export default function DashboardPage() {
                     </div>
                      <div className='flex items-center gap-1.5' title="Estimated Time of Consultation">
                         <Timer className="h-4 w-4" />
-                        <span className="font-semibold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm') : '-'}</span>
+                        <span className="font-semibold text-green-600">{patient.bestCaseETC ? format(parseISO(patient.bestCaseETC), 'hh:mm a') : '-'}</span>
                         <span>-</span>
                         <span className="font-semibold text-orange-600">{patient.worstCaseETC ? format(parseISO(patient.worstCaseETC), 'hh:mm a') : '-'}</span>
                     </div>
@@ -862,7 +863,7 @@ export default function DashboardPage() {
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-1">
                     {isUpNext ? (
-                        <>
+                         <div className="flex items-center gap-1">
                             <Button size="sm" onClick={handleConsultNext} disabled={isPending || !doctorStatus?.isOnline} className="bg-blue-600 hover:bg-blue-700 h-8">
                                 <ChevronsRight className="mr-2 h-4 w-4" /> Next
                             </Button>
@@ -890,7 +891,7 @@ export default function DashboardPage() {
                                     <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Cancel Appointment</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        </>
+                        </div>
                     ) : ['Booked', 'Confirmed'].includes(patient.status) ? (
                         <div className="flex items-center gap-1">
                           <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
@@ -1315,6 +1316,7 @@ export default function DashboardPage() {
 
 
     
+
 
 
 
