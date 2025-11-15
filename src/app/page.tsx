@@ -63,7 +63,20 @@ const PatientNameWithBadges = ({ patient, patientDetails }: { patient: Patient, 
   return (
     <span className="flex items-center gap-2 font-semibold relative">
       {nameToDisplay}
-      {patient.isGuest && <Badge variant="guest">Guest</Badge>}
+      {patient.isGuest && (
+         <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Badge variant="guest">Guest</Badge>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>This is a guest booking that needs to be converted to a registered patient.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+      )}
       {clinicId && (
         <button
           onClick={handleCopy}
@@ -206,6 +219,7 @@ export default function DashboardPage() {
     const [phoneForFamilyDetails, setPhoneForFamilyDetails] = useState('');
     const [isFeeEntryOpen, setFeeEntryOpen] = useState(false);
     const [feeToEdit, setFeeToEdit] = useState<Fee | undefined>(undefined);
+    const [guestToConvert, setGuestToConvert] = useState<Patient | null>(null);
     
     const { toast } = useToast();
 
@@ -483,13 +497,25 @@ export default function DashboardPage() {
                         resolve(null);
                     } else {
                         toast({ title: "Success", description: result.success});
-                        loadData(false);
+                        if (guestToConvert) {
+                          convertGuestToExistingAction(guestToConvert.id, result.patient).then(conversionResult => {
+                              if ('error' in conversionResult) {
+                                  toast({ title: "Conversion Failed", description: `New patient was created, but linking failed: ${conversionResult.error}`, variant: 'destructive'});
+                              } else {
+                                  toast({ title: "Guest Converted", description: "Guest has been registered and linked."});
+                              }
+                              setGuestToConvert(null);
+                              loadData(false);
+                          });
+                        } else {
+                          loadData(false);
+                        }
                         resolve(result.patient);
                     }
                 });
             });
         });
-    }, [loadData, toast]);
+    }, [loadData, toast, guestToConvert]);
 
     const handleOpenReschedule = (patient: Patient) => {
         setSelectedPatient(patient);
@@ -728,10 +754,8 @@ export default function DashboardPage() {
     };
 
     const handleConvertToNew = (guestPatient: Patient) => {
+        setGuestToConvert(guestPatient);
         setNewPatientOpen(true);
-        // This is a simplified handoff. The AddNewPatientDialog will need to be aware of the guest patient context.
-        // For now, it opens the dialog, and the receptionist would manually fill details.
-        // A more advanced implementation would pre-fill the name.
     };
     
 
@@ -896,7 +920,6 @@ export default function DashboardPage() {
                     <StatusIcon className={cn("h-4 w-4", statusColor)} />
                     <span className={cn("font-medium text-sm", statusColor)}>
                         {patient.status}
-                        {patient.needsRegistration && <span className="text-destructive font-bold text-xs ml-1">(Needs Reg)</span>}
                         {patient.lateBy ? ` (${patient.lateBy}m)` : ''}
                     </span>
                 </div>
@@ -904,55 +927,58 @@ export default function DashboardPage() {
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-1">
                     {patient.isGuest ? (
+                        <>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-8"
+                            onClick={() => handleOpenConvertGuest(patient)}
+                            disabled={isPending}
+                        >
+                            <LinkIcon className="mr-2 h-4 w-4"/>
+                            Convert Booking
+                        </Button>
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8">
-                                    <LinkIcon className="mr-2 h-4 w-4"/>
-                                    Convert Guest
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => handleOpenConvertGuest(patient)}>
-                                    Link to Existing Patient
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleConvertToNew(patient)}>
-                                    Register as New Patient
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)} className="text-destructive focus:text-destructive">
-                                    Cancel Guest Booking
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Cancel Guest Booking</DropdownMenuItem>
+                          </DropdownMenuContent>
                         </DropdownMenu>
+                      </>
                     ) : isUpNext ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                         <div className="flex items-center gap-1">
+                            <Button size="sm" onClick={handleConsultNext} disabled={isPending || !doctorStatus?.isOnline} className="bg-blue-600 hover:bg-blue-700 h-8">
+                                <ChevronsRight className="mr-2 h-4 w-4" /> Next
+                            </Button>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
                                     <MoreVertical className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={handleConsultNext} disabled={isPending || !doctorStatus?.isOnline}>
-                                    <ChevronsRight className="mr-2 h-4 w-4" /> Consult Next
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger><Pencil className="mr-2 h-4 w-4" />Change Purpose</DropdownMenuSubTrigger>
-                                    <DropdownMenuSubContent>
-                                        <DropdownMenuRadioGroup value={patient.purpose || ''} onValueChange={(value) => handleUpdatePurpose(patient.id, value)}>
-                                            {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
-                                                <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
-                                            ))}
-                                        </DropdownMenuRadioGroup>
-                                    </DropdownMenuSubContent>
-                                </DropdownMenuSub>
-                                <DropdownMenuItem onClick={() => handleOpenReschedule(patient)}><CalendarIcon className="mr-2 h-4 w-4" /> Reschedule</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleOpenFamilyDetails(patient.phone)}><Users className="mr-2 h-4 w-4" />Update Family</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleSendReminder(patient.id)} disabled={isPending}><Send className="mr-2 h-4 w-4" />Send Reminder</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Cancel Appointment</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger><Pencil className="mr-2 h-4 w-4" />Change Purpose</DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuRadioGroup value={patient.purpose || ''} onValueChange={(value) => handleUpdatePurpose(patient.id, value)}>
+                                                {schedule?.visitPurposes.filter(p => p.enabled).map(purpose => (
+                                                    <DropdownMenuRadioItem key={purpose.id} value={purpose.name}>{purpose.name}</DropdownMenuRadioItem>
+                                                ))}
+                                            </DropdownMenuRadioGroup>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuItem onClick={() => handleOpenReschedule(patient)}><CalendarIcon className="mr-2 h-4 w-4" /> Reschedule</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenFamilyDetails(patient.phone)}><Users className="mr-2 h-4 w-4" />Update Family</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleSendReminder(patient.id)} disabled={isPending}><Send className="mr-2 h-4 w-4" />Send Reminder</DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Cancel Appointment</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     ) : ['Booked', 'Confirmed'].includes(patient.status) ? (
                         <div className="flex items-center gap-1">
                           <Button size="sm" onClick={() => handleCheckIn(patient!.id)} disabled={isPending} className="bg-green-500 text-white hover:bg-green-600 h-8">Check-in</Button>
@@ -1322,7 +1348,7 @@ export default function DashboardPage() {
                     onOpenChange={setNewPatientOpen}
                     onSave={handleAddNewPatient}
                     phoneToPreFill={phoneToPreFill}
-                    onClose={() => setPhoneToPreFill('')}
+                    onClose={() => { setPhoneToPreFill(''); setGuestToConvert(null); }}
                     afterSave={(newPatient, purpose, checkIn) => {
                         if (selectedSlot && selectedDate && purpose) {
                             const date = new Date(selectedDate);
@@ -1386,6 +1412,7 @@ export default function DashboardPage() {
 
 
     
+
 
 
 
