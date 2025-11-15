@@ -72,7 +72,7 @@ const PatientNameWithBadges = ({ patient, patientDetails }: { patient: Patient, 
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                <p>This is a guest booking that needs to be converted to a registered patient.</p>
+                <p>This guest booking needs to be converted to a registered patient before check-in.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -903,7 +903,9 @@ export default function DashboardPage() {
                     <div title={patientDetails?.gender || 'Gender not specified'} className="flex justify-center">
                         {patientDetails?.gender === 'Male' ? <User className="h-4 w-4 text-blue-500" /> : <User className="h-4 w-4 text-pink-500" />}
                     </div>
-                    <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
+                    {patient.type !== 'Guest' && (
+                        <Badge variant={patient.type === 'Walk-in' ? 'secondary' : 'outline'}>{patient.type}</Badge>
+                    )}
                     <div title={patient.purpose || 'No purpose specified'} className="flex justify-center">
                        <PurposeIcon className="h-4 w-4" />
                     </div>
@@ -930,13 +932,12 @@ export default function DashboardPage() {
                         <>
                         <Button
                             size="sm"
-                            variant="secondary"
-                            className="h-8"
+                            className="h-8 bg-yellow-500 hover:bg-yellow-600 text-white"
                             onClick={() => handleOpenConvertGuest(patient)}
                             disabled={isPending}
                         >
                             <LinkIcon className="mr-2 h-4 w-4"/>
-                            Convert Booking
+                            Convert
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1412,6 +1413,7 @@ export default function DashboardPage() {
 
 
     
+
 
 
 
