@@ -99,8 +99,8 @@ export default function BookingPage() {
   const [family, setFamily] = useState<FamilyMember[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
+  const [localDoctorStatus, setLocalDoctorStatus] = useState<DoctorStatus | null>(null);
   const [isBookingOpen, setBookingOpen] = useState(false);
   const [isGuestBookingOpen, setGuestBookingOpen] = useState(false);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
@@ -122,15 +122,13 @@ export default function BookingPage() {
   const loadData = useCallback(async () => {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) return;
-    const [familyData, patientData, statusData, scheduleData] = await Promise.all([
+    const [familyData, patientData, scheduleData] = await Promise.all([
       getFamilyByPhoneAction(userPhone),
       getPatientsAction(),
-      getDoctorStatusAction(),
       getDoctorScheduleAction(),
     ]);
     setFamily(familyData);
     setPatients(patientData);
-    setDoctorStatus(statusData);
     setSchedule(scheduleData);
   }, []);
 
@@ -142,6 +140,22 @@ export default function BookingPage() {
       return () => { clearInterval(refresh); clearInterval(timer); };
     }
   }, [phone, loadData]);
+  
+  // Fast polling for doctor status
+  useEffect(() => {
+    const fetchStatus = async () => {
+        try {
+            const statusData = await getDoctorStatusAction();
+            setLocalDoctorStatus(statusData);
+        } catch (error) {
+            console.error("Failed to fetch doctor status", error);
+        }
+    }
+    fetchStatus(); // Initial fetch
+    const statusInterval = setInterval(fetchStatus, 5000); // Poll every 5 seconds
+    return () => clearInterval(statusInterval);
+  }, []);
+
 
   // Add family member — must come before any return
   const handleAddFamilyMember = useCallback(
@@ -205,7 +219,7 @@ export default function BookingPage() {
   }, [patients, family]);
 
   const getTodayScheduleDetails = () => {
-    if (!schedule || !doctorStatus) return null;
+    if (!schedule || !localDoctorStatus) return null;
     const today = currentTime;
     const dayOfWeek = format(today, 'EEEE') as keyof DoctorSchedule['days'];
     const dateStr = format(today, 'yyyy-MM-dd');
@@ -230,12 +244,12 @@ export default function BookingPage() {
       const end = parse(s.end, 'HH:mm', today);
       let status = 'Upcoming', color = 'text-gray-500', icon = Clock;
       if (today > end) { status = 'Completed'; color = 'text-green-600'; icon = CheckCircle; }
-      else if (today >= start && doctorStatus?.isOnline) {
+      else if (today >= start && localDoctorStatus?.isOnline) {
             status = `Online`;
             color = 'text-green-600';
             icon = LogIn;
        }
-      else if (today >= start && !doctorStatus?.isOnline) { status = 'Offline'; color = 'text-red-600'; icon = LogOut; }
+      else if (today >= start && !localDoctorStatus?.isOnline) { status = 'Offline'; color = 'text-red-600'; icon = LogOut; }
       return { time: `${formatTime(s.start)} - ${formatTime(s.end)}`, status, color, icon };
     };
     return { morning: make(todaySch.morning, 'morning'), evening: make(todaySch.evening, 'evening') };
@@ -376,13 +390,13 @@ export default function BookingPage() {
                 </div>
               </div>
               {/* ✅ DOCTOR DELAY STATUS */}
-                {doctorStatus && !doctorStatus.isOnline && doctorStatus.startDelay > 0 && (
+                {localDoctorStatus && !localDoctorStatus.isOnline && localDoctorStatus.startDelay > 0 && (
                   <Alert variant="destructive" className="mt-4">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Doctor is Running Late</AlertTitle>
                     <AlertDescription>
                       The session will begin with a delay of approximately{' '}
-                      <strong>{doctorStatus.startDelay} minutes.</strong>
+                      <strong>{localDoctorStatus.startDelay} minutes.</strong>
                     </AlertDescription>
                   </Alert>
       )}
