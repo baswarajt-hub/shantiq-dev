@@ -152,7 +152,7 @@ export default function BookingPage() {
         }
     }
     fetchStatus(); // Initial fetch
-    const statusInterval = setInterval(fetchStatus, 5000); // Poll every 5 seconds
+    const statusInterval = setInterval(fetchStatus, 30000); // Poll every 30 seconds
     return () => clearInterval(statusInterval);
   }, []);
 
