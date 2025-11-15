@@ -66,7 +66,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
 
   useEffect(() => {
-    // Only run on the client after mounting
+    // Only run on the client after mounting to avoid hydration mismatch
     if (typeof window !== 'undefined' && !localStorage.getItem('hideSlotAdvisory')) {
       setShowAdvisory(true);
     }
@@ -370,7 +370,9 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
             onClick={(e) => {
               localStorage.setItem('hideSlotAdvisory', 'true');
               const advisoryEl = (e.target as HTMLElement).closest('.animate-slide-in');
-              advisoryEl?.classList.add('animate-fade-out');
+              if (advisoryEl) {
+                advisoryEl.classList.add('animate-fade-out');
+              }
               setTimeout(() => setShowAdvisory(false), 400);
             }}
             className="text-xs font-semibold text-blue-700 hover:text-blue-900 underline"
