@@ -144,6 +144,7 @@ export function GuestBookingDialog({ isOpen, onOpenChange, schedule, onSave, boo
   const getTooltipMessage = (state: SlotState) => ({
     booked: "Already booked",
     reserved: "Reserved for walk-ins",
+    available: "",
     past: "Time has passed"
   })[state] || "";
 
