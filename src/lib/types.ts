@@ -1,9 +1,10 @@
 
 
+
 export type Patient = {
   id: string;
   name: string;
-  type: 'Appointment' | 'Walk-in';
+  type: 'Appointment' | 'Walk-in' | 'Guest';
   subType?: 'Booked Walk-in';
   appointmentTime: string; // ISO string
   checkInTime?: string; // ISO string format, set when patient checks in
@@ -29,6 +30,12 @@ export type Patient = {
   lateLockedAt?: string; // ISO timestamp
   lateAnchors?: string[]; // Array of patient IDs
   feeStatus?: 'Paid' | 'Pending';
+
+  // Guest booking fields
+  isGuest?: boolean;
+  guestName?: string;
+  guestOf?: string; // Phone number of the user who booked
+  needsRegistration?: boolean;
 };
 
 export type AIPatientData = {
@@ -171,10 +178,11 @@ export type Appointment = {
   date: string; // ISO string format from Patient.appointmentTime
   time: string;
   status: Patient['status'] | 'Missed';
-  type?: 'Appointment' | 'Walk-in';
+  type?: 'Appointment' | 'Walk-in' | 'Guest';
   purpose: string | null;
   rescheduleCount?: number;
   tokenNo?: number;
+  isGuest?: boolean;
 };
 
 export type ActionResult = { success: string } | { error: string };
