@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Calendar, Clock, Users, Wifi, WifiOff, Bell, AlertTriangle,
-  Megaphone, PlusCircle, List, MapPin, Phone, Mail, Globe, LogIn, LogOut, CheckCircle
+  Megaphone, PlusCircle, List, MapPin, Phone, Mail, Globe, LogIn, LogOut, CheckCircle, UserPlus
 } from 'lucide-react';
 import type { FamilyMember, Appointment, DoctorSchedule, Patient, DoctorStatus, Notification } from '@/lib/types';
 import { BookAppointmentDialog } from '@/components/booking/book-appointment-dialog';
@@ -15,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import {
   addAppointmentAction, getFamilyByPhoneAction, getPatientsAction,
-  addNewPatientAction, getDoctorStatusAction, getDoctorScheduleAction
+  addNewPatientAction, getDoctorStatusAction, getDoctorScheduleAction, addGuestAppointmentAction
 } from '@/app/actions';
 import { format, parseISO, parse, isToday, isWithinInterval } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,7 @@ import { AddFamilyMemberDialog } from '@/components/booking/add-family-member-di
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AppointmentActions } from '@/components/booking/appointment-actions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GuestBookingDialog } from '@/components/booking/guest-booking-dialog';
 
 
 // ---------- Utility: status badge color ----------
@@ -100,6 +102,7 @@ export default function BookingPage() {
   const [doctorStatus, setDoctorStatus] = useState<DoctorStatus | null>(null);
   const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
   const [isBookingOpen, setBookingOpen] = useState(false);
+  const [isGuestBookingOpen, setGuestBookingOpen] = useState(false);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -157,6 +160,23 @@ export default function BookingPage() {
     },
     [phone, toast, loadData]
   );
+  
+  const handleBookGuestAppointment = (guestName: string, date: string, time: string, purpose: string) => {
+    if (!phone) return;
+    startTransition(async () => {
+      const dateObj = parse(date, 'yyyy-MM-dd', new Date());
+      const timeObj = parse(time, 'hh:mm a', dateObj);
+      const apptTime = timeObj.toISOString();
+      const result = await addGuestAppointmentAction(phone, guestName, purpose, apptTime);
+
+      if ('error' in result) {
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
+      } else {
+        toast({ title: 'Success', description: 'Guest appointment booked.' });
+        if (phone) await loadData();
+      }
+    });
+  };
 
   const isLoading = !phone || isPending || !schedule;
 
@@ -178,6 +198,7 @@ export default function BookingPage() {
           status: p.status,
           purpose: p.purpose,
           tokenNo: p.tokenNo,
+          isGuest: p.isGuest,
         };
       });
     setAppointments(appts);
@@ -400,6 +421,19 @@ export default function BookingPage() {
             </Button>
           </CardContent>
         </Card>
+        
+        {/* 🙋‍♂️ Book for Guest */}
+        <Card className="bg-white">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><UserPlus /> Book for Friend/Relative</CardTitle>
+                <CardDescription>Book a guest appointment for someone not in your family.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button className="w-full" variant="outline" onClick={() => setGuestBookingOpen(true)}>
+                    Book as Guest
+                </Button>
+            </CardContent>
+        </Card>
 
         {/* 📅 Today's Appointments */}
         <Card className="bg-white">
@@ -477,6 +511,15 @@ export default function BookingPage() {
           setAddMemberOpen(true);
         }}
         onDialogClose={() => setSelectedMember(null)}
+      />
+      
+      {/* ✅ Guest Booking Dialog */}
+      <GuestBookingDialog
+        isOpen={isGuestBookingOpen}
+        onOpenChange={setGuestBookingOpen}
+        schedule={schedule}
+        onSave={handleBookGuestAppointment}
+        bookedPatients={patients}
       />
 
       {/* ✅ Add Family Member Dialog */}

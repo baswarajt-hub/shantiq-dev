@@ -36,6 +36,7 @@ export type Patient = {
   guestName?: string;
   guestOf?: string; // Phone number of the user who booked
   needsRegistration?: boolean;
+  guestCreatedAt?: string; //ISO String
 };
 
 export type AIPatientData = {

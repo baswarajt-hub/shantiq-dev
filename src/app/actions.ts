@@ -1,6 +1,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -13,7 +14,7 @@ import { startOfDay, max, addMinutes, subMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { createHash, randomBytes } from 'crypto';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where, doc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, writeBatch, deleteField } from 'firebase/firestore';
 import { toProperCase } from '@/lib/utils';
 
 const timeZone = "Asia/Kolkata";
@@ -624,9 +625,6 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             let worstCaseTime = inConsultation ? max([effectiveStartTime, addMinutes(parseISO(inConsultation.consultationStartTime!), schedule.slotDuration)]) : effectiveStartTime;
             worstCaseTime = addMinutes(worstCaseTime, patientsAheadWhoMightArrive.length * schedule.slotDuration);
 
-            // The patient's own slot duration
-            worstCaseTime = addMinutes(worstCaseTime, schedule.slotDuration);
-            
             // The ETC should be the END of their slot, so we subtract one slot duration
             worstCaseTime = subMinutes(worstCaseTime, schedule.slotDuration);
 
@@ -1251,13 +1249,12 @@ export async function saveFeeAction(feeData: Omit<Fee, 'id' | 'createdAt' | 'cre
   };
 
   try {
-    // 1. Save the fee data
     await saveFeeData(fullFeeData, existingFeeId);
     
-    // 2. Update the patient's purpose and feeStatus
+    // Also update the patient's purpose and feeStatus
     await updatePatient(feeData.patientId, { 
         purpose: feeData.purpose,
-        feeStatus: 'Paid'
+        feeStatus: feeData.amount > 0 ? 'Paid' : 'Pending'
     });
 
     revalidatePath('/', 'layout');
@@ -1275,7 +1272,83 @@ export async function getSessionFeesAction(date: string, session: 'morning' | 'e
     return [];
   }
 }
-
     
 
+// --- Guest Booking Actions ---
 
+export async function addGuestAppointmentAction(
+  loggedInUserPhone: string,
+  guestName: string,
+  purpose: string,
+  appointmentIsoString: string
+) {
+  const schedule = await getDoctorScheduleData();
+  const appointmentDate = parseISO(appointmentIsoString);
+  const session = getSessionForTime(schedule, appointmentDate);
+  if (!session) {
+    return { error: 'The selected time is outside of clinic hours.' };
+  }
+
+  // --- Session-Specific Token Number Calculation ---
+  const dateStr = format(toZonedTime(appointmentDate, timeZone), 'yyyy-MM-dd');
+  const dayOfWeek = format(toZonedTime(appointmentDate, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
+  let daySchedule = schedule.days[dayOfWeek];
+  const todayOverride = schedule.specialClosures.find(c => c.date === dateStr);
+  if (todayOverride) {
+      daySchedule = {
+          morning: todayOverride.morningOverride ?? daySchedule.morning,
+          evening: todayOverride.eveningOverride ?? daySchedule.evening,
+      };
+  }
+
+  let tokenNo = 0;
+  if (session === 'morning') {
+      const sessionStart = sessionLocalToUtc(dateStr, daySchedule.morning.start);
+      const minutesFromStart = differenceInMinutes(appointmentDate, sessionStart);
+      tokenNo = Math.floor(minutesFromStart / schedule.slotDuration) + 1;
+  } else { // evening
+      const sessionStart = sessionLocalToUtc(dateStr, daySchedule.evening.start);
+      const minutesFromStart = differenceInMinutes(appointmentDate, sessionStart);
+      tokenNo = Math.floor(minutesFromStart / schedule.slotDuration) + 1;
+  }
+  // --- End Recalculation ---
+
+  const guestPatientData: Partial<Patient> = {
+    name: toProperCase(guestName), // Store guest name in main name field
+    phone: loggedInUserPhone, // Associate with booker's phone
+    type: 'Guest',
+    appointmentTime: appointmentIsoString,
+    status: 'Booked',
+    purpose,
+    tokenNo,
+    isGuest: true,
+    needsRegistration: true,
+    guestName: toProperCase(guestName),
+    guestOf: loggedInUserPhone,
+    guestCreatedAt: new Date().toISOString(),
+  };
+
+  const newPatient = await addPatientData(guestPatientData as Omit<Patient, 'id'>);
+  
+  await recalculateQueueWithETC();
+  revalidatePath('/', 'layout');
+
+  return { success: 'Guest appointment booked successfully.', patient: newPatient };
+}
+
+export async function convertGuestToExistingAction(appointmentId: string, selectedPatient: FamilyMember): Promise<ActionResult> {
+  try {
+    await updatePatient(appointmentId, {
+        isGuest: false,
+        needsRegistration: false,
+        name: selectedPatient.name,
+        phone: selectedPatient.phone,
+        guestName: deleteField() as any, // Firestore-specific delete
+        guestOf: deleteField() as any,
+    });
+    revalidatePath('/', 'layout');
+    return { success: 'Guest booking has been converted to a registered patient.' };
+  } catch (e: any) {
+    return { error: `Failed to convert guest booking: ${e.message}` };
+  }
+}
