@@ -61,8 +61,16 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [showAdvisory, setShowAdvisory] = useState(false);
 
   const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
+
+  useEffect(() => {
+    // Only run on the client after mounting
+    if (typeof window !== 'undefined' && !localStorage.getItem('hideSlotAdvisory')) {
+      setShowAdvisory(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -347,8 +355,7 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
   <div className="space-y-4 py-4">
     <Label>Select an available time slot</Label>
 
-    {/* ✅ Advisory message with animation + collapsible “Got it” */}
-    {!localStorage.getItem('hideSlotAdvisory') && (
+    {showAdvisory && (
       <div
         className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900 shadow-sm animate-slide-in"
         style={{ animation: 'slide-in 0.4s ease-out' }}
@@ -360,11 +367,11 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
         </p>
         <div className="text-right mt-2">
           <button
-            onClick={() => {
+            onClick={(e) => {
               localStorage.setItem('hideSlotAdvisory', 'true');
-              const el = document.querySelector('.animate-slide-in');
-              if (el) el.classList.add('animate-fade-out');
-              setTimeout(() => el?.remove(), 400);
+              const advisoryEl = (e.target as HTMLElement).closest('.animate-slide-in');
+              advisoryEl?.classList.add('animate-fade-out');
+              setTimeout(() => setShowAdvisory(false), 400);
             }}
             className="text-xs font-semibold text-blue-700 hover:text-blue-900 underline"
           >
@@ -420,5 +427,3 @@ export function BookAppointmentDialog({ isOpen, onOpenChange, familyMembers, sch
     </Dialog>
   );
 }
-
-    
