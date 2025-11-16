@@ -8,6 +8,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -543,7 +544,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         // --- 1. Determine Session Start Time & Handle Doctor Delay ---
         const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
-        const specialClosure = schedule.specialClosures.find(c => c.date === dateStr);
+        const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
         if (specialClosure) {
             daySchedule = {
                 morning: specialClosure.morningOverride ?? daySchedule.morning,
