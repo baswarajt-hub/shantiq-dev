@@ -4,7 +4,7 @@ import type { DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMembe
 import { format, parse, parseISO, startOfToday } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, addDoc, writeBatch, updateDoc, query, where, documentId, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, writeBatch, updateDoc, query, where, documentId, setDoc, deleteDoc, Timestamp, deleteField } from 'firebase/firestore';
 
 const settingsDoc = doc(db, 'settings', 'live');
 const patientsCollection = collection(db, 'patients');
@@ -577,6 +577,19 @@ export async function getFeesForSessionData(date: string, session: 'morning' | '
     const q = query(feesCollection, where("date", "==", date), where("session", "==", session));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...processFirestoreDoc(doc.data()) } as Fee));
+}
+
+export async function convertGuestToExistingData(appointmentId: string, selectedPatient: FamilyMember): Promise<void> {
+    const appointmentRef = doc(db, 'patients', appointmentId);
+    await updateDoc(appointmentRef, {
+        isGuest: false,
+        needsRegistration: false,
+        name: selectedPatient.name,
+        phone: selectedPatient.phone,
+        guestName: deleteField(),
+        guestOf: deleteField(),
+        guestCreatedAt: deleteField(),
+    });
 }
     
     

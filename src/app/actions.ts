@@ -3,10 +3,12 @@
 
 
 
+
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMemberData, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData, saveFeeData, getFeesForSessionData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMemberData, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData, saveFeeData, getFeesForSessionData, convertGuestToExistingData } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult, Fee } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -499,6 +501,9 @@ export async function checkInPatientAction(patientId: string): Promise<ActionRes
   if (!patient) {
     return { error: 'Patient not found' };
   }
+  if (patient.isGuest) {
+      return { error: 'Guest bookings must be converted before check-in.' };
+  }
   await updatePatient(patient.id, { status: 'Waiting', checkInTime: new Date().toISOString() });
   await recalculateQueueWithETC();
   revalidatePath('/', 'layout');
@@ -616,20 +621,22 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
 
         // --- 5. Calculate Worst Case ETC ---
         for (const patient of updatedSessionPatients) {
-            if (!['Booked', 'Confirmed', 'Waiting', 'Priority', 'Late'].includes(patient.status)) continue;
-
+            if (!['Waiting', 'Priority', 'Late', 'Booked', 'Confirmed'].includes(patient.status)) continue;
+            
+            // Patients ahead who could potentially cause a delay.
+            // This includes anyone with a lower token number who isn't 'Completed' or 'Cancelled'.
             const patientsAheadWhoMightArrive = updatedSessionPatients.filter(p => 
-                (p.tokenNo || 0) < (patient.tokenNo || 0) && 
-                ['Booked', 'Confirmed', 'Waiting', 'Priority', 'Late'].includes(p.status)
+                (p.tokenNo || 0) < (patient.tokenNo || 0) &&
+                p.id !== patient.id &&
+                !['Completed', 'Cancelled'].includes(p.status)
             );
             
+            // Worst case starts from the effective start time
             let worstCaseTime = inConsultation ? max([effectiveStartTime, addMinutes(parseISO(inConsultation.consultationStartTime!), schedule.slotDuration)]) : effectiveStartTime;
+            
+            // Add a slot for every potential patient ahead.
             worstCaseTime = addMinutes(worstCaseTime, patientsAheadWhoMightArrive.length * schedule.slotDuration);
-
-            // The ETC should be the END of their slot, so we subtract one slot duration
-            worstCaseTime = subMinutes(worstCaseTime, schedule.slotDuration);
-
-
+        
             patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
         }
 
@@ -1339,14 +1346,7 @@ export async function addGuestAppointmentAction(
 
 export async function convertGuestToExistingAction(appointmentId: string, selectedPatient: FamilyMember): Promise<ActionResult> {
   try {
-    await updatePatient(appointmentId, {
-        isGuest: false,
-        needsRegistration: false,
-        name: selectedPatient.name,
-        phone: selectedPatient.phone,
-        guestName: deleteField() as any, // Firestore-specific delete
-        guestOf: deleteField() as any,
-    });
+    await convertGuestToExistingData(appointmentId, selectedPatient);
     revalidatePath('/', 'layout');
     return { success: 'Guest booking has been converted to a registered patient.' };
   } catch (e: any) {
