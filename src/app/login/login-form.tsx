@@ -9,6 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { checkUserAuthAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import { setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+
 
 export function LoginForm({ clinicName }: { clinicName?: string }) {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -31,24 +34,30 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
 
   const handlePhoneSubmit = () => {
     startTransition(async () => {
-      const result = await checkUserAuthAction(phone);
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+        const result = await checkUserAuthAction(phone);
 
-      if ("error" in result) {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
-        return;
-      }
-      
-      // If simulation is active, bypass OTP entry immediately.
-      if (result.simulation) {
-        toast({ title: 'Login Successful (Simulation)', description: 'Bypassing OTP for testing.' });
-        handleSuccessfulLogin(!result.userExists);
-        return;
-      }
-      
-      if (result.otp) {
-        setGeneratedOtp(result.otp);
-        setIsNewUser(!result.userExists);
-        setStep('otp');
+        if ("error" in result) {
+          toast({ title: 'Error', description: result.error, variant: 'destructive' });
+          return;
+        }
+        
+        // If simulation is active, bypass OTP entry immediately.
+        if (result.simulation) {
+          toast({ title: 'Login Successful (Simulation)', description: 'Bypassing OTP for testing.' });
+          handleSuccessfulLogin(!result.userExists);
+          return;
+        }
+        
+        if (result.otp) {
+          setGeneratedOtp(result.otp);
+          setIsNewUser(!result.userExists);
+          setStep('otp');
+        }
+      } catch (error: any) {
+        console.error("Persistence Error:", error);
+        toast({ title: 'Login Error', description: `Could not set session persistence: ${error.message}`, variant: 'destructive' });
       }
     });
   };
