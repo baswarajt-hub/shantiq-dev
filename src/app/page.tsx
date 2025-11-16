@@ -43,6 +43,7 @@ type TimeSlot = {
   isReservedForWalkIn?: boolean;
   patient?: Patient & { clinicId?: string };
   patientDetails?: Partial<FamilyMember>;
+  tokenNo: number;
 }
 
 const PatientNameWithBadges = ({ patient, patientDetails }: { patient: Patient, patientDetails?: Partial<FamilyMember> }) => {
@@ -456,6 +457,7 @@ export default function DashboardPage() {
             isReservedForWalkIn,
             patient: patientForSlot,
             patientDetails,
+            tokenNo: slotIndex + 1,
           });
     
           currentTime = addMinutes(currentTime, schedule.slotDuration);
@@ -929,27 +931,27 @@ export default function DashboardPage() {
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-1">
                     {patient.isGuest ? (
-                        <>
-                        <Button
-                            size="sm"
-                            className="h-8 bg-yellow-500 hover:bg-yellow-600 text-white"
-                            onClick={() => handleOpenConvertGuest(patient)}
-                            disabled={isPending}
-                        >
-                            <LinkIcon className="mr-2 h-4 w-4"/>
-                            Convert
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
-                                <MoreVertical className="h-4 w-4" />
+                        <div className="flex items-center gap-1">
+                            <Button
+                                size="sm"
+                                className="h-8 bg-yellow-500 hover:bg-yellow-600 text-white"
+                                onClick={() => handleOpenConvertGuest(patient)}
+                                disabled={isPending}
+                            >
+                                <LinkIcon className="mr-2 h-4 w-4"/>
+                                Convert
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Cancel Guest Booking</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isPending}>
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleCancelAppointment(patient.id)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Cancel Guest Booking</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     ) : isUpNext ? (
                          <div className="flex items-center gap-1">
                             <Button size="sm" onClick={handleConsultNext} disabled={isPending || !doctorStatus?.isOnline} className="bg-blue-600 hover:bg-blue-700 h-8">
@@ -1310,7 +1312,10 @@ export default function DashboardPage() {
                                     )}
                                     onClick={() => handleSlotClick(slot.time)}
                                   >
-                                       <div className="w-[60px] text-center font-bold text-lg text-muted-foreground">-</div>
+                                       <div className="w-[60px] flex justify-start items-center font-bold text-lg text-muted-foreground gap-2">
+                                          <Ticket className="h-5 w-5" />
+                                          #{slot.tokenNo}
+                                       </div>
                                        <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
                                        <div className={cn("flex-1 font-semibold flex items-center justify-center gap-2", (slot.isReservedForWalkIn) ? "text-amber-600" : "text-green-600")}>
                                          {(slot.isReservedForWalkIn) ? (
@@ -1413,6 +1418,7 @@ export default function DashboardPage() {
 
 
     
+
 
 
 
