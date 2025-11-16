@@ -36,6 +36,7 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
       const newStatus = { 
         isOnline: isGoingOnline,
         onlineTime: isGoingOnline ? new Date().toISOString() : undefined,
+        // Reset delay to 0 when going online
         startDelay: isGoingOnline ? 0 : (status.startDelay || 0),
       };
       const result = await setDoctorStatusAction(newStatus);
