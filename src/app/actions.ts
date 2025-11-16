@@ -6,6 +6,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -340,6 +341,10 @@ export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
       updates.walkInSessionToken = null;
       updates.qrSessionStartTime = null;
     }
+
+    if (status.onlineTime === undefined) {
+      updates.onlineTime = null as any;
+    }
     
     const newStatus = await updateDoctorStatus(updates);
     await recalculateQueueWithETC();
@@ -537,7 +542,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         // --- 1. Determine Session Start Time & Handle Doctor Delay ---
         const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
-        const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
+        const specialClosure = schedule.specialClosures.find(c => c.date === dateStr);
         if (specialClosure) {
             daySchedule = {
                 morning: specialClosure.morningOverride ?? daySchedule.morning,
@@ -625,20 +630,16 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         for (const patient of updatedSessionPatients) {
             if (!['Waiting', 'Priority', 'Late', 'Booked', 'Confirmed'].includes(patient.status)) continue;
             
-            const patientsAheadWhoMightArrive = updatedSessionPatients.filter(p => 
+            const patientsAhead = updatedSessionPatients.filter(p => 
                 (p.tokenNo || 0) < (patient.tokenNo || 0) &&
                 p.id !== patient.id &&
                 !['Completed', 'Cancelled'].includes(p.status)
             );
             
-            const checkedInPatientsAhead = bestCaseQueue.filter(p => (p.tokenNo || 0) < (patient.tokenNo || 0));
-
-            let worstCaseTime = runningBestET; // Start from the end of the best-case queue
+            let worstCaseTime = effectiveStartTime;
             
-            const numberOfBookedButNotArrivedAhead = patientsAheadWhoMightArrive.length - checkedInPatientsAhead.length;
-
-            if (numberOfBookedButNotArrivedAhead > 0) {
-              worstCaseTime = addMinutes(worstCaseTime, numberOfBookedButNotArrivedAhead * schedule.slotDuration);
+            for (const pAhead of patientsAhead) {
+                worstCaseTime = addMinutes(worstCaseTime, pAhead.consultationTime || schedule.slotDuration);
             }
             
             const bestCaseEtcForPatient = patientUpdates.get(patient.id)?.bestCaseETC || patient.bestCaseETC;
