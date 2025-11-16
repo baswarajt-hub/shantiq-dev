@@ -877,7 +877,7 @@ export default function DashboardPage() {
                 {/* Token */}
                 <div className="flex justify-start items-center font-bold text-lg text-primary gap-2">
                     <Ticket className="h-5 w-5" />
-                    #{patient.tokenNo}
+                    {patient.tokenNo}
                 </div>
                  {/* Fee Status */}
                 <Tooltip>
@@ -1307,17 +1307,18 @@ export default function DashboardPage() {
                               <div key={slot.time}>
                                   <div
                                     className={cn(
-                                        "p-3 flex items-center rounded-xl border border-dashed hover:bg-neutral-100 cursor-pointer transition-colors",
+                                        "p-3 grid grid-cols-[60px_auto_1fr_320px_120px_100px] items-center gap-4 rounded-xl border border-dashed hover:bg-neutral-100 cursor-pointer transition-colors",
                                          "bg-neutral-50"
                                     )}
                                     onClick={() => handleSlotClick(slot.time)}
                                   >
-                                       <div className="w-[60px] flex justify-start items-center font-bold text-lg text-muted-foreground gap-2">
+                                       <div className="flex justify-start items-center font-bold text-lg text-blue-600 gap-2">
                                           <Ticket className="h-5 w-5" />
-                                          #{slot.tokenNo}
+                                          {slot.tokenNo}
                                        </div>
-                                       <div className="w-24 font-semibold text-muted-foreground">{slot.time}</div>
-                                       <div className={cn("flex-1 font-semibold flex items-center justify-center gap-2", (slot.isReservedForWalkIn) ? "text-amber-600" : "text-green-600")}>
+                                       <div className='w-3'></div> {/* Spacer */}
+                                       <div className="font-semibold text-muted-foreground">{slot.time}</div>
+                                       <div className={cn("flex-1 font-semibold flex items-center justify-start gap-2", (slot.isReservedForWalkIn) ? "text-amber-600" : "text-green-600")}>
                                          {(slot.isReservedForWalkIn) ? (
                                            <Footprints className="h-4 w-4"/>
                                          ) : (
@@ -1418,6 +1419,7 @@ export default function DashboardPage() {
 
 
     
+
 
 
 
