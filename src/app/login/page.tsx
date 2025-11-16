@@ -145,7 +145,7 @@ export default async function LoginPage() {
           <h1 className="text-2xl font-bold">{clinicName}</h1>
           {doctorName && <p className="text-lg font-semibold text-primary">{doctorName}</p>}
            {mapsLink && (
-              <Button variant="link" asChild className="text-xs h-auto p-0 mt-1">
+              <Button variant="link" asChild className="text-xs h-auto p-0 mt-1 text-red-600">
                 <a href={mapsLink} target="_blank" rel="noopener noreferrer">
                   Get directions
                 </a>
