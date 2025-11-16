@@ -9,6 +9,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -544,7 +545,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         // --- 1. Determine Session Start Time & Handle Doctor Delay ---
         const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
-        const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
+        const specialClosure = schedule.specialClosures.find(c => c.date === dateStr);
         if (specialClosure) {
             daySchedule = {
                 morning: specialClosure.morningOverride ?? daySchedule.morning,
@@ -630,26 +631,21 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
 
         // --- 5. Calculate Worst Case ETC ---
         for (const patient of updatedSessionPatients) {
-            if (!['Waiting', 'Priority', 'Late', 'Booked', 'Confirmed'].includes(patient.status)) continue;
+            if (['Completed', 'Cancelled'].includes(patient.status) || !patient.tokenNo) continue;
             
-            const patientsAhead = updatedSessionPatients.filter(p => 
-                (p.tokenNo || 0) < (patient.tokenNo || 0) &&
-                p.id !== patient.id &&
-                !['Completed', 'Cancelled'].includes(p.status)
-            );
-            
-            let worstCaseTime = effectiveStartTime;
-            
-            for (const pAhead of patientsAhead) {
-                worstCaseTime = addMinutes(worstCaseTime, pAhead.consultationTime || schedule.slotDuration);
-            }
-            
-            const bestCaseEtcForPatient = patientUpdates.get(patient.id)?.bestCaseETC || patient.bestCaseETC;
+            // Worst case is simply based on token order, assuming everyone before them takes a full slot.
+            const slotsAhead = patient.tokenNo - 1;
+            const worstCaseTime = addMinutes(delayedClinicStartTime, slotsAhead * schedule.slotDuration);
+
+            // Ensure worst case isn't before best case
+            const bestCaseEtcForPatient = patientUpdates.get(patient.id)?.bestCaseETC;
             if (bestCaseEtcForPatient && isAfter(worstCaseTime, parseISO(bestCaseEtcForPatient))) {
-                 patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
+                patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
             } else if (bestCaseEtcForPatient) {
-                // Ensure worst is at least one slot duration after best
+                // Ensure worst is at least one slot duration after best, if the simple calculation is earlier
                 patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: addMinutes(parseISO(bestCaseEtcForPatient), schedule.slotDuration).toISOString() });
+            } else {
+                 patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
             }
         }
 
