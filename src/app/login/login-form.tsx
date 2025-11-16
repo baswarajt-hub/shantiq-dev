@@ -84,7 +84,7 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
             </CardDescription>
         }
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2">
         {step === 'phone' && (
           <div className="space-y-2">
             <Input
