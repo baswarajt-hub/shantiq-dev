@@ -31,26 +31,37 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
 
 
   const handleToggleOnline = () => {
+    if (!status) return;
+
     startTransition(async () => {
-      const isGoingOnline = !status.isOnline;
-      const newStatus = { 
-        isOnline: isGoingOnline,
-        onlineTime: isGoingOnline ? new Date().toISOString() : null,
-        // Reset delay to 0 when going online
-        startDelay: isGoingOnline ? 0 : (status.startDelay || 0),
-      };
-      const result = await setDoctorStatusAction(newStatus);
-      if ('success' in result) {
-        toast({ title: 'Success', description: result.success });
-        if (isGoingOnline && delayInputRef.current) {
-            delayInputRef.current.value = '0';
+        const isGoingOnline = !status.isOnline;
+        const updates: Partial<DoctorStatus> = {
+            isOnline: isGoingOnline
+        };
+
+        if (isGoingOnline) {
+            updates.startDelay = 0;
+            updates.onlineTime = new Date().toISOString();
+        } else {
+            updates.onlineTime = null;
         }
-        onUpdate();
-      } else {
-        toast({ title: 'Error', variant: 'destructive', description: result.error });
-      }
+
+        const result = await setDoctorStatusAction(updates);
+
+        if ('error' in result) {
+            toast({ title: 'Error', variant: 'destructive', description: result.error });
+        } else {
+            toast({
+                title: 'Success',
+                description: isGoingOnline ? 'Doctor status is online now.' : 'Doctor is offline now.'
+            });
+            if (isGoingOnline && delayInputRef.current) {
+                delayInputRef.current.value = '0';
+            }
+            onUpdate();
+        }
     });
-  };
+};
 
   const handleTogglePause = () => {
     startTransition(async () => {

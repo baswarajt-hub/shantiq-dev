@@ -399,8 +399,7 @@ export default function BookingPage() {
                       <strong>{localDoctorStatus.startDelay} minutes.</strong>
                     </AlertDescription>
                   </Alert>
-      )}
-      {/* ✅ END INSERT */}
+                )}
             </CardContent>
           </Card>
         )}

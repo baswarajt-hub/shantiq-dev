@@ -7,6 +7,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -342,7 +343,7 @@ export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
       updates.qrSessionStartTime = null;
     }
 
-    if (status.onlineTime === undefined) {
+    if (status.onlineTime === null) {
       updates.onlineTime = null as any;
     }
     
