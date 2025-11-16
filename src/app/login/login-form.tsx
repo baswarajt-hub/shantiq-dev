@@ -78,14 +78,15 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
     <>
       <CardHeader className="text-center">
         
-        <CardDescription>
-            {step === 'phone' ? 'Enter your 10-digit phone number to begin' : 'An OTP has been sent to your phone'}
-        </CardDescription>
+        {step === 'otp' && 
+            <CardDescription>
+                An OTP has been sent to your phone
+            </CardDescription>
+        }
       </CardHeader>
       <CardContent className="space-y-4">
         {step === 'phone' && (
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
             <Input
               id="phone"
               type="tel"
