@@ -43,7 +43,7 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
             updates.startDelay = 0;
             updates.onlineTime = new Date().toISOString();
         } else {
-            updates.onlineTime = null;
+            updates.onlineTime = undefined;
         }
 
         const result = await setDoctorStatusAction(updates);
