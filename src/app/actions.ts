@@ -5,6 +5,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -616,28 +617,37 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         
         for (const p of bestCaseQueue) {
             patientUpdates.set(p.id, { ...patientUpdates.get(p.id), bestCaseETC: runningBestET.toISOString() });
-            runningBestET = addMinutes(runningBestET, schedule.slotDuration);
+            const consultDuration = p.consultationTime || schedule.slotDuration;
+            runningBestET = addMinutes(runningBestET, consultDuration);
         }
 
         // --- 5. Calculate Worst Case ETC ---
         for (const patient of updatedSessionPatients) {
             if (!['Waiting', 'Priority', 'Late', 'Booked', 'Confirmed'].includes(patient.status)) continue;
             
-            // Patients ahead who could potentially cause a delay.
-            // This includes anyone with a lower token number who isn't 'Completed' or 'Cancelled'.
             const patientsAheadWhoMightArrive = updatedSessionPatients.filter(p => 
                 (p.tokenNo || 0) < (patient.tokenNo || 0) &&
                 p.id !== patient.id &&
                 !['Completed', 'Cancelled'].includes(p.status)
             );
             
-            // Worst case starts from the effective start time
-            let worstCaseTime = inConsultation ? max([effectiveStartTime, addMinutes(parseISO(inConsultation.consultationStartTime!), schedule.slotDuration)]) : effectiveStartTime;
+            const checkedInPatientsAhead = bestCaseQueue.filter(p => (p.tokenNo || 0) < (patient.tokenNo || 0));
+
+            let worstCaseTime = runningBestET; // Start from the end of the best-case queue
             
-            // Add a slot for every potential patient ahead.
-            worstCaseTime = addMinutes(worstCaseTime, patientsAheadWhoMightArrive.length * schedule.slotDuration);
-        
-            patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
+            const numberOfBookedButNotArrivedAhead = patientsAheadWhoMightArrive.length - checkedInPatientsAhead.length;
+
+            if (numberOfBookedButNotArrivedAhead > 0) {
+              worstCaseTime = addMinutes(worstCaseTime, numberOfBookedButNotArrivedAhead * schedule.slotDuration);
+            }
+            
+            const bestCaseEtcForPatient = patientUpdates.get(patient.id)?.bestCaseETC || patient.bestCaseETC;
+            if (bestCaseEtcForPatient && isAfter(worstCaseTime, parseISO(bestCaseEtcForPatient))) {
+                 patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
+            } else if (bestCaseEtcForPatient) {
+                // Ensure worst is at least one slot duration after best
+                patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: addMinutes(parseISO(bestCaseEtcForPatient), schedule.slotDuration).toISOString() });
+            }
         }
 
 
