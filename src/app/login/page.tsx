@@ -1,3 +1,4 @@
+
 import { getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
 import Image from 'next/image';
@@ -10,6 +11,7 @@ import { AlertTriangle, CalendarOff, CheckCircle, Clock, Info, LogIn, LogOut, Me
 import type { DoctorSchedule, DoctorStatus, Notification, Session } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { parseISO } from 'date-fns';
 
 function TodayScheduleCard({ schedule, status }: { schedule: DoctorSchedule; status: DoctorStatus }) {
   const timeZone = "Asia/Kolkata";
@@ -35,15 +37,23 @@ function TodayScheduleCard({ schedule, status }: { schedule: DoctorSchedule; sta
       }
       
       const formatTime = (t: string) => new Date(`1970-01-01T${t}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      
       let sessionStatus = 'Upcoming';
       let color = 'text-gray-500';
       let icon = Clock;
 
-      if (status.isOnline) {
+      const start = new Date(today.toDateString() + ' ' + session.start);
+      const end = new Date(today.toDateString() + ' ' + session.end);
+      
+      if (today > end) {
+        sessionStatus = 'Completed';
+        color = 'text-green-800';
+        icon = CheckCircle;
+      } else if (status.isOnline && today >= start && today <= end) {
           sessionStatus = 'Online';
           color = 'text-green-600';
           icon = LogIn;
-      } else {
+      } else if (!status.isOnline) {
           sessionStatus = 'Offline';
           color = 'text-red-600';
           icon = LogOut;
