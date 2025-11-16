@@ -35,7 +35,7 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
       const isGoingOnline = !status.isOnline;
       const newStatus = { 
         isOnline: isGoingOnline,
-        onlineTime: isGoingOnline ? new Date().toISOString() : undefined,
+        onlineTime: isGoingOnline ? new Date().toISOString() : null,
         // Reset delay to 0 when going online
         startDelay: isGoingOnline ? 0 : (status.startDelay || 0),
       };
@@ -100,7 +100,7 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
             {status.isPaused ? <Pause className="mr-2 h-5 w-5 text-orange-500" /> : <Play className="mr-2 h-5 w-5 text-green-500" />}
             {status.isPaused ? 'Queue Paused' : 'Queue Active'}
           </Label>
-          <Switch id="pause-queue" checked={status.isPaused} onCheckedChange={handleTogglePause} disabled={isPending || !status.isOnline} />
+          <Switch id="pause-queue" checked={!status.isPaused} onCheckedChange={handleTogglePause} disabled={isPending || !status.isOnline} />
         </div>
 
         <div className={cn("p-4 border rounded-lg space-y-3 transition-opacity", status.isOnline && "opacity-50")}>
