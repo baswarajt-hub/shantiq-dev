@@ -18,7 +18,7 @@ export default function middleware(request: NextRequest) {
         redirectPath = '/'; // Main dashboard
         break;
       case 'doc.shantiq.in':
-        redirectPath = '/admin'; // Doctor panel
+        redirectPath = '/doctor'; // Doctor panel
         break;
       case 'tv1.shantiq.in':
         redirectPath = '/admin/tv-display';
