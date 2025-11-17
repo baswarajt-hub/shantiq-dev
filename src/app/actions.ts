@@ -11,6 +11,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -128,7 +129,7 @@ export async function addAppointmentAction(familyMember: FamilyMember, appointme
     const existingSession = getSessionForTime(schedule, existingDate);
     const isSameSession = existingSession === newAppointmentSession;
 
-    const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Late', 'Priority', 'Up-Next'].includes(p.status);
+    const isActive = ['Booked', 'Confirmed', 'Waiting', 'In-Consultation', 'Priority', 'Up-Next'].includes(p.status);
     return isSameSession && isActive;
   });
 
@@ -333,24 +334,33 @@ export async function getDoctorStatusAction(): Promise<DoctorStatus> {
 
 
 
-export async function setDoctorStatusAction(status: Partial<DoctorStatus>) {
+export async function setDoctorStatusAction(statusUpdate: Partial<DoctorStatus>): Promise<ActionResult> {
   try {
-    const updates: Partial<DoctorStatus> = { ...status };
+    const currentStatus = await getDoctorStatusData();
+    const newStatus = { ...currentStatus, ...statusUpdate };
     
-    // Centralize token generation logic
-    if (status.isQrCodeActive === true) {
-      updates.walkInSessionToken = randomBytes(16).toString('hex');
-      updates.qrSessionStartTime = new Date().toISOString();
-    } else if (status.isQrCodeActive === false) {
-      updates.walkInSessionToken = null;
-      updates.qrSessionStartTime = null;
+    const finalUpdates: Partial<DoctorStatus> = { ...statusUpdate };
+    
+    if (statusUpdate.isOnline === true) {
+        finalUpdates.onlineTime = new Date().toISOString();
+        finalUpdates.startDelay = 0; // Reset delay when going online
+    }
+    
+    if (statusUpdate.isOnline === false) {
+        finalUpdates.onlineTime = undefined;
+        finalUpdates.startDelay = 0; // Also reset delay when going offline to clean up session
     }
 
-    if (status.onlineTime === null) {
-      updates.onlineTime = null as any;
+    // Centralize QR token logic
+    if (statusUpdate.isQrCodeActive === true) {
+      finalUpdates.walkInSessionToken = randomBytes(16).toString('hex');
+      finalUpdates.qrSessionStartTime = new Date().toISOString();
+    } else if (statusUpdate.isQrCodeActive === false) {
+      finalUpdates.walkInSessionToken = null;
+      finalUpdates.qrSessionStartTime = null;
     }
     
-    const newStatus = await updateDoctorStatus(updates);
+    await updateDoctorStatus(finalUpdates);
     await recalculateQueueWithETC();
     revalidatePath('/', 'layout');
 
@@ -672,7 +682,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             const patientRef = doc(db, 'patients', update.id);
             // Sanitize the update object to remove undefined values
             const sanitizedUpdate = Object.fromEntries(
-                Object.entries(update).filter(([_, v]) => v !== undefined)
+                Object.entries(update).filter(([, v]) => v !== undefined)
             );
             batch.update(patientRef, sanitizedUpdate);
         });
