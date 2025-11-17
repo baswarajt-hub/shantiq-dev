@@ -12,6 +12,9 @@ import type { DoctorSchedule, DoctorStatus, Notification, Session } from '@/lib/
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { parseISO } from 'date-fns';
+import { isWithinInterval } from 'date-fns';
+
+export const revalidate = 0;
 
 function TodayScheduleCard({ schedule, status }: { schedule: DoctorSchedule; status: DoctorStatus }) {
   const timeZone = "Asia/Kolkata";
@@ -108,7 +111,7 @@ function ImportantNotifications({ schedule }: { schedule: DoctorSchedule }) {
     const today = new Date();
     const activeNotifications = schedule.notifications.filter(n => {
         if (!n.enabled || !n.startTime || !n.endTime) return false;
-        return isToday(today) && new Date(n.startTime) <= today && new Date(n.endTime) >= today;
+        return isWithinInterval(today, { start: parseISO(n.startTime), end: parseISO(n.endTime) });
     });
 
     if (activeNotifications.length === 0) return null;
