@@ -364,7 +364,7 @@ export async function setDoctorStatusAction(statusUpdate: Partial<DoctorStatus>)
     await recalculateQueueWithETC();
     revalidatePath('/', 'layout');
 
-    return { success: 'Doctor status updated successfully.', status: newStatus };
+    return { success: 'Doctor status updated successfully.' };
   } catch (e: any) {
     console.error('Error updating doctor status:', e);
     return { error: e?.message || 'Failed to update doctor status.' };
