@@ -410,12 +410,12 @@ export async function updateFamilyMemberData(updatedMember: FamilyMember): Promi
   if (originalDoc.exists()) {
     const originalData = originalDoc.data() as FamilyMember;
      // If phone number has changed, update all members of that family
-    if (originalData && originalData.phone !== updatedMember.phone) {
+    if (originalData.isPrimary && originalData.phone !== updatedMember.phone) {
         const familyMembersToUpdate = await getFamilyByPhone(originalData.phone);
         const batch = writeBatch(db);
         familyMembersToUpdate.forEach(member => {
-        const ref = doc(db, 'family', member.id);
-        batch.update(ref, { phone: updatedMember.phone });
+          const ref = doc(db, 'family', member.id);
+          batch.update(ref, { phone: updatedMember.phone });
         });
         
         // Also update the current member being edited
@@ -423,7 +423,7 @@ export async function updateFamilyMemberData(updatedMember: FamilyMember): Promi
 
         await batch.commit();
     } else {
-        // If phone number is the same, just update the single record
+        // If phone number is the same or it's not a primary member, just update the single record
         await updateDoc(memberRef, memberData);
     }
   } else {

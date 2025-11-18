@@ -13,6 +13,8 @@
 
 
 
+
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -648,13 +650,12 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             // Worst case is simply based on token order, assuming everyone before them takes a full slot.
             const slotsAhead = patient.tokenNo - 1;
             const worstCaseTime = addMinutes(delayedClinicStartTime, slotsAhead * schedule.slotDuration);
-
-            // Ensure worst case isn't before best case
             const bestCaseEtcForPatient = patientUpdates.get(patient.id)?.bestCaseETC;
+            
+            // Ensure worst case isn't before best case, with a minimum buffer.
             if (bestCaseEtcForPatient && isAfter(worstCaseTime, parseISO(bestCaseEtcForPatient))) {
                 patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
             } else if (bestCaseEtcForPatient) {
-                // Ensure worst is at least one slot duration after best, if the simple calculation is earlier
                 patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: addMinutes(parseISO(bestCaseEtcForPatient), schedule.slotDuration).toISOString() });
             } else {
                  patientUpdates.set(patient.id, { ...patientUpdates.get(patient.id), worstCaseETC: worstCaseTime.toISOString() });
@@ -681,9 +682,9 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         const batch = writeBatch(db);
         finalPatientUpdates.forEach(update => {
             const patientRef = doc(db, 'patients', update.id);
-            // Sanitize the update object to remove undefined values
+            // Sanitize the update object to remove undefined values, which are not allowed in Firestore batch updates.
             const sanitizedUpdate = Object.fromEntries(
-                Object.entries(update).filter(([, v]) => v !== undefined)
+                Object.entries(update).map(([key, value]) => [key, value === undefined ? null : value])
             );
             batch.update(patientRef, sanitizedUpdate);
         });
