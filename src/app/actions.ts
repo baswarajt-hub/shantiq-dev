@@ -12,6 +12,7 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -341,14 +342,14 @@ export async function setDoctorStatusAction(statusUpdate: Partial<DoctorStatus>)
     
     const finalUpdates: Partial<DoctorStatus> = { ...statusUpdate };
     
-    if (statusUpdate.isOnline === true) {
+    if (newStatus.isOnline === true) {
         finalUpdates.onlineTime = new Date().toISOString();
-        finalUpdates.startDelay = 0; // Reset delay when going online
-    }
-    
-    if (statusUpdate.isOnline === false) {
+        // RESET DELAY HERE
+        finalUpdates.startDelay = 0;
+    } else if (newStatus.isOnline === false) {
         finalUpdates.onlineTime = undefined;
-        finalUpdates.startDelay = 0; // Also reset delay when going offline to clean up session
+        // Also reset delay when going offline to clean up session for the next day
+        finalUpdates.startDelay = 0;
     }
 
     // Centralize QR token logic
