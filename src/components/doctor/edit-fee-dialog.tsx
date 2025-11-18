@@ -94,7 +94,7 @@ export function DoctorEditFeeDialog({ isOpen, onOpenChange, fee, onSave, clinicD
                   <SelectValue placeholder="Select online payment type" />
                 </SelectTrigger>
                 <SelectContent>
-                   {(clinicDetails.onlinePaymentTypes || []).map(type => (
+                   {(clinicDetails?.onlinePaymentTypes || []).map(type => (
                     <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -110,5 +110,3 @@ export function DoctorEditFeeDialog({ isOpen, onOpenChange, fee, onSave, clinicD
     </Dialog>
   );
 }
-
-    
