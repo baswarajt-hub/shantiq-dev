@@ -579,6 +579,17 @@ export async function getFeesForSessionData(date: string, session: 'morning' | '
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...processFirestoreDoc(doc.data()) } as Fee));
 }
 
+export async function editFeeData(feeId: string, updates: Partial<Omit<Fee, 'id'>>): Promise<void> {
+  const feeRef = doc(db, 'fees', feeId);
+  await updateDoc(feeRef, { ...updates, editedAt: new Date().toISOString(), editedBy: 'doctor' });
+}
+
+export async function deleteFeeData(feeId: string): Promise<void> {
+  const feeRef = doc(db, 'fees', feeId);
+  await deleteDoc(feeRef);
+}
+
+
 export async function convertGuestToExistingData(appointmentId: string, selectedPatient: FamilyMember): Promise<void> {
     const appointmentRef = doc(db, 'patients', appointmentId);
     await updateDoc(appointmentRef, {

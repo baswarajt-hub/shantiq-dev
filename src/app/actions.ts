@@ -15,10 +15,11 @@
 
 
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMemberData, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData, saveFeeData, getFeesForSessionData, convertGuestToExistingData } from '@/lib/data';
+import { addPatient as addPatientData, findPatientById, getPatients as getPatientsData, updateAllPatients, updatePatient, getDoctorStatus as getDoctorStatusData, updateDoctorStatus, getDoctorSchedule as getDoctorScheduleData, updateDoctorSchedule, updateSpecialClosures, getFamilyByPhone, addFamilyMember, getFamily, searchFamilyMembers, updateFamilyMemberData, cancelAppointment, updateVisitPurposesData, updateTodayScheduleOverrideData, updateClinicDetailsData, findPatientsByPhone, findPrimaryUserByPhone, updateNotificationData, deleteFamilyMemberData, updateSmsSettingsData, updatePaymentGatewaySettingsData, batchImportFamilyMembers, deleteFamilyByPhoneData, saveFeeData, getFeesForSessionData, convertGuestToExistingData, editFeeData, deleteFeeData } from '@/lib/data';
 import type { AIPatientData, DoctorSchedule, DoctorStatus, Patient, SpecialClosure, FamilyMember, VisitPurpose, Session, ClinicDetails, Notification, SmsSettings, PaymentGatewaySettings, TranslatedMessage, ActionResult, Fee } from '@/lib/types';
 import { estimateConsultationTime } from '@/ai/flows/estimate-consultation-time';
 import { sendAppointmentReminders } from '@/ai/flows/send-appointment-reminders';
@@ -543,7 +544,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
     }
 
     const now = new Date();
-    const todayStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
+    const dateStr = format(toZonedTime(now, timeZone), 'yyyy-MM-dd');
     const patientUpdates = new Map<string, Partial<Patient>>();
 
     // Process each session separately
@@ -551,7 +552,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
     for (const sessionName of sessions) {
         let sessionPatients = allPatients.filter(p => {
             const apptDate = parseISO(p.appointmentTime);
-            return format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') === todayStr && getSessionForTime(schedule, apptDate) === sessionName;
+            return format(toZonedTime(apptDate, timeZone), 'yyyy-MM-dd') === dateStr && getSessionForTime(schedule, apptDate) === sessionName;
         });
 
         if (sessionPatients.length === 0) continue;
@@ -559,7 +560,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         // --- 1. Determine Session Start Time & Handle Doctor Delay ---
         const dayOfWeek = format(toZonedTime(now, timeZone), 'EEEE') as keyof DoctorSchedule['days'];
         let daySchedule = schedule.days[dayOfWeek];
-        const specialClosure = schedule.specialClosures.find(c => c.date === todayStr);
+        const specialClosure = schedule.specialClosures.find(c => c.date === dateStr);
         if (specialClosure) {
             daySchedule = {
                 morning: specialClosure.morningOverride ?? daySchedule.morning,
@@ -570,7 +571,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
         const sessionTimes = daySchedule[sessionName];
         if (!sessionTimes?.isOpen) continue;
         
-        const clinicSessionStartTime = sessionLocalToUtc(todayStr, sessionTimes.start);
+        const clinicSessionStartTime = sessionLocalToUtc(dateStr, sessionTimes.start);
         let sessionDelay = 0;
         if (doctorStatus.isOnline && doctorStatus.onlineTime) {
              const onlineTimeUtc = parseISO(doctorStatus.onlineTime);
@@ -643,7 +644,7 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
             runningBestET = addMinutes(runningBestET, consultDuration);
         }
 
-        // --- 5. Calculate Worst Case ETC ---
+        // --- 5. Calculate Worst Case ETC (New Logic) ---
         for (const patient of updatedSessionPatients) {
             if (['Completed', 'Cancelled'].includes(patient.status) || !patient.tokenNo) continue;
             
@@ -1306,7 +1307,26 @@ export async function getSessionFeesAction(date: string, session: 'morning' | 'e
     return [];
   }
 }
-    
+
+export async function editFeeAction(feeId: string, updates: Partial<Omit<Fee, 'id'>>): Promise<ActionResult> {
+  try {
+    await editFeeData(feeId, updates);
+    revalidatePath('/', 'layout');
+    return { success: 'Payment record updated successfully.' };
+  } catch (e: any) {
+    return { error: `Failed to update fee: ${e.message}` };
+  }
+}
+
+export async function deleteFeeAction(feeId: string): Promise<ActionResult> {
+  try {
+    await deleteFeeData(feeId);
+    revalidatePath('/', 'layout');
+    return { success: 'Payment record deleted successfully.' };
+  } catch (e: any) {
+    return { error: `Failed to delete fee: ${e.message}` };
+  }
+}
 
 // --- Guest Booking Actions ---
 

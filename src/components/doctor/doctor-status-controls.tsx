@@ -11,8 +11,9 @@ import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { DoctorStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { LogIn, LogOut, Pause, Play, AlertTriangle } from 'lucide-react';
+import { LogIn, LogOut, Pause, Play, AlertTriangle, IndianRupee } from 'lucide-react';
 import { setDoctorStatusAction, updateDoctorStartDelayAction } from '@/app/actions';
+import Link from 'next/link';
 
 interface DoctorStatusControlsProps {
   initialStatus: DoctorStatus;
@@ -132,6 +133,12 @@ export function DoctorStatusControls({ initialStatus, onUpdate }: DoctorStatusCo
             <Button onClick={handleUpdateDelay} disabled={isPending || status.isOnline}>Update Delay</Button>
           </div>
         </div>
+        <Button asChild variant="outline" className="w-full">
+            <Link href="/doctor/finance">
+                <IndianRupee className="mr-2 h-4 w-4" />
+                View Financial Summary
+            </Link>
+        </Button>
       </CardContent>
     </Card>
   );
