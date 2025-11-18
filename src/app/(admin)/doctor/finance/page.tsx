@@ -1,7 +1,8 @@
+
 'use client';
 import { useState, useEffect } from "react";
-import { getSessionFeesAction, getFamilyAction, editFeeAction, deleteFeeAction } from "@/app/actions";
-import type { Fee, FamilyMember } from "@/lib/types";
+import { getSessionFeesAction, getFamilyAction, editFeeAction, deleteFeeAction, getDoctorScheduleAction } from "@/app/actions";
+import type { Fee, FamilyMember, DoctorSchedule } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -82,6 +83,7 @@ export default function DoctorFinancePage() {
     const [morningFees, setMorningFees] = useState<Fee[]>([]);
     const [eveningFees, setEveningFees] = useState<Fee[]>([]);
     const [allFamily, setAllFamily] = useState<FamilyMember[]>([]);
+    const [schedule, setSchedule] = useState<DoctorSchedule | null>(null);
     const [loading, setLoading] = useState(true);
     const [sessionFilter, setSessionFilter] = useState<'all' | 'morning' | 'evening'>('all');
     const [searchTerm, setSearchTerm] = useState('');
@@ -99,11 +101,13 @@ export default function DoctorFinancePage() {
         Promise.all([
             getSessionFeesAction(dateStr, 'morning'),
             getSessionFeesAction(dateStr, 'evening'),
-            getFamilyAction()
-        ]).then(([morning, evening, familyData]) => {
+            getFamilyAction(),
+            getDoctorScheduleAction()
+        ]).then(([morning, evening, familyData, scheduleData]) => {
             setMorningFees(morning);
             setEveningFees(evening);
             setAllFamily(familyData);
+            setSchedule(scheduleData);
         }).finally(() => setLoading(false));
     };
 
@@ -258,14 +262,16 @@ export default function DoctorFinancePage() {
                 </Card>
                 </>
             )}
-            {feeToEdit && (
+            {feeToEdit && schedule && (
                 <DoctorEditFeeDialog 
                     isOpen={isEditOpen}
                     onOpenChange={setEditOpen}
                     fee={feeToEdit}
                     onSave={handleEditFee}
+                    clinicDetails={schedule.clinicDetails}
                 />
             )}
         </div>
     );
 }
+    

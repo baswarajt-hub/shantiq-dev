@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,38 +15,44 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Fee } from '@/lib/types';
+import type { Fee, ClinicDetails } from '@/lib/types';
 
 type DoctorEditFeeDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   fee: Fee;
   onSave: (feeId: string, updates: Partial<Omit<Fee, 'id'>>) => void;
+  clinicDetails: ClinicDetails;
 };
 
-export function DoctorEditFeeDialog({ isOpen, onOpenChange, fee, onSave }: DoctorEditFeeDialogProps) {
+export function DoctorEditFeeDialog({ isOpen, onOpenChange, fee, onSave, clinicDetails }: DoctorEditFeeDialogProps) {
   const [amount, setAmount] = useState(0);
   const [mode, setMode] = useState<'Cash' | 'Online'>('Cash');
   const [purpose, setPurpose] = useState('');
+  const [onlineType, setOnlineType] = useState<string>('');
 
   useEffect(() => {
     if (fee) {
       setAmount(fee.amount);
       setMode(fee.mode);
       setPurpose(fee.purpose);
+      setOnlineType(fee.onlineType || clinicDetails.onlinePaymentTypes?.[0]?.name || '');
     }
-  }, [fee, isOpen]);
+  }, [fee, isOpen, clinicDetails]);
 
   const handleSave = () => {
     const updates: Partial<Omit<Fee, 'id'>> = {
       amount,
       mode,
       purpose,
+      onlineType: mode === 'Online' ? onlineType : undefined,
       status: 'Paid',
     };
     onSave(fee.id, updates);
     onOpenChange(false);
   };
+
+  const isZeroFee = amount === 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -68,17 +75,32 @@ export function DoctorEditFeeDialog({ isOpen, onOpenChange, fee, onSave }: Docto
           </div>
           <div className="space-y-2">
             <Label>Payment Mode</Label>
-            <RadioGroup value={mode} onValueChange={(value: 'Cash' | 'Online') => setMode(value)} className="flex gap-4">
+            <RadioGroup value={mode} onValueChange={(value: 'Cash' | 'Online') => setMode(value)} className="flex gap-4" disabled={isZeroFee}>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Cash" id="cash-edit" />
+                <RadioGroupItem value="Cash" id="cash-edit" disabled={isZeroFee} />
                 <Label htmlFor="cash-edit">Cash</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Online" id="online-edit" />
+                <RadioGroupItem value="Online" id="online-edit" disabled={isZeroFee} />
                 <Label htmlFor="online-edit">Online</Label>
               </div>
             </RadioGroup>
           </div>
+           {mode === 'Online' && !isZeroFee && (
+            <div className="space-y-2">
+              <Label htmlFor="onlineType">Online Payment Type</Label>
+              <Select value={onlineType} onValueChange={(value) => setOnlineType(value)}>
+                <SelectTrigger id="onlineType">
+                  <SelectValue placeholder="Select online payment type" />
+                </SelectTrigger>
+                <SelectContent>
+                   {(clinicDetails.onlinePaymentTypes || []).map(type => (
+                    <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -88,3 +110,5 @@ export function DoctorEditFeeDialog({ isOpen, onOpenChange, fee, onSave }: Docto
     </Dialog>
   );
 }
+
+    
