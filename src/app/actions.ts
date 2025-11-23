@@ -1,21 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -27,8 +9,8 @@ import { format, parseISO, parse, differenceInMinutes, isAfter } from 'date-fns'
 import { startOfDay, max, addMinutes, subMinutes } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { createHash, randomBytes } from 'crypto';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where, doc, writeBatch, deleteField } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase.server';
+import { FieldValue } from 'firebase-admin/firestore';
 import { toProperCase } from '@/lib/utils';
 
 const timeZone = "Asia/Kolkata";
@@ -39,6 +21,66 @@ function toDate(value?: string | Date): Date | undefined {
   return value;
 }
 
+/* ----------------------------------------------------------------------
+   Compatibility shim
+---------------------------------------------------------------------- */
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function collection(_db: any, path: string) {
+  return adminDb.collection(path);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function doc(_db: any, path: string, id?: string) {
+  if (typeof id === 'undefined') {
+    throw new Error('doc() called without id - this should not happen in this codebase');
+  }
+  return adminDb.collection(path).doc(id);
+}
+
+// Alternative: if you need collection references sometimes
+function collectionRef(path: string) {
+  return adminDb.collection(path);
+}
+
+// Minimal where() representation: returns an object describing the clause
+function where(field: string, opStr: any, value: any) {
+  return { __where: true, field, opStr, value };
+}
+
+// query(collRef, ...clauses) - apply clauses returned by where()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function query(collRef: any, ...clauses: any[]) {
+  let ref = collRef;
+  for (const c of clauses) {
+    if (c && c.__where) {
+      ref = ref.where(c.field, c.opStr, c.value);
+    } else {
+      // unknown clause - ignore for now
+    }
+  }
+  return ref;
+}
+
+// getDocs(q) -> q.get()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getDocs(q: any) {
+  const snapshot = await q.get();
+  return { empty: snapshot.empty, docs: snapshot.docs };
+}
+
+// writeBatch(db) -> adminDb.batch()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function writeBatch(_db: any) {
+  return adminDb.batch();
+}
+
+// deleteField() -> FieldValue.delete()
+function deleteField() {
+  return FieldValue.delete();
+}
+
+/* End compatibility shim */
 
 /**
  * Helper: convert a session time string ("HH:mm" or "h:mm a") anchored to dateStr (yyyy-MM-dd)
@@ -475,7 +517,7 @@ export async function addNewPatientAction(memberData: Omit<FamilyMember, 'id' | 
     }
 
     if (memberData.clinicId) {
-        const q = query(collection(db, 'family'), where('clinicId', '==', memberData.clinicId));
+        const q = query(collection(adminDb, 'family'), where('clinicId', '==', memberData.clinicId));
         const existing = await getDocs(q);
         if (!existing.empty) {
             return { error: 'Clinic ID already exists. Please use a unique ID.' };
@@ -680,9 +722,10 @@ export async function recalculateQueueWithETC(): Promise<ActionResult> {
     const finalPatientUpdates = Array.from(patientUpdates.entries()).map(([id, updates]) => ({ id, ...updates }));
     
     if (finalPatientUpdates.length > 0) {
-        const batch = writeBatch(db);
+        const batch = adminDb.batch()
+;
         finalPatientUpdates.forEach(update => {
-            const patientRef = doc(db, 'patients', update.id);
+            const patientRef = doc(adminDb, 'patients', update.id);
             // Sanitize the update object to remove undefined values, which are not allowed in Firestore batch updates.
             const sanitizedUpdate = Object.fromEntries(
                 Object.entries(update).map(([key, value]) => [key, value === undefined ? null : value])
@@ -806,16 +849,16 @@ export async function updateFamilyMemberAction(member: FamilyMember): Promise<Ac
         }
         
         if (cleanData.clinicId) {
-            const q = query(
-                collection(db, 'family'),
-                where('clinicId', '==', cleanData.clinicId)
-            );
-            const existing = await getDocs(q);
-            const duplicate = existing.docs.find(doc => doc.id !== cleanData.id);
-            if (duplicate) {
-                return { error: 'Clinic ID already assigned to another patient.' };
-            }
-        }
+    const q = query(
+        collectionRef('family'),
+        where('clinicId', '==', cleanData.clinicId)
+    );
+    const existing = await getDocs(q);
+    const duplicate = existing.docs.find((doc: any) => doc.id !== cleanData.id);
+    if (duplicate) {
+        return { error: 'Clinic ID already assigned to another patient.' };
+    }
+}
         await updateFamilyMemberData(cleanData);
         revalidatePath('/', 'layout');
         return { success: 'Family member updated.' };

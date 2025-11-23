@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -84,3 +83,5 @@ export default function AdminLoginPage() {
         </AdminAuthProvider>
     );
 }
+
+export const dynamic = 'force-dynamic';

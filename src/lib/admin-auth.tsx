@@ -1,9 +1,8 @@
-
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, type User, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from './firebase';
+import { getFirebaseClient } from './firebase.client'; // Change this import
 import { useRouter } from 'next/navigation';
 
 interface AdminAuthContextType {
@@ -21,7 +20,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const firebaseClient = getFirebaseClient();
+    if (!firebaseClient) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(firebaseClient.auth, (user) => {
       setUser(user);
       setLoading(false);
     });
@@ -30,14 +35,22 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = (password: string) => {
-    // In a real app, you would manage admin emails in a secure way.
-    // For this example, we'll use a hardcoded admin email.
+    const firebaseClient = getFirebaseClient();
+    if (!firebaseClient) {
+      throw new Error('Firebase client not initialized');
+    }
+    
     const adminEmail = "admin@queuewise.com";
-    return signInWithEmailAndPassword(auth, adminEmail, password);
+    return signInWithEmailAndPassword(firebaseClient.auth, adminEmail, password);
   };
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    const firebaseClient = getFirebaseClient();
+    if (!firebaseClient) {
+      return;
+    }
+    
+    await firebaseSignOut(firebaseClient.auth);
     router.push('/admin/login');
   };
 

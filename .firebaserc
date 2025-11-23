@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "queuewise-6l2c7"
-  }
+    "prod": "shanti-queue-vercel-1797-55cb4",
+    "dev": "shantiq-staging",
+    "default": "shantiq-staging"
+  },
+  "targets": {},
+  "etags": {}
 }

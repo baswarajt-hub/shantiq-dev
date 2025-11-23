@@ -1,16 +1,15 @@
-// functions/src/recalcQueue.ts
 import { firestore as adminFirestore } from "./firebaseAdmin";
-import { Firestore, DocumentSnapshot } from "@google-cloud/firestore";
+import { Firestore } from "@google-cloud/firestore";
 
 /**
- * Recalculate queue for a single visit -> derive date/session and call date-session recalculation.
+ * Entry point invoked for a single visit update.
+ * Derives date & session from the visit slotTime and recalculates that session's queue.
  */
-export async function recalcQueueForVisit(visitId: string): Promise<void> {
-  const firestore = adminFirestore as Firestore;
+export async function recalcQueueForVisit(visitId: string) {
+  const firestore = adminAdminOrFirestore();
 
   const snap = await firestore.collection("patients").doc(visitId).get();
   if (!snap.exists) return;
-
   const visit = snap.data() as any;
   if (!visit?.slotTime) return;
 
@@ -25,13 +24,16 @@ export async function recalcQueueForVisit(visitId: string): Promise<void> {
 }
 
 /**
- * Recalculate queue for a given date + session (morning/evening).
+ * Recalculate queue for a given date + session.
+ * - dateStr: 'YYYY-MM-DD'
+ * - session: 'morning' | 'evening'
  */
-export async function recalcQueueForDateSession(dateStr: string, session: "morning" | "evening"): Promise<void> {
-  const firestore = adminFirestore as Firestore;
+export async function recalcQueueForDateSession(dateStr: string, session: "morning" | "evening") {
+  const firestore = adminAdminOrFirestore();
 
   // Load settings
-  const settingsSnap = await firestore.collection("settings").doc("live").get();
+  const settingsRef = firestore.collection("settings").doc("live");
+  const settingsSnap = await settingsRef.get();
   const settings = settingsSnap.exists ? (settingsSnap.data() as any) : {};
   const schedule = settings?.schedule ?? {};
   const slotDuration = Number(schedule?.slotDuration ?? 5); // minutes
@@ -74,163 +76,190 @@ export async function recalcQueueForDateSession(dateStr: string, session: "morni
     return;
   }
 
-  // --- Determine anchor (base time) for ETC calculations ---
+  // Determine anchor (base time) for ETC calculations
   const now = new Date();
   const doctorStatus = settings?.status ?? {};
 
-  // Determine if someone is currently in consultation
+  // Determine in-consultation patient (if any)
   const inConsult = sessionVisits.find((v: any) => v?.status === "In-Consultation" && v.consultationStartTime);
 
   // Convert session start/end (IST) to UTC Date objects
   const sessionStartUTC = new Date(convertISTDateTimeToUTC(dateStr, sessionStart));
   const sessionEndUTC = new Date(convertISTDateTimeToUTC(dateStr, sessionEnd));
 
-  // Start anchor at session start; will be adjusted below
   let anchor: Date = sessionStartUTC;
 
   if (inConsult) {
-    // if someone is in consultation, anchor is when that consultation should end (or now)
+    // If someone is in consultation, anchor at their expected end (or now)
     const start = new Date(inConsult.consultationStartTime);
     const length = Number(inConsult.consultationTime ?? slotDuration);
     const expectedEnd = new Date(start.getTime() + length * 60000);
     anchor = expectedEnd > now ? expectedEnd : now;
-  } else if (doctorStatus?.isOnline && doctorStatus?.onlineTime) {
-    // Use doctor's onlineTime only if it falls within today's session window (to avoid stale timestamps)
-    const onlineTime = new Date(doctorStatus.onlineTime);
-    if (onlineTime >= sessionStartUTC && onlineTime <= sessionEndUTC) {
-      anchor = onlineTime > now ? onlineTime : now;
-    } else {
-      anchor = sessionStartUTC;
-    }
   } else {
-    anchor = sessionStartUTC;
-  }
+    // Not in consultation — determine anchor from doctor online state or session start
+    let startDelayMinutes = Number(doctorStatus?.startDelay ?? 0);
 
-  // Apply doctor startDelay (minutes) if present
-  try {
-    const startDelayMinutes = Number(doctorStatus?.startDelay ?? 0);
-    if (startDelayMinutes > 0) {
-      const old = anchor;
-      anchor = new Date(anchor.getTime() + startDelayMinutes * 60000);
-      console.log(`Applying doctor startDelay: ${startDelayMinutes} minutes; anchor moved ${old.toISOString()} -> ${anchor.toISOString()}`);
-    }
-  } catch (err) {
-    console.warn("Doctor delay handling failed:", err);
-  }
+    if (doctorStatus?.isOnline && doctorStatus?.onlineTime) {
+      const onlineTime = new Date(doctorStatus.onlineTime);
+      // consider onlineTime only if it is for the same calendar date in IST
+      const onlineIst = new Date(onlineTime.getTime() + 5.5 * 3600 * 1000);
+      const onlineDateStr = onlineIst.toISOString().slice(0, 10);
 
-  // Debug: show final anchor so you can confirm in logs
-  console.log(`Final anchor for ${dateStr} ${session}: ${anchor.toISOString()}`);
+      if (onlineDateStr === dateStr) {
+        // doctor came online today — anchor is max(now, onlineTime)
+        anchor = onlineTime > now ? onlineTime : now;
+        // per rule: once online, delay resets to 0
+        if (startDelayMinutes > 0) {
+          startDelayMinutes = 0;
+          try {
+            await settingsRef.set({ status: { ...doctorStatus, startDelay: 0 } }, { merge: true });
+            console.log("Doctor came online — reset startDelay to 0 in settings");
+          } catch (err) {
+            console.warn("Failed to persist startDelay reset:", err);
+          }
+        }
+      } else {
+        // onlineTime is stale / other day — fall back to session start (but not earlier than now)
+        anchor = sessionStartUTC > now ? sessionStartUTC : now;
+      }
 
-  // ------------------------------------------------------------------
-  // Build timeline of slot times for this session (UTC)
-  // Generate only up to the highest token (maxToken) or last patient slot
-  // ------------------------------------------------------------------
-
-  // Determine maximum token number present (preferred)
-  let maxToken = Math.max(...sessionVisits.map(v => Number(v.tokenNo ?? 0)), 0);
-
-  // Fallback: if no token numbers found, derive from last slotTime
-  if (!maxToken || maxToken <= 0) {
-    // compute latest slotTime among patients
-    const lastSlotMs = Math.max(...sessionVisits.map(v => new Date(String(v.slotTime)).getTime()));
-    const deltaMs = lastSlotMs - sessionStartUTC.getTime();
-    if (deltaMs >= 0) {
-      maxToken = Math.floor(deltaMs / (slotDuration * 60000)) + 1;
+      // If doctor remained online beyond session end + 2 hours, auto-turn-off
+      try {
+        const sessionAutoOffCutoff = new Date(sessionEndUTC.getTime() + 2 * 60 * 60 * 1000);
+        if (doctorStatus?.isOnline && now > sessionAutoOffCutoff) {
+          // auto-off
+          await settingsRef.set({ status: { ...doctorStatus, isOnline: false, onlineTime: null, startDelay: 0 } }, { merge: true });
+          console.log("Auto-turned-off doctor's online status after session +2h");
+        }
+      } catch (err) {
+        console.warn("Failed to auto-off doctor status:", err);
+      }
     } else {
-      maxToken = 1;
+      // doctor not online — anchor is session start (but not earlier than now)
+      anchor = sessionStartUTC > now ? sessionStartUTC : now;
+    }
+
+    // Apply configured startDelay (push the anchor later by startDelay minutes)
+    try {
+      const effectiveStartDelay = Number(doctorStatus?.startDelay ?? 0);
+      if (effectiveStartDelay > 0) {
+        const old = anchor;
+        anchor = new Date(anchor.getTime() + effectiveStartDelay * 60000);
+        console.log(`Applying doctor startDelay: ${effectiveStartDelay} minutes; anchor moved ${old.toISOString()} -> ${anchor.toISOString()}`);
+      }
+    } catch (err) {
+      console.warn("Doctor delay handling failed:", err);
     }
   }
 
-  console.log(`Using maxToken=${maxToken} for ${dateStr} ${session}`);
+  // ------------------------------------------------------------------
+  // Build worstQueueEntries based on tokens actually used (token-number model)
+  // We will include placeholders only up to maxTokenUsed (no full-session enumeration)
+  // ------------------------------------------------------------------
+  const tokenNums = sessionVisits
+    .map((v: any) => Number(v.tokenNo ?? 0))
+    .filter((n: number) => Number.isFinite(n) && n > 0);
 
-  const slotTimesUTC: string[] = [];
-  for (let token = 1; token <= maxToken; token++) {
-    const offsetMs = (token - 1) * slotDuration * 60000;
-    const dt = new Date(sessionStartUTC.getTime() + offsetMs);
-    slotTimesUTC.push(dt.toISOString());
+  const maxTokenUsed = tokenNums.length > 0 ? Math.max(...tokenNums) : 0;
+
+  // If no tokens present, nothing to do
+  if (maxTokenUsed === 0) {
+    console.log(`No token numbers found for ${dateStr} ${session}`);
+    return;
   }
 
-  // Build a map from slotTime -> patient(s)
-  const patientsBySlot = new Map<string, any[]>();
+  // Map token -> patients array
+  const patientsByToken = new Map<number, any[]>();
   for (const v of sessionVisits) {
-    const key = String(v.slotTime);
-    const arr = patientsBySlot.get(key) ?? [];
+    const keyToken = Number(v.tokenNo ?? 0);
+    if (!keyToken || !Number.isFinite(keyToken)) continue;
+    const arr = patientsByToken.get(keyToken) ?? [];
     arr.push(v);
-    patientsBySlot.set(key, arr);
+    patientsByToken.set(keyToken, arr);
   }
 
-  // Deterministic ordering inside same slot: tokenNo then id
-  for (const [k, arr] of patientsBySlot.entries()) {
+  // For deterministic ordering inside same token (multiple patients same slot),
+  // sort by tokenNo (if present) else by doc id
+  for (const [k, arr] of patientsByToken.entries()) {
     arr.sort((a: any, b: any) => (Number(a.tokenNo ?? 99999) - Number(b.tokenNo ?? 99999)) || String(a.id).localeCompare(String(b.id)));
-    patientsBySlot.set(k, arr);
+    patientsByToken.set(k, arr);
   }
 
-  // ------------------------------------------------------------------
-  // Build worstQueueEntries: placeholders (empty slots) + patient entries
-  // Each entry: { id?, isPlaceholder, slotTime, patient? }
-  // ------------------------------------------------------------------
-  const worstQueueEntries: Array<{ id?: string; isPlaceholder?: boolean; slotTime: string; patient?: any }> = [];
+  // Build worstQueueEntries: token 1..maxTokenUsed
+  const worstQueueEntries: Array<{ id?: string; isPlaceholder?: boolean; tokenNo: number; patient?: any }> = [];
 
-  for (let i = 0; i < slotTimesUTC.length; i++) {
-    const st = slotTimesUTC[i];
-    const patientsInSlot = patientsBySlot.get(st) ?? [];
-
-    if (patientsInSlot.length === 0) {
-      worstQueueEntries.push({ isPlaceholder: true, slotTime: st });
+  for (let t = 1; t <= maxTokenUsed; t++) {
+    const arr = patientsByToken.get(t) ?? [];
+    if (arr.length === 0) {
+      worstQueueEntries.push({ isPlaceholder: true, tokenNo: t });
     } else {
-      for (const p of patientsInSlot) {
-        worstQueueEntries.push({ id: p.id, isPlaceholder: false, slotTime: st, patient: p });
+      for (const p of arr) {
+        worstQueueEntries.push({ id: p.id, isPlaceholder: false, tokenNo: t, patient: p });
       }
     }
   }
 
   // ------------------------------------------------------------------
-  // Build bestQueue: patients considered for Up-Next & bestCaseETC
-  // Best queue includes checked-in / priority / late (but not placeholders)
-  // If none checked-in, include earliest booked (bookedNotArrived[0]) as Up-Next candidate
+  // Build bestQueue: active checked-in patients only (priority first)
+  // Late-lock handling applies only to bestQueue as requested
   // ------------------------------------------------------------------
   const terminalStatuses = new Set(["Completed", "Cancelled"]);
   const inConsultationStatuses = new Set(["In-Consultation"]);
 
+  // checked-in and not terminal, order by tokenNo ascending
   const checkedInAndWaiting = sessionVisits
     .filter((v: any) => v?.checkInTime && !terminalStatuses.has(v.status))
     .sort((a: any, b: any) => (Number(a.tokenNo ?? 99999) - Number(b.tokenNo ?? 99999)));
 
-  const bookedNotArrived = sessionVisits
-    .filter((v: any) => !v?.checkInTime && !terminalStatuses.has(v.status))
-    .sort((a: any, b: any) => (Number(a.tokenNo ?? 99999) - Number(b.tokenNo ?? 99999)));
-
+  // split
   const priorityCheckedIn = checkedInAndWaiting.filter((v: any) => String(v.status ?? "").toLowerCase() === "priority");
-  const lateCheckedIn = checkedInAndWaiting.filter((v: any) => String(v.status ?? "").toLowerCase() === "late");
+  const lateCheckedIn = checkedInAndWaiting.filter((v: any) => v?.lateLocked);
   const normalCheckedIn = checkedInAndWaiting.filter((v: any) => {
     const st = String(v.status ?? "").toLowerCase();
-    return st === "waiting" || st === "booked" || st === "confirmed" || st === "up-next";
+    return st === "waiting" || st === "up-next" || st === "booked" || st === "walk-in booked";
   });
 
-  let bestQueue = [...priorityCheckedIn, ...normalCheckedIn, ...lateCheckedIn];
+  // Start with priority + normal
+  let bestQueue: any[] = [...priorityCheckedIn, ...normalCheckedIn];
 
-  if (bestQueue.length === 0 && bookedNotArrived.length > 0) {
-    bestQueue.push(bookedNotArrived[0]);
+  // Insert late-locked patients at positions determined by their lateAnchors
+  // lateAnchors is expected to be an array of visitIds representing patients that were ahead at lock time
+  for (const lateP of lateCheckedIn) {
+    const anchors: string[] = Array.isArray(lateP.lateAnchors) ? lateP.lateAnchors : [];
+    // Find last existing anchor index in current bestQueue
+    let lastIdx = -1;
+    for (const aid of anchors) {
+      const idx = bestQueue.findIndex((x: any) => x.id === aid);
+      if (idx >= 0) lastIdx = Math.max(lastIdx, idx);
+    }
+    const insertAt = lastIdx + 1;
+    // Ensure not inserting duplicates
+    if (!bestQueue.some((x: any) => x.id === lateP.id)) {
+      bestQueue.splice(insertAt, 0, lateP);
+    }
   }
 
   // ------------------------------------------------------------------
   // Compute ETCs:
-  // - bestCaseETC: anchor + index_in_bestQueue * slotDuration
-  // - worstCaseETC: anchor + index_in_worstQueueEntries * slotDuration
+  // - bestCaseETC assigned by iterating bestQueue from anchor (+slotDuration)
+  // - worstCaseETC assigned by iterating worstQueueEntries from anchor (+slotDuration)
+  // - placeholders receive no DB writes but are used in worst-case calculation
   // ------------------------------------------------------------------
-  const updatesMap = new Map<string, any>(); // id -> { field: value }
+  const updatesMap = new Map<string, any>(); // id -> changes
 
   const setUpdate = (id: string, obj: any) => {
     const cur = updatesMap.get(id) ?? {};
     updatesMap.set(id, { ...cur, ...obj });
   };
 
+  // Best-case through the bestQueue (only real patients)
   for (let i = 0; i < bestQueue.length; i++) {
     const patient = bestQueue[i];
     const bestMs = anchor.getTime() + i * slotDuration * 60000;
     setUpdate(patient.id, { bestCaseETC: new Date(bestMs).toISOString() });
   }
 
+  // Worst-case through all slots (placeholders included)
   for (let i = 0; i < worstQueueEntries.length; i++) {
     const entry = worstQueueEntries[i];
     const worstMs = anchor.getTime() + i * slotDuration * 60000;
@@ -239,7 +268,7 @@ export async function recalcQueueForDateSession(dateStr: string, session: "morni
     }
   }
 
-  // Ensure worst >= best for any patient
+  // Ensure for any patient we set worst >= best
   for (const [id, obj] of Array.from(updatesMap.entries())) {
     const best = obj.bestCaseETC ? new Date(obj.bestCaseETC).getTime() : null;
     const worst = obj.worstCaseETC ? new Date(obj.worstCaseETC).getTime() : null;
@@ -255,20 +284,35 @@ export async function recalcQueueForDateSession(dateStr: string, session: "morni
 
   // ------------------------------------------------------------------
   // Reset non-terminal statuses to baseline and assign exactly one Up-Next
+  // (we only write back to real patient docs)
   // ------------------------------------------------------------------
   for (const visit of sessionVisits) {
     if (terminalStatuses.has(visit.status) || inConsultationStatuses.has(visit.status)) {
+      // leave Completed / Cancelled / In-Consultation alone
       continue;
     }
-    const normalized = visit.checkInTime ? "Waiting" : (visit.status ?? "Booked");
+
+    let normalized: string;
+    if (visit.status === "In-Consultation") {
+      normalized = "In-Consultation";
+    } else if (visit.checkInTime) {
+      normalized = "Waiting";
+    } else if (visit.type === "Walk-in") {
+      normalized = "Walk-in Booked"; // Option B
+    } else {
+      normalized = "Booked";
+    }
+
     setUpdate(visit.id, { status: normalized });
   }
 
-  // Assign Up-Next
+  // Assign Up-Next: first eligible in bestQueue
+  let upNextAssigned = false;
   if (bestQueue.length > 0) {
     for (const candidate of bestQueue) {
       if (terminalStatuses.has(candidate.status) || inConsultationStatuses.has(candidate.status)) continue;
       setUpdate(candidate.id, { status: "Up-Next" });
+      upNextAssigned = true;
       break;
     }
   }
@@ -280,61 +324,36 @@ export async function recalcQueueForDateSession(dateStr: string, session: "morni
   }
 
   // ------------------------------------------------------------------
-  // FIX-B: Commit updates ONLY if the values actually changed
+  // Commit updates in a batch (only real patient docs)
   // ------------------------------------------------------------------
   if (updatesMap.size > 0) {
-    // 1) Fetch all patient docs that we plan to update (in a single batch read)
-    const ids = Array.from(updatesMap.keys());
-    const refs = ids.map((id) => firestore.collection("patients").doc(id));
-    const snaps: DocumentSnapshot[] = await firestore.getAll(...refs);
-
-    const filteredUpdates = new Map<string, any>();
-
-    // 2) Compare current DB value vs. proposed value
-    snaps.forEach((snap, index) => {
-      const id = ids[index];
-      const newValues = updatesMap.get(id) ?? {};
-      const currentValues = snap.exists ? (snap.data() as any) : {};
-
-      const toWrite: any = {};
-
-      for (const key of Object.keys(newValues)) {
-        const newVal = newValues[key];
-        const curVal = currentValues?.[key];
-
-        if (String(curVal) !== String(newVal)) {
-          toWrite[key] = newVal;
-        }
-      }
-
-      if (Object.keys(toWrite).length > 0) {
-        filteredUpdates.set(id, toWrite);
-      }
-    });
-
-    // 3) Only write REAL changes
-    if (filteredUpdates.size > 0) {
-      const batch = firestore.batch();
-      for (const [id, changes] of filteredUpdates.entries()) {
-        const ref = firestore.collection("patients").doc(id);
-        batch.set(ref, changes, { merge: true });
-      }
-      await batch.commit();
-
-      console.log(
-        `Queue recalculated for ${dateStr} ${session}: best=${bestQueue.length}, worst=${worstQueueEntries.length}, updates=${filteredUpdates.size}`
-      );
-    } else {
-      console.log(`No changes required for ${dateStr} ${session} — skipping write.`);
+    const batch = firestore.batch();
+    for (const [id, changes] of updatesMap.entries()) {
+      const ref = firestore.collection("patients").doc(id);
+      batch.set(ref, changes, { merge: true });
     }
+    await batch.commit();
   } else {
-    console.log(`Queue recalculated for ${dateStr} ${session}: best=${bestQueue.length}, worst=${worstQueueEntries.length}, updates=0`);
+    console.log(`No changes required for ${dateStr} ${session} — skipping write.`);
   }
+
+  console.log(`Queue recalculated for ${dateStr} ${session}: best=${bestQueue.length}, worst=${worstQueueEntries.length}, updates=${updatesMap.size}`);
 }
 
 /* ----------------------------------------------------------------------
    Helper functions
    ---------------------------------------------------------------------- */
+
+function adminAdminOrFirestore(): Firestore {
+  // helper to avoid direct import errors when editing locally — use actual admin firestore import in runtime
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const admin = require('./firebaseAdmin');
+    return (admin.firestore as unknown) as Firestore;
+  } catch (e) {
+    throw new Error('firebaseAdmin import failed');
+  }
+}
 
 /** Determine session from slotTime ISO string (assumes slotTime is UTC string) */
 export function deriveSession(slotTimeISO: string): "morning" | "evening" | null {
@@ -355,7 +374,7 @@ export function deriveSession(slotTimeISO: string): "morning" | "evening" | null
 }
 
 /** Convert YYYY-MM-DD + HH:mm (IST) → UTC ISO */
-export function convertISTDateTimeToUTC(dateStr: string, timeStr: string): string {
+export function convertISTDateTimeToUTC(dateStr: string, timeStr: string) {
   const [h, m] = timeStr.split(":").map(Number);
   const istMs = Date.UTC(
     Number(dateStr.slice(0, 4)),
