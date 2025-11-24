@@ -1,3 +1,9 @@
+process.env.FIREBASE_SERVICE_ACCOUNT = JSON.stringify(
+  process.env.FIREBASE_SERVICE_ACCOUNT ||
+  process.env.service_account ||
+  {}
+);
+
 // functions/src/index.ts
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { logger } from "firebase-functions";

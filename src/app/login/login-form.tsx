@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { checkUserAuthAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth } from "@/lib/firebase.client";
+
 
 
 export function LoginForm({ clinicName }: { clinicName?: string }) {
