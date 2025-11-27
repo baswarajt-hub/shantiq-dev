@@ -1,7 +1,6 @@
 
 'use client';
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 import { PatientPortalHeader } from '@/components/patient-portal-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

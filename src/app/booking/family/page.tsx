@@ -1,6 +1,5 @@
 'use client';
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
