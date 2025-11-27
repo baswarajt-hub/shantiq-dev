@@ -1,0 +1,226 @@
+
+'use client';
+
+import { useState, useEffect, useTransition } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScheduleCalendar } from '@/components/shared/schedule-calendar';
+import type { DoctorSchedule, Patient, VisitPurpose } from '@/lib/types';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { addMinutes, format, set, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+
+type GuestBookingDialogProps = {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  schedule: DoctorSchedule | null;
+  onSave: (guestName: string, date: string, time: string, purpose: string) => void;
+  bookedPatients: Patient[];
+};
+
+type SlotState = 'available' | 'booked' | 'reserved' | 'past';
+
+type AvailableSlot = {
+    time: string;
+    state: SlotState;
+};
+
+export function GuestBookingDialog({ isOpen, onOpenChange, schedule, onSave, bookedPatients }: GuestBookingDialogProps) {
+  const [step, setStep] = useState(1);
+  const [guestName, setGuestName] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedSession, setSelectedSession] = useState('morning');
+  const [selectedSlot, setSelectedSlot] = useState('');
+  const [selectedPurpose, setSelectedPurpose] = useState('Consultation');
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [isPending, startTransition] = useTransition();
+
+  const activeVisitPurposes = schedule?.visitPurposes.filter(p => p.enabled) || [];
+
+  useEffect(() => {
+    if (isOpen) {
+      const currentHour = new Date().getHours();
+      setSelectedSession(currentHour >= 14 ? 'evening' : 'morning');
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (schedule && selectedDate) {
+      const generatedSlots: AvailableSlot[] = [];
+      const dayOfWeek = format(selectedDate, 'EEEE') as keyof DoctorSchedule['days'];
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      
+      let daySchedule = schedule.days[dayOfWeek];
+      const closure = schedule.specialClosures.find(c => c.date === dateStr);
+
+      if (closure) {
+          daySchedule = {
+              morning: closure.morningOverride ?? daySchedule.morning,
+              evening: closure.eveningOverride ?? daySchedule.evening
+          }
+      }
+
+      const sessionSchedule = selectedSession === 'morning' ? daySchedule.morning : daySchedule.evening;
+      const isSessionClosed = selectedSession === 'morning' ? closure?.isMorningClosed : closure?.isEveningClosed;
+
+      const timeZone = "Asia/Kolkata";
+      const bookedSlotsForDay = bookedPatients
+        .filter(p => p.status !== 'Cancelled' && format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'yyyy-MM-dd') === dateStr)
+        .map(p => format(toZonedTime(parseISO(p.appointmentTime), timeZone), 'hh:mm a'));
+
+      if (sessionSchedule.isOpen && !isSessionClosed) {
+        const [startHour, startMinute] = sessionSchedule.start.split(':').map(Number);
+        const [endHour, endMinute] = sessionSchedule.end.split(':').map(Number);
+        
+        let currentTime = set(selectedDate, { hours: startHour, minutes: startMinute, seconds: 0, milliseconds: 0 });
+        const endTime = set(selectedDate, { hours: endHour, minutes: endMinute, seconds: 0, milliseconds: 0 });
+        
+        let slotIndex = 0;
+        const now = new Date();
+
+        while (currentTime < endTime) {
+          const timeString = format(currentTime, 'hh:mm a');
+          let slotState: SlotState = 'available';
+
+          if (currentTime < now) slotState = 'past';
+          else if (bookedSlotsForDay.includes(timeString)) slotState = 'booked';
+          else {
+            let isReservedForWalkIn = false;
+            if (schedule.reserveFirstFive && slotIndex < 5) isReservedForWalkIn = true;
+            
+            const reservationStrategy = schedule.walkInReservation;
+            const startIndexForAlternate = schedule.reserveFirstFive ? 5 : 0;
+            if (slotIndex >= startIndexForAlternate) {
+                const relativeIndex = slotIndex - startIndexForAlternate;
+                if (reservationStrategy === 'alternateOne' && relativeIndex % 2 !== 0) isReservedForWalkIn = true;
+                else if (reservationStrategy === 'alternateTwo' && (relativeIndex % 4 === 2 || relativeIndex % 4 === 3)) isReservedForWalkIn = true;
+            }
+            if (isReservedForWalkIn) slotState = 'reserved';
+          }
+
+          generatedSlots.push({ time: timeString, state: slotState });
+          currentTime = addMinutes(currentTime, schedule.slotDuration);
+          slotIndex++;
+        }
+      }
+      setAvailableSlots(generatedSlots);
+    }
+  }, [schedule, selectedDate, selectedSession, bookedPatients, isOpen]);
+
+  const resetState = () => {
+    setStep(1);
+    setGuestName('');
+    setSelectedDate(new Date());
+    setSelectedSession('morning');
+    setSelectedSlot('');
+    setSelectedPurpose('Consultation');
+  };
+
+  const handleClose = (open: boolean) => {
+    if (!open) resetState();
+    onOpenChange(open);
+  };
+
+  const handleSave = () => {
+    if (guestName && selectedDate && selectedSlot && selectedPurpose) {
+      startTransition(() => {
+        onSave(guestName, format(selectedDate, 'yyyy-MM-dd'), selectedSlot, selectedPurpose);
+        handleClose(false);
+      });
+    }
+  };
+
+  const getTooltipMessage = (state: SlotState) => ({
+    booked: "Already booked",
+    reserved: "Reserved for walk-ins",
+    available: "",
+    past: "Time has passed"
+  })[state] || "";
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Book for a Guest</DialogTitle>
+          <DialogDescription>Step {step} of 3: Enter guest details and select a time.</DialogDescription>
+        </DialogHeader>
+
+        {step === 1 && (
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+                <Label htmlFor="guestName">Guest's Name</Label>
+                <Input id="guestName" value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Enter guest's full name" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="purpose">Purpose of Visit</Label>
+                <Select onValueChange={setSelectedPurpose} value={selectedPurpose}>
+                  <SelectTrigger><SelectValue placeholder="Select a reason" /></SelectTrigger>
+                  <SelectContent>
+                    {activeVisitPurposes.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+            </div>
+            <Button onClick={() => setStep(2)} disabled={!guestName || !selectedPurpose} className="w-full">Next</Button>
+          </div>
+        )}
+
+        {step === 2 && schedule && (
+          <div className="space-y-4 py-4">
+            <div className="flex justify-center">
+              <ScheduleCalendar mode="single" selected={selectedDate} onSelect={setSelectedDate} schedule={schedule} className="p-0" />
+            </div>
+            <RadioGroup value={selectedSession} onValueChange={v => {setSelectedSession(v); setSelectedSlot('');}} className="flex justify-center gap-4">
+              <div className="flex items-center space-x-2"><RadioGroupItem value="morning" id="r1" /><Label htmlFor="r1">Morning</Label></div>
+              <div className="flex items-center space-x-2"><RadioGroupItem value="evening" id="r2" /><Label htmlFor="r2">Evening</Label></div>
+            </RadioGroup>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep(1)} className="w-full">Back</Button>
+              <Button onClick={() => setStep(3)} disabled={!selectedDate} className="w-full">Next</Button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4 py-4">
+            <Label>Select an available time slot</Label>
+            {availableSlots.length > 0 ? (
+              <TooltipProvider>
+                <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
+                  {availableSlots.map(slot => (
+                    <Tooltip key={slot.time} delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <Button variant={selectedSlot === slot.time ? 'default' : 'outline'} onClick={() => setSelectedSlot(slot.time)} disabled={slot.state !== 'available'} className="w-full">
+                            {slot.time}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {slot.state !== 'available' && <TooltipContent><p>{getTooltipMessage(slot.state)}</p></TooltipContent>}
+                    </Tooltip>
+                  ))}
+                </div>
+              </TooltipProvider>
+            ) : <p className="text-center text-muted-foreground">No slots available for this session.</p>}
+            <DialogFooter className="pt-4">
+              <Button variant="outline" onClick={() => setStep(2)} className="w-full">Back</Button>
+              <Button onClick={handleSave} disabled={isPending || !selectedSlot} className="w-full">
+                {isPending ? 'Booking...' : 'Confirm Guest Booking'}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "prod": "shanti-queue-vercel-1797-55cb4",
+    "dev": "shantiq-staging",
+    "default": "shantiq-staging"
+  },
+  "targets": {},
+  "etags": {}
+}
