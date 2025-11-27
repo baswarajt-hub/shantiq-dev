@@ -1,5 +1,8 @@
 
 'use client';
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 
 import { getDoctorScheduleAction, getDoctorStatusAction } from '@/app/actions';
 import { StethoscopeIcon } from '@/components/icons';
@@ -218,4 +221,3 @@ export default function LoginPage() {
   );
 }
 
-export const dynamic = 'force-dynamic';
