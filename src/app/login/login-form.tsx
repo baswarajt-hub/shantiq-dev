@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+
 import { CardContent, CardFooter, CardHeader, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,11 +10,17 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth } from "@/lib/firebase.client";
-import { RecaptchaVerifier, signInWithPhoneNumber, setPersistence, browserLocalPersistence } from "firebase/auth";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  setPersistence,
+  browserLocalPersistence
+} from "firebase/auth";
 
 declare global {
   interface Window {
-    recaptchaVerifier: RecaptchaVerifier;
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: any;
   }
 }
 
@@ -21,71 +28,111 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState<any>(null);
   const [isPending, startTransition] = useTransition();
+
   const router = useRouter();
   const { toast } = useToast();
+  const recaptchaInitRef = useRef(false);
 
-  // ----------------------------
-  // SEND OTP TO PHONE
-  // ----------------------------
+  // ---------------------------------------------------
+  // INITIALIZE INVISIBLE RECAPTCHA — ONLY ONCE
+  // ---------------------------------------------------
+  useEffect(() => {
+    if (recaptchaInitRef.current) return; // prevent multiple initializations
+
+    try {
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(
+          auth,
+          "recaptcha-container",
+          {
+            size: "invisible",
+          }
+        );
+      }
+      recaptchaInitRef.current = true;
+    } catch (err) {
+      console.error("Recaptcha initialization error:", err);
+    }
+  }, []);
+
+  // ---------------------------------------------------
+  // SEND OTP
+  // ---------------------------------------------------
   const handlePhoneSubmit = () => {
     startTransition(async () => {
       try {
         if (!phone || phone.length !== 10) {
-          toast({ title: "Invalid Phone", description: "Enter a valid 10-digit number", variant: "destructive" });
+          toast({
+            title: "Invalid Phone",
+            description: "Enter a valid 10-digit mobile number",
+            variant: "destructive"
+          });
           return;
         }
 
         await setPersistence(auth, browserLocalPersistence);
 
-        // Setup invisible Recaptcha
-        window.recaptchaVerifier = new RecaptchaVerifier(
+        const appVerifier = window.recaptchaVerifier;
+        if (!appVerifier) {
+          toast({
+            title: "Recaptcha Error",
+            description: "Security verification failed. Please reload the page.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const confirmation = await signInWithPhoneNumber(
           auth,
-          "recaptcha-container",
-          {
-            size: "invisible"
-          }
+          "+91" + phone,
+          appVerifier
         );
 
-        const confirmation = await signInWithPhoneNumber(auth, "+91" + phone, window.recaptchaVerifier);
-        setConfirmationResult(confirmation);
+        window.confirmationResult = confirmation;
 
-        toast({ title: "OTP Sent", description: `A one-time password has been sent to ${phone}` });
+        toast({
+          title: "OTP Sent",
+          description: `A one-time password has been sent to ${phone}`
+        });
+
         setStep("otp");
 
       } catch (error: any) {
+        console.error("OTP Send Error:", error);
         toast({
           title: "Error Sending OTP",
           description: String(error?.message || "Failed to send OTP"),
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     });
   };
 
-  // ----------------------------
+  // ---------------------------------------------------
   // VERIFY OTP
-  // ----------------------------
+  // ---------------------------------------------------
   const handleOtpSubmit = () => {
     startTransition(async () => {
       try {
-        if (!confirmationResult) {
-          toast({ title: "Error", description: "No OTP session found", variant: "destructive" });
+        if (!window.confirmationResult) {
+          toast({
+            title: "Error",
+            description: "No OTP session found",
+            variant: "destructive"
+          });
           return;
         }
 
-        const result = await confirmationResult.confirm(otp);
+        const result = await window.confirmationResult.confirm(otp);
         const user = result.user;
 
         if (user) {
           toast({ title: "Login Successful" });
 
-          // Store phone for your app navigation
           localStorage.setItem("userPhone", phone);
 
-          // Logic: if first-time user, redirect to register
-          // Your Firestore user doc logic can be added here if needed
+          // redirect to booking page
           router.push("/booking");
         }
 
@@ -93,18 +140,18 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
         toast({
           title: "Invalid OTP",
           description: String(error?.message || "OTP did not match"),
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     });
   };
 
-  // ----------------------------
-  // RENDER UI
-  // ----------------------------
+  // ---------------------------------------------------
+  // UI
+  // ---------------------------------------------------
   return (
     <>
-      {/* Required for Recaptcha */}
+      {/* Must exist ONLY ONCE */}
       <div id="recaptcha-container"></div>
 
       <CardHeader className="text-center">
@@ -158,6 +205,7 @@ export function LoginForm({ clinicName }: { clinicName?: string }) {
         ) : (
           <Button
             onClick={handleOtpSubmit}
+            disabled={isPending || otp.length < 4}
             className="w-full"
             style={{ backgroundColor: '#9d4edd' }}
           >
